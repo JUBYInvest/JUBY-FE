@@ -20,7 +20,9 @@
 
 .back {
   display: inline-block;
-  margin-bottom: 12px;
+  /* 손가락으로 누르는 넓이를 44px로 넓힌다(애플 권장). 넓힌 만큼 바깥 여백을 빼서 배치는 그대로다 */
+  padding: 14px 0;
+  margin: -14px 0 -2px;
   font-size: 14px;
   font-weight: 600;
   color: var(--color-text-sub);
@@ -243,6 +245,17 @@
   font-weight: 600;
   color: var(--color-text-sub);
   white-space: nowrap;
+}
+
+@media (max-width: 600px) {
+  /*
+   * 휴대폰에서는 탭 자체를 44px로 키운다. 탭 줄이 가로 스크롤 상자라 투명한 덧댐(::after)으로
+   * 넓히면 상자 밖으로 나간 부분이 잘려 눌리지 않는다
+   */
+  .periodTab {
+    min-width: 44px;
+    min-height: 44px;
+  }
 }
 
 .periodTab:hover {

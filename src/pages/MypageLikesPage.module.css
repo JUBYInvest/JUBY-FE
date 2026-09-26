@@ -58,6 +58,12 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  /*
+   * 손가락으로 누르는 넓이를 44px로 넓힌다(애플 권장). 넓힌 만큼 바깥 여백을 빼서 배치는 그대로다.
+   * 말줄임으로 넘친 글자를 잘라 두는 칸이라 ::after로 넓히면 잘려서 여백으로 넓힌다
+   */
+  padding: 13px 0;
+  margin: -13px 0;
 }
 
 .name:hover {
@@ -92,6 +98,7 @@
 }
 
 .unlike {
+  position: relative;
   padding: 6px 10px;
   border: 1px solid var(--color-border);
   border-radius: 8px;
@@ -99,6 +106,13 @@
   font-size: 12px;
   font-weight: 700;
   color: var(--color-text-sub);
+}
+
+/* 테두리 있는 단추라 여백으로 키우면 모양까지 커진다. 투명한 덧댐으로 누르는 넓이만 44px로 넓힌다 */
+.unlike::after {
+  content: '';
+  position: absolute;
+  inset: -8px -4px;
 }
 
 .unlike:hover {

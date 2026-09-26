@@ -66,6 +66,9 @@
   align-items: center;
   gap: 2px;
   justify-self: start;
+  /* 머리글 높이(46px)를 다 채우고 폭도 44px 이상. 글자 크기(16px)로 두면 휴대폰에서 누르기 어렵다 */
+  align-self: stretch;
+  min-width: 44px;
   padding: 0;
   border: none;
   background: none;
@@ -148,6 +151,8 @@
 
 .numericHead {
   justify-self: end;
+  /* 폭을 44px로 늘려도 글자는 오른쪽 숫자 줄에 붙인다 */
+  justify-content: flex-end;
 }
 
 .code {

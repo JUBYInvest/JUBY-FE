@@ -20,6 +20,12 @@
   justify-self: end;
 }
 
+.menu a {
+  /* 손가락으로 누르는 넓이를 44px로 넓힌다(애플 권장). 넓힌 만큼 바깥 여백을 빼서 배치는 그대로다 */
+  padding: 15px 5px;
+  margin: -15px -5px;
+}
+
 .menu a:hover {
   color: var(--color-text-sub);
 }
@@ -52,7 +58,11 @@
     display: flex;
     flex-wrap: wrap;
     justify-content: center;
-    gap: 10px 20px;
+    /*
+     * 줄 사이. 로그인하면 320px에서 메뉴가 두 줄로 내려가는데, 메뉴의 누르는 넓이(위아래 12px)가
+     * 윗줄·아랫줄과 겹치지 않을 만큼 둔다
+     */
+    gap: 24px 20px;
     height: auto;
     padding: 14px 16px;
   }
@@ -67,6 +77,11 @@
   .menu {
     gap: 14px;
     font-size: 13px;
+  }
+
+  .menu a {
+    padding: 12px 5px;
+    margin: -12px -5px;
   }
 
   .right {
