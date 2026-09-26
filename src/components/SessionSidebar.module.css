@@ -73,3 +73,55 @@
   line-height: 1.5;
   color: var(--color-text-sub);
 }
+
+/* 좁은 화면에서만 쓰는 접기 단추 */
+.toggle {
+  display: none;
+}
+
+@media (max-width: 900px) {
+  /* 머리를 한 줄로: 접기 단추 왼쪽, 새 대화 오른쪽. 둘 다 손가락 크기(44px) */
+  .head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 0 8px;
+  }
+
+  .headTitle {
+    display: none;
+  }
+
+  .toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 44px;
+    padding: 0 8px;
+    border: 0;
+    background: none;
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--color-text);
+  }
+
+  .chevron {
+    font-size: 12px;
+    transition: transform 0.15s;
+  }
+
+  .toggle[aria-expanded='true'] .chevron {
+    transform: rotate(180deg);
+  }
+
+  .newChat {
+    min-height: 44px;
+    margin-top: 0;
+    padding: 0 8px;
+  }
+
+  .bodyClosed {
+    display: none;
+  }
+}

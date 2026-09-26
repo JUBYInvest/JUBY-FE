@@ -24,6 +24,8 @@
    * 늘어나게 두면 대화가 길어질수록 페이지 전체가 길어져 입력창이 화면 밖으로 나간다.
    */
   height: clamp(420px, calc(100vh - 260px), 620px);
+  /* 휴대폰 주소창이 보일 때의 실제 높이. 모르는 브라우저는 위 줄(vh)을 쓴다 */
+  height: clamp(420px, calc(100dvh - 260px), 620px);
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: 16px;
@@ -229,7 +231,12 @@
   }
 
   .chat {
-    height: clamp(380px, calc(100vh - 220px), 560px);
+    /*
+     * 휴대폰에서는 이전 대화 목록이 한 줄로 접혀 대화창 위에 선다(SessionSidebar). 그 줄까지 쳐서
+     * 입력칸이 첫 화면 안에 들어오도록 뺀다
+     */
+    height: clamp(320px, calc(100vh - 260px), 560px);
+    height: clamp(320px, calc(100dvh - 260px), 560px);
   }
 }
 
