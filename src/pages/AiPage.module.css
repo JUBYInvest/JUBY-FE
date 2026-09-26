@@ -136,6 +136,13 @@
 
 .input::placeholder {
   color: var(--color-text-sub);
+  /*
+   * 한 줄짜리 칸이라 안내 글이 길면 두 줄로 넘어가 둘째 줄이 잘린다(390px 폭에서 "…알려 / 줘.").
+   * 한 줄로 두고 넘치면 말줄임표로 끝낸다
+   */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .send {

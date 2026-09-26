@@ -30,6 +30,8 @@
   font: inherit;
   font-size: 16px;
   color: var(--color-text);
+  /* 320px에서는 안내 글이 칸보다 길다. 말없이 끊기지 않게 말줄임표로 끝낸다 */
+  text-overflow: ellipsis;
 }
 
 .input::placeholder {
