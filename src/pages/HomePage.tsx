@@ -20,7 +20,7 @@ import { useDocumentTitle } from '../hooks/useDocumentTitle'
 import { isLoggedIn } from '../utils/auth'
 import { toKoreanDate } from '../utils/date'
 import { preloadStockChartPage } from '../utils/preload'
-import { nextSort, sortStocks } from '../utils/sort'
+import { describeSort, nextSort, sortStocks } from '../utils/sort'
 import type {
   CardFailure,
   SortKey,
@@ -302,6 +302,13 @@ export default function HomePage() {
             <span className={styles.asOf}>
               {toKoreanDate(list.baseDate)} 종가 기준
             </span>
+          )}
+          {/*
+            좁은 화면에서는 거래대금 열이 숨는데 기본 정렬이 거래대금이라 무엇 순인지 안 보인다.
+            그 폭에서만 글로 적는다(CSS). 넓은 화면은 머리글 화살표가 알려 준다
+          */}
+          {list.kind === 'ready' && (
+            <span className={styles.sortNote}>{describeSort(sort)}</span>
           )}
         </div>
 

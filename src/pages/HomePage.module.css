@@ -29,7 +29,8 @@
 }
 
 /* 지난 장 값을 보여주는 중이라는 표시. 숫자를 의심하기 전에 눈에 들어와야 한다 */
-.asOf {
+.asOf,
+.sortNote {
   padding: 4px 10px;
   border-radius: 999px;
   background: var(--color-bg-sub);
@@ -37,6 +38,11 @@
   font-size: 13px;
   font-weight: 600;
   white-space: nowrap;
+}
+
+/* 거래대금 열이 숨는 폭(StockTable .colVolume)에서만 보인다 */
+.sortNote {
+  display: none;
 }
 
 .loading {
@@ -128,6 +134,10 @@
   .headingRow {
     flex-wrap: wrap;
     gap: 8px;
+  }
+
+  .sortNote {
+    display: inline;
   }
 }
 

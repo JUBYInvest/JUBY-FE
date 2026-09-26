@@ -27,6 +27,18 @@ export function sortStocks(stocks: Stock[], sort: SortState): Stock[] {
   })
 }
 
+/** 정렬 기준을 사람 말로. 좁은 화면에서 거래대금 열이 숨으면 무엇 순인지 이 글로 알린다 */
+const SORT_WORDS: Record<SortKey, { asc: string; desc: string }> = {
+  stockName: { asc: '종목명 가나다순', desc: '종목명 가나다 역순' },
+  closePrice: { asc: '종가 낮은 순', desc: '종가 높은 순' },
+  fluctuate: { asc: '등락률 낮은 순', desc: '등락률 높은 순' },
+  tradingValue: { asc: '거래대금 적은 순', desc: '거래대금 많은 순' },
+}
+
+export function describeSort(sort: SortState): string {
+  return SORT_WORDS[sort.key][sort.direction]
+}
+
 /** 다른 컬럼을 누르면 기본 방향으로, 같은 컬럼을 다시 누르면 반대 방향으로 */
 export function nextSort(current: SortState | null, key: SortKey): SortState {
   if (current !== null && current.key === key) {
