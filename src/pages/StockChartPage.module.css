@@ -94,6 +94,22 @@
   background: var(--color-surface);
 }
 
+/* 종목 정보를 못 받았을 때 가격·탭·차트 자리를 대신하는 상자. 높이는 .chartBox 그대로라 아래 뉴스가 밀리지 않는다 */
+.failBox {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  text-align: center;
+}
+
+.failText {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+}
+
 .chartMessage {
   margin: 0;
   font-size: 15px;

@@ -171,26 +171,6 @@ export default function StockChartPage() {
     )
   }
 
-  if (state.kind === 'error') {
-    return (
-      <section className={styles.section}>
-        <h1 className={styles.heading}>종목 정보를 불러오지 못했습니다</h1>
-        <div className={styles.actions}>
-          <button
-            type="button"
-            className={styles.retryButton}
-            onClick={() => setRetryCount((count) => count + 1)}
-          >
-            다시 시도
-          </button>
-          <Link to="/" className={styles.backLink}>
-            홈으로 돌아가기
-          </Link>
-        </div>
-      </section>
-    )
-  }
-
   const detail = state.kind === 'ready' ? state.detail : null
 
   return (
@@ -207,6 +187,8 @@ export default function StockChartPage() {
           preview={preview}
           period={period}
           onPeriodChange={setPeriod}
+          failed={state.kind === 'error'}
+          onRetry={() => setRetryCount((count) => count + 1)}
         />
       </SectionBoundary>
 
@@ -227,6 +209,9 @@ interface PriceSectionProps {
   preview: StockPreview | null
   period: Period
   onPeriodChange: (period: Period) => void
+  /** 종목 정보를 못 받았다. 가격·탭·차트 자리를 안내 상자 하나로 바꾼다 */
+  failed: boolean
+  onRetry: () => void
 }
 
 /** 이름·현재가·기간 탭·차트·마지막 거래일 요약. 구역 오류 경계 안에서 그려진다 */
@@ -236,9 +221,36 @@ function PriceSection({
   preview,
   period,
   onPeriodChange,
+  failed,
+  onRetry,
 }: PriceSectionProps) {
   const shown = detail === null ? [] : sliceByPeriod(detail.candles, period)
   const lastCandle = shown.at(-1) ?? null
+
+  /*
+   * 실패는 이 구역 안에서만 알린다. 예전엔 화면 전체를 안내 한 줄로 바꿔, 따로 받는 뉴스까지 사라지고
+   * 안내가 왼쪽 위에 붙었다. 이름 줄(모르면 종목코드)과 홈 링크는 두고, 가격·탭·차트 자리를 정상 차트 상자와
+   * 같은 높이의 상자 하나로 바꿔 가운데에 알린다. 다시 시도는 종목 정보만 다시 받는다(뉴스는 그대로).
+   */
+  if (failed) {
+    return (
+      <section className={styles.section}>
+        <Link to="/" className={styles.back}>
+          <span aria-hidden="true">‹</span> 홈으로 돌아가기
+        </Link>
+        <h1 className={styles.identity}>
+          <span className={styles.name}>{preview?.stockName ?? stockCode}</span>
+          <span className={styles.code}>{stockCode}</span>
+        </h1>
+        <div className={`${styles.chartBox} ${styles.failBox}`} role="alert">
+          <p className={styles.failText}>종목 정보를 불러오지 못했습니다</p>
+          <button type="button" className={styles.retryButton} onClick={onRetry}>
+            다시 시도
+          </button>
+        </div>
+      </section>
+    )
+  }
 
   return (
     <section className={styles.section} aria-busy={detail === null}>
