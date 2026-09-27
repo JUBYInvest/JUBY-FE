@@ -1,4 +1,5 @@
 import { ApiError, get, malformedResponse, patch, post, remove, unchecked } from './client'
+import { isStockCode, nameOrCode } from './stock'
 import { clearTokens } from '../utils/auth'
 import type {
   LikeStock,
@@ -106,11 +107,15 @@ export async function getLikeStocks(): Promise<LikeStockList> {
   if (typeof result !== 'object' || result === null || !Array.isArray(result.likeStockList)) {
     throw malformedResponse()
   }
+  const likeStockList = result.likeStockList.flatMap(toLikeStock)
+  if (likeStockList.length < result.likeStockList.length) {
+    console.warn(`종목코드가 틀린 관심종목 ${result.likeStockList.length - likeStockList.length}개를 뺐습니다`)
+  }
   return {
     // 기준일이 빈 건 화면이 그 줄을 숨긴다(fromDashedYmd → "")
     baseDate: unchecked(result.baseDate),
     totalCount: unchecked(result.totalCount),
-    likeStockList: result.likeStockList.map(toLikeStock),
+    likeStockList,
   }
 }
 
@@ -124,7 +129,7 @@ interface LikeStockListResponse {
   /** YYYY-MM-DD */
   baseDate?: string | null
   totalCount?: number | null
-  likeStockList?: LikeStockResponse[] | null
+  likeStockList?: (LikeStockResponse | null)[] | null
 }
 
 interface LikeStockResponse {
@@ -136,14 +141,20 @@ interface LikeStockResponse {
   likedAt?: string | null
 }
 
-/** 값 칸이 빈 건 포맷 함수가 "-"로 적는다 */
-function toLikeStock(row: LikeStockResponse): LikeStock {
-  return {
-    stockCode: unchecked(row.stockCode),
-    stockName: unchecked(row.stockName),
+/**
+ * 종목코드가 없거나 틀린 행은 뺀다 — 링크가 `/stocks/null`, 해제 요청이 `/like-stocks/null`로 나갔다(2026-09-27 확인).
+ * 이름이 비면 종목코드로 대신한다. 값 칸이 빈 건 포맷 함수가 "-"로 적는다
+ */
+function toLikeStock(row: LikeStockResponse | null): LikeStock[] {
+  if (typeof row !== 'object' || row === null) return []
+  const { stockCode } = row
+  if (typeof stockCode !== 'string' || !isStockCode(stockCode)) return []
+  return [{
+    stockCode,
+    stockName: nameOrCode(row.stockName, stockCode),
     closePrice: unchecked(row.closePrice),
     fluctuate: unchecked(row.fluctuate),
     tradingValue: unchecked(row.tradingValue),
     likedAt: unchecked(row.likedAt),
-  }
+  }]
 }

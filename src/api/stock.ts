@@ -34,7 +34,7 @@ interface StockList {
 interface StockListResponse {
   /** YYYY-MM-DD */
   baseDate?: string | null
-  stockList?: StockRowResponse[] | null
+  stockList?: (StockRowResponse | null)[] | null
 }
 
 interface StockRowResponse {
@@ -51,22 +51,39 @@ export async function getStockList(): Promise<StockList> {
   const response = await get<StockListResponse | null>('/api/stocks')
   // 목록 자체가 없으면 그릴 게 없다. 한 행의 값이 빈 건 그 칸만 "-"로 두고 넘긴다
   if (response === null || !Array.isArray(response.stockList)) throw malformedResponse()
+  const stocks = response.stockList.flatMap(toStock)
+  if (stocks.length < response.stockList.length) {
+    console.warn(`종목코드가 틀린 행 ${response.stockList.length - stocks.length}개를 뺐습니다`)
+  }
   return {
     baseDate: fromDashedYmd(response.baseDate),
-    stocks: response.stockList.map(toStock),
+    stocks,
   }
 }
 
-/** 값 칸이 빈 건 포맷 함수가 "-"로 적고 정렬이 맨 뒤로 보낸다(sortStocks) */
-function toStock(row: StockRowResponse): Stock {
-  return {
-    stockCode: unchecked(row.stockCode),
-    stockName: unchecked(row.stockName),
+/**
+ * 종목 한 행이 쓸 만하면 [행], 아니면 []. 종목코드가 없거나 틀린 행은 뺀다 — 상세 링크(`/stocks/null`)도 하트도
+ * 걸 수 없고, 검색에서 `null.includes`로 던져 화면 전체가 오류 화면이 됐다(2026-09-27 확인).
+ * 이름이 비면 종목코드로 대신한다(`null.replace`로 똑같이 멈췄다). 값 칸이 빈 건 포맷 함수가 "-"로 적고
+ * 정렬이 맨 뒤로 보낸다(sortStocks).
+ */
+function toStock(row: StockRowResponse | null): Stock[] {
+  if (typeof row !== 'object' || row === null) return []
+  const { stockCode } = row
+  if (typeof stockCode !== 'string' || !isStockCode(stockCode)) return []
+  return [{
+    stockCode,
+    stockName: nameOrCode(row.stockName, stockCode),
     closePrice: unchecked(row.closePrice),
     fluctuate: unchecked(row.fluctuate),
     tradingValue: unchecked(row.tradingValue),
     isLiked: unchecked(row.isLiked),
-  }
+  }]
+}
+
+/** 화면에 적을 종목 이름. 비었거나(공백 포함) 문자열이 아니면 종목코드로 대신한다. 관심종목 행도 같이 쓴다 */
+export function nameOrCode(name: unknown, stockCode: string): string {
+  return typeof name === 'string' && name.trim() !== '' ? name : stockCode
 }
 
 /** GET /api/stocks/{code} */
