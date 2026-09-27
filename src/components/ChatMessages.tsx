@@ -2,16 +2,20 @@ import { useEffect, useRef } from 'react'
 import type { ChatMessage } from '../types/ai'
 import styles from './ChatMessages.module.css'
 
-/** 답변을 기다리는 중인지, 실패해서 재시도를 기다리는지. 끝났으면 null */
-export type PendingState = 'loading' | 'error' | null
+/**
+ * 답변을 기다리는 중인지, 실패해서 재시도를 기다리는지, 사용자가 기다리기를 멈췄는지. 끝났으면 null
+ */
+export type PendingState = 'loading' | 'error' | 'stopped' | null
 
 interface Props {
   messages: ChatMessage[]
   pending: PendingState
   onRetry: () => void
+  /** 그만 기다리기. 답은 제한 없이 기다리므로 사용자가 끊을 길을 둔다 */
+  onStop: () => void
 }
 
-export default function ChatMessages({ messages, pending, onRetry }: Props) {
+export default function ChatMessages({ messages, pending, onRetry, onStop }: Props) {
   const scrollRef = useRef<HTMLDivElement>(null)
 
   /*
@@ -54,12 +58,26 @@ export default function ChatMessages({ messages, pending, onRetry }: Props) {
       ))}
 
       {pending === 'loading' && (
-        <div className={styles.row}>
+        <div className={`${styles.row} ${styles.waitRow}`}>
           <p className={`${styles.bubble} ${styles.loading}`} aria-live="polite">
             <span className={styles.srOnly}>답변을 생성하고 있어요</span>
             <span className={styles.dot} aria-hidden="true" />
             <span className={styles.dot} aria-hidden="true" />
             <span className={styles.dot} aria-hidden="true" />
+          </p>
+          <button type="button" className={styles.retry} onClick={onStop}>
+            그만 기다리기
+          </button>
+        </div>
+      )}
+
+      {pending === 'stopped' && (
+        <div className={styles.row}>
+          <p className={`${styles.bubble} ${styles.stopped}`}>
+            답을 기다리지 않았어요.
+            <button type="button" className={styles.retry} onClick={onRetry}>
+              다시 시도
+            </button>
           </p>
         </div>
       )}

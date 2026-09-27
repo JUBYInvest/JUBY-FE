@@ -195,6 +195,16 @@ export default function AiPage() {
     void send(text, stockName)
   }
 
+  /**
+   * 그만 기다리기. 답은 제한 없이 기다려서(서버가 영영 안 답하면 입력칸이 잠긴 채 남았다) 사용자가 끊을 수 있게 한다
+   * (사용자 결정 2026-09-27). 번호를 올려 늦게 온 답은 버리고, 같은 질문은 다시 시도로 다시 보낸다.
+   * 서버는 이미 받은 질문의 답을 계속 만든다 — 프론트가 요청을 거둘 방법은 없다.
+   */
+  function handleStop() {
+    askSeqRef.current += 1
+    setPending('stopped')
+  }
+
   function handleRetry() {
     const last = lastAskRef.current
     if (last === null) return
@@ -289,6 +299,7 @@ export default function AiPage() {
               messages={messages}
               pending={pending}
               onRetry={handleRetry}
+              onStop={handleStop}
             />
           )}
 
