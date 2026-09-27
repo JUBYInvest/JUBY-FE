@@ -1,5 +1,14 @@
-/** Date → "20260805" (백엔드가 하이픈 없는 형식을 쓴다) */
+/** 여덟 자리 숫자 날짜("20260805")인가. 아니면 아래 함수들이 엉뚱한 값("--", 1899년)을 만든다 */
+function isYmd(value: unknown): value is string {
+  return typeof value === 'string' && /^\d{8}$/.test(value)
+}
+
+/**
+ * Date → "20260805" (백엔드가 하이픈 없는 형식을 쓴다).
+ * Date가 아니거나 잘못된 날짜면 던지지 않고 빈 문자열이다(다른 날짜 함수와 같은 규칙).
+ */
 export function toYmd(date: Date): string {
+  if (!(date instanceof Date) || Number.isNaN(date.getTime())) return ''
   const year = date.getFullYear()
   const month = String(date.getMonth() + 1).padStart(2, '0')
   const day = String(date.getDate()).padStart(2, '0')
@@ -18,8 +27,10 @@ export function fromDashedYmd(dashed: string | null | undefined): string {
 /**
  * YYYYMMDD → Date(로컬 자정). 상세 화면이 기간 탭으로 일봉을 자를 때 쓴다.
  * new Date("2026-08-05")는 UTC 자정이라 한국에서 날짜가 밀릴 수 있어 직접 조립한다.
+ * 여덟 자리 날짜가 아니면 잘못된 날짜(Invalid Date)다. 그대로 쪼개면 ""가 1899년 11월 30일이 된다.
  */
 export function ymdToDate(ymd: string): Date {
+  if (!isYmd(ymd)) return new Date(Number.NaN)
   return new Date(
     Number(ymd.slice(0, 4)),
     Number(ymd.slice(4, 6)) - 1,
@@ -27,8 +38,9 @@ export function ymdToDate(ymd: string): Date {
   )
 }
 
-/** "20260805" → "2026-08-05" (lightweight-charts가 이 형식을 받는다) */
+/** "20260805" → "2026-08-05" (lightweight-charts가 이 형식을 받는다). 여덟 자리 날짜가 아니면 빈 문자열 */
 export function toDashedYmd(ymd: string): string {
+  if (!isYmd(ymd)) return ''
   return `${ymd.slice(0, 4)}-${ymd.slice(4, 6)}-${ymd.slice(6, 8)}`
 }
 
@@ -40,7 +52,7 @@ export function toKoreanDate(
   ymd: string | null | undefined,
   today: Date = new Date(),
 ): string {
-  if (typeof ymd !== 'string' || !/^\d{8}$/.test(ymd)) return ''
+  if (!isYmd(ymd)) return ''
 
   const year = ymd.slice(0, 4)
   const month = Number(ymd.slice(4, 6))
