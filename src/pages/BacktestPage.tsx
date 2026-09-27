@@ -633,15 +633,26 @@ function BacktestResult({
   const info = findInvestType(preset.investType)
   if (info === null) return null
 
+  /*
+   * 1등. 화면에 적는 점수(소수 첫째 자리)가 같으면 공동 1위다 — 예전엔 번호 작은 성향 하나를 "가장 잘 맞는"으로
+   * 단정했다(사용자 결정 2026-09-27). 순서는 정렬 그대로(점수, 같으면 성향 번호)
+   */
+  const topScore = ranking[0]?.score.toFixed(1) ?? null
+  const isTop = (item: Ranked) => item.score.toFixed(1) === topScore
   const best = ranking[0] ?? null
-  const bestInfo = best === null ? null : findInvestType(best.investType)
+  const topInfos = ranking
+    .filter(isTop)
+    .flatMap((item) => findInvestType(item.investType) ?? [])
+  const isJoint = topInfos.length > 1
+  const topNames = topInfos.map((item) => item.personality).join('·')
 
   const { result } = preset
   const axisScores = calculateAxisScores(result)
   const verdict = scoreVerdict(result.finalScore)
-  /** 종목이 나와 같은 성향으로 판정됐는가 */
+  /** 종목이 나와 같은 성향으로 판정됐는가(공동 1위 중 하나여도 같다) */
   const isSame =
-    bestInfo !== null && savedPersonality === bestInfo.personality
+    savedPersonality !== null &&
+    topInfos.some((item) => item.personality === savedPersonality)
   /** 내 성향에 딸린 전략을 그대로 돌렸는가 (다른 전략으로 바꿔 볼 수 있다) */
   const usedOwnStrategy = savedPersonality === info.personality
 
@@ -742,18 +753,18 @@ function BacktestResult({
               )}
             </>
           )}
-          {bestInfo !== null && (
+          {topInfos.length > 0 && (
             <>
               <br />그 결과 {withTopicParticle(stockName)}{' '}
-              <b className={isSame ? styles.good : styles.bad}>
-                {bestInfo.personality}
-              </b>
-              에게 가장 잘 맞는 종목이에요.
+              <b className={isSame ? styles.good : styles.bad}>{topNames}</b>
+              {isJoint
+                ? '에게 똑같이 가장 잘 맞는 종목이에요(공동 1위).'
+                : '에게 가장 잘 맞는 종목이에요.'}
             </>
           )}
         </p>
 
-        {bestInfo !== null && best !== null && (
+        {topInfos.length > 0 && best !== null && (
           <div className={styles.matchRow}>
             <div className={styles.matchSide}>
               <span className={styles.matchLabel}>내 투자성향</span>
@@ -769,17 +780,15 @@ function BacktestResult({
 
             <div className={styles.matchSide}>
               <span className={styles.matchLabel}>{stockName}의 투자성향</span>
-              <strong className={styles.matchValue}>
-                {bestInfo.personality}
-              </strong>
+              <strong className={styles.matchValue}>{topNames}</strong>
               <span className={styles.matchFrom}>
-                적합도 {best.score.toFixed(1)}점으로 가장 높음
+                적합도 {best.score.toFixed(1)}점으로 {isJoint ? '공동 1위' : '가장 높음'}
               </span>
             </div>
           </div>
         )}
 
-        {savedPersonality !== null && bestInfo !== null && !isSame && (
+        {savedPersonality !== null && topInfos.length > 0 && !isSame && (
           <p className={styles.matchText}>
             성향이 서로 달라요. 내 성향대로 간다면 {stockName}보다 더 맞는
             종목이 있을 수 있어요.
@@ -918,20 +927,22 @@ function BacktestResult({
           </p>
         ) : (
           <>
-            <ul className={styles.rankList}>
-              {ranking.map((item, index) => {
+            <ul className={isJoint ? `${styles.rankList} ${styles.joint}` : styles.rankList}>
+              {ranking.map((item) => {
                 const rankInfo = findInvestType(item.investType)
                 if (rankInfo === null) return null
 
                 return (
                   <li key={item.investType} className={styles.rank}>
                     <span className={styles.rankName}>
-                      {index === 0 && <b className={styles.crown}>최고</b>}
+                      {isTop(item) && (
+                        <b className={styles.crown}>{isJoint ? '공동 1위' : '최고'}</b>
+                      )}
                       {rankInfo.personality}
                     </span>
                     <div className={styles.bar}>
                       <div
-                        className={index === 0 ? styles.barFillTop : styles.barFill}
+                        className={isTop(item) ? styles.barFillTop : styles.barFill}
                         style={{ width: `${item.score}%` }}
                       />
                     </div>

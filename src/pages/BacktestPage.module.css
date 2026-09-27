@@ -555,6 +555,11 @@
   margin-top: 8px;
 }
 
+/* 공동 1위면 배지("공동 1위")가 길어 이름 칸을 넓힌다. 막대 왼쪽 끝은 목록 안에서 여전히 한 줄로 맞는다 */
+.joint .rank {
+  grid-template-columns: 128px minmax(0, 1fr) 44px;
+}
+
 .rankName {
   display: flex;
   align-items: center;
@@ -914,6 +919,10 @@
   .rank {
     grid-template-columns: 100px minmax(0, 1fr) 38px;
     gap: 8px;
+  }
+
+  .joint .rank {
+    grid-template-columns: 120px minmax(0, 1fr) 38px;
   }
 
   .rankName {
