@@ -169,6 +169,28 @@ export default function BacktestPage() {
   const resultRef = useRef<HTMLDivElement>(null)
   /** 실행 번호. 기다리는 사이 조건이 바뀌면 늦게 온 결과를 버린다 */
   const runSeqRef = useRef(0)
+  /*
+   * 받은(받는 중인) 프리셋. 같은 조합은 이 화면에 있는 동안 한 번만 받는다(B-3, 사용자 결정 2026-09-27).
+   * 고른 전략이 1년이면 비교용 다섯 건 중 하나와 같은 요청이라 한 번에 6건이 나가며 하나가 겹쳤고,
+   * 기간이나 전략만 바꿔 다시 실행해도 같은 종목의 비교 5건을 매번 다시 받았다.
+   * 실패한 요청은 지워서 다시 시도가 새로 받게 한다. 값은 새벽 4시 배치로 바뀌지만 화면에 머무는 동안은 둔다.
+   */
+  const presetRequestsRef = useRef(new Map<string, Promise<BacktestPreset>>())
+
+  function loadPreset(
+    stockCode: string,
+    investType: number,
+    period: BacktestPeriod,
+  ): Promise<BacktestPreset> {
+    const key = `${stockCode}|${investType}|${period}`
+    const saved = presetRequestsRef.current.get(key)
+    if (saved !== undefined) return saved
+
+    const request = getPreset(stockCode, investType, period)
+    presetRequestsRef.current.set(key, request)
+    request.catch(() => presetRequestsRef.current.delete(key))
+    return request
+  }
 
   // 서버 목록·기간·내 성향을 한 번에 받는다. 셋 다 실패해도 화면은 로컬 값으로 뜬다
   useEffect(() => {
@@ -263,7 +285,8 @@ export default function BacktestPage() {
 
   /**
    * 고른 조합 하나와, 종목 성향을 가릴 다섯 성향(1년 기준)을 함께 받는다.
-   * 여섯 건 전부 DB 조회라 동시에 보내도 된다. 다섯 중 일부가 없어도(404) 나머지로 순위를 낸다.
+   * 전부 DB 조회라 동시에 보내도 된다. 이미 받은 조합은 다시 보내지 않는다(loadPreset).
+   * 다섯 중 일부가 없어도(404) 나머지로 순위를 낸다.
    */
   async function handleSubmit() {
     if (stock === null || investType === null || period === null) return
@@ -274,7 +297,7 @@ export default function BacktestPage() {
 
     const rankingTask = Promise.allSettled(
       INVEST_TYPES.map((item) =>
-        getPreset(stock.stockCode, item.investType, COMPARE_PERIOD).then(
+        loadPreset(stock.stockCode, item.investType, COMPARE_PERIOD).then(
           (preset): Ranked => ({
             investType: item.investType,
             score: preset.result.finalScore,
@@ -285,7 +308,7 @@ export default function BacktestPage() {
 
     try {
       const [preset, settled] = await Promise.all([
-        getPreset(stock.stockCode, investType, period),
+        loadPreset(stock.stockCode, investType, period),
         rankingTask,
       ])
       if (seq !== runSeqRef.current) return
