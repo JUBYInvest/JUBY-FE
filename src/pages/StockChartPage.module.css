@@ -290,14 +290,6 @@
   color: var(--color-text-sub);
 }
 
-.actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-  align-items: center;
-  margin-top: 16px;
-}
-
 .retryButton {
   padding: 9px 16px;
   border: 1px solid var(--color-border);
