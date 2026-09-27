@@ -160,6 +160,8 @@ export async function submitTest(
 
   if (!isLoggedIn()) {
     const type = scoreToPersonality(normalized)
+    // 서버라면 채점을 거절할 점수다. 결과를 지어내지 않고 실패로 알린다(화면은 제자리에서 다시 하게 한다)
+    if (type === null) throw new Error(`채점할 수 없는 점수입니다: ${normalized}`)
     return { type, ...PERSONALITY_INFO[type] }
   }
 
@@ -180,9 +182,10 @@ export async function submitTest(
    * personality 테이블이 비어 있으면 설명과 이미지가 빈 문자열로 온다. 그때는 로컬 문구를 쓴다(describePersonality)
    */
   const saved: TestResultResponse = typeof result === 'object' && result !== null ? result : {}
+  // 서버가 받아 저장했으니 범위 안이다. 그래도 못 내면 이름 자리를 비운다
   const name = isText(saved.personalityName)
     ? saved.personalityName
-    : scoreToPersonality(normalized)
+    : (scoreToPersonality(normalized) ?? '')
   return {
     type: name,
     ...describePersonality(name, saved.description, saved.url),

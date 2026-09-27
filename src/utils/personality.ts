@@ -50,8 +50,12 @@ export function normalizeScore(raw: number, questions: Question[]): number {
   return Math.round(SERVER_MIN + ratio * (SERVER_MAX - SERVER_MIN))
 }
 
-/** 서버 PersonalityTestService의 구간과 동일하게 맞춘다 */
-export function scoreToPersonality(score: number): PersonalityType {
+/**
+ * 서버 PersonalityTestService의 구간과 동일하게 맞춘다.
+ * 서버처럼 10~90 밖(NaN 포함)이면 성향을 내지 않는다(null) — 예전엔 9는 안정형, 91·NaN은 공격투자형으로 냈다(W-FN-1)
+ */
+export function scoreToPersonality(score: number): PersonalityType | null {
+  if (!(score >= SERVER_MIN && score <= SERVER_MAX)) return null
   if (score < 15) return '안정형'
   if (score < 35) return '안정추구형'
   if (score < 55) return '위험중립형'
