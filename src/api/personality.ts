@@ -1,4 +1,4 @@
-import { get, post, unchecked } from './client'
+import { get, post } from './client'
 import { isLoggedIn } from '../utils/auth'
 import { isFiniteNumber } from '../utils/format'
 import {
@@ -28,7 +28,7 @@ const USE_BACKEND_QUESTIONS = true
 
 /*
  * 아래 *Response는 서버가 실제로 주는 모양이다. 스웨거에 필수 표시가 없어 필드를 전부 비어 올 수 있게 적는다.
- * 화면 타입(types/personality.ts)으로 옮기는 자리에서 걸러 내고, 걸러 내지 않은 값은 unchecked()로 넘긴다.
+ * 화면 타입(types/personality.ts)으로 옮기는 자리에서 걸러 낸다(toQuestion, submitTest).
  */
 
 /** GET /api/personality-tests */
@@ -168,19 +168,24 @@ export async function submitTest(
    * 로그인 상태는 mock 문항으로 물러서지 않으므로(getQuestions) raw와 normalized가
    * 다를 수 있는 건 USE_BACKEND_QUESTIONS를 끈 개발 상태뿐이다. 그때만 환산값 하나로 보낸다.
    */
-  const result = await post<TestResultResponse>('/api/personality-tests', {
+  const result = await post<TestResultResponse | null>('/api/personality-tests', {
     scores: raw === normalized ? scores : [normalized],
   })
 
   /*
    * 여기까지 왔으면 서버는 이미 저장을 끝냈다. 여기서 던지면 화면이 "저장하지 못했어요"를 띄우고
-   * 다시 저장할 때마다 또 저장된다 — 이름을 몰라도 던지지 않는다(describePersonality).
-   * personality 테이블이 비어 있으면 설명과 이미지가 빈 문자열로 온다. 그때는 로컬 문구를 쓴다
+   * 다시 저장할 때마다 또 저장된다 — 이름을 몰라도, 본문이 비어 와도 던지지 않는다.
+   * 이름이 비면 같은 구간표로 프론트가 채점한 이름을 쓴다(서버와 같은 표·같은 점수라 결과가 같다).
+   * 예전엔 본문이 null이면 구조 분해에서 던져 저장 실패로 보였고, 이름이 null이면 결과 카드 이름 자리가 비었다.
+   * personality 테이블이 비어 있으면 설명과 이미지가 빈 문자열로 온다. 그때는 로컬 문구를 쓴다(describePersonality)
    */
-  const name = unchecked(result.personalityName)
+  const saved: TestResultResponse = typeof result === 'object' && result !== null ? result : {}
+  const name = isText(saved.personalityName)
+    ? saved.personalityName
+    : scoreToPersonality(normalized)
   return {
     type: name,
-    ...describePersonality(name, result.description, result.url),
+    ...describePersonality(name, saved.description, saved.url),
   }
 }
 
