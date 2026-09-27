@@ -11,6 +11,7 @@ import { useDocumentTitle } from '../hooks/useDocumentTitle'
 import { isLoggedIn } from '../utils/auth'
 import type { StockInfo } from '../types/stock'
 import type { BacktestPeriod, BacktestPreset } from '../types/backtest'
+import { isFiniteNumber } from '../utils/format'
 import { PERSONALITY_INFO, isPersonalityType } from '../utils/personality'
 import {
   AXES,
@@ -583,6 +584,15 @@ function BacktestResult({
    * 용어 자체가 벽이다("샤프비율 1.69"를 읽고 좋은지 나쁜지 알 수 있는 사람은 적다).
    * 그래서 값마다 한 줄 해설을 붙이고, 어려운 말은 쉬운 이름을 앞세우고 원래 용어를 괄호에 둔다.
    */
+  /*
+   * 낱개 지표는 비어 올 수 있다(isUsablePreset이 막지 않는다). 값이 있을 때만 숫자·색을 쓰고 아니면 "-"다.
+   * null >= 0은 참이라 그대로 두면 "-"가 빨간색으로 칠해지고, null.toFixed에서 결과 구역이 멈췄다
+   */
+  const toneOf = (value: unknown): 'up' | 'down' | undefined =>
+    isFiniteNumber(value) ? (value >= 0 ? 'up' : 'down') : undefined
+  const positionCount = result.growth.positionCount
+  const hasPositionCount = Number.isInteger(positionCount)
+
   const metrics: {
     label: string
     value: string
@@ -592,13 +602,13 @@ function BacktestResult({
     {
       label: '누적수익률',
       value: toPercent(result.profit.totalReturn),
-      tone: result.profit.totalReturn >= 0 ? 'up' : 'down',
+      tone: toneOf(result.profit.totalReturn),
       desc: '이 기간에 전략을 그대로 따랐다면 이만큼 벌었어요',
     },
     {
       label: '연평균수익률',
       value: toPercent(result.profit.annualReturn),
-      tone: result.profit.annualReturn >= 0 ? 'up' : 'down',
+      tone: toneOf(result.profit.annualReturn),
       desc: '1년치로 환산하면 이 정도 속도예요',
     },
     {
@@ -608,7 +618,9 @@ function BacktestResult({
     },
     {
       label: '위험 대비 수익 (샤프비율)',
-      value: result.effect.sharpeRatio.toFixed(2),
+      value: isFiniteNumber(result.effect.sharpeRatio)
+        ? result.effect.sharpeRatio.toFixed(2)
+        : '-',
       desc: '1을 넘으면 감수한 위험에 비해 잘 번 편이에요',
     },
     {
@@ -618,7 +630,7 @@ function BacktestResult({
     },
     {
       label: '거래횟수',
-      value: `${result.growth.positionCount}회`,
+      value: hasPositionCount ? `${positionCount}회` : '-',
       desc: '이 기간에 전략이 사고판 횟수예요',
     },
   ]
@@ -736,14 +748,15 @@ function BacktestResult({
                   <span className={styles.axisWeight}>
                     비중 {Math.round(info.weights[axis] * 100)}%
                   </span>
+                  {/* 지표가 빠진 축은 점수를 모른다. 0이 아니라 "-"로 적고 막대는 비운다 */}
                   <span className={styles.axisScore}>
-                    {axisScores[axis].toFixed(0)}
+                    {axisScores[axis]?.toFixed(0) ?? '-'}
                   </span>
                 </div>
-                <div className={styles.bar}>
+                <div className={styles.bar} aria-hidden="true">
                   <div
                     className={styles.barFill}
-                    style={{ width: `${axisScores[axis]}%` }}
+                    style={{ width: `${axisScores[axis] ?? 0}%` }}
                   />
                 </div>
               </li>
@@ -796,7 +809,7 @@ function BacktestResult({
           안정성 점수만 100점으로 치솟는다. 점수만 보면 '아주 안정적인 종목'처럼 읽히지만
           실제로는 이 전략이 이 종목에서 신호를 한 번도 못 잡은 것이다. 먼저 알린다.
         */}
-        {result.growth.positionCount === 0 && (
+        {hasPositionCount && positionCount === 0 && (
           <p className={styles.warn}>
             이 기간에는 매매 신호가 한 번도 나오지 않았어요. 손익이 없어 안정성
             점수가 높게 잡히니, 적합도보다 <b>거래횟수 0회</b>를 먼저 봐주세요.

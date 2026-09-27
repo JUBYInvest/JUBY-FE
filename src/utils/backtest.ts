@@ -1,4 +1,5 @@
 import type { BacktestPeriod, QuantScoring } from '../types/backtest'
+import { isFiniteNumber } from './format'
 import type { PersonalityType } from '../types/personality'
 
 /**
@@ -221,33 +222,43 @@ function normalizeNegative(value: number, best: number, worst: number): number {
   return Math.min(100, Math.max(0, ((worst - value) / (worst - best)) * 100))
 }
 
+/** 축 하나의 지표와 정규화·비중. 지표 중 하나라도 비면 그 축은 계산하지 않는다 */
+type AxisPart = [value: unknown, score: (value: number) => number, weight: number]
+
+function axisScore(parts: AxisPart[]): number | null {
+  let sum = 0
+  for (const [value, score, weight] of parts) {
+    // 빈 값을 0으로 치면 MDD·변동성이 "0 = 가장 안전"이 되어 값이 없는데 안정성 100점이 나왔다
+    if (!isFiniteNumber(value)) return null
+    sum += score(value) * weight
+  }
+  return Math.round(sum * 100) / 100
+}
+
+/** 축별 점수(0~100). 그 축의 지표가 하나라도 비면 그 축은 null이다 — 화면이 "-"로 적는다 */
 export function calculateAxisScores(
   result: QuantScoring,
-): Record<Axis, number> {
-  const stable =
-    normalizeNegative(result.stable.mdd, 0.05, 0.4) * 0.5 +
-    normalizeNegative(result.stable.volatility, 0.05, 0.4) * 0.25 +
-    normalizeNegative(result.stable.dVolatility, 0.03, 0.3) * 0.25
-
-  const profit =
-    normalizePositive(result.profit.totalReturn, 0, 0.1) * 0.1 +
-    normalizePositive(result.profit.annualReturn, 0, 0.5) * 0.6 +
-    normalizePositive(result.profit.avgTradeReturn, 0, 0.1) * 0.3
-
-  const effect =
-    normalizePositive(result.effect.sharpeRatio, 0, 2) * 0.5 +
-    normalizePositive(result.effect.sortinoRatio, 0, 3) * 0.25 +
-    normalizePositive(result.effect.calmarRatio, 0, 3) * 0.25
-
-  const growth =
-    normalizePositive(result.growth.momentumRatio, -0.2, 0.2) * 0.4 +
-    normalizePositive(result.growth.volGrowthRatio, 0, 0.5) * 0.3 +
-    normalizePositive(result.growth.positionCount, 0, 20) * 0.3
-
+): Record<Axis, number | null> {
   return {
-    stable: Math.round(stable * 100) / 100,
-    profit: Math.round(profit * 100) / 100,
-    effect: Math.round(effect * 100) / 100,
-    growth: Math.round(growth * 100) / 100,
+    stable: axisScore([
+      [result.stable.mdd, (v) => normalizeNegative(v, 0.05, 0.4), 0.5],
+      [result.stable.volatility, (v) => normalizeNegative(v, 0.05, 0.4), 0.25],
+      [result.stable.dVolatility, (v) => normalizeNegative(v, 0.03, 0.3), 0.25],
+    ]),
+    profit: axisScore([
+      [result.profit.totalReturn, (v) => normalizePositive(v, 0, 0.1), 0.1],
+      [result.profit.annualReturn, (v) => normalizePositive(v, 0, 0.5), 0.6],
+      [result.profit.avgTradeReturn, (v) => normalizePositive(v, 0, 0.1), 0.3],
+    ]),
+    effect: axisScore([
+      [result.effect.sharpeRatio, (v) => normalizePositive(v, 0, 2), 0.5],
+      [result.effect.sortinoRatio, (v) => normalizePositive(v, 0, 3), 0.25],
+      [result.effect.calmarRatio, (v) => normalizePositive(v, 0, 3), 0.25],
+    ]),
+    growth: axisScore([
+      [result.growth.momentumRatio, (v) => normalizePositive(v, -0.2, 0.2), 0.4],
+      [result.growth.volGrowthRatio, (v) => normalizePositive(v, 0, 0.5), 0.3],
+      [result.growth.positionCount, (v) => normalizePositive(v, 0, 20), 0.3],
+    ]),
   }
 }
