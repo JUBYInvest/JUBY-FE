@@ -220,12 +220,12 @@ export function searchStocks(stocks: StockInfo[], keyword: string): StockInfo[] 
         normalize(stock.stockName).includes(normalized) ||
         stock.stockCode.includes(normalized),
     )
-    .sort(
-      (a, b) =>
-        matchRank(a, normalized) - matchRank(b, normalized) ||
-        // 같은 순위면 짧은 이름 먼저. "삼성전자"가 "삼성전자우"보다 앞에 온다
-        a.stockName.length - b.stockName.length,
-    )
+    /*
+     * 일치 종류로만 세우고, 같은 종류 안에서는 넘겨받은 순서(거래대금 순)를 그대로 둔다(sort는 안정 정렬).
+     * 예전엔 이름 길이를 먼저 봐서 "SK"에 SK하이닉스가 4번째, "삼성"에 거래대금 1위가 맨 뒤로 밀렸다.
+     * "삼성전자"를 치면 정확히 같은 삼성전자가 앞부분만 같은 삼성전자우보다 먼저 온다(일치 종류).
+     */
+    .sort((a, b) => matchRank(a, normalized) - matchRank(b, normalized))
     .slice(0, MAX_RESULTS)
 }
 
