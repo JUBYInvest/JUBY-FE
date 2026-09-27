@@ -157,6 +157,12 @@ export default function BacktestPage() {
     BacktestPeriod[]
   > | null>(null)
 
+  /**
+   * 서버 목록(종목·기간 옵션) 중 하나라도 못 받아 프론트 값으로 대신 보여주는 중인가.
+   * 조용히 바꾸면 고른 조합이 서버에 없을 때 "아직 계산되지 않은 조합"만 보고 이유를 모른다
+   */
+  const [usingFallback, setUsingFallback] = useState(false)
+
   const [result, setResult] = useState<ResultState>({ kind: 'idle' })
   const resultRef = useRef<HTMLDivElement>(null)
   /** 실행 번호. 기다리는 사이 조건이 바뀌면 늦게 온 결과를 버린다 */
@@ -167,7 +173,10 @@ export default function BacktestPage() {
     getStockList()
       // 거래대금 순으로 세운다. 가나다순이면 "삼성"에 삼성전자가 후보 밖으로 밀린다
       .then(({ stocks }) => setStockOptions(byTradingValue(stocks)))
-      .catch((error: unknown) => console.warn('종목 목록 조회 실패', error))
+      .catch((error: unknown) => {
+        console.warn('종목 목록 조회 실패', error)
+        setUsingFallback(true)
+      })
 
     getPresetOptions()
       .then((options) =>
@@ -177,7 +186,10 @@ export default function BacktestPage() {
           ),
         ),
       )
-      .catch((error: unknown) => console.warn('프리셋 기간 조회 실패', error))
+      .catch((error: unknown) => {
+        console.warn('프리셋 기간 조회 실패', error)
+        setUsingFallback(true)
+      })
   }, [])
 
   // 내 성향이 도착했고 아직 전략을 안 골랐으면 맞는 전략을 미리 고른다
@@ -366,6 +378,12 @@ export default function BacktestPage() {
             </>
           )}
         </div>
+
+        {usingFallback && (
+          <p className={styles.fallbackNote} role="status">
+            서버 목록을 받지 못해 기본 목록으로 보여드려요. 결과가 없는 조합이 있을 수 있어요.
+          </p>
+        )}
 
         <section className={styles.form}>
           {/* 종목 선택 --------------------------------------------------- */}
