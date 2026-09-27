@@ -1,5 +1,6 @@
 import { get, post, unchecked } from './client'
 import { isLoggedIn } from '../utils/auth'
+import { isFiniteNumber } from '../utils/format'
 import {
   PERSONALITY_INFO,
   describePersonality,
@@ -32,13 +33,13 @@ const USE_BACKEND_QUESTIONS = true
 
 /** GET /api/personality-tests */
 interface QuestionListResponse {
-  questions?: QuestionResponse[] | null
+  questions?: (QuestionResponse | null)[] | null
 }
 
 interface QuestionResponse {
   questionId?: number | null
   content?: string | null
-  choices?: ChoiceResponse[] | null
+  choices?: (ChoiceResponse | null)[] | null
 }
 
 interface ChoiceResponse {
@@ -72,19 +73,33 @@ function sortByIds(questions: Question[]): Question[] {
     }))
 }
 
-/** 보기가 빈 문항은 getQuestions가 이미 걸렀다. 번호·글·점수가 빈 건 거르지 않는다 */
-function toQuestion(question: QuestionResponse): Question {
-  return {
-    questionId: unchecked(question.questionId),
-    content: unchecked(question.content),
-    choices: (question.choices ?? []).map(
-      (choice): Choice => ({
-        choiceId: unchecked(choice.choiceId),
-        content: unchecked(choice.content),
-        score: unchecked(choice.score),
-      }),
-    ),
-  }
+/**
+ * 쓸 수 있는 문항이면 화면 타입으로, 아니면 null. 번호·글이 비었거나, 보기가 없거나, 보기 하나라도 번호·글·점수가
+ * 비었거나, 보기 번호가 겹치면 쓸 수 없다 — 번호가 둘 다 null이면 한 번 누를 때 둘이 같이 골라지고, 점수가 비면
+ * 합이 NaN이 돼 채점이 어긋났다(2026-09-27 확인).
+ */
+function toQuestion(question: QuestionResponse | null): Question | null {
+  if (typeof question !== 'object' || question === null) return null
+  const { questionId, content, choices } = question
+  if (!isFiniteNumber(questionId) || !isText(content)) return null
+  if (!Array.isArray(choices) || choices.length === 0) return null
+
+  const parsed = choices.map(toChoice)
+  if (!parsed.every((choice): choice is Choice => choice !== null)) return null
+  if (new Set(parsed.map((choice) => choice.choiceId)).size !== parsed.length) return null
+  return { questionId, content, choices: parsed }
+}
+
+function toChoice(choice: ChoiceResponse | null): Choice | null {
+  if (typeof choice !== 'object' || choice === null) return null
+  const { choiceId, content, score } = choice
+  if (!isFiniteNumber(choiceId) || !isText(content) || !isFiniteNumber(score)) return null
+  return { choiceId, content, score }
+}
+
+/** 공백만 있는 글도 빈 것으로 본다 */
+function isText(value: unknown): value is string {
+  return typeof value === 'string' && value.trim() !== ''
 }
 
 interface QuestionSet {
@@ -113,11 +128,12 @@ export async function getQuestions(): Promise<QuestionSet> {
     if (!Array.isArray(questions) || questions.length === 0) {
       throw new Error('문항이 비어 있습니다')
     }
-    // 보기가 빈 문항이 하나라도 있으면 그 문항에서 더 나아갈 수 없다. 이것도 받지 못한 것과 같다
-    if (questions.some((q) => !Array.isArray(q.choices) || q.choices.length === 0)) {
-      throw new Error('보기가 빈 문항이 있습니다')
+    // 보기가 비었거나 모양이 틀린 문항이 하나라도 있으면 그 문항에서 더 나아갈 수 없다. 이것도 받지 못한 것과 같다
+    const parsed = questions.map(toQuestion)
+    if (!parsed.every((question): question is Question => question !== null)) {
+      throw new Error('보기가 비었거나 모양이 틀린 문항이 있습니다')
     }
-    return { questions: sortByIds(questions.map(toQuestion)), isFallback: false }
+    return { questions: sortByIds(parsed), isFallback: false }
   } catch (error: unknown) {
     if (isLoggedIn()) throw error
     console.warn('성향 문항을 서버에서 못 받아 로컬 문항을 씁니다', error)
