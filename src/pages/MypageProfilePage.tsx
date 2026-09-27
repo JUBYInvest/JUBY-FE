@@ -119,8 +119,9 @@ export default function MypageProfilePage() {
   }
 
   /**
-   * 이름 2~4자, 생일은 오늘 이전 — 서버가 검사하고 400에 이유를 적어 준다.
-   * 화면에서도 같은 규칙으로 먼저 거르되, 서버 메시지가 오면 그걸 그대로 보여준다.
+   * 이름 2~4자, 생일은 오늘 이전 — 서버가 검사하고 어긋나면 400을 준다.
+   * 이름은 화면에서 먼저 거르고(생일은 입력칸의 min·max가 막는다), 400이 오면 서버 message 대신
+   * 두 규칙을 적은 고정 문구를 보여준다(아래 catch).
    */
   async function handleSave(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
