@@ -38,6 +38,21 @@ import styles from './BacktestPage.module.css'
 const COMPARE_PERIOD: BacktestPeriod = 'ONE_YEAR'
 
 /**
+ * 이 전략으로 고를 수 있는 기간. 로컬 표(최소 기간)와 서버가 실제로 계산해 둔 기간의 교집합이다.
+ * 서버 목록을 못 받았으면(null) 로컬 표만 쓴다.
+ * 기간 선택지와 전략을 바꿀 때 기간을 놓아 줄지 가르는 곳이 같이 쓴다 — 따로 셈하면
+ * 선택지에는 없는 기간이 고른 값으로 남는다.
+ */
+function availablePeriods(
+  investType: number,
+  serverPeriods: Map<number, BacktestPeriod[]> | null,
+): BacktestPeriod[] {
+  const local = supportedPeriods(investType)
+  const server = serverPeriods?.get(investType)
+  return server === undefined ? local : local.filter((p) => server.includes(p))
+}
+
+/**
  * 받침이 있으면 '은', 없으면 '는'.
  * 한글이 아니면(NAVER 등) '는'이 자연스러워 기본값으로 둔다.
  */
@@ -169,12 +184,10 @@ export default function BacktestPage() {
 
   const selected = investType === null ? null : findInvestType(investType)
 
-  const periodChoices = useMemo(() => {
-    if (investType === null) return []
-    const local = supportedPeriods(investType)
-    const server = serverPeriods?.get(investType)
-    return server === undefined ? local : local.filter((p) => server.includes(p))
-  }, [investType, serverPeriods])
+  const periodChoices = useMemo(
+    () => (investType === null ? [] : availablePeriods(investType, serverPeriods)),
+    [investType, serverPeriods],
+  )
 
   const isRunning = result.kind === 'loading'
   const canRun =
@@ -215,11 +228,12 @@ export default function BacktestPage() {
   /**
    * 전략마다 고를 수 있는 기간이 달라서, 전략을 바꾸면 못 쓰게 된 기간을 놓아 준다.
    * 안 놓아 주면 화면에는 3개월이 적혀 있는데 서버는 400을 주는 상태가 된다.
+   * 서버 목록에 없는 기간도 놓아 준다. 로컬 표만 보면 선택지에서 사라진 기간이 고른 값으로 남는다.
    */
   function changeStrategy(next: number | null) {
     setInvestType(next)
     if (next !== null && period !== null) {
-      if (!supportedPeriods(next).includes(period)) {
+      if (!availablePeriods(next, serverPeriods).includes(period)) {
         setPeriod(null)
       }
     }
