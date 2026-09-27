@@ -65,9 +65,13 @@ export default function MypagePersonalityPage() {
         <p className={styles.hint}>
           몇 분이면 끝나요. 검사하고 나면 여기에 결과가 남습니다.
         </p>
-        <a className={styles.primary} href={TEST_URL}>
+        {/*
+          앱 안에서 옮긴다. <a href>는 앱을 통째로 다시 받아, 사이트 데이터를 막은 브라우저에서는 메모리에만 있던
+          토큰이 사라져 로그인이 풀린 채 검사하게 됐다(결과가 저장되지 않는다)
+        */}
+        <Link className={styles.primary} to={TEST_URL}>
           검사하러 가기
-        </a>
+        </Link>
       </div>
     )
   }
