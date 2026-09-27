@@ -2,11 +2,11 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { getPreset, getPresetOptions } from '../api/backtest'
 import { ApiError } from '../api/client'
-import { getMyPersonalityOnPublicPage } from '../api/member'
 import { byTradingValue, getStockList, searchStocks } from '../api/stock'
 import { STOCK_LIST } from '../api/stockList'
 import SectionBoundary from '../components/SectionBoundary'
 import { useIsLoggedIn } from '../hooks/useIsLoggedIn'
+import { useMyPersonality } from '../hooks/useMyPersonality'
 import { useDocumentTitle } from '../hooks/useDocumentTitle'
 import { isLoggedIn } from '../utils/auth'
 import type { StockInfo } from '../types/stock'
@@ -111,8 +111,14 @@ export default function BacktestPage() {
    * 그에 맞는 전략을 미리 골라 둔다. 사용자는 전략만 바꾼다.
    * 서버로 나가는 값은 어차피 investType 하나뿐이라 전략을 고르는 것이 곧 성향을 고르는 것과 같다.
    */
-  const [savedPersonality, setSavedPersonality] = useState<string | null>(null)
-  // 모르는 성향 이름이면 맞는 전략도 모른다. 미리 고르지 않는다
+  /*
+   * 들어올 때 로그인 상태였을 때만 부른다. 만료된 토큰(401)이면 토큰만 지우고 이 화면에 머물고,
+   * 못 불러온 것은 "없음"이 아니라 실패로 보인다(useMyPersonality)
+   */
+  const [loggedInAtMount] = useState(isLoggedIn)
+  const { personality, retry: retryPersonality } = useMyPersonality(loggedInAtMount)
+  const savedPersonality = personality.kind === 'found' ? personality.name : null
+  // 모르는 성향 이름이면 맞는 전략도 모른다. 미리 고르지 않는다(실패·없음도 마찬가지)
   const recommended = isPersonalityType(savedPersonality)
     ? findByPersonality(savedPersonality)
     : null
@@ -150,15 +156,6 @@ export default function BacktestPage() {
         ),
       )
       .catch((error: unknown) => console.warn('프리셋 기간 조회 실패', error))
-
-    // 마운트 때 한 번만 읽는다. 여기서 loggedIn을 쓰면 빈 의존성 배열과 어긋난다
-    if (isLoggedIn()) {
-      // 만료된 토큰(401)이어도 로그인 화면으로 끌고 가지 않는다(getMyPersonalityOnPublicPage)
-      getMyPersonalityOnPublicPage()
-        // 못 받으면 성향 없음으로 둔다. 이 화면은 성향 없이도 쓸 수 있다
-        .catch(() => null)
-        .then((info) => setSavedPersonality(info?.investPersonality ?? null))
-    }
   }, [])
 
   // 내 성향이 도착했고 아직 전략을 안 골랐으면 맞는 전략을 미리 고른다
@@ -297,7 +294,17 @@ export default function BacktestPage() {
           입력 칸에서 빼고 맨 위에 사실로 적어 둔다.
         */}
         <div className={styles.myBanner}>
-          {savedPersonality === null ? (
+          {personality.kind === 'loading' ? (
+            <p className={styles.myText}>내 투자성향을 불러오는 중이에요.</p>
+          ) : personality.kind === 'error' ? (
+            /* 못 불러왔으면 검사를 권하지 않는다 — 다시 검사하면 멀쩡한 성향을 덮어쓴다 */
+            <>
+              <p className={styles.myText}>성향을 불러오지 못했어요.</p>
+              <button type="button" className={styles.myAction} onClick={retryPersonality}>
+                다시 시도
+              </button>
+            </>
+          ) : savedPersonality === null ? (
             <>
               <p className={styles.myText}>
                 {loggedIn

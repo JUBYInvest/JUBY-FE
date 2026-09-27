@@ -2,10 +2,10 @@ import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { ask, getSessionDetail, getSessions } from '../api/ai'
 import { ApiError } from '../api/client'
-import { getMyPersonalityOnPublicPage } from '../api/member'
 import ChatMessages, { type PendingState } from '../components/ChatMessages'
 import SessionSidebar from '../components/SessionSidebar'
 import { useIsLoggedIn } from '../hooks/useIsLoggedIn'
+import { useMyPersonality } from '../hooks/useMyPersonality'
 import { useDocumentTitle } from '../hooks/useDocumentTitle'
 import { findStockName } from '../utils/stockName'
 import type { ChatMessage, ChatSession } from '../types/ai'
@@ -32,7 +32,6 @@ export default function AiPage() {
   const [question, setQuestion] = useState('')
   const [pending, setPending] = useState<PendingState>(null)
   const [notice, setNotice] = useState('')
-  const [personality, setPersonality] = useState<string | null>(null)
 
   /*
    * 화면에서 바로 만든 메시지에 붙일 번호. 서버가 주는 번호는 양수라서 음수로 내려가며 쓴다.
@@ -51,6 +50,7 @@ export default function AiPage() {
    */
   const askSeqRef = useRef(0)
 
+  // 대화 목록은 회원마다 다르다. 로그인·로그아웃하면 다시 받는다
   useEffect(() => {
     getSessions()
       .then(setSessions)
@@ -58,16 +58,13 @@ export default function AiPage() {
         // 목록을 못 받아도 질문은 할 수 있다. 사이드바만 비워둔다
         console.warn('AI 대화 목록 조회 실패', error)
       })
-
-    // 토큰이 없으면 부를 이유가 없다. 성향 영역은 어차피 숨겨진다
-    if (loggedIn) {
-      // 만료된 토큰(401)이면 토큰만 지우고 이 화면에 머문다(getMyPersonalityOnPublicPage)
-      getMyPersonalityOnPublicPage()
-        // 이 화면은 실패 이유를 가리지 않는다. 못 받으면 성향 영역을 숨길 뿐이다
-        .catch(() => null)
-        .then((info) => setPersonality(info?.investPersonality ?? null))
-    }
   }, [loggedIn])
+
+  /*
+   * 내 성향. 토큰이 없으면 부르지 않는다(성향 영역은 어차피 숨긴다). 만료된 토큰(401)이면 토큰만 지우고
+   * 이 화면에 머문다. 못 불러온 것은 "없음"이 아니라 실패로 보인다(useMyPersonality)
+   */
+  const { personality, retry: retryPersonality } = useMyPersonality(loggedIn)
 
   function nextLocalId(): number {
     const id = localIdRef.current
@@ -257,18 +254,26 @@ export default function AiPage() {
               {/*
                 성향이 있으면 보여주고, 로그인했는데 없으면 검사를 권한다 —
                 성향 없는 회원의 질문은 서버가 거절하므로 미리 알려야 한다.
-                비로그인은 이 영역을 숨긴다. 지어낸 값을 보여줄 수는 없다.
+                못 불러왔으면 검사를 권하지 않는다(다시 검사하면 멀쩡한 성향을 덮어쓴다).
+                비로그인·불러오는 중은 이 영역을 숨긴다. 지어낸 값을 보여줄 수는 없다.
               */}
-              {personality !== null ? (
+              {personality.kind === 'found' ? (
                 <div className={styles.personality}>
                   <p className={styles.personalityText}>
-                    현재 당신의 투자성향은 ‘{personality}’ 입니다.
+                    현재 당신의 투자성향은 ‘{personality.name}’ 입니다.
                   </p>
                   <Link className={styles.darkButton} to={PERSONALITY_TEST_URL}>
                     투자성향 변경하기
                   </Link>
                 </div>
-              ) : loggedIn ? (
+              ) : personality.kind === 'error' ? (
+                <div className={styles.personality}>
+                  <p className={styles.personalityText}>성향을 불러오지 못했어요.</p>
+                  <button type="button" className={styles.darkButton} onClick={retryPersonality}>
+                    다시 시도
+                  </button>
+                </div>
+              ) : personality.kind === 'none' ? (
                 <div className={styles.personality}>
                   <p className={styles.personalityText}>
                     투자성향을 정하면 나에게 맞춘 답을 받을 수 있어요.

@@ -49,6 +49,13 @@
   font-weight: 700;
 }
 
+.myAction {
+  /* 링크와 단추가 같은 모양을 쓴다(다시 시도는 단추) */
+  color: inherit;
+  font-family: inherit;
+  cursor: pointer;
+}
+
 .myAction:hover {
   border-color: var(--color-text-sub);
 }
