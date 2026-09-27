@@ -1,4 +1,4 @@
-import { get, post } from './client'
+import { get, post, unchecked } from './client'
 import { isLoggedIn } from '../utils/auth'
 import {
   PERSONALITY_INFO,
@@ -6,7 +6,7 @@ import {
   normalizeScore,
   scoreToPersonality,
 } from '../utils/personality'
-import type { PersonalityResult, Question } from '../types/personality'
+import type { Choice, PersonalityResult, Question } from '../types/personality'
 
 /*
  * 문항 출처를 여기서 정한다. 화면 코드는 어느 쪽이든 똑같이 동작한다.
@@ -25,18 +25,37 @@ import type { PersonalityResult, Question } from '../types/personality'
  */
 const USE_BACKEND_QUESTIONS = true
 
+/*
+ * 아래 *Response는 서버가 실제로 주는 모양이다. 스웨거에 필수 표시가 없어 필드를 전부 비어 올 수 있게 적는다.
+ * 화면 타입(types/personality.ts)으로 옮기는 자리에서 걸러 내고, 걸러 내지 않은 값은 unchecked()로 넘긴다.
+ */
+
+/** GET /api/personality-tests */
 interface QuestionListResponse {
-  questions: Question[]
+  questions?: QuestionResponse[] | null
 }
 
+interface QuestionResponse {
+  questionId?: number | null
+  content?: string | null
+  choices?: ChoiceResponse[] | null
+}
+
+interface ChoiceResponse {
+  choiceId?: number | null
+  content?: string | null
+  score?: number | null
+}
+
+/** POST /api/personality-tests */
 interface TestResultResponse {
-  memberId: number
-  memberName: string
-  personalityId: number
+  memberId?: number | null
+  memberName?: string | null
+  personalityId?: number | null
   /** 다섯 성향 이름이지만 서버에 성향이 늘면 모르는 이름이 올 수 있다 */
-  personalityName: string
-  description: string
-  url: string
+  personalityName?: string | null
+  description?: string | null
+  url?: string | null
 }
 
 /**
@@ -51,6 +70,21 @@ function sortByIds(questions: Question[]): Question[] {
       ...question,
       choices: [...question.choices].sort((a, b) => a.choiceId - b.choiceId),
     }))
+}
+
+/** 보기가 빈 문항은 getQuestions가 이미 걸렀다. 번호·글·점수가 빈 건 거르지 않는다 */
+function toQuestion(question: QuestionResponse): Question {
+  return {
+    questionId: unchecked(question.questionId),
+    content: unchecked(question.content),
+    choices: (question.choices ?? []).map(
+      (choice): Choice => ({
+        choiceId: unchecked(choice.choiceId),
+        content: unchecked(choice.content),
+        score: unchecked(choice.score),
+      }),
+    ),
+  }
 }
 
 interface QuestionSet {
@@ -73,14 +107,17 @@ export async function getQuestions(): Promise<QuestionSet> {
   }
 
   try {
-    const { questions } = await get<QuestionListResponse>('/api/personality-tests')
+    const response = await get<QuestionListResponse | null>('/api/personality-tests')
+    const questions = response?.questions
     // 서버가 빈 목록을 주면 화면이 0/0으로 멈춘다. 받지 못한 것과 같이 다룬다
-    if (questions.length === 0) throw new Error('문항이 비어 있습니다')
+    if (!Array.isArray(questions) || questions.length === 0) {
+      throw new Error('문항이 비어 있습니다')
+    }
     // 보기가 빈 문항이 하나라도 있으면 그 문항에서 더 나아갈 수 없다. 이것도 받지 못한 것과 같다
     if (questions.some((q) => !Array.isArray(q.choices) || q.choices.length === 0)) {
       throw new Error('보기가 빈 문항이 있습니다')
     }
-    return { questions: sortByIds(questions), isFallback: false }
+    return { questions: sortByIds(questions.map(toQuestion)), isFallback: false }
   } catch (error: unknown) {
     if (isLoggedIn()) throw error
     console.warn('성향 문항을 서버에서 못 받아 로컬 문항을 씁니다', error)
@@ -124,9 +161,10 @@ export async function submitTest(
    * 다시 저장할 때마다 또 저장된다 — 이름을 몰라도 던지지 않는다(describePersonality).
    * personality 테이블이 비어 있으면 설명과 이미지가 빈 문자열로 온다. 그때는 로컬 문구를 쓴다
    */
+  const name = unchecked(result.personalityName)
   return {
-    type: result.personalityName,
-    ...describePersonality(result.personalityName, result.description, result.url),
+    type: name,
+    ...describePersonality(name, result.description, result.url),
   }
 }
 

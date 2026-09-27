@@ -1,4 +1,4 @@
-import { get, malformedResponse } from './client'
+import { get, malformedResponse, unchecked } from './client'
 import { fromDashedYmd } from '../utils/date'
 import { sortStocks } from '../utils/sort'
 import type {
@@ -7,7 +7,6 @@ import type {
   Stock,
   StockDetail,
   StockInfo,
-  StockListResponse,
 } from '../types/stock'
 import type { NewsItem, NewsPage, NewsSort } from '../types/news'
 
@@ -26,6 +25,27 @@ interface StockList {
   stocks: Stock[]
 }
 
+/*
+ * 아래 *Response는 서버가 실제로 주는 모양이다. 스웨거에 필수 표시가 없어 필드를 전부 비어 올 수 있게 적는다.
+ * 화면 타입(types/*.ts)으로 옮기는 자리에서 걸러 내고, 걸러 내지 않은 값은 unchecked()로 넘긴다.
+ */
+
+/** GET /api/stocks */
+interface StockListResponse {
+  /** YYYY-MM-DD */
+  baseDate?: string | null
+  stockList?: StockRowResponse[] | null
+}
+
+interface StockRowResponse {
+  stockCode?: string | null
+  stockName?: string | null
+  closePrice?: number | null
+  fluctuate?: number | null
+  tradingValue?: number | null
+  isLiked?: boolean | null
+}
+
 /** 100종목 시세. DB만 읽는다 — 증권사 호출이 없어 몇 번을 불러도 부담이 없다 */
 export async function getStockList(): Promise<StockList> {
   const response = await get<StockListResponse | null>('/api/stocks')
@@ -33,25 +53,40 @@ export async function getStockList(): Promise<StockList> {
   if (response === null || !Array.isArray(response.stockList)) throw malformedResponse()
   return {
     baseDate: fromDashedYmd(response.baseDate),
-    stocks: response.stockList,
+    stocks: response.stockList.map(toStock),
   }
 }
 
+/** 값 칸이 빈 건 포맷 함수가 "-"로 적고 정렬이 맨 뒤로 보낸다(sortStocks) */
+function toStock(row: StockRowResponse): Stock {
+  return {
+    stockCode: unchecked(row.stockCode),
+    stockName: unchecked(row.stockName),
+    closePrice: unchecked(row.closePrice),
+    fluctuate: unchecked(row.fluctuate),
+    tradingValue: unchecked(row.tradingValue),
+    isLiked: unchecked(row.isLiked),
+  }
+}
+
+/** GET /api/stocks/{code} */
 interface StockDetailResponse {
-  stockName: string
-  stockCode: string
-  currentPrice: number
-  comparePrev: number
-  period: Period
-  dailyPrices: {
-    /** YYYY-MM-DD */
-    date: string
-    openPrice: number
-    highPrice: number
-    lowPrice: number
-    closePrice: number
-    volume: number
-  }[]
+  stockName?: string | null
+  stockCode?: string | null
+  currentPrice?: number | null
+  comparePrev?: number | null
+  period?: Period | null
+  dailyPrices?: DailyPriceResponse[] | null
+}
+
+interface DailyPriceResponse {
+  /** YYYY-MM-DD */
+  date?: string | null
+  openPrice?: number | null
+  highPrice?: number | null
+  lowPrice?: number | null
+  closePrice?: number | null
+  volume?: number | null
 }
 
 /**
@@ -92,41 +127,46 @@ export async function getStockDetail(
   }
 
   return {
-    stockName: response.stockName,
-    stockCode: response.stockCode,
-    currentPrice: response.currentPrice,
-    comparePrev: response.comparePrev,
-    period: response.period,
+    stockName: unchecked(response.stockName),
+    stockCode: unchecked(response.stockCode),
+    // 현재가·등락률이 빈 건 포맷 함수가 "-"로 적는다
+    currentPrice: unchecked(response.currentPrice),
+    comparePrev: unchecked(response.comparePrev),
+    period: unchecked(response.period),
     // 서버가 오름차순으로 주지만 기대지 않는다. 차트는 순서가 어긋나면 그리지 못한다
     candles: usable.sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0)),
   }
 }
 
-function toCandle(price: StockDetailResponse['dailyPrices'][number]): Candle {
+/** 날짜가 틀린 봉은 getStockDetail이 뺀다. 값이 빈 봉은 거르지 않는다(차트가 그대로 그린다) */
+function toCandle(price: DailyPriceResponse): Candle {
   return {
     date: fromDashedYmd(price.date),
-    open: price.openPrice,
-    high: price.highPrice,
-    low: price.lowPrice,
-    close: price.closePrice,
-    volume: price.volume,
+    open: unchecked(price.openPrice),
+    high: unchecked(price.highPrice),
+    low: unchecked(price.lowPrice),
+    close: unchecked(price.closePrice),
+    volume: unchecked(price.volume),
   }
 }
 
+/** GET /api/stocks/{code}/news */
 interface StockNewsResponse {
-  stockCode: string
-  stockName: string
-  sort: NewsSort
-  newsList: {
-    timeAgo: string
-    /** "2026-08-19T23:09:00" (시간대 없음, KST) */
-    publishedAt: string
-    title: string
-    description: string
-    originalLink: string
-  }[]
-  page: number
-  totalCount: number
+  stockCode?: string | null
+  stockName?: string | null
+  sort?: NewsSort | null
+  newsList?: NewsItemResponse[] | null
+  page?: number | null
+  totalCount?: number | null
+}
+
+interface NewsItemResponse {
+  timeAgo?: string | null
+  /** "2026-08-19T23:09:00" (시간대 없음, KST) */
+  publishedAt?: string | null
+  title?: string | null
+  description?: string | null
+  originalLink?: string | null
 }
 
 /** 서버는 page를 0~9로 제한한다(@Max(9)). 그 밖을 보내면 400이다 */
@@ -155,9 +195,9 @@ export async function getStockNews(
       .map(toNewsItem)
       .filter((item) => item.title.trim() !== '' && item.link.trim() !== ''),
     receivedCount: response.newsList.length,
-    page: response.page,
-    totalCount: response.totalCount,
-    sort: response.sort,
+    page: unchecked(response.page),
+    totalCount: unchecked(response.totalCount),
+    sort: unchecked(response.sort),
   }
 }
 
@@ -201,7 +241,7 @@ function safeLink(value: unknown): string {
   }
 }
 
-function toNewsItem(item: StockNewsResponse['newsList'][number]): NewsItem {
+function toNewsItem(item: NewsItemResponse): NewsItem {
   const link = safeLink(item.originalLink)
   return {
     title: stripHtml(textOf(item.title)),

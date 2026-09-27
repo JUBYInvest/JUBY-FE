@@ -1,6 +1,7 @@
-import { ApiError, get, malformedResponse, patch, post, remove } from './client'
+import { ApiError, get, malformedResponse, patch, post, remove, unchecked } from './client'
 import { clearTokens } from '../utils/auth'
 import type {
+  LikeStock,
   LikeStockList,
   MemberInfo,
   MemberUpdate,
@@ -101,9 +102,48 @@ export async function unlikeStock(stockCode: string): Promise<void> {
  * 화면의 "불러오지 못했습니다 + 다시 시도"를 태운다. 기준일은 비어도 된다(화면이 그 줄만 숨긴다).
  */
 export async function getLikeStocks(): Promise<LikeStockList> {
-  const result = await get<LikeStockList | null>('/api/members/me/like-stocks')
+  const result = await get<LikeStockListResponse | null>('/api/members/me/like-stocks')
   if (typeof result !== 'object' || result === null || !Array.isArray(result.likeStockList)) {
     throw malformedResponse()
   }
-  return result
+  return {
+    // 기준일이 빈 건 화면이 그 줄을 숨긴다(fromDashedYmd → "")
+    baseDate: unchecked(result.baseDate),
+    totalCount: unchecked(result.totalCount),
+    likeStockList: result.likeStockList.map(toLikeStock),
+  }
+}
+
+/*
+ * 서버가 실제로 주는 모양. 스웨거에 필수 표시가 없어 필드를 전부 비어 올 수 있게 적는다.
+ * 화면 타입(types/member.ts)으로 옮기는 자리에서 걸러 내고, 걸러 내지 않은 값은 unchecked()로 넘긴다.
+ */
+
+/** GET /api/members/me/like-stocks */
+interface LikeStockListResponse {
+  /** YYYY-MM-DD */
+  baseDate?: string | null
+  totalCount?: number | null
+  likeStockList?: LikeStockResponse[] | null
+}
+
+interface LikeStockResponse {
+  stockCode?: string | null
+  stockName?: string | null
+  closePrice?: number | null
+  fluctuate?: number | null
+  tradingValue?: number | null
+  likedAt?: string | null
+}
+
+/** 값 칸이 빈 건 포맷 함수가 "-"로 적는다 */
+function toLikeStock(row: LikeStockResponse): LikeStock {
+  return {
+    stockCode: unchecked(row.stockCode),
+    stockName: unchecked(row.stockName),
+    closePrice: unchecked(row.closePrice),
+    fluctuate: unchecked(row.fluctuate),
+    tradingValue: unchecked(row.tradingValue),
+    likedAt: unchecked(row.likedAt),
+  }
 }

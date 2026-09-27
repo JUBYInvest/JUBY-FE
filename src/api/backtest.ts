@@ -1,5 +1,5 @@
 import { get, malformedResponse } from './client'
-import type { BacktestPeriod, BacktestPreset } from '../types/backtest'
+import type { BacktestPeriod, BacktestPreset, QuantScoring } from '../types/backtest'
 
 /**
  * 백테스트 창구. 둘 다 DB만 읽는다 — 새벽 4시 배치가 미리 계산해 둔 값이라
@@ -24,28 +24,66 @@ export async function getPreset(
     investType: String(investType),
     period,
   })
-  const preset = await get<BacktestPreset | null>(`/api/backtest/preset?${query}`)
-  if (!isUsablePreset(preset)) throw malformedResponse()
+  const preset = toPreset(await get<PresetResponse | null>(`/api/backtest/preset?${query}`))
+  if (preset === null) throw malformedResponse()
   return preset
 }
 
-/**
- * 결과 화면이 반드시 읽는 값이 다 있는가. 점수(finalScore)와 네 축의 지표 묶음이다.
- * 하나라도 비면 그리다가 null.필드를 읽어 화면 전체가 오류 화면이 된다(2026-09-23 검사).
- * 묶음 안의 낱개 지표는 비어도 된다 — 포맷 함수가 "-"로 적는다.
+/*
+ * 서버가 실제로 주는 모양. 스웨거에 필수 표시가 없어 지표 묶음과 그 안의 낱개를 비어 올 수 있게 적는다.
+ * 화면 타입(types/backtest.ts)으로 옮기는 자리(toPreset)에서 걸러 낸다.
  */
-function isUsablePreset(preset: BacktestPreset | null): preset is BacktestPreset {
-  if (preset === null || typeof preset !== 'object') return false
-  if (typeof preset.investType !== 'number') return false
 
-  const scoring = preset.result as BacktestPreset['result'] | null | undefined
-  if (scoring === null || typeof scoring !== 'object') return false
+/** 묶음 안의 낱개 지표가 전부 비어 올 수 있다 */
+type LooseMetrics<T> = { [K in keyof T]?: T[K] | null }
+
+interface ScoringResponse
+  extends Omit<QuantScoring, 'stable' | 'profit' | 'effect' | 'growth'> {
+  stable?: LooseMetrics<QuantScoring['stable']> | null
+  profit?: LooseMetrics<QuantScoring['profit']> | null
+  effect?: LooseMetrics<QuantScoring['effect']> | null
+  growth?: LooseMetrics<QuantScoring['growth']> | null
+}
+
+/** GET /api/backtest/preset */
+interface PresetResponse extends Omit<BacktestPreset, 'result'> {
+  result?: ScoringResponse | null
+}
+
+/**
+ * 결과 화면이 반드시 읽는 값이 다 있으면 화면 타입으로 옮기고, 아니면 null.
+ * 점수(finalScore)와 네 축의 지표 묶음이다. 하나라도 비면 그리다가 null.필드를 읽어 화면 전체가
+ * 오류 화면이 된다(2026-09-23 검사).
+ * 묶음 안의 낱개 지표는 걸러 내지 않는다 — 비면 화면이 "-"로 적고 그 축 점수를 비운다(F-2).
+ */
+function toPreset(preset: PresetResponse | null): BacktestPreset | null {
+  if (preset === null || typeof preset !== 'object') return null
+  if (typeof preset.investType !== 'number') return null
+
+  const scoring = preset.result
+  if (scoring === null || scoring === undefined || typeof scoring !== 'object') return null
   if (typeof scoring.finalScore !== 'number' || !Number.isFinite(scoring.finalScore)) {
-    return false
+    return null
   }
-  return [scoring.stable, scoring.profit, scoring.effect, scoring.growth].every(
-    (group) => typeof group === 'object' && group !== null,
-  )
+  const { stable, profit, effect, growth } = scoring
+  if (!isGroup(stable) || !isGroup(profit) || !isGroup(effect) || !isGroup(growth)) {
+    return null
+  }
+  return {
+    ...preset,
+    result: {
+      ...scoring,
+      // 낱개 지표는 거르지 않고 넘긴다(위 설명). 타입만 화면 쪽으로 맞춘다
+      stable: stable as QuantScoring['stable'],
+      profit: profit as QuantScoring['profit'],
+      effect: effect as QuantScoring['effect'],
+      growth: growth as QuantScoring['growth'],
+    },
+  }
+}
+
+function isGroup<T extends object>(group: T | null | undefined): group is T {
+  return typeof group === 'object' && group !== null
 }
 
 interface PresetOptions {

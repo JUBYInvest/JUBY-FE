@@ -21,12 +21,6 @@ export interface Stock extends StockInfo {
   isLiked: boolean
 }
 
-export interface StockListResponse {
-  /** YYYY-MM-DD */
-  baseDate: string
-  stockList: Stock[]
-}
-
 export type SortKey = 'stockName' | 'closePrice' | 'fluctuate' | 'tradingValue'
 
 export type SortDirection = 'asc' | 'desc'
