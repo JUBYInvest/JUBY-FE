@@ -109,7 +109,7 @@ export default function HomePage() {
    * 카드 세 장을 받는다. 증권사를 세 번 거치므로 들어올 때 한 번(10분 안에 받아 둔 게 있으면 그것도 안 한다)과
    * 사용자가 다시 시도를 누를 때만 부른다
    */
-  const loadCards = useCallback(() => {
+  const loadCards = useCallback((fresh = false) => {
     loadTopStocks(
       (index, stock) => {
         setTopStocks((previous) =>
@@ -121,6 +121,7 @@ export default function HomePage() {
           previous.map((item, i) => (i === index ? reason : item)),
         )
       },
+      { fresh },
     ).catch((error: unknown) => {
       console.warn('테마별 대표 종목 조회 실패', error)
       setHasTopError(true)
@@ -141,7 +142,7 @@ export default function HomePage() {
     setTopStocks(TOP_THEMES.map(() => null))
     setCardFailures(TOP_THEMES.map(() => null))
     setHasTopError(false)
-    loadCards()
+    loadCards(true)
   }
 
   const load = useCallback(() => {

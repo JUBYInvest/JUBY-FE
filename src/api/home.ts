@@ -82,6 +82,8 @@ export async function loadTopStocks(
   onEach: (index: number, stock: TopStock) => void,
   /** 한 장을 못 채웠을 때. 조용히 넘기면 카드가 로딩 자리표시 그대로 남아 실패와 구분되지 않는다 */
   onFail: (index: number, reason: CardFailure) => void,
+  /** 다시 시도처럼 방금 받은 상세를 쓰지 않고 새로 받을 때 true */
+  options: { fresh?: boolean } = {},
 ): Promise<void> {
   const loaded: TopStock[] = []
 
@@ -90,7 +92,7 @@ export async function loadTopStocks(
 
     try {
       const detail = await withRetry(
-        () => getStockDetail(theme.stockCode, 'ONE_MONTH'),
+        () => getStockDetail(theme.stockCode, 'ONE_MONTH', options),
         1,
         400,
       )

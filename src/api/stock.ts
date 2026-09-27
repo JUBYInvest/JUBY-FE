@@ -87,6 +87,32 @@ export function nameOrCode(name: unknown, stockCode: string): string {
   return typeof name === 'string' && name.trim() !== '' ? name : stockCode
 }
 
+/*
+ * 같은 탭에서 방금 받은 상세·뉴스는 잠깐 다시 쓴다(사용자 결정 2026-09-27). 같은 종목을 다시 열거나 뉴스 정렬을
+ * 오갈 때 증권사 현재가·Pinecone 검색을 또 기다리지 않게 한다. 상세는 현재가가 실시간이라 1분, 뉴스는 백엔드가
+ * 매달 1일에 넣으므로 10분. 메모리에만 두므로 새로고침하면 비고, 실패는 담지 않는다(다시 시도는 늘 새로 받는다).
+ */
+const DETAIL_MEMO_AGE = 60 * 1000
+const NEWS_MEMO_AGE = 10 * 60 * 1000
+
+interface Memo<T> {
+  savedAt: number
+  value: T
+}
+
+const detailMemo = new Map<string, Memo<StockDetail>>()
+const newsMemo = new Map<string, Memo<NewsPage>>()
+
+function readMemo<T>(memo: Map<string, Memo<T>>, key: string, maxAge: number): T | null {
+  const entry = memo.get(key)
+  if (entry === undefined) return null
+  if (Date.now() - entry.savedAt > maxAge) {
+    memo.delete(key)
+    return null
+  }
+  return entry.value
+}
+
 /** GET /api/stocks/{code} */
 interface StockDetailResponse {
   stockName?: string | null
@@ -126,7 +152,13 @@ export function isStockCode(code: string): boolean {
 export async function getStockDetail(
   stockCode: string,
   period: Period = 'ALL',
+  /** 다시 시도처럼 방금 받은 값을 쓰지 않고 새로 받을 때 true */
+  options: { fresh?: boolean } = {},
 ): Promise<StockDetail> {
+  const memoKey = `${stockCode}|${period}`
+  const remembered = options.fresh ? null : readMemo(detailMemo, memoKey, DETAIL_MEMO_AGE)
+  if (remembered !== null) return remembered
+
   const response = await get<StockDetailResponse | null>(
     `/api/stocks/${encodeURIComponent(stockCode)}?period=${period}`,
   )
@@ -144,7 +176,7 @@ export async function getStockDetail(
     console.warn(`날짜가 틀린 일봉 ${candles.length - usable.length}개를 뺐습니다`, stockCode)
   }
 
-  return {
+  const detail: StockDetail = {
     stockName: unchecked(response.stockName),
     stockCode: unchecked(response.stockCode),
     // 현재가·등락률이 빈 건 포맷 함수가 "-"로 적는다
@@ -154,6 +186,8 @@ export async function getStockDetail(
     // 서버가 오름차순으로 주지만 기대지 않는다. 차트는 순서가 어긋나면 그리지 못한다
     candles: usable.sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0)),
   }
+  detailMemo.set(memoKey, { savedAt: Date.now(), value: detail })
+  return detail
 }
 
 /** 날짜가 틀린 봉은 getStockDetail이 뺀다. 값이 빈 봉은 거르지 않는다(차트가 그대로 그린다) */
@@ -202,12 +236,16 @@ export async function getStockNews(
   sort: NewsSort,
   page: number,
 ): Promise<NewsPage> {
+  const memoKey = `${stockCode}|${sort}|${page}`
+  const remembered = readMemo(newsMemo, memoKey, NEWS_MEMO_AGE)
+  if (remembered !== null) return remembered
+
   const response = await get<StockNewsResponse | null>(
     `/api/stocks/${encodeURIComponent(stockCode)}/news?sort=${sort}&page=${page}`,
   )
   if (response === null || !Array.isArray(response.newsList)) throw malformedResponse()
 
-  return {
+  const newsPage: NewsPage = {
     /*
      * 제목이나 링크가 빈 기사는 뺀다. 그리면 제목 없는 카드가 href=""로 지금 페이지를 새 탭에 연다.
      * http(s)가 아닌 링크(javascript:, data:, 상대 주소)도 toNewsItem이 비워 여기서 빠진다
@@ -221,6 +259,8 @@ export async function getStockNews(
     totalCount: isFiniteNumber(response.totalCount) ? response.totalCount : null,
     sort: unchecked(response.sort),
   }
+  newsMemo.set(memoKey, { savedAt: Date.now(), value: newsPage })
+  return newsPage
 }
 
 /**

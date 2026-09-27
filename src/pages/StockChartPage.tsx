@@ -140,7 +140,8 @@ export default function StockChartPage() {
     setState({ kind: 'loading' })
 
     // 증권사 초당 제한에 걸리면 500이 온다. 한 번 더 부르면 대개 통과한다
-    withRetry(() => getStockDetail(stockCode, 'ALL'), 1, 400)
+    // 다시 시도(retryCount > 0)는 방금 받아 둔 값을 쓰지 않고 새로 받는다
+    withRetry(() => getStockDetail(stockCode, 'ALL', { fresh: retryCount > 0 }), 1, 400)
       .then((detail) => {
         if (isStale) return
         setState({ kind: 'ready', stockCode, detail })
