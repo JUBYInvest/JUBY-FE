@@ -80,6 +80,17 @@ export async function getStockDetail(
   // 일봉 배열이 없으면 차트를 그릴 수 없다. 현재가·등락률이 빈 건 "-"로 두고 넘긴다
   if (response === null || !Array.isArray(response.dailyPrices)) throw malformedResponse()
 
+  /*
+   * 날짜가 여덟 자리가 아닌 봉은 뺀다. 한 봉의 날짜가 null이면 ""가 되어 차트 라이브러리가 던지고, 기간 탭을
+   * 바꾸는 순간 차트 구역이 "이 부분을 표시하지 못했어요"가 됐다 — 다시 시도해도 같은 데이터라 안 풀린다.
+   * 값이 빈 봉·날짜가 겹친 봉은 차트가 그대로 그려져(2026-09-27 확인) 거르지 않는다.
+   */
+  const candles = response.dailyPrices.map(toCandle)
+  const usable = candles.filter((candle) => /^\d{8}$/.test(candle.date))
+  if (usable.length < candles.length) {
+    console.warn(`날짜가 틀린 일봉 ${candles.length - usable.length}개를 뺐습니다`, stockCode)
+  }
+
   return {
     stockName: response.stockName,
     stockCode: response.stockCode,
@@ -87,9 +98,7 @@ export async function getStockDetail(
     comparePrev: response.comparePrev,
     period: response.period,
     // 서버가 오름차순으로 주지만 기대지 않는다. 차트는 순서가 어긋나면 그리지 못한다
-    candles: response.dailyPrices
-      .map(toCandle)
-      .sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0)),
+    candles: usable.sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0)),
   }
 }
 
