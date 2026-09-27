@@ -74,7 +74,7 @@ export default function StockTable({
     <div className={styles.table}>
       <div className={styles.head}>
         <span />
-        <span className={styles.colCode}>번호</span>
+        <span className={styles.colCode}>종목코드</span>
 
         {SORTABLE_COLUMNS.map((column) => {
           const direction =
