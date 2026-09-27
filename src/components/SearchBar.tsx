@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { FocusEvent, FormEvent, KeyboardEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { searchStocks } from '../api/stock'
@@ -18,6 +18,7 @@ export default function SearchBar({ stocks }: Props) {
   const [activeIndex, setActiveIndex] = useState(-1)
   const [isOpen, setIsOpen] = useState(false)
   const [message, setMessage] = useState('')
+  const inputRef = useRef<HTMLInputElement>(null)
   const navigate = useNavigate()
 
   useEffect(() => {
@@ -37,7 +38,12 @@ export default function SearchBar({ stocks }: Props) {
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    if (keyword.trim() === '') return
+    if (keyword.trim() === '') {
+      // 빈 칸으로 누르면 아무 일도 없던 것처럼 보였다. 무엇을 하면 되는지 알리고 입력칸으로 보낸다
+      setMessage('종목명을 입력해주세요')
+      inputRef.current?.focus()
+      return
+    }
 
     // 화살표로 고른 게 있으면 그것, 없으면 가장 잘 맞는 첫 후보로 간다
     const target = suggestions[activeIndex >= 0 ? activeIndex : 0]
@@ -90,6 +96,7 @@ export default function SearchBar({ stocks }: Props) {
     <form className={styles.form} onSubmit={handleSubmit} onBlur={handleBlur}>
       <div className={styles.box}>
         <input
+          ref={inputRef}
           className={styles.input}
           value={keyword}
           onChange={(event) => {
