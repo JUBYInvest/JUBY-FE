@@ -95,7 +95,15 @@ export async function unlikeStock(stockCode: string): Promise<void> {
   )
 }
 
-/** 내 관심종목 목록. 시세는 baseDate 종가 기준이다 */
-export function getLikeStocks(): Promise<LikeStockList> {
-  return get<LikeStockList>('/api/members/me/like-stocks')
+/**
+ * 내 관심종목 목록. 시세는 baseDate 종가 기준이다.
+ * 목록이 배열이 아니면 화면이 그리다 `null.length`에서 던져 구역 경계까지 올라갔다 — 여기서 응답 모양 오류로 던져
+ * 화면의 "불러오지 못했습니다 + 다시 시도"를 태운다. 기준일은 비어도 된다(화면이 그 줄만 숨긴다).
+ */
+export async function getLikeStocks(): Promise<LikeStockList> {
+  const result = await get<LikeStockList | null>('/api/members/me/like-stocks')
+  if (typeof result !== 'object' || result === null || !Array.isArray(result.likeStockList)) {
+    throw malformedResponse()
+  }
+  return result
 }
