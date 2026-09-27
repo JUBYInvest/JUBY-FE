@@ -132,12 +132,16 @@ export async function getStockNews(
   sort: NewsSort,
   page: number,
 ): Promise<NewsPage> {
-  const response = await get<StockNewsResponse>(
+  const response = await get<StockNewsResponse | null>(
     `/api/stocks/${encodeURIComponent(stockCode)}/news?sort=${sort}&page=${page}`,
   )
+  if (response === null || !Array.isArray(response.newsList)) throw malformedResponse()
 
   return {
-    // 제목이나 링크가 빈 기사는 뺀다. 그리면 제목 없는 카드가 href=""로 지금 페이지를 새 탭에 연다
+    /*
+     * 제목이나 링크가 빈 기사는 뺀다. 그리면 제목 없는 카드가 href=""로 지금 페이지를 새 탭에 연다.
+     * http(s)가 아닌 링크(javascript:, data:, 상대 주소)도 toNewsItem이 비워 여기서 빠진다
+     */
     items: response.newsList
       .map(toNewsItem)
       .filter((item) => item.title.trim() !== '' && item.link.trim() !== ''),
@@ -168,14 +172,35 @@ function toSource(link: string): string {
   }
 }
 
+/** 문자열이 아니면 빈 문자열. 기사 한 건의 null 하나가 목록 전체를 실패시키지 않게 한다 */
+function textOf(value: unknown): string {
+  return typeof value === 'string' ? value : ''
+}
+
+/**
+ * 새 탭으로 열어도 되는 주소만 남긴다(http·https). 서버가 주는 링크라도 javascript:·data:·상대 주소는
+ * 그대로 두면 누르는 순간 이 사이트 안에서 뭔가가 실행되거나 열린다. 아니면 빈 문자열이라 그 기사는 빠진다.
+ */
+function safeLink(value: unknown): string {
+  if (typeof value !== 'string') return ''
+  try {
+    const { protocol } = new URL(value)
+    return protocol === 'http:' || protocol === 'https:' ? value : ''
+  } catch {
+    // 기준 주소 없이 풀리지 않는 값(상대 주소 등)
+    return ''
+  }
+}
+
 function toNewsItem(item: StockNewsResponse['newsList'][number]): NewsItem {
+  const link = safeLink(item.originalLink)
   return {
-    title: stripHtml(item.title),
-    description: stripHtml(item.description),
-    link: item.originalLink,
-    source: toSource(item.originalLink),
-    timeAgo: item.timeAgo,
-    publishedAt: new Date(item.publishedAt),
+    title: stripHtml(textOf(item.title)),
+    description: stripHtml(textOf(item.description)),
+    link,
+    source: toSource(link),
+    timeAgo: textOf(item.timeAgo),
+    publishedAt: new Date(textOf(item.publishedAt)),
   }
 }
 
