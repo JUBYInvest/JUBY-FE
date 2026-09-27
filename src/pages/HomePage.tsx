@@ -12,7 +12,7 @@ import TopStockCard from '../components/TopStockCard'
 import StockTable from '../components/StockTable'
 import SectionBoundary from '../components/SectionBoundary'
 import Modal from '../components/Modal'
-import { TOP_THEMES, loadTopStocks, readCachedTopStocks } from '../api/home'
+import { TOP_THEMES, hasFreshTopStocks, loadTopStocks, readCachedTopStocks } from '../api/home'
 import { likeStock, unlikeStock } from '../api/member'
 import { byTradingValue, getStockList } from '../api/stock'
 import { STOCK_LIST } from '../api/stockList'
@@ -105,7 +105,10 @@ export default function HomePage() {
   /** 하트를 서버에 반영하지 못해 되돌렸을 때 알리는 말. 조용히 되돌리면 누른 게 무시된 것처럼 보인다 */
   const [likeNotice, setLikeNotice] = useState('')
 
-  /** 카드 세 장을 받는다. 증권사를 세 번 거치므로 처음 한 번과 사용자가 다시 시도를 누를 때만 부른다 */
+  /**
+   * 카드 세 장을 받는다. 증권사를 세 번 거치므로 들어올 때 한 번(10분 안에 받아 둔 게 있으면 그것도 안 한다)과
+   * 사용자가 다시 시도를 누를 때만 부른다
+   */
   const loadCards = useCallback(() => {
     loadTopStocks(
       (index, stock) => {
@@ -128,6 +131,8 @@ export default function HomePage() {
     // 개발 모드는 effect를 두 번 실행한다. 그대로 두면 카드 요청이 6건이 되어 제한에 걸린다
     if (hasStartedTop.current) return
     hasStartedTop.current = true
+    // 첫 그림을 그린 캐시가 10분 안의 것이면 그대로 둔다(다시 시도는 이 검사 없이 새로 받는다)
+    if (hasFreshTopStocks()) return
     loadCards()
   }, [loadCards])
 

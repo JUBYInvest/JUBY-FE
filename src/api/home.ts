@@ -23,11 +23,17 @@ const TOP_CACHE_KEY = 'topStocks'
 const TOP_CACHE_MAX_AGE = 12 * 60 * 60 * 1000
 
 /**
+ * 이만큼 안에 받아 둔 카드면 다시 부르지 않는다. 홈에 올 때마다 증권사 3회가 나갔다(사용자 결정 2026-09-27).
+ * 카드는 한 달치 일봉(DB, 16시 배치로 하루 한 번 바뀜)만 그리므로 10분 묵어도 그래프가 같다.
+ */
+const TOP_FRESH_AGE = 10 * 60 * 1000
+
+/**
  * 지난번 방문에서 받아둔 카드. 첫 그림을 즉시 그리는 용도다.
  * 이 값을 띄운 뒤에도 loadTopStocks()는 그대로 돌아 최신 값으로 갈아끼운다.
  */
-export function readCachedTopStocks(): TopStock[] | null {
-  const cached = readCache<unknown>(TOP_CACHE_KEY, TOP_CACHE_MAX_AGE)
+export function readCachedTopStocks(maxAge: number = TOP_CACHE_MAX_AGE): TopStock[] | null {
+  const cached = readCache<unknown>(TOP_CACHE_KEY, maxAge)
   /*
    * 하나라도 어긋나면 캐시 전체를 없는 셈 친다. 개수만 보면 두 가지가 샜다.
    * ① TOP_THEMES의 종목을 바꾸면 최대 12시간 동안 새 테마 이름 아래 옛 종목의 그래프가 먼저 떴다.
@@ -38,6 +44,11 @@ export function readCachedTopStocks(): TopStock[] | null {
   return cached.every((stock, index) => isCachedTopStock(stock, TOP_THEMES[index].stockCode))
     ? (cached as TopStock[])
     : null
+}
+
+/** 10분 안에 받아 둔 온전한 카드가 있는가. 있으면 홈이 다시 부르지 않는다 */
+export function hasFreshTopStocks(): boolean {
+  return readCachedTopStocks(TOP_FRESH_AGE) !== null
 }
 
 function isFiniteNumbers(value: unknown): value is number[] {
