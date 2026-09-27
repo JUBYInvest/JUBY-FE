@@ -6,6 +6,7 @@ import Modal from '../components/Modal'
 import { ApiError } from '../api/client'
 import { deleteMember, getMemberInfo, updateMemberInfo } from '../api/member'
 import { clearTokens } from '../utils/auth'
+import { toDashedYmd, toYmd } from '../utils/date'
 import { formatBirth } from '../utils/format'
 import type { MemberInfo, ProfileImageUrl } from '../types/member'
 import styles from './MypageProfilePage.module.css'
@@ -243,8 +244,9 @@ export default function MypageProfilePage() {
             onChange={(event) => setEditBirth(event.target.value)}
             // 오늘 이후는 서버가 거절한다. 달력에서 애초에 못 고르게 한다.
             // 하한이 없으면 0203년·1800년 같은 값도 그대로 저장됐다
+            // 오늘은 이 기기의 날짜다. toISOString()은 UTC라 한국 새벽 0~9시엔 어제가 상한이 됐다
             min="1900-01-01"
-            max={new Date().toISOString().slice(0, 10)}
+            max={toDashedYmd(toYmd(new Date()))}
             disabled={isSaving}
           />
           <p className={styles.formHelp}>비워 두면 정보 없음으로 저장돼요</p>
