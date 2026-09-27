@@ -71,10 +71,17 @@ interface Ranked {
   score: number
 }
 
+/** 다섯 전략 비교에서 못 받은 것. 이유에 따라 안내가 다르다 */
+interface CompareMiss {
+  count: number
+  /** 못 받은 것이 전부 "아직 계산 안 된 조합"(BACKTEST404_5)인가 */
+  allNotComputed: boolean
+}
+
 type ResultState =
   | { kind: 'idle' }
   | { kind: 'loading' }
-  | { kind: 'ready'; preset: BacktestPreset; ranking: Ranked[] }
+  | { kind: 'ready'; preset: BacktestPreset; ranking: Ranked[]; missed: CompareMiss }
   | { kind: 'error'; message: string; hint: string | null }
 
 /**
@@ -273,7 +280,20 @@ export default function BacktestPage() {
         .flatMap((s) => (s.status === 'fulfilled' ? [s.value] : []))
         .sort((left, right) => right.score - left.score)
 
-      setResult({ kind: 'ready', preset, ranking })
+      /*
+       * 못 받은 이유를 가른다. 전부 "아직 계산 안 됨"이 아닌데 그 문구를 쓰면
+       * 서버가 죽었을 때도 기다리면 된다고 읽힌다.
+       */
+      const failures = settled.flatMap((s) => (s.status === 'rejected' ? [s.reason] : []))
+      if (failures.length > 0) console.warn('다섯 성향 비교 일부 조회 실패', failures)
+      const missed: CompareMiss = {
+        count: failures.length,
+        allNotComputed: failures.every(
+          (error) => error instanceof ApiError && error.code === 'BACKTEST404_5',
+        ),
+      }
+
+      setResult({ kind: 'ready', preset, ranking, missed })
     } catch (error: unknown) {
       if (seq !== runSeqRef.current) return
       console.warn('백테스트 조회 실패', error)
@@ -548,6 +568,7 @@ export default function BacktestPage() {
               <BacktestResult
                 preset={result.preset}
                 ranking={result.ranking}
+                missed={result.missed}
                 stockName={stock.stockName}
                 savedPersonality={savedPersonality}
                 onRetry={clearResult}
@@ -575,6 +596,8 @@ interface ResultProps {
   stockName: string
   /** 다섯 전략의 적합도를 높은 순으로. 첫 번째가 이 종목의 성향이다. 비어 있을 수 있다 */
   ranking: Ranked[]
+  /** 다섯 중 못 받은 것 */
+  missed: CompareMiss
   savedPersonality: string | null
   onRetry: () => void
 }
@@ -583,6 +606,7 @@ function BacktestResult({
   preset,
   stockName,
   ranking,
+  missed,
   savedPersonality,
   onRetry,
 }: ResultProps) {
@@ -852,31 +876,39 @@ function BacktestResult({
 
         {ranking.length === 0 ? (
           <p className={styles.warn}>
-            1년치 결과가 아직 계산되지 않아 비교할 수 없어요.
+            {missed.allNotComputed
+              ? '1년치 결과가 아직 계산되지 않아 비교할 수 없어요.'
+              : '비교 결과를 불러오지 못했어요.'}
           </p>
         ) : (
-          <ul className={styles.rankList}>
-            {ranking.map((item, index) => {
-              const rankInfo = findInvestType(item.investType)
-              if (rankInfo === null) return null
+          <>
+            <ul className={styles.rankList}>
+              {ranking.map((item, index) => {
+                const rankInfo = findInvestType(item.investType)
+                if (rankInfo === null) return null
 
-              return (
-                <li key={item.investType} className={styles.rank}>
-                  <span className={styles.rankName}>
-                    {index === 0 && <b className={styles.crown}>최고</b>}
-                    {rankInfo.personality}
-                  </span>
-                  <div className={styles.bar}>
-                    <div
-                      className={index === 0 ? styles.barFillTop : styles.barFill}
-                      style={{ width: `${item.score}%` }}
-                    />
-                  </div>
-                  <span className={styles.rankScore}>{item.score.toFixed(1)}</span>
-                </li>
-              )
-            })}
-          </ul>
+                return (
+                  <li key={item.investType} className={styles.rank}>
+                    <span className={styles.rankName}>
+                      {index === 0 && <b className={styles.crown}>최고</b>}
+                      {rankInfo.personality}
+                    </span>
+                    <div className={styles.bar}>
+                      <div
+                        className={index === 0 ? styles.barFillTop : styles.barFill}
+                        style={{ width: `${item.score}%` }}
+                      />
+                    </div>
+                    <span className={styles.rankScore}>{item.score.toFixed(1)}</span>
+                  </li>
+                )
+              })}
+            </ul>
+            {/* 빠진 전략이 있으면 위 순위의 1등이 진짜 1등이 아닐 수 있다 */}
+            {missed.count > 0 && (
+              <p className={styles.warn}>{missed.count}개 전략은 불러오지 못했어요.</p>
+            )}
+          </>
         )}
 
         <p className={styles.meta}>
