@@ -1,5 +1,6 @@
 import { get, malformedResponse, unchecked } from './client'
 import { fromDashedYmd } from '../utils/date'
+import { isFiniteNumber } from '../utils/format'
 import { sortStocks } from '../utils/sort'
 import type {
   Candle,
@@ -189,6 +190,9 @@ interface NewsItemResponse {
 /** 서버는 page를 0~9로 제한한다(@Max(9)). 그 밖을 보내면 400이다 */
 export const NEWS_LAST_PAGE = 9
 
+/** 서버가 한 페이지에 주는 기사 수 */
+export const NEWS_PAGE_SIZE = 10
+
 /**
  * 종목 뉴스. Pinecone에 모아 둔 기사라 증권사와 무관하다.
  * 10건씩, 최신순(LATEST)은 발행일 내림차순, 관련도순(RELEVANCE)은 벡터 검색 순서다.
@@ -213,7 +217,8 @@ export async function getStockNews(
       .filter((item) => item.title.trim() !== '' && item.link.trim() !== ''),
     receivedCount: response.newsList.length,
     page: unchecked(response.page),
-    totalCount: unchecked(response.totalCount),
+    // 비면 "더 보기"를 못 가린다. null로 넘기면 화면이 꽉 찬 페이지인지로 가린다
+    totalCount: isFiniteNumber(response.totalCount) ? response.totalCount : null,
     sort: unchecked(response.sort),
   }
 }

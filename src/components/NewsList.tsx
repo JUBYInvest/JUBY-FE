@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { NEWS_LAST_PAGE, getStockNews } from '../api/stock'
+import { NEWS_LAST_PAGE, NEWS_PAGE_SIZE, getStockNews } from '../api/stock'
 import type { NewsItem, NewsSort } from '../types/news'
 import styles from './NewsList.module.css'
 
@@ -18,9 +18,12 @@ type State =
       kind: 'ready'
       items: NewsItem[]
       page: number
-      totalCount: number
+      /** 서버가 비워 주면 null — 그때는 마지막으로 받은 페이지가 꽉 찼는지로 가린다 */
+      totalCount: number | null
       /** 지금까지 서버가 준 기사 수(거르기 전). 마지막 페이지 판단에 쓴다 */
       received: number
+      /** 마지막으로 받은 페이지의 기사 수(거르기 전) */
+      lastReceived: number
     }
   | { kind: 'error' }
 
@@ -64,6 +67,7 @@ export default function NewsList({ stockCode }: Props) {
           page: 0,
           totalCount: result.totalCount,
           received: result.receivedCount,
+          lastReceived: result.receivedCount,
         })
       })
       .catch((error: unknown) => {
@@ -94,7 +98,9 @@ export default function NewsList({ stockCode }: Props) {
               ...current,
               items: [...current.items, ...result.items],
               page: nextPage,
+              totalCount: current.totalCount ?? result.totalCount,
               received: current.received + result.receivedCount,
+              lastReceived: result.receivedCount,
             }
           : current,
       )
@@ -110,8 +116,10 @@ export default function NewsList({ stockCode }: Props) {
 
   const hasMore =
     state.kind === 'ready' &&
-    state.received < state.totalCount &&
-    state.page < NEWS_LAST_PAGE
+    state.page < NEWS_LAST_PAGE &&
+    (state.totalCount === null
+      ? state.lastReceived >= NEWS_PAGE_SIZE
+      : state.received < state.totalCount)
 
   return (
     <>
