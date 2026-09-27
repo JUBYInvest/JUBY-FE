@@ -1,4 +1,5 @@
 import { ApiError, get, malformedResponse, patch, post, remove } from './client'
+import { clearTokens } from '../utils/auth'
 import type {
   LikeStockList,
   MemberInfo,
@@ -39,16 +40,38 @@ export async function updateMemberInfo(update: MemberUpdate): Promise<void> {
  * 다만 **그 밖의 통신·서버 오류는 삼키지 않고 던진다.** 부르는 쪽이
  * "아직 검사 안 함"과 "못 불러옴"을 다른 화면으로 보여줘야 하기 때문이다.
  */
-export async function getMyPersonality(): Promise<PersonalityInfo | null> {
+export async function getMyPersonality(options?: {
+  ignoreUnauthorized?: boolean
+}): Promise<PersonalityInfo | null> {
   let result: PersonalityInfo | null
   try {
-    result = await get<PersonalityInfo | null>('/api/members/me/personality')
+    result = await get<PersonalityInfo | null>('/api/members/me/personality', options)
   } catch (error: unknown) {
     if (error instanceof ApiError && error.code === 'MEMBER404_2') return null
     throw error
   }
   // 성향 이름이 없으면 결과 화면을 그릴 수 없다. 없는 것으로 본다
   return result === null || !result.investPersonality ? null : result
+}
+
+/**
+ * 로그인 없이도 쓰는 화면(백테스트·AI)이 들어오자마자 부르는 성향 조회.
+ *
+ * 토큰이 만료됐으면 서버가 401을 주는데, 전역 처리대로 로그인 화면으로 보내면 로그인이 필요 없는 화면을
+ * 열었는데도 아무것도 누르기 전에 끌려간다. 여기서는 토큰만 지우고(머리글이 "로그인"으로 돌아간다)
+ * 성향 없음으로 본다. 사용자가 직접 한 동작(질문 보내기·하트·마이페이지)의 401은 지금처럼 로그인 화면으로 간다.
+ * 401이 아닌 실패는 던진다 — 부르는 쪽이 "없음"과 "못 불러옴"을 가른다.
+ */
+export async function getMyPersonalityOnPublicPage(): Promise<PersonalityInfo | null> {
+  try {
+    return await getMyPersonality({ ignoreUnauthorized: true })
+  } catch (error: unknown) {
+    if (error instanceof ApiError && error.status === 401) {
+      clearTokens()
+      return null
+    }
+    throw error
+  }
 }
 
 /** 탈퇴. 성공하면 계정과 성향 정보가 서버에서 모두 지워진다 */

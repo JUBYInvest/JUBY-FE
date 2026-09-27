@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { getPreset, getPresetOptions } from '../api/backtest'
 import { ApiError } from '../api/client'
-import { getMyPersonality } from '../api/member'
+import { getMyPersonalityOnPublicPage } from '../api/member'
 import { byTradingValue, getStockList, searchStocks } from '../api/stock'
 import { STOCK_LIST } from '../api/stockList'
 import SectionBoundary from '../components/SectionBoundary'
@@ -153,7 +153,8 @@ export default function BacktestPage() {
 
     // 마운트 때 한 번만 읽는다. 여기서 loggedIn을 쓰면 빈 의존성 배열과 어긋난다
     if (isLoggedIn()) {
-      getMyPersonality()
+      // 만료된 토큰(401)이어도 로그인 화면으로 끌고 가지 않는다(getMyPersonalityOnPublicPage)
+      getMyPersonalityOnPublicPage()
         // 못 받으면 성향 없음으로 둔다. 이 화면은 성향 없이도 쓸 수 있다
         .catch(() => null)
         .then((info) => setSavedPersonality(info?.investPersonality ?? null))

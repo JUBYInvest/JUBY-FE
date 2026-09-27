@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { ask, getSessionDetail, getSessions } from '../api/ai'
 import { ApiError } from '../api/client'
-import { getMyPersonality } from '../api/member'
+import { getMyPersonalityOnPublicPage } from '../api/member'
 import ChatMessages, { type PendingState } from '../components/ChatMessages'
 import SessionSidebar from '../components/SessionSidebar'
 import { useIsLoggedIn } from '../hooks/useIsLoggedIn'
@@ -61,7 +61,8 @@ export default function AiPage() {
 
     // 토큰이 없으면 부를 이유가 없다. 성향 영역은 어차피 숨겨진다
     if (loggedIn) {
-      getMyPersonality()
+      // 만료된 토큰(401)이면 토큰만 지우고 이 화면에 머문다(getMyPersonalityOnPublicPage)
+      getMyPersonalityOnPublicPage()
         // 이 화면은 실패 이유를 가리지 않는다. 못 받으면 성향 영역을 숨길 뿐이다
         .catch(() => null)
         .then((info) => setPersonality(info?.investPersonality ?? null))
