@@ -32,12 +32,17 @@ const PERIOD_TABS: { period: Period; label: string }[] = [
 /** 처음 열었을 때 기간. 60봉쯤이 봉 모양과 흐름이 함께 읽히는 길이다 */
 const DEFAULT_PERIOD: Period = 'THREE_MONTH'
 
+/**
+ * 받아 온 결과는 어느 종목의 것인지(stockCode)를 함께 든다. 같은 라우트 안에서 주소가 A→B로 바뀌면
+ * effect가 돌기 전 첫 렌더에 A의 결과가 남아 있어, B 코드 옆에 A의 이름·현재가·차트와 탭 제목이 그려졌다.
+ * 렌더에서 코드를 견줘 다르면 불러오는 중으로 본다(아래 view).
+ */
 type State =
   | { kind: 'loading' }
-  | { kind: 'ready'; detail: StockDetail }
+  | { kind: 'ready'; stockCode: string; detail: StockDetail }
   /** 백엔드 stock 테이블에 없는 종목코드 */
-  | { kind: 'notFound' }
-  | { kind: 'error' }
+  | { kind: 'notFound'; stockCode: string }
+  | { kind: 'error'; stockCode: string }
 
 /**
  * 마지막 거래일에서 기간만큼 거슬러 올라간 시작일(YYYYMMDD).
@@ -130,16 +135,16 @@ export default function StockChartPage() {
     withRetry(() => getStockDetail(stockCode, 'ALL'), 1, 400)
       .then((detail) => {
         if (isStale) return
-        setState({ kind: 'ready', detail })
+        setState({ kind: 'ready', stockCode, detail })
       })
       .catch((error: unknown) => {
         if (isStale) return
         if (error instanceof ApiError && error.status === 404) {
-          setState({ kind: 'notFound' })
+          setState({ kind: 'notFound', stockCode })
           return
         }
         console.warn('종목 상세 조회 실패', error)
-        setState({ kind: 'error' })
+        setState({ kind: 'error', stockCode })
       })
 
     return () => {
@@ -152,15 +157,21 @@ export default function StockChartPage() {
    * 어느 게 어느 종목인지 알 수 없다. 받아오는 중이면 들고 온 이름을 쓰고,
    * 그것도 없거나 없는 종목·실패일 때는 '종목'으로 둔다.
    */
+  // 앞 종목의 결과면 아직 이 종목을 받는 중이다
+  const view: State =
+    state.kind !== 'loading' && state.stockCode !== stockCode
+      ? { kind: 'loading' }
+      : state
+
   useDocumentTitle(
-    state.kind === 'ready'
-      ? state.detail.stockName
-      : state.kind === 'loading'
+    view.kind === 'ready'
+      ? view.detail.stockName
+      : view.kind === 'loading'
         ? (preview?.stockName ?? '종목')
         : '종목',
   )
 
-  if (!hasValidCode || state.kind === 'notFound') {
+  if (!hasValidCode || view.kind === 'notFound') {
     return (
       <section className={styles.section}>
         <h1 className={styles.heading}>목록에 없는 종목입니다</h1>
@@ -171,7 +182,7 @@ export default function StockChartPage() {
     )
   }
 
-  const detail = state.kind === 'ready' ? state.detail : null
+  const detail = view.kind === 'ready' ? view.detail : null
 
   return (
     <>
@@ -180,14 +191,18 @@ export default function StockChartPage() {
         오류 경계는 자식이 그리다 난 오류만 받아내므로 이 구역을 PriceSection으로 떼어 뒀다 —
         여기(StockChartPage) 렌더에서 계산하면 경계를 지나쳐 화면 전체가 오류 화면이 된다.
       */}
-      <SectionBoundary onRetry={() => setRetryCount((count) => count + 1)}>
+      {/* 종목이 바뀌면 앞 종목에서 멈춘 상태를 푼다 */}
+      <SectionBoundary
+        resetKey={stockCode}
+        onRetry={() => setRetryCount((count) => count + 1)}
+      >
         <PriceSection
           stockCode={stockCode}
           detail={detail}
           preview={preview}
           period={period}
           onPeriodChange={setPeriod}
-          failed={state.kind === 'error'}
+          failed={view.kind === 'error'}
           onRetry={() => setRetryCount((count) => count + 1)}
         />
       </SectionBoundary>
