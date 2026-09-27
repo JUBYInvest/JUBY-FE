@@ -47,7 +47,11 @@
 .row {
   /* 종목명 링크가 이 상자를 덮을 기준점 */
   position: relative;
-  height: 56px;
+  /*
+   * 높이는 최소값이다. 고정하면 긴 종목명("KODEX CD금리액티브(합성)")이 320px에서 네 줄로 꺾여
+   * 아래 행 위에 그려지고, 칸을 채우는 하트가 행 밖으로 나가 아래 행의 하트가 눌렸다
+   */
+  min-height: 56px;
   border-bottom: 1px solid var(--color-border);
   font-size: 15px;
   transition: background 0.12s;
@@ -218,7 +222,7 @@
   }
 
   .row {
-    height: 52px;
+    min-height: 52px;
     font-size: 14px;
   }
 }
