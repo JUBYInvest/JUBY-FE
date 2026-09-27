@@ -87,6 +87,14 @@ function sliceByPeriod(candles: Candle[], period: Period): Candle[] {
   return start === null ? candles : candles.filter((c) => c.date >= start)
 }
 
+/**
+ * 화면에 적을 종목 이름. 서버가 이름을 비워 보내면(빈 문자열·공백) 종목코드로 대신한다 —
+ * 탭 제목이 "JUBY"만 남고 제목 줄의 이름 자리가 비었다. 응답 모양상 null도 올 수 있어 문자열인지부터 본다
+ */
+function nameOrCode(name: string | null | undefined, stockCode: string | undefined): string {
+  return typeof name === 'string' && name.trim() !== '' ? name : (stockCode ?? '')
+}
+
 function toRateClassName(rate: number): string | undefined {
   if (isFlatRate(rate)) return styles.flat
   return rate > 0 ? styles.up : styles.down
@@ -165,7 +173,7 @@ export default function StockChartPage() {
 
   useDocumentTitle(
     view.kind === 'ready'
-      ? view.detail.stockName
+      ? nameOrCode(view.detail.stockName, stockCode)
       : view.kind === 'loading'
         ? (preview?.stockName ?? '종목')
         : '종목',
@@ -241,6 +249,7 @@ function PriceSection({
 }: PriceSectionProps) {
   const shown = detail === null ? [] : sliceByPeriod(detail.candles, period)
   const lastCandle = shown.at(-1) ?? null
+  const displayName = detail === null ? null : nameOrCode(detail.stockName, stockCode)
 
   /*
    * 실패는 이 구역 안에서만 알린다. 예전엔 화면 전체를 안내 한 줄로 바꿔, 따로 받는 뉴스까지 사라지고
@@ -253,9 +262,10 @@ function PriceSection({
         <Link to="/" className={styles.back}>
           <span aria-hidden="true">‹</span> 홈으로 돌아가기
         </Link>
+        {/* 이름을 모르면 종목코드를 이름 자리에 한 번만 적는다 */}
         <h1 className={styles.identity}>
           <span className={styles.name}>{preview?.stockName ?? stockCode}</span>
-          <span className={styles.code}>{stockCode}</span>
+          {preview !== null && <span className={styles.code}>{stockCode}</span>}
         </h1>
         <div className={`${styles.chartBox} ${styles.failBox}`} role="alert">
           <p className={styles.failText}>종목 정보를 불러오지 못했습니다</p>
@@ -278,14 +288,15 @@ function PriceSection({
         {/* 이름은 응답에 실려 온다. 목록에서 들고 왔으면 그걸 먼저 쓰고, 없으면 뼈대를 둔다 */}
         <span className={styles.name}>
           {detail !== null ? (
-            detail.stockName
+            displayName
           ) : preview !== null ? (
             preview.stockName
           ) : (
             <span className={`${styles.textSkeleton} ${styles.nameSkeleton}`} />
           )}
         </span>
-        <span className={styles.code}>{stockCode}</span>
+        {/* 이름이 비어 종목코드로 대신했으면 코드를 두 번 적지 않는다 */}
+        {displayName !== stockCode && <span className={styles.code}>{stockCode}</span>}
       </h1>
 
       <PriceLines detail={detail} preview={preview} />
