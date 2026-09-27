@@ -8,7 +8,6 @@ import SectionBoundary from '../components/SectionBoundary'
 import { useIsLoggedIn } from '../hooks/useIsLoggedIn'
 import { useMyPersonality } from '../hooks/useMyPersonality'
 import { useDocumentTitle } from '../hooks/useDocumentTitle'
-import { isLoggedIn } from '../utils/auth'
 import type { StockInfo } from '../types/stock'
 import type { BacktestPeriod, BacktestPreset } from '../types/backtest'
 import { isFiniteNumber } from '../utils/format'
@@ -134,11 +133,10 @@ export default function BacktestPage() {
    * 서버로 나가는 값은 어차피 investType 하나뿐이라 전략을 고르는 것이 곧 성향을 고르는 것과 같다.
    */
   /*
-   * 들어올 때 로그인 상태였을 때만 부른다. 만료된 토큰(401)이면 토큰만 지우고 이 화면에 머물고,
-   * 못 불러온 것은 "없음"이 아니라 실패로 보인다(useMyPersonality)
+   * 로그인 상태일 때만 부르고, 로그인·로그아웃(다른 탭 포함)을 따라간다 — 로그아웃하면 성향 문구를 지운다.
+   * 만료된 토큰(401)이면 토큰만 지우고 이 화면에 머물고, 못 불러온 것은 "없음"이 아니라 실패로 보인다(useMyPersonality)
    */
-  const [loggedInAtMount] = useState(isLoggedIn)
-  const { personality, retry: retryPersonality } = useMyPersonality(loggedInAtMount)
+  const { personality, retry: retryPersonality } = useMyPersonality(loggedIn)
   const savedPersonality = personality.kind === 'found' ? personality.name : null
   // 모르는 성향 이름이면 맞는 전략도 모른다. 미리 고르지 않는다(실패·없음도 마찬가지)
   const recommended = isPersonalityType(savedPersonality)
