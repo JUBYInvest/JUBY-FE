@@ -27,9 +27,35 @@ const TOP_CACHE_MAX_AGE = 12 * 60 * 60 * 1000
  * 이 값을 띄운 뒤에도 loadTopStocks()는 그대로 돌아 최신 값으로 갈아끼운다.
  */
 export function readCachedTopStocks(): TopStock[] | null {
-  const cached = readCache<TopStock[]>(TOP_CACHE_KEY, TOP_CACHE_MAX_AGE)
-  // 테마 구성이 바뀌었으면 자리 수가 안 맞는다. 그럴 땐 없는 셈 친다
-  return cached === null || cached.length !== TOP_THEMES.length ? null : cached
+  const cached = readCache<unknown>(TOP_CACHE_KEY, TOP_CACHE_MAX_AGE)
+  /*
+   * 하나라도 어긋나면 캐시 전체를 없는 셈 친다. 개수만 보면 두 가지가 샜다.
+   * ① TOP_THEMES의 종목을 바꾸면 최대 12시간 동안 새 테마 이름 아래 옛 종목의 그래프가 먼저 떴다.
+   * ② 모양이 틀린 값(예전 버전이 다른 모양으로 저장, 사람이 손댄 값)은 카드를 그리다 던져 홈 전체가
+   *    오류 화면이 됐고, 다시 시도(새로고침)해도 같은 캐시를 읽어 12시간 동안 홈이 안 열렸다.
+   */
+  if (!Array.isArray(cached) || cached.length !== TOP_THEMES.length) return null
+  return cached.every((stock, index) => isCachedTopStock(stock, TOP_THEMES[index].stockCode))
+    ? (cached as TopStock[])
+    : null
+}
+
+function isFiniteNumbers(value: unknown): value is number[] {
+  return Array.isArray(value) && value.every((item) => typeof item === 'number' && Number.isFinite(item))
+}
+
+/** 이 자리 테마의 종목이고, 그래프를 그릴 값(가격·거래량·등락률)이 온전한가 */
+function isCachedTopStock(value: unknown, stockCode: string): boolean {
+  if (typeof value !== 'object' || value === null) return false
+  const stock = value as Partial<TopStock>
+  return (
+    stock.stockCode === stockCode &&
+    typeof stock.changeRate === 'number' &&
+    Number.isFinite(stock.changeRate) &&
+    isFiniteNumbers(stock.prices) &&
+    isFiniteNumbers(stock.volumes) &&
+    stock.prices.length === stock.volumes.length
+  )
 }
 
 /**

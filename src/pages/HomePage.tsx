@@ -105,11 +105,8 @@ export default function HomePage() {
   /** 하트를 서버에 반영하지 못해 되돌렸을 때 알리는 말. 조용히 되돌리면 누른 게 무시된 것처럼 보인다 */
   const [likeNotice, setLikeNotice] = useState('')
 
-  useEffect(() => {
-    // 개발 모드는 effect를 두 번 실행한다. 그대로 두면 카드 요청이 6건이 되어 제한에 걸린다
-    if (hasStartedTop.current) return
-    hasStartedTop.current = true
-
+  /** 카드 세 장을 받는다. 증권사를 세 번 거치므로 처음 한 번과 사용자가 다시 시도를 누를 때만 부른다 */
+  const loadCards = useCallback(() => {
     loadTopStocks(
       (index, stock) => {
         setTopStocks((previous) =>
@@ -126,6 +123,21 @@ export default function HomePage() {
       setHasTopError(true)
     })
   }, [])
+
+  useEffect(() => {
+    // 개발 모드는 effect를 두 번 실행한다. 그대로 두면 카드 요청이 6건이 되어 제한에 걸린다
+    if (hasStartedTop.current) return
+    hasStartedTop.current = true
+    loadCards()
+  }, [loadCards])
+
+  /** 카드 구역의 다시 시도. 그리다 멈춘 값을 버리고 자리표시부터 다시 받는다 */
+  function retryCards() {
+    setTopStocks(TOP_THEMES.map(() => null))
+    setCardFailures(TOP_THEMES.map(() => null))
+    setHasTopError(false)
+    loadCards()
+  }
 
   const load = useCallback(() => {
     setList({ kind: 'loading' })
@@ -274,21 +286,26 @@ export default function HomePage() {
         {/* 홈의 대표 제목. 아래 '현재 주가 보기'가 h2로 이어진다 */}
         <h1 className={styles.heading}>테마별 대표 종목</h1>
 
-        {/* 한 장도 못 받았을 때만 에러로 대체한다. 일부라도 왔으면 그건 보여주는 편이 낫다 */}
-        {hasTopError && topStocks.every((stock) => stock === null) ? (
-          <p className={styles.loading}>차트를 불러오지 못했습니다.</p>
-        ) : (
-          <div className={styles.cards}>
-            {TOP_THEMES.map((theme, index) => (
-              <TopStockCard
-                key={theme.stockCode}
-                theme={theme}
-                stock={topStocks[index]}
-                failure={cardFailures[index]}
-              />
-            ))}
-          </div>
-        )}
+        {/*
+          카드를 그리다 멈춰도 검색·시세표는 남는다. 경계가 없을 땐 카드 한 장 때문에 홈 전체가 오류 화면이 됐다.
+          한 장도 못 받았을 때만 에러로 대체한다. 일부라도 왔으면 그건 보여주는 편이 낫다
+        */}
+        <SectionBoundary onRetry={retryCards}>
+          {hasTopError && topStocks.every((stock) => stock === null) ? (
+            <p className={styles.loading}>차트를 불러오지 못했습니다.</p>
+          ) : (
+            <div className={styles.cards}>
+              {TOP_THEMES.map((theme, index) => (
+                <TopStockCard
+                  key={theme.stockCode}
+                  theme={theme}
+                  stock={topStocks[index]}
+                  failure={cardFailures[index]}
+                />
+              ))}
+            </div>
+          )}
+        </SectionBoundary>
       </section>
 
       <section className={styles.section}>
