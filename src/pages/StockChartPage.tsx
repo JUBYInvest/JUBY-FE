@@ -193,6 +193,16 @@ export default function StockChartPage() {
 
   const detail = view.kind === 'ready' ? view.detail : null
 
+  /*
+   * 다시 시도. 받아 둔 값을 먼저 버리고(불러오는 중) 새로 받는다. 구역 경계는 누르는 순간 안쪽을 다시 그리는데,
+   * 그때 멈추게 한 옛 값을 그대로 들고 있으면 곧바로 또 멈춰, 새 값이 멀쩡하게 와도 안내가 풀리지 않았다
+   * (2026-09-27 재현). 홈 카드의 다시 시도와 같은 방식이다.
+   */
+  function retry() {
+    setState({ kind: 'loading' })
+    setRetryCount((count) => count + 1)
+  }
+
   return (
     <>
       {/*
@@ -203,7 +213,7 @@ export default function StockChartPage() {
       {/* 종목이 바뀌면 앞 종목에서 멈춘 상태를 푼다 */}
       <SectionBoundary
         resetKey={stockCode}
-        onRetry={() => setRetryCount((count) => count + 1)}
+        onRetry={retry}
       >
         <PriceSection
           stockCode={stockCode}
@@ -212,7 +222,7 @@ export default function StockChartPage() {
           period={period}
           onPeriodChange={setPeriod}
           failed={view.kind === 'error'}
-          onRetry={() => setRetryCount((count) => count + 1)}
+          onRetry={retry}
         />
       </SectionBoundary>
 
