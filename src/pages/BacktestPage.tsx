@@ -20,6 +20,7 @@ import {
   calculateAxisScores,
   findByPersonality,
   findInvestType,
+  isHeldToEnd,
   periodLabel,
   scoreVerdict,
   supportedPeriods,
@@ -35,6 +36,9 @@ import styles from './BacktestPage.module.css'
  * 사용자가 3개월을 골라도 종목 성향만은 늘 이 기간으로 비교한다.
  */
 const COMPARE_PERIOD: BacktestPeriod = 'ONE_YEAR'
+
+/** 끝까지 들고 있던 매수가 빠진 지표(수익률·거래횟수)의 설명. 임시 — isHeldToEnd 참고 */
+const HELD_DESC = '끝까지 팔지 않은 매수는 빠진 값이에요'
 
 /**
  * 이 전략으로 고를 수 있는 기간. 로컬 표(최소 기간)와 서버가 실제로 계산해 둔 기간의 교집합이다.
@@ -654,6 +658,11 @@ function BacktestResult({
     isFiniteNumber(value) ? (value >= 0 ? 'up' : 'down') : undefined
   const positionCount = result.growth.positionCount
   const hasPositionCount = Number.isInteger(positionCount)
+  /*
+   * 임시(백엔드가 끝에 청산하면 지운다): 사서 끝까지 들고 있으면 서버가 그 매수를 수익률·거래횟수에서 빼
+   * "거래 0회·수익률 0%"로 준다. 그 세 값에 빠진 게 있다고 적고, 거래 0회 경고 대신 따로 알린다
+   */
+  const heldToEnd = isHeldToEnd(result)
 
   const metrics: {
     label: string
@@ -665,13 +674,13 @@ function BacktestResult({
       label: '누적수익률',
       value: toPercent(result.profit.totalReturn),
       tone: toneOf(result.profit.totalReturn),
-      desc: '이 기간에 전략을 그대로 따랐다면 이만큼 벌었어요',
+      desc: heldToEnd ? HELD_DESC : '이 기간에 전략을 그대로 따랐다면 이만큼 벌었어요',
     },
     {
       label: '연평균수익률',
       value: toPercent(result.profit.annualReturn),
       tone: toneOf(result.profit.annualReturn),
-      desc: '1년치로 환산하면 이 정도 속도예요',
+      desc: heldToEnd ? HELD_DESC : '1년치로 환산하면 이 정도 속도예요',
     },
     {
       label: '최대낙폭 (MDD)',
@@ -693,7 +702,7 @@ function BacktestResult({
     {
       label: '거래횟수',
       value: hasPositionCount ? `${positionCount}회` : '-',
-      desc: '이 기간에 전략이 사고판 횟수예요',
+      desc: heldToEnd ? HELD_DESC : '이 기간에 전략이 사고판 횟수예요',
     },
   ]
 
@@ -871,10 +880,21 @@ function BacktestResult({
           안정성 점수만 100점으로 치솟는다. 점수만 보면 '아주 안정적인 종목'처럼 읽히지만
           실제로는 이 전략이 이 종목에서 신호를 한 번도 못 잡은 것이다. 먼저 알린다.
         */}
-        {hasPositionCount && positionCount === 0 && (
+        {hasPositionCount && positionCount === 0 && !heldToEnd && (
           <p className={styles.warn}>
             이 기간에는 매매 신호가 한 번도 나오지 않았어요. 손익이 없어 안정성
             점수가 높게 잡히니, 적합도보다 <b>거래횟수 0회</b>를 먼저 봐주세요.
+          </p>
+        )}
+        {/*
+          임시 안내. 산 뒤 기간이 끝날 때까지 파는 신호가 없으면 서버가 그 매수를 셈에서 빼
+          "매매 신호가 없었다"와 같은 숫자를 준다. 그 경고를 띄우면 틀린 말이라 이 안내로 바꾼다
+        */}
+        {heldToEnd && (
+          <p className={styles.warn}>
+            이 기간에 산 주식을 끝까지 팔지 않고 들고 있었어요. 지금은 팔지 않은 매수가
+            수익률·거래횟수에 들어가지 않아 <b>수익률 0%·거래 0회</b>로 보이고, 적합도도 그
+            값으로 매겨졌어요. 낙폭·변동성은 들고 있던 동안의 값이에요.
           </p>
         )}
       </div>

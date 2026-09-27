@@ -262,3 +262,18 @@ export function calculateAxisScores(
     ]),
   }
 }
+
+/**
+ * 기간 끝까지 팔지 않고 들고 있던 매수만 있는 결과인가. **임시 — 백엔드가 끝에 청산하면 지운다.**
+ *
+ * 백엔드는 기간 끝에 열린 포지션을 청산하지 않는다(CLAUDE.md "백엔드 사정 > 백테스트"). 거래 횟수·수익률은 끝난
+ * 거래만 세고 낙폭·변동성은 들고 있던 동안까지 세서, 사서 끝까지 들고 있으면 "거래 0회·수익률 0%"인데 낙폭은 남는다.
+ * 정말 한 번도 안 샀으면 손익 흐름이 평평해 낙폭·변동성이 모두 0이다(2026-09-27 실제 프리셋 300건 중 거래 0회
+ * 167건: 셋 다 0인 것 68건, 아닌 것 99건). 끝난 거래 뒤에 다시 사서 들고 있는 경우는 여기서 가려낼 수 없다.
+ */
+export function isHeldToEnd(result: QuantScoring): boolean {
+  if (result.growth.positionCount !== 0) return false
+  return [result.stable.mdd, result.stable.volatility, result.stable.dVolatility].some(
+    (value) => isFiniteNumber(value) && value > 0,
+  )
+}
