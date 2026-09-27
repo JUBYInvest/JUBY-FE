@@ -1,4 +1,4 @@
-import { post } from './client'
+import { malformedResponse, post } from './client'
 import { delay } from '../utils/async'
 import type { AskResult, ChatMessage, ChatSession, ChatSessionDetail } from '../types/ai'
 
@@ -61,7 +61,7 @@ export async function ask(
   stockName: string,
   sessionId?: number,
 ): Promise<AskResult> {
-  const { answer } = await post<{ answer: string }>(
+  const result = await post<{ answer: string } | null>(
     '/api/open-ai/ask',
     {
       question,
@@ -75,6 +75,10 @@ export async function ask(
      */
     { timeoutMs: null },
   )
+  // 본문이 객체가 아니면 다른 API처럼 응답 모양 오류로 던진다. 구조 분해하면 null에서 TypeError가 났다.
+  // 답이 빈 건 여기서 막지 않는다 — 화면이 "답변을 가져오지 못했어요 + 다시 시도"로 받는다
+  if (typeof result !== 'object' || result === null) throw malformedResponse()
+  const { answer } = result
 
   return {
     sessionId: sessionId ?? nextSessionId++,
