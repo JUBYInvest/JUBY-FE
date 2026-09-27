@@ -9,7 +9,6 @@ import { useIsLoggedIn } from '../hooks/useIsLoggedIn'
 import { useDocumentTitle } from '../hooks/useDocumentTitle'
 import { findStockName } from '../utils/stockName'
 import type { ChatMessage, ChatSession } from '../types/ai'
-import type { PersonalityType } from '../types/personality'
 import styles from './AiPage.module.css'
 
 /** 검사를 마치면 doneRoute가 from=ai를 보고 이 화면으로 돌려보낸다 */
@@ -33,7 +32,7 @@ export default function AiPage() {
   const [question, setQuestion] = useState('')
   const [pending, setPending] = useState<PendingState>(null)
   const [notice, setNotice] = useState('')
-  const [personality, setPersonality] = useState<PersonalityType | null>(null)
+  const [personality, setPersonality] = useState<string | null>(null)
 
   /*
    * 화면에서 바로 만든 메시지에 붙일 번호. 서버가 주는 번호는 양수라서 음수로 내려가며 쓴다.

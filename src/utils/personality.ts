@@ -63,8 +63,41 @@ export function scoreToPersonality(score: number): PersonalityType {
  * 서버가 준 글이 비었으면 대신할 글을 쓴다. null·빈 문자열뿐 아니라 공백만 있는 값도
  * 빈 것으로 본다 — `||`로 고르면 "  "가 참이라 설명이 통째로 빠지고 이미지가 src=" "로 깨졌다.
  */
-export function textOr(value: string | null | undefined, fallback: string): string {
+function textOr(value: string | null | undefined, fallback: string): string {
   return typeof value === 'string' && value.trim() !== '' ? value : fallback
+}
+
+const PERSONALITY_TYPES: readonly string[] = [
+  '안정형',
+  '안정추구형',
+  '위험중립형',
+  '적극투자형',
+  '공격투자형',
+] satisfies readonly PersonalityType[]
+
+/** 서버가 준 성향 이름이 다섯 성향 중 하나인가. 서버에 성향이 늘면 여기에 없는 이름이 온다 */
+export function isPersonalityType(value: unknown): value is PersonalityType {
+  return typeof value === 'string' && PERSONALITY_TYPES.includes(value)
+}
+
+/**
+ * 화면에 쓸 성향 설명·이미지. 서버 값이 먼저이고, 비면 로컬 표로 받친다.
+ *
+ * 이름이 다섯 성향이 아니면 로컬 표를 읽지 않는다. 예전엔 `PERSONALITY_INFO[이름].description`을
+ * 인자로 먼저 계산해 모르는 이름에서 던졌고, 성향 저장은 서버에서 끝났는데 "저장하지 못했어요"가 떠
+ * 다시 저장할 때마다 POST가 또 나갔다. 모르는 이름은 이름 그대로 두고 설명만 대신하며, 이미지는 비운다
+ * (카드가 `<img>`를 그리지 않는다 — `src=""`는 지금 페이지를 다시 요청한다).
+ */
+export function describePersonality(
+  name: string,
+  description: string | null | undefined,
+  imageUrl: string | null | undefined,
+): { description: string; imageUrl: string } {
+  const local = isPersonalityType(name) ? PERSONALITY_INFO[name] : null
+  return {
+    description: textOr(description, local?.description ?? '설명을 불러오지 못했어요.'),
+    imageUrl: textOr(imageUrl, local?.imageUrl ?? ''),
+  }
 }
 
 /**

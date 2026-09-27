@@ -1,4 +1,3 @@
-import type { PersonalityType } from './personality'
 import type { StockInfo } from './stock'
 
 /** 가입 경로. 백엔드 Member.socialType과 같은 값이다 */
@@ -24,7 +23,8 @@ export interface MemberUpdate {
 }
 
 export interface PersonalityInfo {
-  investPersonality: PersonalityType
+  /** 보통 다섯 성향 중 하나. 서버에 성향이 늘면 모르는 이름이 온다 — 없음(null)으로 바꾸지 않는다 */
+  investPersonality: string
   description: string
   /** 서버가 가진 이미지 주소. 비어 있으면 화면이 로컬 PNG로 대신한다 */
   personalityImg: string | null

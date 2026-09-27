@@ -11,8 +11,7 @@ import { useDocumentTitle } from '../hooks/useDocumentTitle'
 import { isLoggedIn } from '../utils/auth'
 import type { StockInfo } from '../types/stock'
 import type { BacktestPeriod, BacktestPreset } from '../types/backtest'
-import type { PersonalityType } from '../types/personality'
-import { PERSONALITY_INFO } from '../utils/personality'
+import { PERSONALITY_INFO, isPersonalityType } from '../utils/personality'
 import {
   AXES,
   AXIS_LABEL,
@@ -111,10 +110,11 @@ export default function BacktestPage() {
    * 그에 맞는 전략을 미리 골라 둔다. 사용자는 전략만 바꾼다.
    * 서버로 나가는 값은 어차피 investType 하나뿐이라 전략을 고르는 것이 곧 성향을 고르는 것과 같다.
    */
-  const [savedPersonality, setSavedPersonality] =
-    useState<PersonalityType | null>(null)
-  const recommended =
-    savedPersonality === null ? null : findByPersonality(savedPersonality)
+  const [savedPersonality, setSavedPersonality] = useState<string | null>(null)
+  // 모르는 성향 이름이면 맞는 전략도 모른다. 미리 고르지 않는다
+  const recommended = isPersonalityType(savedPersonality)
+    ? findByPersonality(savedPersonality)
+    : null
 
   const [investType, setInvestType] = useState<number | null>(null)
   const [period, setPeriod] = useState<BacktestPeriod | null>(null)
@@ -552,7 +552,7 @@ interface ResultProps {
   stockName: string
   /** 다섯 전략의 적합도를 높은 순으로. 첫 번째가 이 종목의 성향이다. 비어 있을 수 있다 */
   ranking: Ranked[]
-  savedPersonality: PersonalityType | null
+  savedPersonality: string | null
   onRetry: () => void
 }
 
@@ -859,7 +859,7 @@ function BacktestResult({
 
 interface GuideProps {
   investType: number | null
-  savedPersonality: PersonalityType | null
+  savedPersonality: string | null
   onSelect: (investType: number) => void
 }
 

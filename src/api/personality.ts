@@ -2,15 +2,11 @@ import { get, post } from './client'
 import { isLoggedIn } from '../utils/auth'
 import {
   PERSONALITY_INFO,
+  describePersonality,
   normalizeScore,
   scoreToPersonality,
-  textOr,
 } from '../utils/personality'
-import type {
-  PersonalityResult,
-  PersonalityType,
-  Question,
-} from '../types/personality'
+import type { PersonalityResult, Question } from '../types/personality'
 
 /*
  * 문항 출처를 여기서 정한다. 화면 코드는 어느 쪽이든 똑같이 동작한다.
@@ -37,7 +33,8 @@ interface TestResultResponse {
   memberId: number
   memberName: string
   personalityId: number
-  personalityName: PersonalityType
+  /** 다섯 성향 이름이지만 서버에 성향이 늘면 모르는 이름이 올 수 있다 */
+  personalityName: string
   description: string
   url: string
 }
@@ -122,12 +119,14 @@ export async function submitTest(
     scores: raw === normalized ? scores : [normalized],
   })
 
-  // personality 테이블이 비어 있으면 설명과 이미지가 빈 문자열로 온다. 그때는 로컬 문구를 쓴다
-  const fallback = PERSONALITY_INFO[result.personalityName]
+  /*
+   * 여기까지 왔으면 서버는 이미 저장을 끝냈다. 여기서 던지면 화면이 "저장하지 못했어요"를 띄우고
+   * 다시 저장할 때마다 또 저장된다 — 이름을 몰라도 던지지 않는다(describePersonality).
+   * personality 테이블이 비어 있으면 설명과 이미지가 빈 문자열로 온다. 그때는 로컬 문구를 쓴다
+   */
   return {
     type: result.personalityName,
-    description: textOr(result.description, fallback.description),
-    imageUrl: textOr(result.url, fallback.imageUrl),
+    ...describePersonality(result.personalityName, result.description, result.url),
   }
 }
 

@@ -22,7 +22,8 @@ export type PersonalityType =
   | '공격투자형'
 
 export interface PersonalityResult {
-  type: PersonalityType
+  /** 보통 다섯 성향 중 하나지만, 서버가 모르는 이름을 주면 그 이름 그대로다(describePersonality) */
+  type: string
   description: string
   imageUrl: string
 }

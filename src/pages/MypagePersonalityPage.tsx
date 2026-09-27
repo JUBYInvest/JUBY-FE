@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import PersonalityCard from '../components/PersonalityCard'
 import { getMyPersonality } from '../api/member'
 import { useDocumentTitle } from '../hooks/useDocumentTitle'
-import { PERSONALITY_INFO, textOr } from '../utils/personality'
+import { describePersonality } from '../utils/personality'
 import type { PersonalityInfo } from '../types/member'
 import styles from './MypagePersonalityPage.module.css'
 
@@ -73,14 +73,21 @@ export default function MypagePersonalityPage() {
   }
 
   const { info } = state
-  /* 서버 값이 먼저다. personality 테이블이 비어 있으면 빈 문자열이 오므로 로컬 문구로 받친다 */
-  const fallback = PERSONALITY_INFO[info.investPersonality]
+  /*
+   * 서버 값이 먼저다. personality 테이블이 비어 있으면 빈 문자열이 오므로 로컬 문구로 받친다.
+   * 모르는 성향 이름이어도 저장된 성향이므로 "아직 검사 안 함"으로 바꾸지 않고 이름 그대로 보인다
+   */
+  const { description, imageUrl } = describePersonality(
+    info.investPersonality,
+    info.description,
+    info.personalityImg,
+  )
 
   return (
     <PersonalityCard
       type={info.investPersonality}
-      description={textOr(info.description, fallback.description)}
-      imageUrl={textOr(info.personalityImg, fallback.imageUrl)}
+      description={description}
+      imageUrl={imageUrl}
     >
       <Link to={TEST_URL} className={styles.retest}>
         검사 다시하기
