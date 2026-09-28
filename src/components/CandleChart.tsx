@@ -9,7 +9,7 @@ import {
 import type { IChartApi, ISeriesApi } from 'lightweight-charts'
 import type { Candle } from '../types/stock'
 import { toDashedYmd, toKoreanDate } from '../utils/date'
-import { formatChangeRate, isFlatRate } from '../utils/format'
+import { formatChangeRate, isFiniteNumber, isFlatRate } from '../utils/format'
 import styles from './CandleChart.module.css'
 
 /** 국내 시장 관례대로 오르면 빨강, 내리면 파랑 */
@@ -33,6 +33,18 @@ function formatVolume(volume: number): string {
     return `${Math.round(volume / 10_000).toLocaleString('ko-KR')}만`
   }
   return Math.round(volume).toLocaleString('ko-KR')
+}
+
+/*
+ * 범례에 적는 값. 눈금 포맷터와 달리 봉 값이 비면(응답에서 빠지면) "-"다 — Math.round(null)이 0이라
+ * 빈 봉이 "시 0 … 종 0"으로 적혔다. 눈금은 라이브러리가 숫자만 넘기므로 위 두 함수를 그대로 쓴다.
+ */
+function legendPrice(price: number | null | undefined): string {
+  return isFiniteNumber(price) ? formatPriceTick(price) : '-'
+}
+
+function legendVolume(volume: number | null | undefined): string {
+  return isFiniteNumber(volume) ? `${formatVolume(volume)}주` : '-'
 }
 
 interface Props {
@@ -241,8 +253,9 @@ export default function CandleChart({ candles }: Props) {
 function Legend({ point }: { point: Point }) {
   const { candle, prevClose } = point
 
+  // 그 봉과 전 봉의 종가가 둘 다 있어야 적는다. 종가가 비면 (null - 전날) / 전날 = "-100.00%"가 됐다
   const rate =
-    prevClose === null || prevClose === 0
+    !isFiniteNumber(candle.close) || !isFiniteNumber(prevClose) || prevClose === 0
       ? null
       : ((candle.close - prevClose) / prevClose) * 100
 
@@ -258,16 +271,16 @@ function Legend({ point }: { point: Point }) {
       <span className={styles.legendDate}>{toKoreanDate(candle.date)}</span>
 
       <span>
-        시 <b>{formatPriceTick(candle.open)}</b>
+        시 <b>{legendPrice(candle.open)}</b>
       </span>
       <span>
-        고 <b>{formatPriceTick(candle.high)}</b>
+        고 <b>{legendPrice(candle.high)}</b>
       </span>
       <span>
-        저 <b>{formatPriceTick(candle.low)}</b>
+        저 <b>{legendPrice(candle.low)}</b>
       </span>
       <span>
-        종 <b style={{ color: rateColor }}>{formatPriceTick(candle.close)}</b>
+        종 <b style={{ color: rateColor }}>{legendPrice(candle.close)}</b>
       </span>
 
       {rate !== null && (
@@ -275,7 +288,7 @@ function Legend({ point }: { point: Point }) {
       )}
 
       <span className={styles.legendVolume}>
-        거래량 <b>{formatVolume(candle.volume)}주</b>
+        거래량 <b>{legendVolume(candle.volume)}</b>
       </span>
     </div>
   )
