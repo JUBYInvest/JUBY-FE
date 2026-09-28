@@ -11,6 +11,7 @@ import { useDocumentTitle } from '../hooks/useDocumentTitle'
 import type { StockInfo } from '../types/stock'
 import type { BacktestPeriod, BacktestPreset } from '../types/backtest'
 import { isFiniteNumber } from '../utils/format'
+import { loginPathFrom } from '../utils/navigation'
 import { PERSONALITY_INFO, isPersonalityType } from '../utils/personality'
 import {
   AXES,
@@ -85,7 +86,7 @@ type ResultState =
   | { kind: 'idle' }
   | { kind: 'loading' }
   | { kind: 'ready'; preset: BacktestPreset; ranking: Ranked[]; missed: CompareMiss }
-  | { kind: 'error'; message: string; hint: string | null }
+  | { kind: 'error'; message: string; hint: string | null; needsLogin: boolean }
 
 /**
  * 서버 실패 코드를 사람 말로. 코드는 백엔드 BacktestErrorCode 참고.
@@ -93,27 +94,37 @@ type ResultState =
  * 서버가 준 message는 화면에 쓰지 않는다 — 개발자용 문구나 예외 이름이 섞여 올 수 있다.
  * 원문은 handleSubmit이 콘솔에 남긴다.
  */
-function describeFailure(error: unknown): { message: string; hint: string | null } {
+function describeFailure(error: unknown): { message: string; hint: string | null; needsLogin: boolean } {
   if (error instanceof ApiError) {
+    /*
+     * 백엔드가 /api/backtest/**를 로그인한 회원만 쓰게 바꿨다(JUBY-BE dev 7e5b023, 2026-09-28). 비로그인이면 401이라
+     * 기다려도 안 풀린다 — 다시 시도 대신 로그인으로 보낸다. 로그인 상태의 401은 client.ts가 이미 로그인 화면으로 보냈다.
+     */
+    if (error.status === 401) {
+      return { message: '로그인하면 결과를 볼 수 있어요.', hint: null, needsLogin: true }
+    }
     switch (error.code) {
       case 'BACKTEST404_5':
         return {
           message: '아직 계산되지 않은 조합이에요.',
           hint: '매일 새벽 4시에 계산돼요. 이 종목은 일봉이 모자라 건너뛰었을 수 있어요.',
+          needsLogin: false,
         }
       case 'BACKTEST400_1':
         return {
           message: '이 전략은 그 기간을 지원하지 않아요.',
           hint: '더 긴 기간을 골라 주세요.',
+          needsLogin: false,
         }
       case 'BACKTEST404_1':
       case 'STOCK404_1':
-        return { message: '목록에 없는 종목이에요.', hint: null }
+        return { message: '목록에 없는 종목이에요.', hint: null, needsLogin: false }
     }
   }
   return {
     message: '결과를 불러오지 못했어요.',
     hint: '잠시 후 다시 시도해 주세요.',
+    needsLogin: false,
   }
 }
 
@@ -595,13 +606,22 @@ export default function BacktestPage() {
               {result.hint !== null && (
                 <p className={styles.errorHint}>{result.hint}</p>
               )}
-              <button
-                type="button"
-                className={styles.errorRetry}
-                onClick={() => void handleSubmit()}
-              >
-                다시 시도
-              </button>
+              {result.needsLogin ? (
+                <Link
+                  className={`${styles.errorRetry} ${styles.errorLogin}`}
+                  to={loginPathFrom('/backtest')}
+                >
+                  로그인하기
+                </Link>
+              ) : (
+                <button
+                  type="button"
+                  className={styles.errorRetry}
+                  onClick={() => void handleSubmit()}
+                >
+                  다시 시도
+                </button>
+              )}
             </div>
           )}
 
