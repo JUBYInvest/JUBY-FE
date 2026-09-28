@@ -33,6 +33,11 @@ export function toReturnPath(value: string | null | undefined): string | null {
   try {
     const url = new URL(value, window.location.origin)
     if (url.origin !== window.location.origin) return null
+    /*
+     * 풀어 낸 경로도 `//`로 시작하면 안 된다. `/.//evil.com`·`/a/..//evil.com`은 같은 출처로 풀리지만 경로가
+     * `//evil.com`이 된다. 이 값을 navigate에 넣으면 React Router가 pushState 실패 뒤 location.assign으로 넘겨 바깥으로 나간다.
+     */
+    if (url.pathname.startsWith('//')) return null
     if (url.pathname === '/login' || url.pathname.startsWith('/oauth')) return null
     return `${url.pathname}${url.search}`
   } catch {
