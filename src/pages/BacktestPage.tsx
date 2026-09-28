@@ -56,17 +56,6 @@ function availablePeriods(
   return server === undefined ? local : local.filter((p) => server.includes(p))
 }
 
-/**
- * 받침이 있으면 '은', 없으면 '는'.
- * 한글이 아니면(NAVER 등) '는'이 자연스러워 기본값으로 둔다.
- */
-function withTopicParticle(word: string): string {
-  const last = word.charCodeAt(word.length - 1)
-  const isHangul = last >= 0xac00 && last <= 0xd7a3
-  if (!isHangul) return `${word}는`
-  return (last - 0xac00) % 28 === 0 ? `${word}는` : `${word}은`
-}
-
 /** 성향테스트를 하러 가는 곳. 끝나면 doneRoute가 홈으로 보낸다(from 없음) */
 const PERSONALITY_TEST_URL = '/personality-test'
 
@@ -798,11 +787,13 @@ function BacktestResult({
           )}
           {topInfos.length > 0 && (
             <>
-              <br />그 결과 {withTopicParticle(stockName)}{' '}
+              {/*
+                종목명 바로 뒤에 은·는처럼 받침 따라 바뀌는 조사를 두지 않는다. 글자로는 못 가린다 —
+                NAVER는 "는", LS ELECTRIC·KODEX 200은 "은"처럼 읽는 소리로 갈린다. 성향 이름은 모두 '형'으로 끝나 "이에요"가 맞다
+              */}
+              <br />그 결과 {stockName}에 {isJoint ? '똑같이 ' : ''}가장 잘 맞는 성향은{' '}
               <b className={isSame ? styles.good : styles.bad}>{topNames}</b>
-              {isJoint
-                ? '에게 똑같이 가장 잘 맞는 종목이에요(공동 1위).'
-                : '에게 가장 잘 맞는 종목이에요.'}
+              {isJoint ? '이에요(공동 1위).' : '이에요.'}
             </>
           )}
         </p>
@@ -958,7 +949,7 @@ function BacktestResult({
       */}
       <div className={styles.card}>
         <h3 className={styles.cardTitle}>
-          {withTopicParticle(stockName)} 어떤 성향에 맞나요?
+          {stockName}에 맞는 성향
           <span className={styles.cardNote}>1년 기준으로 다섯 전략을 비교</span>
         </h3>
 
