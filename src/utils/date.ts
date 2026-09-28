@@ -1,3 +1,5 @@
+import type { Period } from '../types/stock'
+
 /** 여덟 자리 숫자 날짜("20260805")인가. 아니면 아래 함수들이 엉뚱한 값("--", 1899년)을 만든다 */
 function isYmd(value: unknown): value is string {
   return typeof value === 'string' && /^\d{8}$/.test(value)
@@ -25,17 +27,56 @@ export function fromDashedYmd(dashed: string | null | undefined): string {
 }
 
 /**
- * YYYYMMDD → Date(로컬 자정). 상세 화면이 기간 탭으로 일봉을 자를 때 쓴다.
+ * YYYYMMDD → Date(로컬 자정). 상세 화면이 기간 탭으로 일봉을 자를 때 쓴다(periodStart).
  * new Date("2026-08-05")는 UTC 자정이라 한국에서 날짜가 밀릴 수 있어 직접 조립한다.
  * 여덟 자리 날짜가 아니면 잘못된 날짜(Invalid Date)다. 그대로 쪼개면 ""가 1899년 11월 30일이 된다.
  */
-export function ymdToDate(ymd: string): Date {
+function ymdToDate(ymd: string): Date {
   if (!isYmd(ymd)) return new Date(Number.NaN)
   return new Date(
     Number(ymd.slice(0, 4)),
     Number(ymd.slice(4, 6)) - 1,
     Number(ymd.slice(6, 8)),
   )
+}
+
+/**
+ * months달 거슬러 올라간 날. 그달에 같은 날이 없으면 그달 말일로 맞춘다(Java `LocalDate.minusMonths`와 같다).
+ * `Date.setMonth`는 넘쳐서 다음 달로 간다 — 7월 31일의 한 달 전이 6월 31일 → 7월 1일이 됐다.
+ */
+function minusMonths(date: Date, months: number): Date {
+  const year = date.getFullYear()
+  const month = date.getMonth() - months
+  // 다음 달의 0일이 이달 말일이다. 월이 음수여도 Date가 연을 넘겨 계산한다
+  const lastDay = new Date(year, month + 1, 0).getDate()
+  return new Date(year, month, Math.min(date.getDate(), lastDay))
+}
+
+/**
+ * 마지막 거래일에서 기간만큼 거슬러 올라간 시작일(YYYYMMDD). 전체면 null.
+ * 백엔드 StockService.calculateDay와 같은 규칙이다 — 1주는 7일 전, 달·해는 `minusMonths`·`minusYears`라
+ * 거슬러 간 달에 그날이 없으면 말일로 맞춘다(2026-07-31의 1개월 전은 06-30, 2028-02-29의 1년 전은 2027-02-28).
+ * 날짜가 여덟 자리가 아니면 ""다(그러면 자르지 않는다).
+ */
+export function periodStart(lastYmd: string, period: Period): string | null {
+  if (period === 'ALL') return null
+
+  const date = ymdToDate(lastYmd)
+  switch (period) {
+    case 'ONE_WEEK':
+      date.setDate(date.getDate() - 7)
+      return toYmd(date)
+    case 'ONE_MONTH':
+      return toYmd(minusMonths(date, 1))
+    case 'THREE_MONTH':
+      return toYmd(minusMonths(date, 3))
+    case 'SIX_MONTH':
+      return toYmd(minusMonths(date, 6))
+    case 'ONE_YEAR':
+      return toYmd(minusMonths(date, 12))
+    case 'THREE_YEAR':
+      return toYmd(minusMonths(date, 36))
+  }
 }
 
 /** "20260805" → "2026-08-05" (lightweight-charts가 이 형식을 받는다). 여덟 자리 날짜가 아니면 빈 문자열 */

@@ -145,7 +145,7 @@ Playwright 스크립트를 세션 임시 폴더에서 돌린다. 지금까지 �
 | --- | --- | --- |
 | 홈 표 `GET /api/stocks` | **0회** | DB의 `daily_price`를 읽는다. 종가·등락률·거래대금·`isLiked`·`baseDate` |
 | 홈 카드 `GET /api/stocks/{code}?period=ONE_MONTH` ×3 | 3회(10분 안에 받아 둔 게 있으면 0회) | 일봉은 DB, **현재가 하나**를 증권사에 묻는다. `home.ts`가 200ms 간격으로 순차 호출. 카드는 일봉만 그리므로 저장해 둔 카드가 10분 안의 것이면 다시 안 부른다(`hasFreshTopStocks`) |
-| 상세 `GET /api/stocks/{code}?period=ALL` | 1회 | 같은 이유. **기간 탭은 서버에 다시 묻지 않고** 받아 둔 전체를 화면에서 자른다(`StockChartPage.periodStart`) |
+| 상세 `GET /api/stocks/{code}?period=ALL` | 1회 | 같은 이유. **기간 탭은 서버에 다시 묻지 않고** 받아 둔 전체를 화면에서 자른다(`utils/date.periodStart`, 백엔드 `calculateDay`와 같은 규칙) |
 
 증권사 제한에 걸리면 500이 오고 한 번 더 부르면 대개 된다 — `withRetry`가 그 용도다.
 **4xx에는 재시도하지 않는다**(없는 종목을 다시 물어도 없다).

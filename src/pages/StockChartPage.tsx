@@ -7,7 +7,7 @@ import { ApiError } from '../api/client'
 import { getStockDetail, isStockCode } from '../api/stock'
 import { useDocumentTitle } from '../hooks/useDocumentTitle'
 import { withRetry } from '../utils/async'
-import { toKoreanDate, toYmd, ymdToDate } from '../utils/date'
+import { periodStart, toKoreanDate } from '../utils/date'
 import {
   formatChangeRate,
   formatPrice,
@@ -45,39 +45,10 @@ type State =
   | { kind: 'error'; stockCode: string }
 
 /**
- * 마지막 거래일에서 기간만큼 거슬러 올라간 시작일(YYYYMMDD).
- * 백엔드 StockService.calculateDay와 같은 규칙이라 서버에 period를 보낸 것과 결과가 같다.
- *
- * 서버에 기간마다 다시 묻지 않는 이유: 상세 API는 일봉은 DB에서 주지만 현재가 하나를
- * 증권사에 물어본다. 탭을 누를 때마다 그 호출이 나가는 건 낭비라 ALL로 한 번 받고 여기서 자른다.
+ * 기간 탭은 서버에 기간마다 다시 묻지 않고 받아 둔 전체 일봉을 여기서 자른다. 상세 API는 일봉은 DB에서 주지만
+ * 현재가 하나를 증권사에 물어본다. 탭을 누를 때마다 그 호출이 나가는 건 낭비라 ALL로 한 번 받는다.
+ * 시작일은 서버에 period를 보낸 것과 같은 규칙으로 낸다(periodStart).
  */
-function periodStart(lastYmd: string, period: Period): string | null {
-  if (period === 'ALL') return null
-
-  const date = ymdToDate(lastYmd)
-  switch (period) {
-    case 'ONE_WEEK':
-      date.setDate(date.getDate() - 7)
-      break
-    case 'ONE_MONTH':
-      date.setMonth(date.getMonth() - 1)
-      break
-    case 'THREE_MONTH':
-      date.setMonth(date.getMonth() - 3)
-      break
-    case 'SIX_MONTH':
-      date.setMonth(date.getMonth() - 6)
-      break
-    case 'ONE_YEAR':
-      date.setFullYear(date.getFullYear() - 1)
-      break
-    case 'THREE_YEAR':
-      date.setFullYear(date.getFullYear() - 3)
-      break
-  }
-  return toYmd(date)
-}
-
 function sliceByPeriod(candles: Candle[], period: Period): Candle[] {
   const last = candles.at(-1)
   if (last === undefined) return candles
