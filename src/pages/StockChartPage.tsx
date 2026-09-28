@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link, useLocation, useParams } from 'react-router-dom'
 import CandleChart from '../components/CandleChart'
 import NewsList from '../components/NewsList'
@@ -88,6 +88,11 @@ export default function StockChartPage() {
   const [period, setPeriod] = useState<Period>(DEFAULT_PERIOD)
   /** '다시 시도'가 1씩 올린다. 같은 종목으로 아래 effect를 한 번 더 돌리는 유일한 방법 */
   const [retryCount, setRetryCount] = useState(0)
+  /*
+   * 다시 시도가 남기는 표시. 아래 effect가 한 번 쓰고 지운다 — 그 한 번만 방금 받아 둔 값을 쓰지 않고 새로 받는다.
+   * retryCount > 0으로 가르면 한 번 누른 뒤로는 화면이 살아 있는 동안 계속 참이라, 다른 종목에 갔다 와도 1분 캐시를 안 썼다
+   */
+  const freshNextRef = useRef(false)
 
   /*
    * 종목을 빠르게 갈아타면 먼저 보낸 요청이 나중에 도착해 새 종목 화면을 덮을 수 있다.
@@ -111,8 +116,10 @@ export default function StockChartPage() {
     setState({ kind: 'loading' })
 
     // 증권사 초당 제한에 걸리면 500이 온다. 한 번 더 부르면 대개 통과한다
-    // 다시 시도(retryCount > 0)는 방금 받아 둔 값을 쓰지 않고 새로 받는다
-    withRetry(() => getStockDetail(stockCode, 'ALL', { fresh: retryCount > 0 }), 1, 400)
+    // 다시 시도로 도는 이번 한 번만 방금 받아 둔 값을 쓰지 않고 새로 받는다
+    const fresh = freshNextRef.current
+    freshNextRef.current = false
+    withRetry(() => getStockDetail(stockCode, 'ALL', { fresh }), 1, 400)
       .then((detail) => {
         if (isStale) return
         setState({ kind: 'ready', stockCode, detail })
@@ -171,6 +178,7 @@ export default function StockChartPage() {
    */
   function retry() {
     setState({ kind: 'loading' })
+    freshNextRef.current = true
     setRetryCount((count) => count + 1)
   }
 
