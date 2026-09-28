@@ -18,7 +18,10 @@ export interface MemberInfo {
 /** PATCH /api/members/me 본문. 이름은 2~4자, 생일은 오늘 이전이어야 한다(서버 검증) */
 export interface MemberUpdate {
   name: string
-  /** "YYYY-MM-DD" 또는 null(지움) */
+  /**
+   * "YYYY-MM-DD" 또는 null. 서버는 null을 "바꾸지 않음"으로 봐서 지우지 못한다(Member.updateInfo) —
+   * 그래서 생일이 있던 회원이 칸을 비우면 화면이 보내지 않고 막는다(MypageProfilePage)
+   */
   birth: string | null
 }
 

@@ -133,6 +133,17 @@ export default function MypageProfilePage() {
       return
     }
 
+    /*
+     * 서버는 생일 null을 "바꾸지 않음"으로 본다(JUBY-BE Member.updateInfo). 비워 보내면 저장은 성공으로 끝나는데
+     * 다시 불러오면 옛 생일이 그대로다. 서버가 지우기를 받기 전까지는 지울 수 없다고 먼저 알린다.
+     * 원래 생일이 없던 회원이 비워 두는 건 바뀌는 게 없으니 그대로 보낸다.
+     */
+    const savedBirth = state.kind === 'ready' ? (state.member.birth ?? '') : ''
+    if (editBirth === '' && savedBirth !== '') {
+      setSaveError('생년월일은 지울 수 없어요. 날짜를 고르거나 취소해 주세요.')
+      return
+    }
+
     setIsSaving(true)
     setSaveError('')
 
@@ -250,7 +261,6 @@ export default function MypageProfilePage() {
             max={toDashedYmd(toYmd(new Date()))}
             disabled={isSaving}
           />
-          <p className={styles.formHelp}>비워 두면 정보 없음으로 저장돼요</p>
 
           {saveError !== '' && (
             <p className={styles.modalError} role="alert">
