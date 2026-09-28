@@ -190,7 +190,11 @@ export async function getStockDetail(
   return detail
 }
 
-/** 날짜가 틀린 봉은 getStockDetail이 뺀다. 값이 빈 봉은 거르지 않는다(차트가 그대로 그린다) */
+/**
+ * 날짜가 틀린 봉은 getStockDetail이 뺀다. 값이 빈 봉은 거르지 않는다 — 다만 시·고·저·종 중 하나라도 비면 차트 라이브러리가
+ * "Value is null"을 던져 차트가 비고 마우스가 먹지 않는다(2026-09-28 확인, 거래량만 빈 건 괜찮다). DB 컬럼이 NOT NULL이라
+ * 지금은 닿지 않는다(docs/남은-일.md)
+ */
 function toCandle(price: DailyPriceResponse): Candle {
   return {
     date: fromDashedYmd(price.date),

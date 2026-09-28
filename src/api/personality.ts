@@ -21,8 +21,9 @@ import type { Choice, PersonalityResult, Question } from '../types/personality'
  * 채점 위치는 플래그가 아니라 **로그인 여부**로 정한다.
  *   로그인함     → POST /api/personality-tests (서버가 채점하고 회원에 저장)
  *   로그인 안 함 → 프론트 채점 (같은 구간표). 결과는 저장되지 않는다
- * POST는 permitAll이지만 토큰 없이 부르면 서버가 principal에서 id를 꺼내다 NPE로 500이
- * 나므로, 비로그인은 애초에 보내지 않는다.
+ * POST는 로그인한 회원만 부를 수 있어 토큰 없이 보내면 401이다(JUBY-BE dev 7e5b023 — 그 전에는 공개 경로라 NPE로 500이었다).
+ * 비로그인은 애초에 보내지 않는다. 같은 커밋부터 문항 GET도 토큰 없이 401이라, 비로그인은 늘 예비 문항으로 물러선다
+ * (공개로 되돌릴지는 백엔드에 물었다 — docs/남은-일.md).
  */
 const USE_BACKEND_QUESTIONS = true
 

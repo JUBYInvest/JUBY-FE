@@ -77,7 +77,10 @@ export async function getMyPersonalityOnPublicPage(): Promise<PersonalityInfo | 
   }
 }
 
-/** 탈퇴. 성공하면 계정과 성향 정보가 서버에서 모두 지워진다 */
+/**
+ * 탈퇴. 서버는 계정 행을 지우지 않고 탈퇴 시각만 적은 뒤(soft delete) 로그아웃처럼 토큰을 막고 refresh token 쿠키를 지운다
+ * (JUBY-BE dev 7e5b023). 같은 소셜 계정으로 다시 로그인하면 새 회원으로 가입된다(CustomOAuth2MemberService).
+ */
 export function deleteMember(): Promise<null> {
   return remove<null>('/api/members/me')
 }
