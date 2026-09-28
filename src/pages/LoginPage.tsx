@@ -50,9 +50,8 @@ export default function LoginPage() {
    * 넘겨주는 자리이고, 사용자가 그 화면을 직접 보고 아이디를 입력해야 한다.
    * fetch는 배경에서 도는 통신이라 화면을 옮기지 못하므로 주소창 자체를 이동시킨다.
    *
-   * ⚠️ 2026-09-18 기준 백엔드가 로그인을 마친 뒤 /oauth/callback 으로 되돌려보내지 않고
-   * 토큰을 JSON으로 그냥 출력한다(OAuth2SuccessHandler). 그래서 이 버튼을 누르면
-   * 백엔드 주소에 JSON이 뜬 채 끝난다. 백엔드가 리다이렉트를 붙이면 그대로 이어진다.
+   * 로그인을 마친 백엔드는 `/oauth2/callback#accessToken=…`(실패면 `/oauth2/error?error=…`)으로 되돌려보낸다
+   * (JUBY-BE dev `7e5b023`, 2026-09-28). 되돌아올 주소는 백엔드 설정(`FRONTEND_URL`)이 정한다 — 이 화면이 아니다.
    */
   function handleSocialLogin(provider: string) {
     // 바깥 화면을 거쳐 페이지가 새로 뜨므로 돌아갈 자리를 적어 두고 떠난다. 콜백이 꺼내 쓴다

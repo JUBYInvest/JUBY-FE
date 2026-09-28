@@ -26,7 +26,7 @@ npm run dev
 | `/personality-test` | 투자성향 테스트 |
 | `/mypage/personality`·`/likes`·`/profile` | 마이페이지 |
 | `/guide` | 사용설명서 |
-| `/login`·`/oauth/callback` | 로그인 |
+| `/login`·`/oauth2/callback`·`/oauth2/error` | 로그인(뒤의 둘은 백엔드가 로그인을 마치고 보내는 자리) |
 
 투자성향 테스트에 `?from=mypage`(또는 `ai`)를 붙이면 검사를 마친 뒤 그 화면으로 돌아간다.
 

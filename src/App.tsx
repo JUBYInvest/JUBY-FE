@@ -107,7 +107,9 @@ function Layout() {
               />
 
               <Route path="/login" element={<LoginPage />} />
-              <Route path="/oauth/callback" element={<OAuthCallbackPage />} />
+              {/* 백엔드가 로그인을 마치고 보내는 두 자리(성공·실패). 예전 /oauth/callback은 더 오지 않아 지웠다 */}
+              <Route path="/oauth2/callback" element={<OAuthCallbackPage />} />
+              <Route path="/oauth2/error" element={<OAuthCallbackPage failed />} />
               <Route path="*" element={<NotFoundPage />} />
             </Routes>
           </Suspense>

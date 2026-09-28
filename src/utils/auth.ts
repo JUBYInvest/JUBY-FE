@@ -3,11 +3,15 @@
  * localStorage는 XSS에 취약해서 언젠가 HttpOnly 쿠키로 옮길 수 있는데,
  * 접근이 이 파일에만 있으면 그때 이 파일만 고치면 된다.
  *
+ * 브라우저에 두는 건 access token 하나다. refresh token은 백엔드가 로그인 때 HttpOnly 쿠키(`Path=/api/auth`)로
+ * 따로 두고 자바스크립트는 읽을 수 없다(2026-09-28 JUBY-BE dev `7e5b023`부터).
+ *
  * 로그인 여부가 바뀌면 구독자에게 알린다(subscribeAuth). 예전에는 알릴 곳이 없어
  * 로그인·탈퇴·토큰 만료 때마다 페이지를 통째로 새로 받아야 헤더가 갱신됐다.
  */
 const ACCESS_TOKEN_KEY = 'accessToken'
-const REFRESH_TOKEN_KEY = 'refreshToken'
+/** 예전(쿠키로 옮기기 전)에 저장해 둔 refresh token 키. 더 쓰지 않고 지우기만 한다 */
+const LEGACY_REFRESH_TOKEN_KEY = 'refreshToken'
 
 /**
  * localStorage를 못 쓸 때 대신 토큰을 담아 두는 곳.
@@ -98,26 +102,22 @@ window.addEventListener('storage', (event) => {
   if (event.key === ACCESS_TOKEN_KEY || event.key === null) notify()
 })
 
-export function saveTokens(accessToken: string, refreshToken: string): void {
+/** 로그인 콜백이 받은 access token을 담는다. refresh token은 서버 쿠키라 받지 않는다 */
+export function saveTokens(accessToken: string): void {
   writeToken(ACCESS_TOKEN_KEY, accessToken)
-  writeToken(REFRESH_TOKEN_KEY, refreshToken)
   notify()
 }
 
 export function clearTokens(): void {
   removeToken(ACCESS_TOKEN_KEY)
-  removeToken(REFRESH_TOKEN_KEY)
+  // 예전 로그인이 남긴 값이 있으면 같이 지운다
+  removeToken(LEGACY_REFRESH_TOKEN_KEY)
   notify()
 }
 
 /** 요청 헤더에 실을 토큰. client.ts가 쓴다 */
 export function getAccessToken(): string | null {
   return readToken(ACCESS_TOKEN_KEY)
-}
-
-/** 로그아웃 요청 본문에 실을 토큰 (STEP 4) */
-export function getRefreshToken(): string | null {
-  return readToken(REFRESH_TOKEN_KEY)
 }
 
 export function isLoggedIn(): boolean {
