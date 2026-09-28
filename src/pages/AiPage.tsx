@@ -49,6 +49,12 @@ export default function AiPage() {
    * 그 방 말풍선이 새 대화 화면을 채운다.
    */
   const askSeqRef = useRef(0)
+  /*
+   * 이 탭에서 새로 만든 방의 말풍선. 대화방 API가 아직 mock이라(api/ai.ts) 그 방을 다시 고르면 getSessionDetail이
+   * 예시 대화를 돌려줘 실제로 받은 답이 사라졌다. 떠날 때 화면의 말풍선을 적어 두고, 다시 고르면 서버에 묻지 않고
+   * 그대로 보여준다. 메모리에만 둔다 — 새로고침하면 방 목록과 함께 사라진다.
+   */
+  const localRoomsRef = useRef(new Map<number, ChatMessage[]>())
 
   // 대화 목록은 회원마다 다르다. 로그인·로그아웃하면 다시 받는다
   useEffect(() => {
@@ -72,7 +78,18 @@ export default function AiPage() {
     return id
   }
 
+  /**
+   * 보던 방이 이 탭에서 만든 방이면 지금 말풍선을 적어 둔다. 다른 방·새 대화로 옮기기 직전에 부른다.
+   * 떠나기 직전 화면 그대로다 — 실패했거나 "그만 기다리기"로 버린 답은 애초에 말풍선에 없다.
+   */
+  function keepLocalRoom() {
+    if (sessionId !== null && localRoomsRef.current.has(sessionId)) {
+      localRoomsRef.current.set(sessionId, messages)
+    }
+  }
+
   function handleNewChat() {
+    keepLocalRoom()
     askSeqRef.current += 1
     setSessionId(null)
     setMessages([])
@@ -85,11 +102,21 @@ export default function AiPage() {
     // 보고 있는 세션을 또 누른 것뿐이다. 다시 받아올 이유가 없다
     if (selectedId === sessionId && detailState !== 'error') return
 
+    keepLocalRoom()
     askSeqRef.current += 1
     const seq = askSeqRef.current
     setSessionId(selectedId)
     setPending(null)
     setNotice('')
+
+    // 이 탭에서 만든 방은 적어 둔 말풍선으로 곧바로 되살린다
+    const kept = localRoomsRef.current.get(selectedId)
+    if (kept !== undefined) {
+      setMessages(kept)
+      setDetailState('idle')
+      return
+    }
+
     setDetailState('loading')
 
     getSessionDetail(selectedId)
@@ -137,6 +164,8 @@ export default function AiPage() {
 
       // 새 대화였다면 방금 발급받은 세션으로 옮겨 앉고 목록 맨 위에 올린다
       if (sessionId === null) {
+        // 떠날 때 말풍선을 적어 둘 방으로 표시한다(keepLocalRoom)
+        localRoomsRef.current.set(result.sessionId, [])
         setSessionId(result.sessionId)
         setSessions((previous) => [
           { sessionId: result.sessionId, title: result.title },
