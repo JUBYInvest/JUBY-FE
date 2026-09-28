@@ -15,9 +15,10 @@ export interface MemberInfo {
   socialType: SocialType
 }
 
-/** PATCH /api/members/me 본문. 이름은 2~4자, 생일은 오늘 이전이어야 한다(서버 검증) */
+/** PATCH /api/members/me 본문. 이름은 2~4자(화면 검사), 생일은 오늘 이전이어야 한다(서버 검증) */
 export interface MemberUpdate {
-  name: string
+  /** 바꾼 이름. null이면 서버가 이름을 바꾸지 않는다 — 안 바꾼 이름은 검사하지도 보내지도 않는다 */
+  name: string | null
   /**
    * "YYYY-MM-DD" 또는 null. 서버는 null을 "바꾸지 않음"으로 봐서 지우지 못한다(Member.updateInfo) —
    * 그래서 생일이 있던 회원이 칸을 비우면 화면이 보내지 않고 막는다(MypageProfilePage)

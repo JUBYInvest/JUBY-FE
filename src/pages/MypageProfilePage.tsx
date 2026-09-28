@@ -119,16 +119,22 @@ export default function MypageProfilePage() {
   }
 
   /**
-   * 이름 2~4자, 생일은 오늘 이전 — 서버가 검사하고 어긋나면 400을 준다.
-   * 이름은 화면에서 먼저 거르고(생일은 입력칸의 min·max가 막는다), 400이 오면 서버 message 대신
-   * 두 규칙을 적은 고정 문구를 보여준다(아래 catch).
+   * 이름 2~4자, 생일은 오늘 이전. 생일은 서버가 검사해 400을 주고(입력칸의 min·max가 먼저 막는다), 이름 규칙은
+   * 서버 DTO에 적혀 있지만 Boot 3에서 돌지 않는 javax 어노테이션이라 지금은 화면에만 있다(2026-09-28 JUBY-BE dev).
+   * 400이 오면 서버 message 대신 두 규칙을 적은 고정 문구를 보여준다(아래 catch).
    */
   async function handleSave(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     if (isSaving) return
 
+    /*
+     * 이름은 바꿨을 때만 검사하고 보낸다. 카카오 닉네임처럼 4자가 넘는 이름으로 가입한 회원이 생일만 고치려 해도
+     * "2~4자"에 막혔다. 안 바꿨으면 null로 보낸다 — 서버는 name이 null이면 이름을 건드리지 않는다(Member.updateInfo).
+     */
+    const savedName = state.kind === 'ready' && typeof state.member.name === 'string' ? state.member.name.trim() : ''
     const name = editName.trim()
-    if (name.length < 2 || name.length > 4) {
+    const nameChanged = name !== savedName
+    if (nameChanged && (name.length < 2 || name.length > 4)) {
       setSaveError('이름은 2~4자여야 합니다.')
       return
     }
@@ -148,7 +154,7 @@ export default function MypageProfilePage() {
     setSaveError('')
 
     try {
-      await updateMemberInfo({ name, birth: editBirth === '' ? null : editBirth })
+      await updateMemberInfo({ name: nameChanged ? name : null, birth: editBirth === '' ? null : editBirth })
       setIsEditOpen(false)
       load()
     } catch (error: unknown) {
