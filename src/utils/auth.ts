@@ -123,3 +123,30 @@ export function getRefreshToken(): string | null {
 export function isLoggedIn(): boolean {
   return getAccessToken() !== null
 }
+
+/*
+ * 로그인 뒤 돌아갈 자리. 소셜 로그인은 백엔드·네이버 등 바깥 화면을 거쳐 페이지가 새로 뜨므로 메모리에 둘 수 없어
+ * sessionStorage에 둔다(탭마다 따로, 탭을 닫으면 사라짐). 저장소를 못 쓰면 없는 셈 친다 — 홈으로 갈 뿐이다.
+ */
+const RETURN_PATH_KEY = 'loginReturnPath'
+
+/** 소셜 로그인 버튼을 누를 때 부른다. null이면 예전에 적어 둔 자리를 지운다 */
+export function rememberReturnPath(path: string | null): void {
+  try {
+    if (path === null) window.sessionStorage.removeItem(RETURN_PATH_KEY)
+    else window.sessionStorage.setItem(RETURN_PATH_KEY, path)
+  } catch {
+    // 사이트 데이터가 막힌 브라우저. 돌아갈 자리 없이 홈으로 간다
+  }
+}
+
+/** 콜백이 한 번 꺼내 쓴다. 꺼내면 지운다(다음 로그인에 남지 않게) */
+export function takeReturnPath(): string | null {
+  try {
+    const path = window.sessionStorage.getItem(RETURN_PATH_KEY)
+    window.sessionStorage.removeItem(RETURN_PATH_KEY)
+    return path
+  } catch {
+    return null
+  }
+}

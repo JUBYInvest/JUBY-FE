@@ -1,5 +1,6 @@
-import { Link, NavLink } from 'react-router-dom'
+import { Link, NavLink, useLocation } from 'react-router-dom'
 import { useIsLoggedIn } from '../hooks/useIsLoggedIn'
+import { loginPathFrom } from '../utils/navigation'
 import styles from './Header.module.css'
 
 /**
@@ -13,6 +14,8 @@ import styles from './Header.module.css'
  */
 export default function Header() {
   const loggedIn = useIsLoggedIn()
+  // 로그인하면 지금 보던 화면으로 돌아오게 자리를 달아 간다
+  const { pathname, search } = useLocation()
 
   return (
     <header className={styles.header}>
@@ -30,7 +33,7 @@ export default function Header() {
         {loggedIn ? (
           <NavLink to="/mypage">마이페이지</NavLink>
         ) : (
-          <NavLink to="/login">로그인</NavLink>
+          <NavLink to={loginPathFrom(pathname + search)}>로그인</NavLink>
         )}
       </nav>
     </header>

@@ -21,3 +21,32 @@ export function goTo(path: string): void {
   }
   navigate(path)
 }
+
+/**
+ * 로그인 뒤 돌려보낼 수 있는 주소인가. 쓸 수 있으면 그 경로(주소 뒤 조건 포함), 아니면 null.
+ *
+ * 이 사이트 안의 경로만 받는다 — `//evil.com`·`https://…`처럼 바깥으로 나가는 값은 버린다(남의 사이트로
+ * 넘겨주는 통로가 되면 안 된다). 로그인·콜백 화면도 버린다. 돌아가 봐야 또 로그인이다.
+ */
+export function toReturnPath(value: string | null | undefined): string | null {
+  if (typeof value !== 'string' || !value.startsWith('/') || value.startsWith('//')) return null
+  try {
+    const url = new URL(value, window.location.origin)
+    if (url.origin !== window.location.origin) return null
+    if (url.pathname === '/login' || url.pathname.startsWith('/oauth')) return null
+    return `${url.pathname}${url.search}`
+  } catch {
+    return null
+  }
+}
+
+/**
+ * 지금 자리를 달고 로그인 화면으로 가는 주소(`/login?next=…`). 로그인하면 그 자리로 돌아온다
+ * (사용자 결정 2026-09-27 — 예전엔 늘 홈으로 갔다). 홈이거나 돌아갈 수 없는 자리면 그냥 `/login`,
+ * 이미 로그인 화면이면 그 주소를 그대로 둔다(달고 온 자리를 잃지 않게).
+ */
+export function loginPathFrom(path: string): string {
+  if (path === '/login' || path.startsWith('/login?')) return path
+  const next = toReturnPath(path)
+  return next === null || next === '/' ? '/login' : `/login?next=${encodeURIComponent(next)}`
+}

@@ -1,5 +1,7 @@
 import { useLocation } from 'react-router-dom'
 import { useDocumentTitle } from '../hooks/useDocumentTitle'
+import { rememberReturnPath } from '../utils/auth'
+import { toReturnPath } from '../utils/navigation'
 import styles from './LoginPage.module.css'
 
 /**
@@ -40,6 +42,8 @@ export default function LoginPage() {
   const location = useLocation()
   const state = location.state as { loginFailed?: boolean } | null
   const hasLoginFailed = state?.loginFailed === true
+  /** 로그인 뒤 돌아갈 자리(`?next=`). 로그인 화면으로 보낸 쪽이 달아 준다(loginPathFrom) */
+  const returnPath = toReturnPath(new URLSearchParams(location.search).get('next'))
 
   /*
    * fetch를 쓰면 안 된다. 이 주소는 백엔드가 302로 네이버·카카오·구글 로그인 화면에
@@ -51,6 +55,8 @@ export default function LoginPage() {
    * 백엔드 주소에 JSON이 뜬 채 끝난다. 백엔드가 리다이렉트를 붙이면 그대로 이어진다.
    */
   function handleSocialLogin(provider: string) {
+    // 바깥 화면을 거쳐 페이지가 새로 뜨므로 돌아갈 자리를 적어 두고 떠난다. 콜백이 꺼내 쓴다
+    rememberReturnPath(returnPath)
     window.location.href = `${API_ORIGIN}/oauth2/authorization/${provider}`
   }
 

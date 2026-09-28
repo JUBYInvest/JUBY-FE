@@ -3,6 +3,7 @@ import { NavLink, Navigate, Outlet, useLocation, useNavigate } from 'react-route
 import { logout } from '../api/auth'
 import SectionBoundary from './SectionBoundary'
 import { isLoggedIn } from '../utils/auth'
+import { loginPathFrom } from '../utils/navigation'
 import styles from './MypageLayout.module.css'
 
 const MENU = [
@@ -35,7 +36,8 @@ export default function MypageLayout() {
    * 도중에 토큰이 만료되는 경우는 어차피 다음 요청의 401을 client.ts가 받아 처리한다.
    */
   if (!isLoggedIn()) {
-    return <Navigate to="/login" replace />
+    // 로그인하면 이 마이페이지 자리로 돌아온다
+    return <Navigate to={loginPathFrom(pathname)} replace />
   }
 
   /**

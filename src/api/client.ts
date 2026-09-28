@@ -1,5 +1,5 @@
 import { clearTokens, getAccessToken, isLoggedIn } from '../utils/auth'
-import { goTo } from '../utils/navigation'
+import { goTo, loginPathFrom } from '../utils/navigation'
 
 /**
  * 공통 fetch 래퍼. baseURL과 토큰 헤더를 여기서만 관리한다.
@@ -172,7 +172,8 @@ function redirectToLogin(): void {
   }
 
   clearTokens()
-  goTo('/login')
+  // 다시 로그인하면 보던 자리로 돌아온다
+  goTo(loginPathFrom(window.location.pathname + window.location.search))
 }
 
 async function requestJson<T>(
