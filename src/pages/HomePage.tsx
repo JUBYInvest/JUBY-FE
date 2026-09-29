@@ -225,7 +225,11 @@ export default function HomePage() {
     if (visibleCount >= stocks.length) return
 
     const observer = new IntersectionObserver((entries) => {
-      if (entries[0].isIntersecting) {
+      /*
+       * 마지막 기록이 지금 상태다. 관찰을 걸자마자 끝이 보이면 한 콜백에 "안 보임 → 보임"이 같이 온다 — 첫 기록만 보면
+       * 넘기고, 그 뒤로는 끝 표시가 계속 보인 채라 다시 불리지 않아 20행에서 멈췄다(2026-09-29 재현. 위로 올렸다 내려야 이어졌다)
+       */
+      if (entries.at(-1)?.isIntersecting === true) {
         setVisibleCount((count) => count + PAGE_SIZE)
       }
     })
