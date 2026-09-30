@@ -182,7 +182,7 @@ let reissuing: Promise<string | null> | null = null
  * refresh token은 백엔드가 소셜 로그인 때 **자기 주소에** 심어 둔 HttpOnly 쿠키다(`Path=/api/auth`, `SameSite=None; Secure`,
  * JUBY-BE dev `ea18fec`). 프록시(`/api` → 백엔드)로 부르면 요청 주소가 프론트라 브라우저가 그 쿠키를 싣지 않는다. 그래서 이것만
  * 백엔드를 곧장, 쿠키를 실어(`credentials: 'include'`) 부른다 — 백엔드 CORS가 허용 출처에 한해 자격 증명을 받는다.
- * 다른 사이트 쿠키를 막는 브라우저(사파리·파이어폭스)는 프론트가 백엔드와 같은 사이트(`juby.store` 아래)여야 실린다. 그 전에는
+ * 다른 사이트 쿠키를 막는 브라우저(사파리 — 2026-09-30 WebKit으로 확인)는 프론트가 백엔드와 같은 사이트(`juby.store` 아래)여야 실린다. 그 전에는
  * 여기서 실패하고 예전처럼 로그인 화면으로 간다.
  *
  * 백엔드는 재발급할 때마다 refresh token을 바꾼다. 같은 토큰으로 두 번 보내면 뒤의 것은 실패하므로 한 번만 보낸다.
