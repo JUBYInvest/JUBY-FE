@@ -429,8 +429,9 @@ effect를 두 번 돌려, 두 번째가 이미 꺼낸 자리를 못 찾고 홈�
   그대로라, `FRONTEND_URL`이 배포 주소면 로컬 개발의 POST·PATCH·DELETE가 403일 수 있다(`docs/남은-일.md`).
   `ea18fec`부터 CORS는 `WebMvcConfig`가 정하고 **`http://localhost:5173`을 늘 받은 뒤 `FRONTEND_URL`을 하나 더 받는다** — 그래서
   `FRONTEND_URL`을 배포 주소로 바꿔도 로컬 개발의 쓰기 요청은 계속 된다(대신 소셜 로그인 뒤 돌아오는 곳도 배포 주소가 된다).
-  2026-09-30 `https://api.juby.store`는 `http://localhost:5173`만 받았다(`GET /v3/api-docs`에 `Origin`을 달아 확인 — `https://juby.store`·
-  `https://juby-fe.vercel.app`은 403). 배포 사이트의 쓰기 요청과 재발급은 백엔드가 `FRONTEND_URL`을 바꾸기 전까지 막힌다.
+  2026-09-30 백엔드가 `FRONTEND_URL=https://juby-fe.vercel.app`으로 바꿨다 — 그 주소와 `http://localhost:5173`을 받고 나머지는 403이다
+  (`GET /v3/api-docs`에 `Origin`을 달아 확인). 그래서 소셜 로그인 뒤 돌아오는 곳도 배포 사이트다(로컬에서 로그인해도 배포로 간다).
+  구글 로그인은 된다고 들었다. 카카오·네이버는 확인하지 못했다.
 - 탈퇴는 soft delete이고 RT 쿠키를 지운다. 같은 소셜 계정으로 다시 로그인하면 새 회원이다.
   `GET /api/members/me`에 온보딩 여부(성향 저장 때 참)가 생겼다 — JSON 키는 `onboarded`다(2026-09-30 스웨거 확인). 로그인 콜백이 쓴다(온보딩).
 - 내 정보 수정(`Member.updateInfo`)은 name·birth가 null이면 바꾸지 않는다. 이름 `@Size(2~4)`는 `javax` 어노테이션이라
