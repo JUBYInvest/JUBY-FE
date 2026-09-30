@@ -677,6 +677,11 @@ function BacktestResult({
     .flatMap((item) => findInvestType(item.investType) ?? [])
   const isJoint = topInfos.length > 1
   const topNames = topInfos.map((item) => item.personality).join('·')
+  /*
+   * 다섯 중 일부를 못 받았으면 1등은 "받은 것 중" 1등일 뿐이다. 결론을 그 범위로 한정한다 — 예전엔 빠진 전략이 있어도
+   * "가장 잘 맞는 성향은 ○○이에요"로 단정했다(비교 칸 아래 "N개 전략은 불러오지 못했어요"만 따로 적었다)
+   */
+  const comparedPart = missed.count > 0 ? ranking.length : null
 
   const { result } = preset
   const axisScores = calculateAxisScores(result)
@@ -791,7 +796,9 @@ function BacktestResult({
                 종목명 바로 뒤에 은·는처럼 받침 따라 바뀌는 조사를 두지 않는다. 글자로는 못 가린다 —
                 NAVER는 "는", LS ELECTRIC·KODEX 200은 "은"처럼 읽는 소리로 갈린다. 성향 이름은 모두 '형'으로 끝나 "이에요"가 맞다
               */}
-              <br />그 결과 {stockName}에 {isJoint ? '똑같이 ' : ''}가장 잘 맞는 성향은{' '}
+              <br />그 결과{' '}
+              {comparedPart !== null && `불러온 ${comparedPart}개 성향 중에서 `}
+              {stockName}에 {isJoint ? '똑같이 ' : ''}가장 잘 맞는 성향은{' '}
               <b className={isSame ? styles.good : styles.bad}>{topNames}</b>
               {isJoint ? '이에요(공동 1위).' : '이에요.'}
             </>
@@ -817,6 +824,7 @@ function BacktestResult({
               <strong className={styles.matchValue}>{topNames}</strong>
               <span className={styles.matchFrom}>
                 적합도 {best.score.toFixed(1)}점으로 {isJoint ? '공동 1위' : '가장 높음'}
+                {comparedPart !== null && ` (불러온 ${comparedPart}개 중)`}
               </span>
             </div>
           </div>
