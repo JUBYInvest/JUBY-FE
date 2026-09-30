@@ -1,6 +1,22 @@
-import { useEffect, useRef } from 'react'
+import { lazy, Suspense, useEffect, useRef } from 'react'
 import type { ChatMessage } from '../types/ai'
 import styles from './ChatMessages.module.css'
+
+/*
+ * 답변의 마크다운·수식 렌더러(react-markdown·KaTeX)는 따로 받는다. 압축해도 120KB가 넘어 같이 묶으면 AI 화면 묶음이
+ * 30배로 커졌다(2026-09-30, 4KB → 133KB). 받는 동안과 못 받았을 때는 예전처럼 글자 그대로 보여 준다 — 서식이 없어도 답은 읽힌다.
+ * 크롬은 한 번 실패한 import를 페이지가 살아 있는 동안 기억하므로, 실패하면 그 탭에서는 끝까지 글자 그대로다.
+ */
+const loadMarkdownAnswer = () =>
+  import('./MarkdownAnswer').catch((error: unknown) => {
+    console.warn('답변 서식 묶음을 받지 못했어요', error)
+    return { default: PlainAnswer }
+  })
+const MarkdownAnswer = lazy(loadMarkdownAnswer)
+
+function PlainAnswer({ text }: { text: string }) {
+  return <span className={styles.plain}>{text}</span>
+}
 
 /**
  * 답변을 기다리는 중인지, 실패해서 재시도를 기다리는지, 사용자가 기다리기를 멈췄는지. 끝났으면 null
@@ -17,6 +33,11 @@ interface Props {
 
 export default function ChatMessages({ messages, pending, onRetry, onStop }: Props) {
   const scrollRef = useRef<HTMLDivElement>(null)
+
+  // 화면이 뜨자마자 렌더러를 받기 시작한다. 첫 답을 기다리는 사이 받아 두면 답이 서식 없이 번쩍이지 않는다
+  useEffect(() => {
+    void loadMarkdownAnswer()
+  }, [])
 
   /*
    * 새 말풍선이 붙으면 맨 아래로 내린다.
@@ -41,19 +62,18 @@ export default function ChatMessages({ messages, pending, onRetry, onStop }: Pro
           }
         >
           {/*
-            AI 응답은 일반 텍스트로만 그린다. dangerouslySetInnerHTML을 쓰면
-            모델 출력이 HTML로 해석되어 보안 문제가 된다.
-            줄바꿈(\n)은 CSS의 white-space: pre-wrap이 살려준다.
+            질문은 쓴 글자 그대로 그린다(줄바꿈은 white-space: pre-wrap). AI 답변은 마크다운·수식으로 그린다 —
+            모델 출력 속 HTML은 그리지 않는다(MarkdownAnswer). dangerouslySetInnerHTML은 쓰지 않는다.
           */}
-          <p
-            className={
-              message.role === 'user'
-                ? `${styles.bubble} ${styles.bubbleUser}`
-                : styles.bubble
-            }
-          >
-            {message.content}
-          </p>
+          {message.role === 'user' ? (
+            <p className={`${styles.bubble} ${styles.bubbleUser}`}>{message.content}</p>
+          ) : (
+            <div className={`${styles.bubble} ${styles.bubbleAnswer}`}>
+              <Suspense fallback={<PlainAnswer text={message.content} />}>
+                <MarkdownAnswer text={message.content} />
+              </Suspense>
+            </div>
+          )}
         </div>
       ))}
 

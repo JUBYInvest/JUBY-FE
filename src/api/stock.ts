@@ -1,6 +1,7 @@
 import { get, malformedResponse, unchecked } from './client'
 import { fromDashedYmd } from '../utils/date'
 import { isFiniteNumber } from '../utils/format'
+import { safeLink } from '../utils/link'
 import { sortStocks } from '../utils/sort'
 import type {
   Candle,
@@ -300,22 +301,8 @@ function textOf(value: unknown): string {
   return typeof value === 'string' ? value : ''
 }
 
-/**
- * 새 탭으로 열어도 되는 주소만 남긴다(http·https). 서버가 주는 링크라도 javascript:·data:·상대 주소는
- * 그대로 두면 누르는 순간 이 사이트 안에서 뭔가가 실행되거나 열린다. 아니면 빈 문자열이라 그 기사는 빠진다.
- */
-function safeLink(value: unknown): string {
-  if (typeof value !== 'string') return ''
-  try {
-    const { protocol } = new URL(value)
-    return protocol === 'http:' || protocol === 'https:' ? value : ''
-  } catch {
-    // 기준 주소 없이 풀리지 않는 값(상대 주소 등)
-    return ''
-  }
-}
-
 function toNewsItem(item: NewsItemResponse): NewsItem {
+  // http·https가 아니면 빈 문자열이라 그 기사는 빠진다
   const link = safeLink(item.originalLink)
   return {
     title: stripHtml(textOf(item.title)),

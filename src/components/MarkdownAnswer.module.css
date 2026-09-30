@@ -1,0 +1,128 @@
+/*
+ * 말풍선 안의 마크다운. 블록 사이에 react-markdown이 넣는 줄바꿈 글자가 보이지 않게 white-space는 normal로 두고,
+ * 문단 안의 줄바꿈(모델이 한 줄씩 끊어 쓴 것)은 pre-line으로 살린다 — 마크다운 규칙대로 합치면 줄이 한데 붙는다.
+ */
+.markdown {
+  white-space: normal;
+}
+
+.markdown > :first-child {
+  margin-top: 0;
+}
+
+.markdown > :last-child {
+  margin-bottom: 0;
+}
+
+.markdown p {
+  margin: 0 0 8px;
+  white-space: pre-line;
+}
+
+.markdown h1,
+.markdown h2,
+.markdown h3,
+.markdown h4,
+.markdown h5,
+.markdown h6 {
+  margin: 14px 0 6px;
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.markdown ul,
+.markdown ol {
+  margin: 0 0 8px;
+  padding-left: 20px;
+}
+
+.markdown li + li {
+  margin-top: 2px;
+}
+
+.markdown li > p {
+  margin: 0;
+}
+
+.markdown strong {
+  font-weight: 700;
+}
+
+.markdown a {
+  color: var(--color-down);
+  text-decoration: underline;
+}
+
+.markdown blockquote {
+  margin: 0 0 8px;
+  padding-left: 10px;
+  border-left: 3px solid var(--color-border);
+  color: var(--color-text-sub);
+}
+
+.markdown hr {
+  margin: 12px 0;
+  border: 0;
+  border-top: 1px solid var(--color-border);
+}
+
+.markdown code {
+  padding: 1px 4px;
+  border-radius: 4px;
+  background: var(--color-bg-sub);
+  font-size: 0.9em;
+}
+
+.markdown pre {
+  margin: 0 0 8px;
+  padding: 10px 12px;
+  overflow-x: auto;
+  border-radius: 8px;
+  background: var(--color-bg-sub);
+  white-space: pre;
+  overflow-wrap: normal;
+}
+
+.markdown pre code {
+  padding: 0;
+  background: none;
+}
+
+.tableWrap {
+  margin: 0 0 8px;
+  overflow-x: auto;
+}
+
+.markdown table {
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+/* 칸 안의 한글은 낱말 단위로만 줄을 바꾼다(좁은 말풍선에서 "샤프/지수"처럼 음절 사이가 끊겼다). 넘치면 표가 가로로 밀린다 */
+.markdown th,
+.markdown td {
+  padding: 6px 10px;
+  border: 1px solid var(--color-border);
+  text-align: left;
+  overflow-wrap: normal;
+  word-break: keep-all;
+}
+
+.markdown th {
+  background: var(--color-bg-sub);
+  font-weight: 700;
+}
+
+/* 긴 수식은 말풍선 안에서 가로로 밀어 본다. 세로 스크롤 막대가 생기지 않게 위아래는 숨긴다 */
+.markdown :global(.katex-display) {
+  margin: 8px 0;
+  padding: 2px 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+/* 수식 조각은 글 사이에서 끊지 않는다(말풍선의 overflow-wrap: anywhere가 기호 사이를 가른다) */
+.markdown :global(.katex) {
+  overflow-wrap: normal;
+}

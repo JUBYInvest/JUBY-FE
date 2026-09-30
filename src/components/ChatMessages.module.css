@@ -34,6 +34,24 @@
   color: #ffffff;
 }
 
+/* 마크다운 답변. 줄바꿈 처리는 MarkdownAnswer가 문단마다 한다. min-width 0이라야 안쪽의 표·수식이 가로 스크롤로 줄어든다 */
+.bubbleAnswer {
+  min-width: 0;
+  white-space: normal;
+}
+
+/* 좁은 화면에서는 답변만 넓힌다. 70%면 375px에서 250px 남짓이라 표·목록이 한 글자씩 접혔다. 질문은 그대로 둔다 */
+@media (max-width: 600px) {
+  .bubbleAnswer {
+    max-width: 92%;
+  }
+}
+
+/* 렌더러를 받는 동안·못 받았을 때의 답변. 예전처럼 줄바꿈을 그대로 살린다 */
+.plain {
+  white-space: pre-wrap;
+}
+
 .loading {
   display: flex;
   gap: 5px;
