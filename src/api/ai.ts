@@ -1,12 +1,12 @@
-import { get, malformedResponse, post } from './client'
+import { get, malformedResponse, patch, post, remove } from './client'
 import type { AskResult, ChatMessage, ChatSession, ChatSessionDetail } from '../types/ai'
 
 /**
  * AI 주가분석 창구. 질문과 대화방 모두 실제 API다(JUBY-BE dev `0c79ec5`, 2026-09-30). 전부 로그인해야 한다.
  *
  * - 대화방: `GET /api/chat-sessions`(최근 대화 순), `POST /api/chat-sessions`(빈 방, 제목 '새 대화', 201),
- *   `GET /api/chat-sessions/{id}`(메시지 작성 순. 없는 방 404 `CHAT404_1`, 남의 방 403 `CHAT403_1`).
- *   제목 바꾸기(PATCH)·지우기(DELETE)도 있지만 화면에 아직 자리가 없어 안 붙였다.
+ *   `GET /api/chat-sessions/{id}`(메시지 작성 순. 없는 방 404 `CHAT404_1`, 남의 방 403 `CHAT403_1`),
+ *   `PATCH /api/chat-sessions/{id}`(제목 바꾸기), `DELETE /api/chat-sessions/{id}`(방과 메시지를 모두 지움). 없는 방·남의 방은 같은 404·403.
  * - 질문: `POST /api/open-ai/ask`에 `chatSessionId`를 실으면 그 방에 이어 저장하고 **앞 대화를 맥락으로 쓴다**. 첫 질문이면 서버가
  *   질문 앞 30자로 방 제목을 붙인다. 같은 방에서 앞 답을 만드는 중이면 409 `CHAT409_1`이고 질문은 저장되지 않는다.
  *   성향을 안 정한 회원이면 404 `MEMBER404_2`. 답 생성이 실패하면(502) 질문만 방에 남는다.
@@ -38,6 +38,13 @@ interface AskResponse {
 }
 
 const DEFAULT_TITLE = '새 대화'
+/** 서버 ChatService의 MAX_TITLE_LENGTH. 사람이 붙인 제목은 여기서 자르고, 첫 질문으로 지은 제목은 30자 + '…'다 */
+export const TITLE_MAX_LENGTH = 30
+
+/** 사람이 붙인 제목을 서버처럼 다듬는다(앞뒤 공백을 떼고 이어진 공백을 하나로, 30자까지). 바뀐 게 없는지도 이걸로 가른다 */
+export function normalizeTitle(raw: string): string {
+  return raw.trim().replace(/\s+/g, ' ').slice(0, TITLE_MAX_LENGTH)
+}
 
 function isId(value: unknown): value is number {
   return typeof value === 'number' && Number.isInteger(value) && value > 0
@@ -84,6 +91,23 @@ export async function createSession(): Promise<ChatSession> {
   const session = toSession(await post<SessionSummaryResponse | null>('/api/chat-sessions', {}))
   if (session === null) throw malformedResponse()
   return session
+}
+
+/**
+ * 대화방 제목을 바꾼다. 빈 제목은 서버가 400으로 막으므로 부르는 쪽이 거른다. 서버는 바꾼 시각을 최근 대화 시각으로도
+ * 적어 그 방이 목록 맨 위로 간다.
+ */
+export async function renameSession(sessionId: number, title: string): Promise<ChatSession> {
+  const sent = normalizeTitle(title)
+  const row = await patch<SessionSummaryResponse | null>(`/api/chat-sessions/${sessionId}`, { title: sent })
+  // 200이면 서버는 이미 바꿨다. 응답에 제목이 비어 오면 보낸 제목을 쓴다
+  const saved = typeof row?.title === 'string' && row.title.trim() !== '' ? row.title : sent
+  return { sessionId, title: saved }
+}
+
+/** 대화방과 그 안의 메시지를 모두 지운다. 되돌릴 수 없다 */
+export async function deleteSession(sessionId: number): Promise<void> {
+  await remove<unknown>(`/api/chat-sessions/${sessionId}`)
 }
 
 /** 대화방의 전체 메시지(작성 순) */

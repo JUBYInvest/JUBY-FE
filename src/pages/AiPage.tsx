@@ -1,6 +1,13 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { ask, createSession, getSessionDetail, getSessions } from '../api/ai'
+import {
+  ask,
+  createSession,
+  deleteSession,
+  getSessionDetail,
+  getSessions,
+  renameSession,
+} from '../api/ai'
 import { ApiError } from '../api/client'
 import ChatMessages, { type PendingState } from '../components/ChatMessages'
 import { loadMarkdownAnswer } from '../components/loadMarkdownAnswer'
@@ -62,8 +69,19 @@ export default function AiPage() {
    * 그 방 말풍선이 새 대화 화면을 채운다.
    */
   const askSeqRef = useRef(0)
-  /** 대화방 목록 요청 번호. 답마다 목록을 다시 받으므로 늦게 온 옛 목록이 새 목록을 덮지 않게 한다 */
+  /**
+   * 대화방 목록 요청 번호. 답마다·이름을 바꾸거나 지울 때마다 목록을 다시 받으므로 늦게 온 옛 목록이 새 목록을 덮지 않게 한다
+   * (답 뒤에 받기 시작한 목록이 방금 바꾼 제목이나 지운 방을 되살리지 않게)
+   */
   const sessionsSeqRef = useRef(0)
+  /*
+   * 지금 보는 방. 이름 바꾸기·지우기는 서버를 기다린 뒤에 "보던 방이었나"를 가르는데, 그 함수가 만들어질 때의 sessionId는
+   * 기다리는 사이 낡을 수 있다
+   */
+  const sessionIdRef = useRef(sessionId)
+  useEffect(() => {
+    sessionIdRef.current = sessionId
+  })
 
   /**
    * 대화방 목록을 (다시) 받는다. 제목(첫 질문 앞 30자)과 순서(최근 대화 순)는 서버가 정하므로 답을 받을 때마다 조용히
@@ -88,7 +106,11 @@ export default function AiPage() {
         if (seq !== sessionsSeqRef.current) return
         // 목록을 못 받아도 질문은 할 수 있다. 조용히 다시 받던 중이면 보던 목록을 둔다
         console.warn('AI 대화 목록 조회 실패', error)
-        if (!quiet) setSessionsState('error')
+        /*
+         * 단, 아직 목록을 못 보여 준 채였으면(첫 목록을 받는 사이 답이 와서 이 요청이 그 요청을 밀어냈다) 실패로 보인다 —
+         * 안 그러면 밀려난 첫 요청의 응답은 버려지고 이 요청은 조용히 끝나 "불러오는 중"에서 멈춘다
+         */
+        setSessionsState((state) => (quiet && state === 'ready' ? state : 'error'))
       })
   }
 
@@ -130,6 +152,43 @@ export default function AiPage() {
     setDetailState('idle')
     setPending(null)
     setNotice('')
+  }
+
+  /** 목록에서 방을 뺀다. 보던 방이면 새 대화로 돌린다 — 번호가 올라가 그 방에 기다리던 답이 늦게 와도 버린다 */
+  function removeRoom(roomId: number) {
+    setSessions((previous) => previous.filter((session) => session.sessionId !== roomId))
+    if (roomId === sessionIdRef.current) startNewChat()
+  }
+
+  /**
+   * 이름 바꾸기. 실패하면 던진다(사이드바가 이름칸을 두고 알린다). 다른 곳에서 지운 방이면 목록에서 빼고 'gone'이다.
+   * 서버는 바꾼 시각을 최근 대화 시각으로도 적어 그 방이 맨 위로 간다 — 목록을 다시 받기 전에 먼저 맞춰 둔다.
+   */
+  async function handleRename(roomId: number, title: string): Promise<'renamed' | 'gone'> {
+    try {
+      const renamed = await renameSession(roomId, title)
+      setSessions((previous) => [renamed, ...previous.filter((item) => item.sessionId !== roomId)])
+      loadSessions(true)
+      return 'renamed'
+    } catch (error: unknown) {
+      if (!isRoomGone(error)) throw error
+      removeRoom(roomId)
+      return 'gone'
+    }
+  }
+
+  /**
+   * 지우기. 실패하면 던진다(확인 상자가 알린다). 이미 없는 방(404)·남의 방(403)이면 지운 것과 같다.
+   * 답을 기다리던 방도 지울 수 있다 — 서버는 답을 저장하다 실패하고(방이 없다), 화면은 새 대화로 돌아가 그 실패를 버린다.
+   */
+  async function handleDelete(roomId: number) {
+    try {
+      await deleteSession(roomId)
+    } catch (error: unknown) {
+      if (!isRoomGone(error)) throw error
+    }
+    removeRoom(roomId)
+    loadSessions(true)
   }
 
   /** 없어진 대화방을 목록에서 빼고 새 대화로 돌린다 */
@@ -342,6 +401,8 @@ export default function AiPage() {
           selectedId={sessionId}
           onSelect={handleSelect}
           onNewChat={startNewChat}
+          onRename={handleRename}
+          onDelete={handleDelete}
           onRetryList={() => loadSessions()}
           isLoggedIn={loggedIn}
         />
