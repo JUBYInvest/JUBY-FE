@@ -166,14 +166,21 @@ export async function getStockDetail(
   if (response === null || !Array.isArray(response.dailyPrices)) throw malformedResponse()
 
   /*
-   * 날짜가 여덟 자리가 아닌 봉은 뺀다. 한 봉의 날짜가 null이면 ""가 되어 차트 라이브러리가 던지고, 기간 탭을
-   * 바꾸는 순간 차트 구역이 "이 부분을 표시하지 못했어요"가 됐다 — 다시 시도해도 같은 데이터라 안 풀린다.
-   * 값이 빈 봉·날짜가 겹친 봉은 차트가 그대로 그려져(2026-09-27 확인) 거르지 않는다.
+   * 차트가 그릴 수 없는 봉은 뺀다.
+   * - 날짜가 여덟 자리가 아닌 봉: 날짜가 null이면 ""가 되어 차트 라이브러리가 던지고, 기간 탭을 바꾸는 순간
+   *   차트 구역이 "이 부분을 표시하지 못했어요"가 됐다 — 다시 시도해도 같은 데이터라 안 풀린다.
+   * - 시·고·저·종 중 하나라도 유한한 숫자가 아닌 봉: 라이브러리가 "Value is null"을 던져 캔들·시간축이 안 그려지고
+   *   마우스를 올려도 범례가 안 바뀌었다. 그리는 곳이 React 밖이라 구역 안내도 안 떴다(2026-09-28 발견). 빼면 그 날만 빈다.
+   * 거래량만 빈 봉·날짜가 겹친 봉은 그대로 그려져(2026-09-27 확인) 거르지 않는다. 범례가 거래량을 "-"로 적는다.
    */
   const candles = response.dailyPrices.map(toCandle)
-  const usable = candles.filter((candle) => /^\d{8}$/.test(candle.date))
+  const datedCandles = candles.filter((candle) => /^\d{8}$/.test(candle.date))
+  const usable = datedCandles.filter(hasPrices)
   if (usable.length < candles.length) {
-    console.warn(`날짜가 틀린 일봉 ${candles.length - usable.length}개를 뺐습니다`, stockCode)
+    console.warn(
+      `날짜가 틀린 일봉 ${candles.length - datedCandles.length}개, 가격이 빈 일봉 ${datedCandles.length - usable.length}개를 뺐습니다`,
+      stockCode,
+    )
   }
 
   const detail: StockDetail = {
@@ -190,11 +197,7 @@ export async function getStockDetail(
   return detail
 }
 
-/**
- * 날짜가 틀린 봉은 getStockDetail이 뺀다. 값이 빈 봉은 거르지 않는다 — 다만 시·고·저·종 중 하나라도 비면 차트 라이브러리가
- * "Value is null"을 던져 차트가 비고 마우스가 먹지 않는다(2026-09-28 확인, 거래량만 빈 건 괜찮다). DB 컬럼이 NOT NULL이라
- * 지금은 닿지 않는다(docs/남은-일.md)
- */
+/** 날짜가 틀린 봉과 시·고·저·종이 빈 봉은 getStockDetail이 뺀다(hasPrices). 거래량은 비어도 둔다 */
 function toCandle(price: DailyPriceResponse): Candle {
   return {
     date: fromDashedYmd(price.date),
@@ -204,6 +207,11 @@ function toCandle(price: DailyPriceResponse): Candle {
     close: unchecked(price.closePrice),
     volume: unchecked(price.volume),
   }
+}
+
+/** 차트가 그릴 수 있는 봉인가. 시·고·저·종이 모두 유한한 숫자여야 한다(unchecked로 넘긴 자리라 여기서 본다) */
+function hasPrices(candle: Candle): boolean {
+  return [candle.open, candle.high, candle.low, candle.close].every((value) => Number.isFinite(value))
 }
 
 /** GET /api/stocks/{code}/news */
