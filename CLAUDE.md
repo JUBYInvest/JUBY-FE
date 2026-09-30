@@ -106,8 +106,8 @@ Playwright 스크립트를 세션 임시 폴더에서 돌린다. 지금까지 �
 (예전의 `personality.html` + `MemoryRouter` 별도 엔트리는 2026-09-21에 합쳐 지웠다).
 
 검사 결과는 주소가 아니라 `navigate`의 state로 넘어간다. `/personality-test/result`를 직접 열면 보여줄 게
-없어 문항 화면으로 되돌린다(`?from=`은 유지). 완료 후 돌아갈 곳은 `?from=`으로 갈린다 — `mypage` → 마이페이지,
-`ai` → AI, 없으면 홈(`PersonalityResultPage.doneRoute`).
+없어 문항 화면으로 되돌린다(주소 뒤 조건은 유지). 완료 후 돌아갈 곳은 `?from=`으로 갈린다 — `mypage` → 마이페이지,
+`ai` → AI, 없으면 `?next=`의 경로(첫 로그인 온보딩, 아래 "로그인 뒤 돌아갈 곳"), 그것도 없으면 홈(`PersonalityResultPage.doneRoute`).
 
 ## API 계층
 
@@ -238,6 +238,9 @@ Playwright 스크립트를 세션 임시 폴더에서 돌린다. 지금까지 �
 로그인 화면으로 보내는 곳(머리글 '로그인', 마이페이지 보호, 401 처리)은 `loginPathFrom()`으로 `/login?next=<보던 자리>`를
 만든다. 소셜 로그인은 백엔드·소셜 화면을 거쳐 페이지가 새로 뜨므로, 버튼을 누를 때 그 자리를 sessionStorage에 적어 두고
 (`rememberReturnPath`) 콜백이 토큰을 담은 뒤 꺼내 그리로 보낸다(`takeReturnPath`). 없으면 홈이다.
+**성향테스트를 안 한 회원은 그 전에 검사로 보낸다**(사용자 결정 2026-09-30). 콜백이 `GET /api/members/me`의 `onboarded`를 한 번 묻고
+(`needsOnboarding`, 5초), `false`면 `/personality-test?next=<가려던 자리>`로 보낸다 — 마치면 결과 화면의 '완료'가 그리로 간다.
+값이 빠졌거나 조회가 실패하면 검사 없이 가려던 자리로 간다. 묻는 동안은 "로그인 중"이 보인다.
 **돌아갈 자리는 이 사이트 안의 경로만 받는다**(`toReturnPath`) — `//evil.com`·`https://…`·`/login`·`/oauth…`는 버린다.
 풀어 낸 경로가 `//`로 시작해도 버린다(`/.//evil.com`) — 그 값을 `navigate`에 넣으면 React Router가 `location.assign`으로 바깥에 넘긴다.
 실패 콜백(`/oauth2/error`)도 적어 둔 자리를 꺼내 `/login?next=`에 다시 단다. 콜백은 **한 번만** 처리한다 — 개발 서버(StrictMode)는
@@ -410,7 +413,7 @@ effect를 두 번 돌려, 두 번째가 이미 꺼낸 자리를 못 찾고 홈�
   2026-09-30 `https://api.juby.store`는 `http://localhost:5173`만 받는다(`GET /v3/api-docs`에 `Origin`을 달아 확인 — `https://juby.store`는 403).
   그래서 지금은 로컬 개발이 되고, 배포 주소의 쓰기 요청이 막힐 수 있다. 소셜 로그인 뒤 돌아오는 곳도 로컬 개발 서버일 것이다.
 - 탈퇴는 soft delete이고 RT 쿠키를 지운다. 같은 소셜 계정으로 다시 로그인하면 새 회원이다.
-  `GET /api/members/me`에 온보딩 여부(성향 저장 때 참)가 생겼다 — JSON 키는 `onboarded`다(2026-09-30 스웨거 확인). 프론트는 아직 쓰지 않는다.
+  `GET /api/members/me`에 온보딩 여부(성향 저장 때 참)가 생겼다 — JSON 키는 `onboarded`다(2026-09-30 스웨거 확인). 로그인 콜백이 쓴다(온보딩).
 - 내 정보 수정(`Member.updateInfo`)은 name·birth가 null이면 바꾸지 않는다. 이름 `@Size(2~4)`는 `javax` 어노테이션이라
   Boot 3에서 검사되지 않는다 — 이름 규칙은 지금 화면에만 있다.
 

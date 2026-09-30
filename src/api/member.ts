@@ -29,6 +29,20 @@ export async function getMemberInfo(): Promise<MemberInfo> {
  * MypageProfilePage.handleSave). 화면은 서버 message를 그대로 쓰지 않고 두 규칙을 적은 고정 문구를 보여준다.
  * 둘 다 null이면 서버는 그 값을 바꾸지 않는다.
  */
+/**
+ * 성향테스트를 아직 안 한 회원인가(`GET /api/members/me`의 `onboarded`, 성향을 저장하면 참). 로그인 콜백이 부른다.
+ * 값이 불리언 false일 때만 참이다 — 빠졌거나 모양이 다르면(옛 서버) 멀쩡한 회원을 검사로 끌고 가지 않는다.
+ * 401이어도 로그인 화면으로 보내지 않는다. 콜백이 가려던 자리로 보내고, 그 화면이 알아서 한다.
+ */
+export async function needsOnboarding(): Promise<boolean> {
+  const member = await get<{ onboarded?: unknown } | null>('/api/members/me', {
+    ignoreUnauthorized: true,
+    // "로그인 중" 화면에 붙잡아 두는 요청이라 짧게 끊는다. 못 받으면 검사 없이 가려던 자리로 간다
+    timeoutMs: 5_000,
+  })
+  return typeof member === 'object' && member !== null && member.onboarded === false
+}
+
 export async function updateMemberInfo(update: MemberUpdate): Promise<void> {
   await patch<{ modifiedDate: string }>('/api/members/me', update)
 }

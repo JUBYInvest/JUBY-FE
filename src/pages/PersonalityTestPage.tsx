@@ -18,7 +18,7 @@ function toScores(questions: Question[], answers: (number | null)[]): number[] {
 export default function PersonalityTestPage() {
   useDocumentTitle('투자성향테스트')
   const navigate = useNavigate()
-  /* 어디서 들어왔는지(?from=mypage)를 결과 화면까지 그대로 넘긴다 */
+  /* 어디서 들어왔는지(?from=mypage)·가려던 자리(?next=, 첫 로그인)를 결과 화면까지 그대로 넘긴다 */
   const { search } = useLocation()
 
   const [questions, setQuestions] = useState<Question[] | null>(null)

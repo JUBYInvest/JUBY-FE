@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
+import { needsOnboarding } from '../api/member'
 import { saveTokens, takeReturnPath, toUsableToken } from '../utils/auth'
 import { loginPathFrom, toReturnPath } from '../utils/navigation'
 import styles from './OAuthCallbackPage.module.css'
@@ -15,6 +16,11 @@ interface Props {
  * 성공이면 `/oauth2/callback#accessToken=<AT>`로 온다(주소 해시라 서버 기록에 남지 않는다). refresh token은 백엔드가
  * HttpOnly 쿠키로 따로 둬서 자바스크립트가 읽을 수 없다 — 찾지도 저장하지도 않는다. 실패면 `/oauth2/error?error=<코드>`다.
  */
+/** 첫 로그인 회원을 보내는 성향테스트 주소. 가려던 자리가 홈이 아니면 `?next=`로 달아 검사를 마친 뒤 그리로 간다 */
+function onboardingPath(destination: string): string {
+  return destination === '/' ? '/personality-test' : `/personality-test?next=${encodeURIComponent(destination)}`
+}
+
 export default function OAuthCallbackPage({ failed = false }: Props) {
   const location = useLocation()
   const navigate = useNavigate()
@@ -50,8 +56,21 @@ export default function OAuthCallbackPage({ failed = false }: Props) {
      * 토큰을 담았다고 헤더에 알리는 건 saveTokens가 한다. 그래서 여기서는
      * 화면만 옮기면 된다 — 주소가 토큰을 달고 있으니 replace로 기록에서 지운다.
      * 로그인 화면으로 오기 전 자리가 있으면 그리로, 없으면 홈으로 간다.
+     *
+     * 성향테스트를 아직 안 한 회원(onboarded=false)은 검사부터 한다(사용자 결정 2026-09-30). 마치면 가려던 자리로
+     * 돌아간다(`?next=`, PersonalityResultPage). 온보딩 여부를 못 받으면 그냥 가려던 자리로 간다 — 검사는 권하는 것일 뿐이다.
+     * 묻는 동안은 "로그인 중"이 그대로 보인다.
      */
-    navigate(returnPath ?? '/', { replace: true })
+    const destination = returnPath ?? '/'
+    void needsOnboarding()
+      .catch((error: unknown) => {
+        console.warn('온보딩 여부 조회 실패', error)
+        return false
+      })
+      .then((needed) => {
+        const toTest = needed && !destination.startsWith('/personality-test')
+        navigate(toTest ? onboardingPath(destination) : destination, { replace: true })
+      })
   }, [failed, location.hash, location.search, navigate])
 
   return <p className={styles.message}>로그인 중</p>
