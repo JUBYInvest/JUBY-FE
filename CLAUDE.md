@@ -382,7 +382,10 @@ effect를 두 번 돌려, 두 번째가 이미 꺼낸 자리를 못 찾고 홈�
 
 ### 로그인·인증 (JUBY-BE dev `7e5b023`, 2026-09-28 소스 확인)
 
-실서버에 올라갔는지는 확인하지 않았다(PR 머지 때 EC2로 자동 배포되는 워크플로다). 실서버로 로그인해 본 적은 아직 없다.
+**실서버는 `https://api.juby.store`다**(2026-09-30 사용자가 배포를 알림, 스웨거 `/swagger-ui/index.html`). 예전 `http://3.35.191.42:8080`은
+그날 응답이 없었다. 개발 프록시(`vite.config.ts`)·배포 중계(`vercel.json`)·소셜 로그인 이동(`LoginPage`의 `VITE_API_ORIGIN` 기본값)이
+모두 이 주소를 가리킨다. 새 서버의 `GET /v3/api-docs`로 **프론트가 부르는 경로가 전부 있는 것**까지는 확인했다(응답 스키마를 하나하나
+대조하진 않았다). 새 서버에 올라간 소스가 아래 `7e5b023`과 같은지, 실서버로 로그인이 되는지는 아직 모른다.
 
 - 소셜 로그인 성공 → `{FRONTEND_URL}/oauth2/callback#accessToken=<AT>`. AT는 30분. refresh token은 HttpOnly 쿠키
   `refreshToken`(`Path=/api/auth`, 14일, 재발급 때마다 바뀜)이라 프론트는 받지도 저장하지도 않는다.
@@ -396,8 +399,10 @@ effect를 두 번 돌려, 두 번째가 이미 꺼낸 자리를 못 찾고 홈�
   비로그인 백테스트 실행은 "로그인하면 결과를 볼 수 있어요" + 로그인 링크(G-5), 비로그인 성향테스트는 문항 GET이 401이라 늘 예비 7문항이다.
 - CORS가 켜졌고 허용 출처는 `FRONTEND_URL` 하나다. vite 프록시(`changeOrigin`)는 Host만 바꾸고 `Origin: http://localhost:5173`은
   그대로라, `FRONTEND_URL`이 배포 주소면 로컬 개발의 POST·PATCH·DELETE가 403일 수 있다(`docs/남은-일.md`).
+  2026-09-30 `https://api.juby.store`는 `http://localhost:5173`만 받는다(`GET /v3/api-docs`에 `Origin`을 달아 확인 — `https://juby.store`는 403).
+  그래서 지금은 로컬 개발이 되고, 배포 주소의 쓰기 요청이 막힐 수 있다. 소셜 로그인 뒤 돌아오는 곳도 로컬 개발 서버일 것이다.
 - 탈퇴는 soft delete이고 RT 쿠키를 지운다. 같은 소셜 계정으로 다시 로그인하면 새 회원이다.
-  `GET /api/members/me`에 온보딩 여부(성향 저장 때 참)가 생겼다 — 롬복 boolean 필드 `isOnboarded`라 JSON 키는 `onboarded`일 가능성이 높다(스웨거로 확인할 것).
+  `GET /api/members/me`에 온보딩 여부(성향 저장 때 참)가 생겼다 — JSON 키는 `onboarded`다(2026-09-30 스웨거 확인). 프론트는 아직 쓰지 않는다.
 - 내 정보 수정(`Member.updateInfo`)은 name·birth가 null이면 바꾸지 않는다. 이름 `@Size(2~4)`는 `javax` 어노테이션이라
   Boot 3에서 검사되지 않는다 — 이름 규칙은 지금 화면에만 있다.
 

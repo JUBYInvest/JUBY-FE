@@ -47,27 +47,30 @@ npm run dev
 
 ## 백엔드 연결
 
+백엔드는 `https://api.juby.store`다(2026-09-30 배포, 스웨거는 `/swagger-ui/index.html`).
+
 `.env`의 `VITE_API_BASE_URL`을 비워두면 `vite.config.ts`의 프록시를 타서
 `/api` 요청이 백엔드로 넘어간다. 개발 중에는 비워두는 편이 CORS를 안 겪는다.
 
 `VITE_API_ORIGIN`은 소셜 로그인 이동에만 쓴다.
 브라우저 주소창이 직접 찾아가는 곳이라 프록시를 탈 수 없어 절대주소가 필요하다.
+값이 없으면(`.env`가 없는 배포 빌드) `LoginPage.tsx`에 적힌 `https://api.juby.store`를 쓴다.
 
 ## 배포 (Vercel)
 
 `vercel.json`이 두 가지를 한다. **순서가 중요하다** — 위에서부터 맞는 것을 쓴다.
 
-1. `/api/*` → `http://3.35.191.42:8080/api/*`. 개발의 vite 프록시와 같은 역할을 배포에서 한다.
+1. `/api/*` → `https://api.juby.store/api/*`. 개발의 vite 프록시와 같은 역할을 배포에서 한다.
 2. 나머지 전부 → `/index.html`. 없는 경로를 새로고침해도 404가 나지 않게 한다.
    (실제 파일이 있으면 Vercel이 그걸 먼저 주므로 `/assets/**`는 이 규칙에 걸리지 않는다)
 
-1번이 필요한 이유는 CORS가 아니라 **mixed content**다. 사이트는 https인데 백엔드는 http라,
-브라우저에서 곧바로 부르면 요청이 아예 나가지 못하고 막힌다. Vercel이 서버 쪽에서 대신
-받아 넘기면 브라우저 눈에는 같은 출처의 https 요청 하나뿐이다.
-
-그래서 **`VITE_API_BASE_URL`은 배포에서도 비워 둔다.** 여기에 백엔드 주소를 적으면
-그 우회를 건너뛰고 브라우저가 직접 http를 불러 막힌다.
-`VITE_API_ORIGIN`은 주소창 이동이라 mixed content 규칙을 받지 않아 그대로 둔다.
+1번은 브라우저 눈에 같은 출처의 요청으로 보이게 한다. 백엔드가 `http://` IP 주소이던 2026-09-29까지는
+mixed content(https 사이트가 http를 부르면 브라우저가 막는다) 때문에 꼭 필요했다. https가 된 지금은 CORS 때문에 둔다 —
+백엔드가 받는 출처는 지금 `http://localhost:5173` 하나다(2026-09-30 확인). 그래서 **`VITE_API_BASE_URL`은
+배포에서도 비워 둔다.** 여기에 백엔드 주소를 적으면 브라우저가 곧장 부르고, 배포 주소가 허용 출처에 없으면 막힌다.
+중계를 거쳐도 POST·PATCH·DELETE에는 브라우저가 `Origin`(배포 주소)을 싣는다. 배포 주소를 백엔드 허용 출처에
+넣어야 쓰기 요청이 확실히 된다(`docs/남은-일.md`).
+`VITE_API_ORIGIN`은 주소창 이동이라 CORS를 받지 않는다.
 
 `index.html`의 `og:image`는 절대주소여야 해서 배포 도메인이 정해진 뒤에 채운다.
 

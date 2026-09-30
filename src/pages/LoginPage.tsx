@@ -9,7 +9,7 @@ import styles from './LoginPage.module.css'
  * 그래서 client.ts의 baseURL과 별개인 환경변수를 쓴다.
  */
 const API_ORIGIN: string =
-  import.meta.env.VITE_API_ORIGIN ?? 'http://3.35.191.42:8080'
+  import.meta.env.VITE_API_ORIGIN ?? 'https://api.juby.store'
 
 const PROVIDERS = [
   {
