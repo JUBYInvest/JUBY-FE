@@ -1,72 +1,120 @@
-import { malformedResponse, post } from './client'
-import { delay } from '../utils/async'
+import { get, malformedResponse, post } from './client'
 import type { AskResult, ChatMessage, ChatSession, ChatSessionDetail } from '../types/ai'
 
 /**
- * AI 주가분석 창구.
+ * AI 주가분석 창구. 질문과 대화방 모두 실제 API다(JUBY-BE dev `0c79ec5`, 2026-09-30). 전부 로그인해야 한다.
  *
- * **질문(ask)만 실제 API고, 대화방 목록·상세는 아직 mock이다.**
- *
- * `POST /api/open-ai/ask` 는 `{ answer }` 를 돌려준다(2026-09-18 확인). 로그인이 필요하고,
- * 성향을 안 정한 회원이면 404(MEMBER404_2)라 화면이 성향테스트로 안내한다.
- * stockName은 비워 보내면 서버가 질문에서 종목을 알아서 찾는다.
- *
- * 대화방(`/api/chat-sessions` 5종)은 백엔드 진행 중이라 붙일 곳이 없다.
- * 그래서 새 대화의 sessionId·title은 화면에서 지어낸다. 서버가 발급하기 시작하면
- * 아래 mock 함수들만 실제 호출로 갈아끼운다. 화면 코드는 손대지 않는다.
- *
- * 응답 형태는 요구사항서에 적어둔 가정을 따른다. 명세가 확정되면 문서와 이 파일을 함께 고친다.
+ * - 대화방: `GET /api/chat-sessions`(최근 대화 순), `POST /api/chat-sessions`(빈 방, 제목 '새 대화', 201),
+ *   `GET /api/chat-sessions/{id}`(메시지 작성 순. 없는 방 404 `CHAT404_1`, 남의 방 403 `CHAT403_1`).
+ *   제목 바꾸기(PATCH)·지우기(DELETE)도 있지만 화면에 아직 자리가 없어 안 붙였다.
+ * - 질문: `POST /api/open-ai/ask`에 `chatSessionId`를 실으면 그 방에 이어 저장하고 **앞 대화를 맥락으로 쓴다**. 첫 질문이면 서버가
+ *   질문 앞 30자로 방 제목을 붙인다. 같은 방에서 앞 답을 만드는 중이면 409 `CHAT409_1`이고 질문은 저장되지 않는다.
+ *   성향을 안 정한 회원이면 404 `MEMBER404_2`. 답 생성이 실패하면(502) 질문만 방에 남는다.
+ *   stockName은 비워 보내면 서버가 질문(과 앞 대화)에서 종목을 찾는다.
  */
 
-const MOCK_SESSIONS: ChatSession[] = [
-  { sessionId: 1, title: '한화디펜스 전쟁 영향' },
-  { sessionId: 2, title: 'HYBE 콘서트 성공 여부' },
-  { sessionId: 3, title: 'LG에너지솔루션 분석' },
-  { sessionId: 4, title: '에스오일 석유화학 관련' },
-  { sessionId: 5, title: 'SK하이닉스 사업분석' },
-  { sessionId: 6, title: 'GS건설 수주사업' },
-]
-
-/** 새 세션에 붙일 번호. 서버가 발급하기 시작하면 필요 없어진다 */
-let nextSessionId = MOCK_SESSIONS.length + 1
-
-/** GET /v1/ai/sessions 로 교체 */
-export async function getSessions(): Promise<ChatSession[]> {
-  await delay(300)
-  return MOCK_SESSIONS
+/** 서버 SessionSummary(목록 한 줄, 만들기·제목 바꾸기 응답) */
+interface SessionSummaryResponse {
+  chatSessionId?: number | null
+  title?: string | null
+  updatedAt?: string | null
 }
 
-/** GET /v1/ai/sessions/{sessionId} 로 교체 */
-export async function getSessionDetail(
-  sessionId: number,
-): Promise<ChatSessionDetail> {
-  await delay(500)
+interface SessionDetailResponse extends SessionSummaryResponse {
+  messages?: (MessageResponse | null)[] | null
+}
 
-  const session =
-    MOCK_SESSIONS.find((item) => item.sessionId === sessionId) ??
-    { sessionId, title: '대화' }
+interface MessageResponse {
+  messageId?: number | null
+  role?: string | null
+  content?: string | null
+  createdAt?: string | null
+}
 
-  return { ...session, messages: mockMessages(session.title) }
+interface AskResponse {
+  answer?: string | null
+  chatSessionId?: number | null
+  messageId?: number | null
+}
+
+const DEFAULT_TITLE = '새 대화'
+
+function isId(value: unknown): value is number {
+  return typeof value === 'number' && Number.isInteger(value) && value > 0
+}
+
+/** 방 번호가 없거나 틀리면 null(그 줄은 뺀다). 제목이 비면 서버 기본값과 같은 '새 대화'로 적는다 */
+function toSession(row: SessionSummaryResponse | null | undefined): ChatSession | null {
+  if (typeof row !== 'object' || row === null || !isId(row.chatSessionId)) return null
+  const title = typeof row.title === 'string' && row.title.trim() !== '' ? row.title : DEFAULT_TITLE
+  return { sessionId: row.chatSessionId, title }
+}
+
+/** 말한 쪽이나 글이 틀린 메시지는 null(그 말풍선은 뺀다). 빈 말풍선이나 엉뚱한 쪽 말풍선을 그리지 않는다 */
+function toMessage(row: MessageResponse | null): ChatMessage | null {
+  if (typeof row !== 'object' || row === null || typeof row.content !== 'string') return null
+  const role = row.role === 'USER' ? 'user' : row.role === 'ASSISTANT' ? 'assistant' : null
+  if (role === null || !isId(row.messageId)) return null
+  return {
+    messageId: row.messageId,
+    role,
+    content: row.content,
+    createdAt: typeof row.createdAt === 'string' ? row.createdAt : '',
+  }
 }
 
 /**
- * 질문을 보내고 답을 받는다. **실제 API다.**
- *
- * 대화 이어가기는 아직 서버에 없다. sessionId를 받아도 서버에는 보내지 않고,
- * 화면이 같은 방에 말풍선을 이어 붙이는 데만 쓴다. `/api/chat-sessions`가 생기면
- * 그쪽 POST로 바꾸고 sessionId를 함께 보낸다.
+ * 내 대화방 목록(최근 대화 순). AI 화면이 들어오자마자 부르므로 401이어도 로그인 화면으로 끌고 가지 않는다
+ * (공개 화면 규칙 — 만료된 토큰이면 client.ts가 먼저 재발급해 본다).
+ */
+export async function getSessions(): Promise<ChatSession[]> {
+  const rows = await get<(SessionSummaryResponse | null)[] | null>('/api/chat-sessions', {
+    ignoreUnauthorized: true,
+  })
+  if (!Array.isArray(rows)) throw malformedResponse()
+  const sessions = rows.flatMap((row) => toSession(row) ?? [])
+  if (sessions.length < rows.length) {
+    console.warn(`번호가 틀린 대화방 ${rows.length - sessions.length}개를 뺐습니다`)
+  }
+  return sessions
+}
+
+/** 빈 대화방을 만든다. 제목은 '새 대화'로 오고, 첫 질문이 들어가면 서버가 바꾼다 */
+export async function createSession(): Promise<ChatSession> {
+  const session = toSession(await post<SessionSummaryResponse | null>('/api/chat-sessions', {}))
+  if (session === null) throw malformedResponse()
+  return session
+}
+
+/** 대화방의 전체 메시지(작성 순) */
+export async function getSessionDetail(sessionId: number): Promise<ChatSessionDetail> {
+  const detail = await get<SessionDetailResponse | null>(`/api/chat-sessions/${sessionId}`)
+  const session = toSession(detail)
+  if (session === null || !Array.isArray(detail?.messages)) throw malformedResponse()
+  const messages = detail.messages.flatMap((row) => toMessage(row) ?? [])
+  if (messages.length < detail.messages.length) {
+    console.warn(`모양이 틀린 메시지 ${detail.messages.length - messages.length}개를 뺐습니다`, sessionId)
+  }
+  return { ...session, messages }
+}
+
+/**
+ * 질문을 보내고 답을 받는다. sessionId의 대화방에 이어 저장되고, 서버는 그 방의 앞 대화를 맥락으로 쓴다.
+ * 새 대화는 화면이 createSession으로 방부터 만든 뒤 부른다(AiPage) — 방 없이 물었다가 답이 실패하면 서버에 질문만 남은 방이
+ * 생기는데 그 번호를 몰라, 다시 시도가 또 다른 방을 만든다.
  */
 export async function ask(
   question: string,
   stockName: string,
-  sessionId?: number,
+  sessionId: number,
 ): Promise<AskResult> {
-  const result = await post<{ answer: string } | null>(
+  const result = await post<AskResponse | null>(
     '/api/open-ai/ask',
     {
       question,
       // 빈 문자열을 보내면 서버가 "종목명 있음"으로 오해할 수 있다. 없으면 null로 비운다
       stockName: stockName === '' ? null : stockName,
+      chatSessionId: sessionId,
     },
     /*
      * 제한 시간을 두지 않고 답이 올 때까지 기다린다. 서버가 AI를 두 번 차례로 부르고(질문 분류 → 답)
@@ -75,44 +123,10 @@ export async function ask(
      */
     { timeoutMs: null },
   )
-  // 본문이 객체가 아니면 다른 API처럼 응답 모양 오류로 던진다. 구조 분해하면 null에서 TypeError가 났다.
-  // 답이 빈 건 여기서 막지 않는다 — 화면이 "답변을 가져오지 못했어요 + 다시 시도"로 받는다
+  // 본문이 객체가 아니면 다른 API처럼 응답 모양 오류로 던진다. 답이 빈 건 화면이 "답변을 가져오지 못했어요 + 다시 시도"로 받는다
   if (typeof result !== 'object' || result === null) throw malformedResponse()
-  const { answer } = result
-
   return {
-    sessionId: sessionId ?? nextSessionId++,
-    /* 서버는 아직 제목을 안 만든다. 첫 질문 앞부분을 잘라 쓴다 */
-    title: toTitle(question),
-    answer,
+    sessionId: isId(result.chatSessionId) ? result.chatSessionId : sessionId,
+    answer: typeof result.answer === 'string' ? result.answer : '',
   }
-}
-
-function toTitle(question: string): string {
-  const trimmed = question.trim()
-  return trimmed.length <= 20 ? trimmed : `${trimmed.slice(0, 20)}…`
-}
-
-/**
- * 사용자와 AI가 번갈아 나오는 예시 대화.
- * 말풍선 폭·줄바꿈·스크롤이 실제 길이에서 어떻게 보이는지 확인하려고 길이를 섞어 뒀다.
- */
-function mockMessages(title: string): ChatMessage[] {
-  const contents: string[] = [
-    `${title}에 대해 알려줘.`,
-    `(예시 응답) ${title} 관련해서 확인된 내용을 정리해 드릴게요.\n\n` +
-      `아직 백엔드 연동 전이라 실제 분석 결과가 아닙니다. ` +
-      `연동이 끝나면 이 자리에 뉴스 검색(RAG)을 거친 답변이 표시됩니다.`,
-    '그럼 지금 사는 건 어때?',
-    `(예시 응답) 투자 판단은 직접 하셔야 해요.\n` +
-      `다만 확인해두면 좋은 지표는 알려드릴 수 있습니다.`,
-  ]
-
-  return contents.map((content, index) => ({
-    messageId: index + 1,
-    role: index % 2 === 0 ? 'user' : 'assistant',
-    content,
-    /* 예시 데이터라 시각은 의미가 없다. 화면에도 아직 안 쓴다 */
-    createdAt: new Date().toISOString(),
-  }))
 }

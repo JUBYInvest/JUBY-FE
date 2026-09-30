@@ -47,11 +47,6 @@
   }
 }
 
-/* 렌더러를 받는 동안·못 받았을 때의 답변. 예전처럼 줄바꿈을 그대로 살린다 */
-.plain {
-  white-space: pre-wrap;
-}
-
 .loading {
   display: flex;
   gap: 5px;

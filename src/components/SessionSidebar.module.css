@@ -74,6 +74,18 @@
   color: var(--color-text-sub);
 }
 
+/* 목록 실패 안내 옆 다시 시도. 누르는 넓이는 위아래 여백으로 넓히고 같은 만큼 음수 margin을 줘 배치는 그대로 둔다 */
+.retry {
+  margin: -13px 0 -13px 8px;
+  padding: 13px 4px;
+  border: 0;
+  background: none;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text);
+  text-decoration: underline;
+}
+
 /* 좁은 화면에서만 쓰는 접기 단추 */
 .toggle {
   display: none;

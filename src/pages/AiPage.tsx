@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { ask, getSessionDetail, getSessions } from '../api/ai'
+import { ask, createSession, getSessionDetail, getSessions } from '../api/ai'
 import { ApiError } from '../api/client'
 import ChatMessages, { type PendingState } from '../components/ChatMessages'
-import SessionSidebar from '../components/SessionSidebar'
+import { loadMarkdownAnswer } from '../components/loadMarkdownAnswer'
+import SessionSidebar, { type SessionListState } from '../components/SessionSidebar'
 import { useIsLoggedIn } from '../hooks/useIsLoggedIn'
 import { useMyPersonality } from '../hooks/useMyPersonality'
 import { useDocumentTitle } from '../hooks/useDocumentTitle'
@@ -17,14 +18,26 @@ const PERSONALITY_TEST_URL = '/personality-test?from=ai'
 const STOCK_HINT = '종목명을 함께 입력하면 더 정확한 분석을 받을 수 있어요.'
 const LOGIN_HINT = '로그인하면 질문할 수 있어요.'
 const NO_PERSONALITY_HINT = '투자성향을 먼저 정해야 답할 수 있어요.'
+/** 같은 대화방에서 앞 질문의 답을 서버가 아직 만드는 중(409 CHAT409_1). 질문은 저장되지 않았다 */
+const BUSY_HINT = '앞 질문의 답을 아직 만들고 있어요. 조금 뒤에 다시 시도해 주세요.'
+/** 다른 탭에서 지웠거나 내 것이 아닌 대화방(404 CHAT404_1·403 CHAT403_1) */
+const ROOM_GONE_HINT = '이 대화방을 찾을 수 없어요. 새 대화에서 다시 물어봐 주세요.'
+/** 서버 AskRequest의 question 최대 길이 */
+const QUESTION_MAX_LENGTH = 1000
 
 type DetailState = 'idle' | 'loading' | 'error'
+
+/** 대화방이 없어진 경우의 오류인가(다시 받아도 같다) */
+function isRoomGone(error: unknown): boolean {
+  return error instanceof ApiError && (error.code === 'CHAT404_1' || error.code === 'CHAT403_1')
+}
 
 export default function AiPage() {
   useDocumentTitle('AI 주가분석')
   const loggedIn = useIsLoggedIn()
 
   const [sessions, setSessions] = useState<ChatSession[]>([])
+  const [sessionsState, setSessionsState] = useState<SessionListState>('loading')
   const [sessionId, setSessionId] = useState<number | null>(null)
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [detailState, setDetailState] = useState<DetailState>('idle')
@@ -49,21 +62,53 @@ export default function AiPage() {
    * 그 방 말풍선이 새 대화 화면을 채운다.
    */
   const askSeqRef = useRef(0)
-  /*
-   * 이 탭에서 새로 만든 방의 말풍선. 대화방 API가 아직 mock이라(api/ai.ts) 그 방을 다시 고르면 getSessionDetail이
-   * 예시 대화를 돌려줘 실제로 받은 답이 사라졌다. 떠날 때 화면의 말풍선을 적어 두고, 다시 고르면 서버에 묻지 않고
-   * 그대로 보여준다. 메모리에만 둔다 — 새로고침하면 방 목록과 함께 사라진다.
-   */
-  const localRoomsRef = useRef(new Map<number, ChatMessage[]>())
+  /** 대화방 목록 요청 번호. 답마다 목록을 다시 받으므로 늦게 온 옛 목록이 새 목록을 덮지 않게 한다 */
+  const sessionsSeqRef = useRef(0)
 
-  // 대화 목록은 회원마다 다르다. 로그인·로그아웃하면 다시 받는다
-  useEffect(() => {
+  /**
+   * 대화방 목록을 (다시) 받는다. 제목(첫 질문 앞 30자)과 순서(최근 대화 순)는 서버가 정하므로 답을 받을 때마다 조용히
+   * 다시 받는다(quiet — 받는 동안 목록을 비우지 않는다). 비로그인이면 부르지 않는다 — 서버가 401로 막는다.
+   */
+  function loadSessions(quiet = false) {
+    sessionsSeqRef.current += 1
+    const seq = sessionsSeqRef.current
+    if (!loggedIn) {
+      setSessions([])
+      setSessionsState('ready')
+      return
+    }
+    if (!quiet) setSessionsState('loading')
     getSessions()
-      .then(setSessions)
-      .catch((error: unknown) => {
-        // 목록을 못 받아도 질문은 할 수 있다. 사이드바만 비워둔다
-        console.warn('AI 대화 목록 조회 실패', error)
+      .then((list) => {
+        if (seq !== sessionsSeqRef.current) return
+        setSessions(list)
+        setSessionsState('ready')
       })
+      .catch((error: unknown) => {
+        if (seq !== sessionsSeqRef.current) return
+        // 목록을 못 받아도 질문은 할 수 있다. 조용히 다시 받던 중이면 보던 목록을 둔다
+        console.warn('AI 대화 목록 조회 실패', error)
+        if (!quiet) setSessionsState('error')
+      })
+  }
+
+  /*
+   * 답변 렌더러(마크다운·수식)를 화면이 뜨자마자 받기 시작한다. 말풍선 목록이 생길 때 받기 시작하면 저장된 방을 열거나
+   * 첫 답이 올 때 서식 없는 글자가 한순간 보였다
+   */
+  useEffect(() => {
+    void loadMarkdownAnswer()
+  }, [])
+
+  /*
+   * 대화 목록은 회원마다 다르다. 로그인·로그아웃(다른 탭 포함)하면 다시 받고, 로그아웃하면 보던 대화도 거둔다 —
+   * 계정의 대화라 로그아웃한 화면에 남으면 안 된다.
+   */
+  useEffect(() => {
+    if (!loggedIn) startNewChat()
+    loadSessions()
+    // 로그인 여부가 바뀔 때만 돈다. 두 함수는 그 순간의 값을 쓰면 된다
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loggedIn])
 
   /*
@@ -78,18 +123,7 @@ export default function AiPage() {
     return id
   }
 
-  /**
-   * 보던 방이 이 탭에서 만든 방이면 지금 말풍선을 적어 둔다. 다른 방·새 대화로 옮기기 직전에 부른다.
-   * 떠나기 직전 화면 그대로다 — 실패했거나 "그만 기다리기"로 버린 답은 애초에 말풍선에 없다.
-   */
-  function keepLocalRoom() {
-    if (sessionId !== null && localRoomsRef.current.has(sessionId)) {
-      localRoomsRef.current.set(sessionId, messages)
-    }
-  }
-
-  function handleNewChat() {
-    keepLocalRoom()
+  function startNewChat() {
     askSeqRef.current += 1
     setSessionId(null)
     setMessages([])
@@ -98,25 +132,22 @@ export default function AiPage() {
     setNotice('')
   }
 
+  /** 없어진 대화방을 목록에서 빼고 새 대화로 돌린다 */
+  function dropRoom(roomId: number) {
+    setSessions((previous) => previous.filter((session) => session.sessionId !== roomId))
+    startNewChat()
+    setNotice(ROOM_GONE_HINT)
+  }
+
   function handleSelect(selectedId: number) {
     // 보고 있는 세션을 또 누른 것뿐이다. 다시 받아올 이유가 없다
     if (selectedId === sessionId && detailState !== 'error') return
 
-    keepLocalRoom()
     askSeqRef.current += 1
     const seq = askSeqRef.current
     setSessionId(selectedId)
     setPending(null)
     setNotice('')
-
-    // 이 탭에서 만든 방은 적어 둔 말풍선으로 곧바로 되살린다
-    const kept = localRoomsRef.current.get(selectedId)
-    if (kept !== undefined) {
-      setMessages(kept)
-      setDetailState('idle')
-      return
-    }
-
     setDetailState('loading')
 
     getSessionDetail(selectedId)
@@ -129,6 +160,11 @@ export default function AiPage() {
       .catch((error: unknown) => {
         if (seq !== askSeqRef.current) return
         console.warn('AI 대화 조회 실패', error)
+        // 다른 탭에서 지운 방이다. 다시 시도해도 같으니 목록에서 뺀다
+        if (isRoomGone(error)) {
+          dropRoom(selectedId)
+          return
+        }
         setDetailState('error')
       })
   }
@@ -139,13 +175,28 @@ export default function AiPage() {
     askSeqRef.current += 1
     const seq = askSeqRef.current
 
+    // 이 질문이 들어간 방. 실패하면 목록에서 뺄 때 쓴다
+    let roomId = sessionId
     try {
-      const result = await ask(text, stockName, sessionId ?? undefined)
+      /*
+       * 새 대화면 방부터 만든다. 방 없이 물으면 서버가 방을 만들어 주지만, 답이 실패하면(502) 질문만 남은 그 방의 번호를
+       * 몰라 다시 시도가 또 다른 방을 만든다. 만든 방은 곧바로 목록 맨 위에 올린다(제목은 첫 답 뒤에 서버 것으로 바뀐다).
+       */
+      if (roomId === null) {
+        const room = await createSession()
+        if (seq !== askSeqRef.current) return
+        roomId = room.sessionId
+        setSessionId(room.sessionId)
+        setSessions((previous) => [room, ...previous.filter((item) => item.sessionId !== room.sessionId)])
+      }
+
+      // 같은 방 번호를 실어 보내면 서버가 앞 대화를 맥락으로 쓴다("그 종목은?")
+      const result = await ask(text, stockName, roomId)
       // 기다리는 사이 화면이 다른 대화방으로 바뀌었다. 이 답은 그 방의 것이 아니다
       if (seq !== askSeqRef.current) return
 
       // 답이 비어 오면 빈 말풍선을 남기지 않고 실패로 다룬다. '다시 시도'로 같은 질문을 다시 보낸다
-      if (typeof result.answer !== 'string' || result.answer.trim() === '') {
+      if (result.answer.trim() === '') {
         console.warn('AI 답이 비어 있습니다', result)
         setPending('error')
         return
@@ -161,17 +212,7 @@ export default function AiPage() {
         },
       ])
       setPending(null)
-
-      // 새 대화였다면 방금 발급받은 세션으로 옮겨 앉고 목록 맨 위에 올린다
-      if (sessionId === null) {
-        // 떠날 때 말풍선을 적어 둘 방으로 표시한다(keepLocalRoom)
-        localRoomsRef.current.set(result.sessionId, [])
-        setSessionId(result.sessionId)
-        setSessions((previous) => [
-          { sessionId: result.sessionId, title: result.title },
-          ...previous,
-        ])
-      }
+      loadSessions(true)
     } catch (error: unknown) {
       if (seq !== askSeqRef.current) return
       console.warn('AI 질문 전송 실패', error)
@@ -186,6 +227,12 @@ export default function AiPage() {
         setNotice(NO_PERSONALITY_HINT)
         return
       }
+      if (roomId !== null && isRoomGone(error)) {
+        dropRoom(roomId)
+        return
+      }
+      // 앞 질문의 답을 아직 만드는 중이다. 질문은 저장되지 않았으니 조금 뒤 다시 시도로 보낸다
+      if (error instanceof ApiError && error.code === 'CHAT409_1') setNotice(BUSY_HINT)
       setPending('error')
     }
   }
@@ -227,16 +274,49 @@ export default function AiPage() {
   /**
    * 그만 기다리기. 답은 제한 없이 기다려서(서버가 영영 안 답하면 입력칸이 잠긴 채 남았다) 사용자가 끊을 수 있게 한다
    * (사용자 결정 2026-09-27). 번호를 올려 늦게 온 답은 버리고, 같은 질문은 다시 시도로 다시 보낸다.
-   * 서버는 이미 받은 질문의 답을 계속 만든다 — 프론트가 요청을 거둘 방법은 없다.
+   * 서버는 이미 받은 질문의 답을 계속 만들어 방에 저장한다 — 프론트가 요청을 거둘 방법은 없다.
    */
   function handleStop() {
     askSeqRef.current += 1
     setPending('stopped')
   }
 
-  function handleRetry() {
+  /**
+   * 다시 시도. 방이 있으면 먼저 방을 다시 받아, 서버가 그 질문의 답을 이미 저장했으면(그만 기다린 뒤 답이 끝났거나 409 뒤
+   * 앞 답이 끝났다) 그걸 보여 주고 끝낸다 — 그냥 다시 보내면 같은 질문과 답이 방에 두 번 저장된다. 답이 없으면 다시 보낸다.
+   */
+  async function handleRetry() {
     const last = lastAskRef.current
     if (last === null) return
+    if (sessionId === null) {
+      void send(last.text, last.stockName)
+      return
+    }
+
+    setPending('loading')
+    askSeqRef.current += 1
+    const seq = askSeqRef.current
+    try {
+      const detail = await getSessionDetail(sessionId)
+      if (seq !== askSeqRef.current) return
+      const [asked, answered] = detail.messages.slice(-2)
+      if (
+        asked?.role === 'user' &&
+        asked.content === last.text &&
+        answered?.role === 'assistant' &&
+        answered.content.trim() !== ''
+      ) {
+        setMessages(detail.messages)
+        setPending(null)
+        setNotice('')
+        loadSessions(true)
+        return
+      }
+    } catch (error: unknown) {
+      if (seq !== askSeqRef.current) return
+      // 확인을 못 해도 다시 보내기는 한다
+      console.warn('AI 대화 다시 확인 실패', error)
+    }
     void send(last.text, last.stockName)
   }
 
@@ -258,9 +338,11 @@ export default function AiPage() {
       <div className={styles.layout}>
         <SessionSidebar
           sessions={sessions}
+          listState={sessionsState}
           selectedId={sessionId}
           onSelect={handleSelect}
-          onNewChat={handleNewChat}
+          onNewChat={startNewChat}
+          onRetryList={() => loadSessions()}
           isLoggedIn={loggedIn}
         />
 
@@ -327,7 +409,7 @@ export default function AiPage() {
             <ChatMessages
               messages={messages}
               pending={pending}
-              onRetry={handleRetry}
+              onRetry={() => void handleRetry()}
               onStop={handleStop}
             />
           )}
@@ -356,6 +438,7 @@ export default function AiPage() {
                 onKeyDown={handleKeyDown}
                 placeholder="예시 : 삼성전자의 주가 현황을 알려줘."
                 rows={1}
+                maxLength={QUESTION_MAX_LENGTH}
                 disabled={pending === 'loading'}
                 aria-label="질문 입력"
               />

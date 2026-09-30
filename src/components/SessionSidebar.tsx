@@ -2,8 +2,14 @@ import { useState } from 'react'
 import type { ChatSession } from '../types/ai'
 import styles from './SessionSidebar.module.css'
 
+/** 대화방 목록을 받는 중인지, 받았는지, 못 받았는지 */
+export type SessionListState = 'loading' | 'ready' | 'error'
+
 interface Props {
   sessions: ChatSession[]
+  /** 못 받았으면 "이전 대화가 없습니다" 대신 실패 안내와 다시 시도를 띄운다 */
+  listState: SessionListState
+  onRetryList: () => void
   /** 지금 보고 있는 세션. 새 대화 중이면 null */
   selectedId: number | null
   onSelect: (sessionId: number) => void
@@ -14,6 +20,8 @@ interface Props {
 
 export default function SessionSidebar({
   sessions,
+  listState,
+  onRetryList,
   selectedId,
   onSelect,
   onNewChat,
@@ -38,7 +46,7 @@ export default function SessionSidebar({
           aria-controls="session-list"
           onClick={() => setIsOpen((open) => !open)}
         >
-          {isLoggedIn ? `이전 대화 ${sessions.length}개` : '이전 대화'}
+          {isLoggedIn && listState === 'ready' ? `이전 대화 ${sessions.length}개` : '이전 대화'}
           <span className={styles.chevron} aria-hidden="true">
             ▾
           </span>
@@ -62,6 +70,15 @@ export default function SessionSidebar({
       <div id="session-list" className={isOpen ? undefined : styles.bodyClosed}>
         {!isLoggedIn ? (
           <p className={styles.empty}>로그인하면 이전 대화를 저장할 수 있어요.</p>
+        ) : listState === 'loading' ? (
+          <p className={styles.empty}>대화 목록을 불러오는 중이에요</p>
+        ) : listState === 'error' ? (
+          <p className={styles.empty}>
+            목록을 불러오지 못했어요.
+            <button type="button" className={styles.retry} onClick={onRetryList}>
+              다시 시도
+            </button>
+          </p>
         ) : sessions.length === 0 ? (
           <p className={styles.empty}>이전 대화가 없습니다</p>
         ) : (

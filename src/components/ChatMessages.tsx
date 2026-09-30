@@ -1,22 +1,11 @@
 import { lazy, Suspense, useEffect, useRef } from 'react'
 import type { ChatMessage } from '../types/ai'
 import styles from './ChatMessages.module.css'
+import { loadMarkdownAnswer } from './loadMarkdownAnswer'
+import PlainAnswer from './PlainAnswer'
 
-/*
- * 답변의 마크다운·수식 렌더러(react-markdown·KaTeX)는 따로 받는다. 압축해도 120KB가 넘어 같이 묶으면 AI 화면 묶음이
- * 30배로 커졌다(2026-09-30, 4KB → 133KB). 받는 동안과 못 받았을 때는 예전처럼 글자 그대로 보여 준다 — 서식이 없어도 답은 읽힌다.
- * 크롬은 한 번 실패한 import를 페이지가 살아 있는 동안 기억하므로, 실패하면 그 탭에서는 끝까지 글자 그대로다.
- */
-const loadMarkdownAnswer = () =>
-  import('./MarkdownAnswer').catch((error: unknown) => {
-    console.warn('답변 서식 묶음을 받지 못했어요', error)
-    return { default: PlainAnswer }
-  })
+// 렌더러는 따로 받는다. 받는 동안·못 받았을 때는 글자 그대로 보인다(loadMarkdownAnswer)
 const MarkdownAnswer = lazy(loadMarkdownAnswer)
-
-function PlainAnswer({ text }: { text: string }) {
-  return <span className={styles.plain}>{text}</span>
-}
 
 /**
  * 답변을 기다리는 중인지, 실패해서 재시도를 기다리는지, 사용자가 기다리기를 멈췄는지. 끝났으면 null
@@ -33,11 +22,6 @@ interface Props {
 
 export default function ChatMessages({ messages, pending, onRetry, onStop }: Props) {
   const scrollRef = useRef<HTMLDivElement>(null)
-
-  // 화면이 뜨자마자 렌더러를 받기 시작한다. 첫 답을 기다리는 사이 받아 두면 답이 서식 없이 번쩍이지 않는다
-  useEffect(() => {
-    void loadMarkdownAnswer()
-  }, [])
 
   /*
    * 새 말풍선이 붙으면 맨 아래로 내린다.
