@@ -1,15 +1,10 @@
 import { useLocation } from 'react-router-dom'
+import { API_ORIGIN } from '../api/client'
 import { useDocumentTitle } from '../hooks/useDocumentTitle'
 import { rememberReturnPath } from '../utils/auth'
 import { toReturnPath } from '../utils/navigation'
 import styles from './LoginPage.module.css'
 
-/**
- * OAuth 이동만은 Vite 프록시를 타지 않고 백엔드 주소로 곧장 나간다.
- * 그래서 client.ts의 baseURL과 별개인 환경변수를 쓴다.
- */
-const API_ORIGIN: string =
-  import.meta.env.VITE_API_ORIGIN ?? 'https://api.juby.store'
 
 const PROVIDERS = [
   {
@@ -56,6 +51,7 @@ export default function LoginPage() {
   function handleSocialLogin(provider: string) {
     // 바깥 화면을 거쳐 페이지가 새로 뜨므로 돌아갈 자리를 적어 두고 떠난다. 콜백이 꺼내 쓴다
     rememberReturnPath(returnPath)
+    // 주소창 이동이라 프록시를 탈 수 없다. 백엔드 주소로 곧장 간다(client.ts의 API_ORIGIN)
     window.location.href = `${API_ORIGIN}/oauth2/authorization/${provider}`
   }
 

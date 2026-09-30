@@ -7,6 +7,9 @@ import { clearTokens } from '../utils/auth'
  * 서버는 본문을 읽지 않고 요청에 실린 access token으로 처리한다 — 그 토큰을 막고(블랙리스트) 서버에 둔
  * refresh token을 지운 뒤 refresh token 쿠키를 지우라고 응답한다(`POST /api/auth/logout`, JUBY-BE dev `7e5b023`).
  *
+ * 토큰이 만료됐으면 client.ts가 재발급해 한 번 다시 보낸다 — 만료된 토큰으로는 서버가 누구의 refresh token을 지울지 몰라
+ * 14일짜리 refresh token이 서버에 남는다.
+ *
  * 서버 요청이 실패해도 토큰은 지운다(finally). 사용자는 이미 나가겠다고 눌렀는데
  * 서버가 응답을 못 한다고 로그인 상태로 남겨두는 편이 더 위험하다.
  *

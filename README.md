@@ -52,9 +52,9 @@ npm run dev
 `.env`의 `VITE_API_BASE_URL`을 비워두면 `vite.config.ts`의 프록시를 타서
 `/api` 요청이 백엔드로 넘어간다. 개발 중에는 비워두는 편이 CORS를 안 겪는다.
 
-`VITE_API_ORIGIN`은 소셜 로그인 이동에만 쓴다.
-브라우저 주소창이 직접 찾아가는 곳이라 프록시를 탈 수 없어 절대주소가 필요하다.
-값이 없으면(`.env`가 없는 배포 빌드) `LoginPage.tsx`에 적힌 `https://api.juby.store`를 쓴다.
+`VITE_API_ORIGIN`은 프록시를 거치지 않는 두 곳에만 쓴다. 소셜 로그인 이동(주소창이 직접 찾아간다)과
+토큰 재발급(refresh token 쿠키가 백엔드 주소에 박혀 있어 백엔드를 곧장 불러야 실린다)이다.
+값이 없으면(`.env`가 없는 배포 빌드) `src/api/client.ts`에 적힌 `https://api.juby.store`를 쓴다. 빈 값으로 넣지 않는다.
 
 ## 배포 (Vercel)
 
@@ -70,7 +70,7 @@ mixed content(https 사이트가 http를 부르면 브라우저가 막는다) �
 배포에서도 비워 둔다.** 여기에 백엔드 주소를 적으면 브라우저가 곧장 부르고, 배포 주소가 허용 출처에 없으면 막힌다.
 중계를 거쳐도 POST·PATCH·DELETE에는 브라우저가 `Origin`(배포 주소)을 싣는다. 배포 주소를 백엔드 허용 출처에
 넣어야 쓰기 요청이 확실히 된다(`docs/남은-일.md`).
-`VITE_API_ORIGIN`은 주소창 이동이라 CORS를 받지 않는다.
+`VITE_API_ORIGIN`의 소셜 로그인 이동은 주소창 이동이라 CORS를 받지 않는다. 재발급은 받으므로 배포 주소가 허용 출처에 있어야 한다.
 
 `index.html`의 `og:image`는 절대주소여야 해서 배포 도메인이 정해진 뒤에 채운다.
 

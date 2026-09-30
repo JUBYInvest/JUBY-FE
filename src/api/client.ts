@@ -1,4 +1,4 @@
-import { clearTokens, getAccessToken, isLoggedIn } from '../utils/auth'
+import { clearTokens, getAccessToken, isLoggedIn, saveTokens, toUsableToken } from '../utils/auth'
 import { goTo, loginPathFrom } from '../utils/navigation'
 
 /**
@@ -6,9 +6,16 @@ import { goTo, loginPathFrom } from '../utils/navigation'
  * 개발 중에는 빈 문자열 → vite.config.ts의 프록시가 백엔드로 넘긴다(CORS 우회).
  *
  * 인증이 필요한 API(/api/members/**, /api/open-ai/**)는 토큰이 없거나 만료되면
- * 서버가 401 JSON을 준다. 여기서 한 번에 처리해 로그인 화면으로 보낸다.
+ * 서버가 401 JSON을 준다. 토큰을 실어 보낸 요청이면 한 번 재발급해 다시 보내고, 그래도 안 되면
+ * 여기서 한 번에 처리해 로그인 화면으로 보낸다.
  */
 const BASE_URL: string = import.meta.env.VITE_API_BASE_URL ?? ''
+
+/**
+ * 백엔드 주소. 프록시를 거치지 않고 브라우저가 곧장 찾아가는 두 곳이 쓴다 — 소셜 로그인 이동(LoginPage)과 토큰 재발급.
+ * 값이 없으면(`.env`가 없는 배포 빌드) 운영 백엔드다. 빈 문자열을 넣으면 그대로 쓰여 상대 주소가 되니 넣지 않는다.
+ */
+export const API_ORIGIN: string = import.meta.env.VITE_API_ORIGIN ?? 'https://api.juby.store'
 
 interface ApiResponse<T> {
   isSuccess: boolean
@@ -17,8 +24,7 @@ interface ApiResponse<T> {
   result: T
 }
 
-function authHeaders(): Record<string, string> {
-  const token = getAccessToken()
+function authHeaders(token: string | null): Record<string, string> {
   return token === null ? {} : { Authorization: `Bearer ${token}` }
 }
 
@@ -161,6 +167,71 @@ interface RequestOptions {
  * client.ts는 컴포넌트가 아니라 navigate()를 직접 쓸 수 없어 `goTo()`를 거친다.
  * 헤더는 clearTokens()가 알려 주므로 페이지를 새로 받을 필요가 없다.
  */
+/**
+ * 재발급을 기다리는 시간. 로그아웃(3초)처럼 짧게 끊는 요청 앞에서도 돌기 때문에 기본 12초보다 짧게 둔다.
+ * 넘기면 재발급 실패로 보고 지금까지처럼 로그인 화면으로 간다.
+ */
+const REISSUE_TIMEOUT = 5_000
+
+/** 진행 중인 재발급. 동시에 여러 요청이 401을 받아도 재발급은 한 번만 보낸다 */
+let reissuing: Promise<string | null> | null = null
+
+/**
+ * access token을 다시 받는다(`POST /api/auth/reissue`). 새 토큰을 담고 돌려준다. 못 받으면 null.
+ *
+ * refresh token은 백엔드가 소셜 로그인 때 **자기 주소에** 심어 둔 HttpOnly 쿠키다(`Path=/api/auth`, `SameSite=None; Secure`,
+ * JUBY-BE dev `ea18fec`). 프록시(`/api` → 백엔드)로 부르면 요청 주소가 프론트라 브라우저가 그 쿠키를 싣지 않는다. 그래서 이것만
+ * 백엔드를 곧장, 쿠키를 실어(`credentials: 'include'`) 부른다 — 백엔드 CORS가 허용 출처에 한해 자격 증명을 받는다.
+ * 다른 사이트 쿠키를 막는 브라우저(사파리·파이어폭스)는 프론트가 백엔드와 같은 사이트(`juby.store` 아래)여야 실린다. 그 전에는
+ * 여기서 실패하고 예전처럼 로그인 화면으로 간다.
+ *
+ * 백엔드는 재발급할 때마다 refresh token을 바꾼다. 같은 토큰으로 두 번 보내면 뒤의 것은 실패하므로 한 번만 보낸다.
+ * 이 요청은 차단기와 상관없다 — 원래 요청이 방금 401을 받았으니 서버는 살아 있다.
+ */
+function reissueAccessToken(): Promise<string | null> {
+  reissuing ??= requestReissue().finally(() => {
+    reissuing = null
+  })
+  return reissuing
+}
+
+async function requestReissue(): Promise<string | null> {
+  try {
+    const response = await fetch(`${API_ORIGIN}/api/auth/reissue`, {
+      method: 'POST',
+      credentials: 'include',
+      signal: AbortSignal.timeout(REISSUE_TIMEOUT),
+    })
+    if (!response.ok) return null
+    const body: unknown = await response.json()
+    if (!isApiResponse(body) || !body.isSuccess) return null
+    const result = body.result as { accessToken?: unknown } | null
+    const raw = typeof result === 'object' && result !== null ? result.accessToken : null
+    const token = toUsableToken(typeof raw === 'string' ? raw : null)
+    if (token === null) return null
+    saveTokens(token)
+    return token
+  } catch (error: unknown) {
+    console.warn('토큰 재발급 실패', error)
+    return null
+  }
+}
+
+/**
+ * 401을 받은 요청을 다시 보낼 토큰. 없으면 null(로그인 화면으로 간다).
+ *
+ * 보낸 뒤에 토큰이 바뀌었으면(다른 요청이나 다른 탭이 이미 재발급했다) 재발급 없이 그걸 쓴다. 재발급이 실패해도 한 번 더 본다 —
+ * 두 탭이 같은 refresh token으로 동시에 재발급하면 늦은 쪽은 실패하는데, 그 사이 앞선 탭이 새 토큰을 담아 뒀을 수 있다.
+ */
+async function tokenForRetry(sentToken: string): Promise<string | null> {
+  const current = getAccessToken()
+  if (current !== null && current !== sentToken) return current
+  const renewed = await reissueAccessToken()
+  if (renewed !== null) return renewed
+  const latest = getAccessToken()
+  return latest !== null && latest !== sentToken ? latest : null
+}
+
 function redirectToLogin(): void {
   // 이미 로그인 화면이면 보낼 곳이 없다. 여기서 401이 또 나면 무한히 새로고침한다
   if (window.location.pathname === '/login') {
@@ -180,6 +251,8 @@ async function requestJson<T>(
   path: string,
   init?: RequestInit,
   options?: RequestOptions,
+  /** 401 뒤 새 토큰으로 다시 보낸 요청이면 true. 재발급은 요청마다 한 번뿐이다 */
+  isRetry = false,
 ): Promise<T> {
   /*
    * 무엇보다 먼저 확인한다. 아래 어떤 경로로도 fetch에 닿지 못하게 여기서 끊는다.
@@ -199,12 +272,14 @@ async function requestJson<T>(
   // ?? 로 쓰면 null(제한 없음)까지 기본값으로 바뀐다
   const timeoutMs =
     options?.timeoutMs === undefined ? DEFAULT_TIMEOUT : options.timeoutMs
+  // 실어 보낸 토큰. 401이 왔을 때 그 사이 다른 요청이 재발급했는지 가르는 데 쓴다
+  const sentToken = getAccessToken()
   let response: Response
   try {
     response = await fetch(`${BASE_URL}${path}`, {
       ...init,
       // 토큰 헤더는 항상 붙이고, 호출부가 더 넣고 싶은 헤더는 뒤에 합친다
-      headers: { ...authHeaders(), ...init?.headers },
+      headers: { ...authHeaders(sentToken), ...init?.headers },
       signal: timeoutMs === null ? undefined : AbortSignal.timeout(timeoutMs),
     })
   } catch (error: unknown) {
@@ -222,6 +297,17 @@ async function requestJson<T>(
 
   // 상태 코드가 무엇이든 응답이 왔다는 건 서버가 살아 있다는 뜻이다
   resetBreaker()
+
+  /*
+   * 토큰을 실어 보냈는데 401이면 대개 30분짜리 access token이 만료된 것이다. 새 토큰을 받아 같은 요청을 한 번 다시 보낸다
+   * — 예전엔 곧장 토큰을 지우고 로그인 화면으로 보내 30분마다 로그인이 풀렸다. ignoreUnauthorized 요청(로그아웃·공개 화면의
+   * 내 성향)도 다시 보낸다. 만료된 토큰으로 로그아웃하면 서버가 refresh token을 못 지운다.
+   * 토큰 없이 보낸 요청의 401은 만료가 아니라 재발급할 게 없다.
+   */
+  if (response.status === 401 && sentToken !== null && !isRetry) {
+    const retryToken = await tokenForRetry(sentToken)
+    if (retryToken !== null) return requestJson<T>(path, init, options, true)
+  }
 
   if (response.status === 401 && options?.ignoreUnauthorized !== true) {
     redirectToLogin()
