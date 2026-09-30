@@ -8,6 +8,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 알고도 남겨 둔 문제와 사용자 결정을 기다리는 일은 [docs/남은-일.md](docs/남은-일.md)에 있다.
 **코드를 고치기 전에 먼저 본다.**
 
+**작업은 이 저장소(`JUBYInvest/JUBY-FE`)에서 한다.** 2026-09-30에 개인 저장소 `yeopkwang/juby-fe-personal`에서
+커밋 해시 그대로 옮겨 왔다. 문서에 적힌 커밋 번호는 그대로 맞고, `juby-fe-personal`·`~/juby-fe-recheck`가 나오는 곳은
+옮기기 전 기록이다. 개인 저장소에는 더 올리지 않는다.
+
 ## 지킬 것
 
 README의 "규칙"에 더해:
@@ -18,7 +22,7 @@ README의 "규칙"에 더해:
 - `package.json`에 의존성을 넣지 않는다. 테스트 러너를 들이는 것도 먼저 사용자에게 묻는다.
 - 사용자가 맡았거나 정할 것이라 손대지 않는다.
   - 사용설명서 내용(`GuidePage`, `src/api/guide.ts`)
-  - `feat/backtest-strategy-cards` 브랜치. 고치지도 합치지도 않는다(B-6).
+  - `feat/backtest-strategy-cards` 브랜치. 고치지도 합치지도 않는다(B-6). 이 저장소로 옮기지 않아 개인 저장소에만 있다.
   - `docs/남은-일.md`의 "결정이 먼저 필요한 것"
 
 ## 명령어
