@@ -216,14 +216,33 @@ export default function BacktestPage() {
       })
   }, [])
 
+  /** 내 성향에 맞는 전략(미리 골라 두거나 '추천 전략으로'로 되돌린 값). 로그아웃하면 이 전략이 그대로일 때만 거둔다 */
+  const recommendedTypeRef = useRef<number | null>(null)
+
   // 내 성향이 도착했고 아직 전략을 안 골랐으면 맞는 전략을 미리 고른다
   useEffect(() => {
-    if (recommended !== null && investType === null) {
+    if (recommended === null) return
+    recommendedTypeRef.current = recommended.investType
+    if (investType === null) {
       setInvestType(recommended.investType)
     }
     // investType은 일부러 뺀다. 사용자가 비운 뒤 다시 채워 넣으면 안 된다
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [recommended])
+
+  /*
+   * 로그아웃(다른 탭 포함)하면 성향 문구는 사라지는데 성향에 맞춰 골라 둔 전략은 선택칸에 남아, 이유 없이 골라진 것처럼 보였다.
+   * 그 전략이 그대로면 거둔다. 사용자가 다른 전략을 골랐으면 둔다. 성향을 다시 받는 중(불러오는 중)에는 거두지 않게
+   * 성향이 아니라 로그인 여부를 본다.
+   */
+  useEffect(() => {
+    if (loggedIn) return
+    const recommendedType = recommendedTypeRef.current
+    recommendedTypeRef.current = null
+    if (recommendedType !== null && investType === recommendedType) changeStrategy(null)
+    // 로그인 여부가 바뀔 때만 본다. investType·changeStrategy는 그 순간의 값이면 된다
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loggedIn])
 
   const selected = investType === null ? null : findInvestType(investType)
 
