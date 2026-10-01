@@ -1,37 +1,70 @@
+/* 로고 | 서비스 메뉴 | 계정 메뉴. 로고 칸(1fr)이 남는 폭을 다 가져가 메뉴 두 벌이 오른쪽 끝에 붙는다 */
 .header {
   display: grid;
-  grid-template-columns: 1fr auto 1fr;
+  grid-template-columns: 1fr auto auto;
+  grid-template-areas: 'logo service account';
   align-items: center;
+  /* 메뉴 사이 간격과 같게 해서 서비스·계정 메뉴가 한 줄로 이어 보이게 한다 */
+  column-gap: 28px;
   height: 76px;
   padding: 0 80px;
   background: var(--color-surface);
   border-bottom: 1px solid var(--color-border);
 }
 
+.service {
+  grid-area: service;
+}
+
+.account {
+  grid-area: account;
+}
+
 .menu {
   display: flex;
   gap: 28px;
   font-size: 16px;
-  font-weight: 600;
   white-space: nowrap;
-}
-
-.right {
-  justify-self: end;
 }
 
 .menu a {
   /* 손가락으로 누르는 넓이를 44px로 넓힌다(애플 권장). 넓힌 만큼 바깥 여백을 빼서 배치는 그대로다 */
+  min-width: 44px;
   padding: 15px 5px;
   margin: -15px -5px;
+  /* 글자가 44px보다 짧으면('홈') 남는 넓이를 왼쪽 빈자리로 보낸다. 메뉴 사이 간격은 그대로다 */
+  text-align: right;
+  /* 다른 화면은 회색. --color-text-sub(#8b95a1)는 흰 바탕 대비 3.0이라 글자에 모자라 한 단계 진한 회색(4.6)을 쓴다 */
+  font-weight: 500;
+  color: #6b7684;
 }
 
 .menu a:hover {
-  color: var(--color-text-sub);
+  color: var(--color-text);
+}
+
+/* 지금 보고 있는 화면 */
+.menu a[aria-current='page'] {
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+/* 굵은 글자 폭을 미리 잡아 둔다. 화면을 옮겨 굵기가 바뀌어도 메뉴가 밀리지 않는다(Header.tsx MenuLink) */
+.menu a::after {
+  content: attr(data-label);
+  /* 보조기기가 "홈홈"으로 읽지 않게 대체 글을 비운다. 모르는 브라우저는 이 줄만 버리고 윗줄을 쓴다 */
+  content: attr(data-label) / '';
+  display: block;
+  height: 0;
+  overflow: hidden;
+  visibility: hidden;
+  font-weight: 700;
 }
 
 /* Michroma는 굵기가 400 하나뿐이고 글자폭이 넓어서 크기와 자간을 따로 잡는다 */
 .logo {
+  grid-area: logo;
+  justify-self: start;
   font-family: 'Michroma', sans-serif;
   font-size: 23px;
   font-weight: 400;
@@ -40,6 +73,7 @@
 
 @media (max-width: 900px) {
   .header {
+    column-gap: 18px;
     padding: 0 32px;
   }
 
@@ -50,32 +84,27 @@
 }
 
 /*
- * 한 줄에 메뉴 넷과 로고가 다 들어가지 않는다.
- * 로고를 위로 올리고 메뉴 두 벌을 아래 한 줄에 나란히 놓는다.
+ * 한 줄에 로고와 메뉴 다섯이 다 들어가지 않는다(320px에서는 메뉴만으로도 넘친다).
+ * 윗줄에 로고와 계정 메뉴를 양끝에 두고, 서비스 메뉴 넷을 아랫줄에 놓는다.
  */
 @media (max-width: 600px) {
   .header {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    /*
-     * 줄 사이. 로그인하면 320px에서 메뉴가 두 줄로 내려가는데, 메뉴의 누르는 넓이(위아래 12px)가
-     * 윗줄·아랫줄과 겹치지 않을 만큼 둔다
-     */
-    gap: 24px 20px;
+    grid-template-columns: 1fr auto;
+    grid-template-areas:
+      'logo account'
+      'service service';
+    /* 윗줄 계정 메뉴와 아랫줄 메뉴의 누르는 넓이(위아래 12px)가 겹치지 않을 만큼 둔다 */
+    row-gap: 18px;
     height: auto;
     padding: 14px 16px;
   }
 
   .logo {
-    order: -1;
-    flex-basis: 100%;
-    text-align: center;
     font-size: 20px;
   }
 
   .menu {
-    gap: 14px;
+    gap: 22px;
     font-size: 13px;
   }
 
@@ -84,7 +113,15 @@
     margin: -12px -5px;
   }
 
-  .right {
-    justify-self: auto;
+  /*
+   * 아랫줄 첫 칸이라 왼쪽에 빈자리가 없다. 머리글 왼쪽 여백(16px)과 다음 메뉴 사이 틈으로 넓힌다.
+   * 다음 메뉴의 누르는 넓이(5px)와 겹치지 않게 메뉴 간격(22px)을 잡았다.
+   * `.menu a`의 min-width·오른쪽 정렬을 이겨야 해서 같은 무게로 적는다 — 지면 글자가 오른쪽으로 밀린다
+   */
+  .menu .home {
+    min-width: 0;
+    text-align: left;
+    padding: 12px 17px 12px 16px;
+    margin: -12px -17px -12px -16px;
   }
 }
