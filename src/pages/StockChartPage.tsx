@@ -10,6 +10,7 @@ import {
   isStockCode,
   isStockDetailInFlight,
   peekStockDetail,
+  primeKisToken,
 } from '../api/stock'
 import { useDocumentTitle } from '../hooks/useDocumentTitle'
 import { periodStart, toKoreanDate } from '../utils/date'
@@ -142,6 +143,7 @@ export default function StockChartPage() {
      * 1분에 1건만 되는 날(2026-10-04 주말)은 그 안에 다시 불러도 또 실패한다 — 0.4초 뒤에 바로 다시 부르던
      * 예전 재시도가 그랬다. 두 번째도 실패하면 "다시 시도"를 띄우고, 그 버튼도 간격 안이면 기다렸다가 보낸다.
      * 기다리는 사이 다른 종목으로 가면 정리 함수가 타이머를 지워 이 종목 요청은 더 나가지 않는다.
+     * 다시 부를 때는 토큰 심기부터 다시 한다 — 심기가 되면 그 뒤로는 실패하지 않는다.
      */
     function load(autoRetries: number, retrying: boolean) {
       // 이 종목을 이미 묻고 있으면 새로 보내지 않고 그 답을 받으니 기다릴 것이 없다
@@ -153,9 +155,11 @@ export default function StockChartPage() {
       }
 
       setState({ kind: 'loading' })
-      getStockDetail(code, 'ALL', { fresh: true })
+      // 로그인했으면 먼저 증권사 토큰을 심는다(api/stock.ts "증권사 토큰 심기"). 심는 사이 떠났으면 상세는 보내지 않는다
+      primeKisToken(code)
+        .then(() => (isStale ? null : getStockDetail(code, 'ALL', { fresh: true })))
         .then((detail) => {
-          if (isStale) return
+          if (isStale || detail === null) return
           setState({ kind: 'ready', stockCode: code, detail })
         })
         .catch((error: unknown) => {

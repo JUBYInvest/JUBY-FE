@@ -1,4 +1,5 @@
-import { get, malformedResponse, unchecked } from './client'
+import { ApiError, get, malformedResponse, unchecked } from './client'
+import { isLoggedIn } from '../utils/auth'
 import { fromDashedYmd } from '../utils/date'
 import { isFiniteNumber } from '../utils/format'
 import { safeLink } from '../utils/link'
@@ -235,6 +236,89 @@ function markDetailSent(): void {
 export function detailWaitMs(): number {
   const wait = lastDetailSentAt() + DETAIL_GAP_MS - Date.now()
   return Math.min(Math.max(wait, 0), DETAIL_GAP_MS)
+}
+
+/*
+ * 증권사 토큰 심기. **임시다 — 위 "실패한 뒤 다시 부를 간격"과 함께 걷는다.**
+ *
+ * 상세가 1분에 1건만 되는 까닭은 서버가 새로 받은 증권사 토큰을 저장하지 못해서다(읽기 전용 트랜잭션 안에서
+ * 받는다). 그런데 /api/market/** 은 읽기 전용이 아니라 거기서 받은 토큰은 저장된다. 그래서 로그인한 사용자가
+ * 상세를 열기 전에 GET /api/market/{code}/price 를 한 번 부르면, 그 뒤 24시간 동안은 **모든 사용자**의 상세가
+ * 저장된 토큰을 써서 발급 없이 바로 된다. 평일 16시 일봉 배치가 하는 일을 프론트가 대신 하는 셈이다.
+ * docs/남은-일.md 백엔드 7번("프론트는 /api/market 을 부르지 않는다")을 깨는 우회다 — 사용자 결정(2026-10-04).
+ *
+ * - 로그인해야 부를 수 있다(/api/market 은 인증 경로). 비로그인은 심지 못하고 위 간격만 지킨다.
+ * - 되면 6시간 동안 다시 심지 않는다(토큰은 24시간 가고 평일 16시에 배치가 갈아 끼운다). 탭끼리 나누려고 localStorage.
+ * - 4xx면 6시간 쉰다 — 백엔드가 7번대로 이 경로를 막으면(403) 저절로 꺼지고 위 간격으로 돌아간다.
+ *   401(남아 있는 로그인 토큰이 죽음)은 10분만 쉰다. 다시 로그인하면 그 뒤 곧 심는다.
+ * - 5xx·서버에 못 닿음은 65초만 쉰다. 누가 1분 안에 발급을 받아 간 뒤일 수 있어서다. 상세가 실패해 기다렸다
+ *   다시 부를 때(StockChartPage) 다시 심는다.
+ * - 심는 요청도 토큰 발급 한 번을 쓸 수 있으므로 보낸 때로 센다(markDetailSent).
+ * - 응답 본문은 보지 않는다. 토큰이 저장됐는지는 알 수 없고, 그 뒤 상세가 되는지로만 드러난다.
+ */
+const PRIME_OK_KEY = 'kisTokenPrimedAt'
+const PRIME_SKIP_KEY = 'kisTokenPrimeSkipUntil'
+const PRIME_OK_AGE = 6 * 60 * 60 * 1000
+const PRIME_SKIP_FORBIDDEN = 6 * 60 * 60 * 1000
+const PRIME_SKIP_UNAUTHORIZED = 10 * 60 * 1000
+/** localStorage를 못 쓰는 브라우저에서도 이 탭 안에서는 기억하도록 메모리에도 둔다 */
+const primeStamps = new Map<string, number>()
+let primeInFlight: Promise<void> | null = null
+
+function readStamp(key: string): number {
+  let stored = 0
+  try {
+    const value = Number(localStorage.getItem(key))
+    if (Number.isFinite(value)) stored = value
+  } catch {
+  }
+  return Math.max(primeStamps.get(key) ?? 0, stored)
+}
+
+function writeStamp(key: string, value: number): void {
+  primeStamps.set(key, value)
+  try {
+    localStorage.setItem(key, String(value))
+  } catch {
+  }
+}
+
+/** 상세를 부르기 전에 한 번. 던지지 않는다 — 못 심어도 상세는 그대로 부른다 */
+export function primeKisToken(stockCode: string): Promise<void> {
+  if (!isLoggedIn()) return Promise.resolve()
+  const now = Date.now()
+  // 시계를 되돌려 미래 값이 남아도 정해진 길이보다 오래 건너뛰지는 않는다
+  if (now - readStamp(PRIME_OK_KEY) < PRIME_OK_AGE && readStamp(PRIME_OK_KEY) - now < PRIME_OK_AGE) {
+    return Promise.resolve()
+  }
+  if (now < readStamp(PRIME_SKIP_KEY) && readStamp(PRIME_SKIP_KEY) - now <= PRIME_SKIP_FORBIDDEN) {
+    return Promise.resolve()
+  }
+  // 이미 심는 중이면 같이 기다린다(개발 모드 StrictMode의 두 번 도는 effect)
+  if (primeInFlight !== null) return primeInFlight
+
+  primeInFlight = (async () => {
+    markDetailSent()
+    try {
+      await get<unknown>(`/api/market/${encodeURIComponent(stockCode)}/price`, {
+        ignoreUnauthorized: true,
+      })
+      writeStamp(PRIME_OK_KEY, Date.now())
+    } catch (error: unknown) {
+      const status = error instanceof ApiError ? error.status : 0
+      const skip =
+        status === 401
+          ? PRIME_SKIP_UNAUTHORIZED
+          : status >= 400 && status < 500
+            ? PRIME_SKIP_FORBIDDEN
+            : DETAIL_GAP_MS
+      writeStamp(PRIME_SKIP_KEY, Date.now() + skip)
+      console.warn(`증권사 토큰을 심지 못했습니다. ${Math.round(skip / 1000)}초 뒤에 다시 시도합니다`, error)
+    } finally {
+      primeInFlight = null
+    }
+  })()
+  return primeInFlight
 }
 
 /** 같은 탭에서 방금(1분) 받아 둔 상세. 있으면 화면이 서버에 묻지 않고 바로 그린다 */
