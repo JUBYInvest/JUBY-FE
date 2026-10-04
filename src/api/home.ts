@@ -1,14 +1,32 @@
-import { getStockDetail } from './stock'
+import { getLeadingStocks, getStockDetail } from './stock'
 import { delay, withRetry } from '../utils/async'
 import { readCache, writeCache } from '../utils/cache'
-import type { Candle, CardFailure, TopStock, TopTheme } from '../types/stock'
+import type {
+  Candle,
+  CardFailure,
+  LeadingStocks,
+  TopStock,
+  TopTheme,
+} from '../types/stock'
 
-/** 테마 라벨과 종목 선정은 API에 없어 프론트에서 고정한다 */
-export const TOP_THEMES: TopTheme[] = [
+/**
+ * 서버에서 대장주를 못 받았을 때 쓰는 고정 목록.
+ *
+ * 2026-10-04에 `GET /api/stocks/leading-stocks`로 갈아탔다. 그 전에는 이 셋이 유일한 목록이어서
+ * 대장이 바뀌면 코드를 고쳐 배포해야 했다. 지금은 첫 그림을 그릴 때와 서버가 못 줄 때만 쓴다.
+ * 카드 자리를 비워 두는 것보다 조금 묵은 종목이라도 세워 두는 편이 낫다.
+ */
+export const FALLBACK_THEMES: TopTheme[] = [
   { stockCode: '000660', stockName: 'SK하이닉스', theme: '기술주 대장' },
   { stockCode: '012450', stockName: '한화에어로스페이스', theme: '방산주 대장' },
   { stockCode: '207940', stockName: '삼성바이오로직스', theme: '바이오주 대장' },
 ]
+
+/** 서버가 못 줬을 때의 자리. 머리말은 근거를 밝히지 않고 예전 문구로 둔다 */
+export const FALLBACK_LEADING: LeadingStocks = {
+  basis: { strategyName: null, periodLabel: null },
+  themes: FALLBACK_THEMES,
+}
 
 /**
  * 카드 사이에 쉬는 시간.
@@ -19,6 +37,7 @@ export const TOP_THEMES: TopTheme[] = [
 const CARD_REQUEST_GAP = 200
 
 const TOP_CACHE_KEY = 'topStocks'
+const THEMES_CACHE_KEY = 'topThemes'
 /** 한 달 등락률이라 반나절 지난 값이어도 화면에 잠깐 띄우기엔 충분하다 */
 const TOP_CACHE_MAX_AGE = 12 * 60 * 60 * 1000
 
@@ -29,26 +48,65 @@ const TOP_CACHE_MAX_AGE = 12 * 60 * 60 * 1000
 const TOP_FRESH_AGE = 10 * 60 * 1000
 
 /**
+ * 지난 방문에서 받아 둔 대장주. 첫 그림의 테마 이름과 종목명을 즉시 그리는 용도다.
+ *
+ * 테마는 서버 배치가 새벽 4시에 한 번 바꾸므로 반나절 묵은 값도 대개 맞다. 틀렸더라도
+ * loadTopStocks()가 곧 새 값으로 갈아끼운다.
+ */
+export function readCachedLeading(): LeadingStocks | null {
+  const cached = readCache<unknown>(THEMES_CACHE_KEY, TOP_CACHE_MAX_AGE)
+  if (typeof cached !== 'object' || cached === null) return null
+
+  const { basis, themes } = cached as Partial<LeadingStocks>
+  if (!Array.isArray(themes) || themes.length === 0 || !themes.every(isTopTheme)) return null
+  if (typeof basis !== 'object' || basis === null) return null
+
+  return {
+    basis: {
+      strategyName: typeof basis.strategyName === 'string' ? basis.strategyName : null,
+      periodLabel: typeof basis.periodLabel === 'string' ? basis.periodLabel : null,
+    },
+    themes,
+  }
+}
+
+function isTopTheme(value: unknown): value is TopTheme {
+  if (typeof value !== 'object' || value === null) return false
+  const theme = value as Partial<TopTheme>
+  return (
+    typeof theme.stockCode === 'string' &&
+    typeof theme.stockName === 'string' &&
+    typeof theme.theme === 'string'
+  )
+}
+
+/**
  * 지난번 방문에서 받아둔 카드. 첫 그림을 즉시 그리는 용도다.
  * 이 값을 띄운 뒤에도 loadTopStocks()는 그대로 돌아 최신 값으로 갈아끼운다.
+ *
+ * 지금 믿고 있는 테마(서버 캐시 또는 고정 목록)를 받아 그것과 맞는지 본다. 테마가 바뀌면
+ * 카드 캐시는 버려야 한다 — 새 테마 이름 아래 옛 종목의 그래프가 뜨면 안 된다.
  */
-export function readCachedTopStocks(maxAge: number = TOP_CACHE_MAX_AGE): TopStock[] | null {
+export function readCachedTopStocks(
+  themes: TopTheme[],
+  maxAge: number = TOP_CACHE_MAX_AGE,
+): TopStock[] | null {
   const cached = readCache<unknown>(TOP_CACHE_KEY, maxAge)
   /*
    * 하나라도 어긋나면 캐시 전체를 없는 셈 친다. 개수만 보면 두 가지가 샜다.
-   * ① TOP_THEMES의 종목을 바꾸면 최대 12시간 동안 새 테마 이름 아래 옛 종목의 그래프가 먼저 떴다.
+   * ① 테마의 종목이 바뀌면 최대 12시간 동안 새 테마 이름 아래 옛 종목의 그래프가 먼저 떴다.
    * ② 모양이 틀린 값(예전 버전이 다른 모양으로 저장, 사람이 손댄 값)은 카드를 그리다 던져 홈 전체가
    *    오류 화면이 됐고, 다시 시도(새로고침)해도 같은 캐시를 읽어 12시간 동안 홈이 안 열렸다.
    */
-  if (!Array.isArray(cached) || cached.length !== TOP_THEMES.length) return null
-  return cached.every((stock, index) => isCachedTopStock(stock, TOP_THEMES[index].stockCode))
+  if (!Array.isArray(cached) || cached.length !== themes.length) return null
+  return cached.every((stock, index) => isCachedTopStock(stock, themes[index].stockCode))
     ? (cached as TopStock[])
     : null
 }
 
 /** 10분 안에 받아 둔 온전한 카드가 있는가. 있으면 홈이 다시 부르지 않는다 */
-export function hasFreshTopStocks(): boolean {
-  return readCachedTopStocks(TOP_FRESH_AGE) !== null
+export function hasFreshTopStocks(themes: TopTheme[]): boolean {
+  return readCachedTopStocks(themes, TOP_FRESH_AGE) !== null
 }
 
 function isFiniteNumbers(value: unknown): value is number[] {
@@ -70,24 +128,38 @@ function isCachedTopStock(value: unknown, stockCode: string): boolean {
 }
 
 /**
- * 테마별 대표 종목을 하나씩 조회해 받는 대로 넘긴다.
+ * 테마별 대장주를 서버에서 받고, 각 종목의 일봉을 하나씩 조회해 받는 대로 넘긴다.
  *
- * 셋을 모아 한 번에 주면 가장 느린 하나에 카드 세 장이 전부 묶인다.
- * 받는 대로 넘겨야 첫 장이 먼저 뜬다.
+ * 순서가 중요하다. 어떤 종목인지부터 정해야 어느 종목의 일봉을 받을지 알 수 있다.
+ * 대장주 조회가 실패하면 고정 목록으로 물러서서 그래프만이라도 채운다 — 테마 목록 하나 때문에
+ * 홈 상단이 통째로 비면 안 된다.
  *
- * 한 장이 실패해도 멈추지 않는다. 한 종목이 거래정지이거나 하필 그 요청만 제한에
- * 걸린 경우, 멀쩡한 나머지 두 장까지 시도조차 못 하고 통째로 에러가 되면 안 된다.
+ * 일봉은 셋을 모아 한 번에 주지 않는다. 가장 느린 하나에 카드 세 장이 전부 묶이기 때문이다.
+ * 한 장이 실패해도 멈추지 않는다 — 한 종목이 거래정지이거나 하필 그 요청만 제한에 걸린 경우,
+ * 멀쩡한 나머지 두 장까지 시도조차 못 하고 통째로 에러가 되면 안 된다.
  */
 export async function loadTopStocks(
+  /** 대장주가 정해진 순간. 그래프보다 먼저 와서 카드 제목과 머리말을 바꾼다 */
+  onThemes: (leading: LeadingStocks) => void,
   onEach: (index: number, stock: TopStock) => void,
   /** 한 장을 못 채웠을 때. 조용히 넘기면 카드가 로딩 자리표시 그대로 남아 실패와 구분되지 않는다 */
   onFail: (index: number, reason: CardFailure) => void,
   /** 다시 시도처럼 방금 받은 상세를 쓰지 않고 새로 받을 때 true */
   options: { fresh?: boolean } = {},
 ): Promise<void> {
+  let leading: LeadingStocks
+  try {
+    leading = await getLeadingStocks()
+    writeCache(THEMES_CACHE_KEY, leading)
+  } catch (error: unknown) {
+    console.warn('테마별 대장주 조회 실패. 고정 목록으로 그립니다', error)
+    leading = readCachedLeading() ?? FALLBACK_LEADING
+  }
+  onThemes(leading)
+
   const loaded: TopStock[] = []
 
-  for (const [index, theme] of TOP_THEMES.entries()) {
+  for (const [index, theme] of leading.themes.entries()) {
     if (index > 0) await delay(CARD_REQUEST_GAP)
 
     try {
@@ -110,8 +182,8 @@ export async function loadTopStocks(
     }
   }
 
-  // 셋이 다 모였을 때만 저장한다. 반쯤 찬 카드를 다음 방문에 그려봐야 소용없다
-  if (loaded.length === TOP_THEMES.length) {
+  // 다 모였을 때만 저장한다. 반쯤 찬 카드를 다음 방문에 그려봐야 소용없다
+  if (loaded.length === leading.themes.length) {
     writeCache(TOP_CACHE_KEY, loaded)
     return
   }

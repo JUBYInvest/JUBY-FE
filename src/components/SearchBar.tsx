@@ -1,10 +1,13 @@
 import { useEffect, useRef, useState } from 'react'
 import type { FocusEvent, FormEvent, KeyboardEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { searchStocks } from '../api/stock'
+import { rankStocks, searchStocks, searchStocksRemote } from '../api/stock'
 import { toPreviewState } from '../utils/stockPreview'
 import type { StockInfo } from '../types/stock'
 import styles from './SearchBar.module.css'
+
+/** 글자를 멈춘 뒤 서버에 묻기까지 기다리는 시간 */
+const SEARCH_DEBOUNCE = 250
 
 interface Props {
   /** 검색 대상. 홈이 GET /api/stocks 로 받은 목록을 넘긴다(도착 전엔 로컬 사본) */
@@ -21,10 +24,47 @@ export default function SearchBar({ stocks }: Props) {
   const inputRef = useRef<HTMLInputElement>(null)
   const navigate = useNavigate()
 
+  /*
+   * 후보를 두 번 그린다.
+   *
+   * ① 가진 목록으로 즉시. 서버를 기다리면 글자를 칠 때마다 목록이 늦게 따라와 답답하다.
+   * ② 서버 검색(GET /api/stocks/search)이 오면 그것으로 바꾼다. 홈이 받아 둔 100종목 밖도
+   *    찾을 수 있다.
+   *
+   * 서버가 늦거나 실패해도 ①이 남아 있어 검색은 멈추지 않는다.
+   */
   useEffect(() => {
     const trimmed = keyword.trim()
-    setSuggestions(trimmed === '' ? [] : searchStocks(stocks, trimmed))
     setActiveIndex(-1)
+
+    if (trimmed === '') {
+      setSuggestions([])
+      return
+    }
+
+    setSuggestions(searchStocks(stocks, trimmed))
+
+    /*
+     * 글자마다 부르면 "삼성전자"에 다섯 번이 나간다. 잠깐 멈춘 뒤에만 보낸다.
+     * cancelled는 늦게 온 응답이 새 글자의 후보를 덮어쓰는 걸 막는다 — 응답 순서는 보낸 순서와 다르다.
+     */
+    let cancelled = false
+    const timer = setTimeout(() => {
+      searchStocksRemote(trimmed)
+        .then((found) => {
+          if (cancelled) return
+          setSuggestions(rankStocks(found, trimmed, stocks))
+        })
+        .catch((error: unknown) => {
+          // 가진 목록으로 그린 후보가 그대로 남는다. 화면에는 알리지 않는다
+          console.warn('종목 검색 실패. 가진 목록으로 찾습니다', error)
+        })
+    }, SEARCH_DEBOUNCE)
+
+    return () => {
+      cancelled = true
+      clearTimeout(timer)
+    }
   }, [keyword, stocks])
 
   function goTo(stock: StockInfo) {

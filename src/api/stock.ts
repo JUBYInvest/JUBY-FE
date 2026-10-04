@@ -5,10 +5,12 @@ import { safeLink } from '../utils/link'
 import { sortStocks } from '../utils/sort'
 import type {
   Candle,
+  LeadingStocks,
   Period,
   Stock,
   StockDetail,
   StockInfo,
+  TopTheme,
 } from '../types/stock'
 import type { NewsItem, NewsPage, NewsSort } from '../types/news'
 
@@ -81,6 +83,78 @@ function toStock(row: StockRowResponse | null): Stock[] {
     tradingValue: unchecked(row.tradingValue),
     isLiked: unchecked(row.isLiked),
   }]
+}
+
+/** GET /api/stocks/leading-stocks */
+interface LeadingStocksResponse {
+  strategyName?: string | null
+  periodLabel?: string | null
+  leadingStocks?: (LeadingStockResponse | null)[] | null
+}
+
+interface LeadingStockResponse {
+  stockCode?: string | null
+  stockName?: string | null
+  /** 영문 코드(TECH·DEFENSE·BIO). 화면에는 themeLabel을 쓴다 */
+  theme?: string | null
+  /** 사람이 읽는 테마 이름. 예: "기술주" */
+  themeLabel?: string | null
+  /** 이 전략으로 돌렸을 때의 수익률(%). 주가 등락률이 아니다 */
+  returnPercentage?: number | null
+  /** 그 기간에 전략이 사고판 횟수 */
+  tradeCount?: number | null
+}
+
+/**
+ * 홈 카드에 올릴 테마별 대장주.
+ *
+ * 어떤 종목이 대장인지를 서버가 정한다. 예전에는 종목 셋을 프론트에 박아 두어, 대장이 바뀌면
+ * 코드를 고쳐 배포해야 했다. 서버는 매일 새벽 백테스트 배치를 돌려 테마마다 성적이 가장 좋은
+ * 종목을 올려 준다.
+ *
+ * 그래프에 쓸 일봉은 이 응답에 없다. 종목이 정해진 뒤 카드마다 상세를 따로 받는다(api/home.ts).
+ * returnPercentage·tradeCount도 받지만 카드에 적지 않는다 — 카드의 숫자는 "한 달 전 대비 주가"라
+ * 뜻이 다른 수익률을 나란히 놓으면 둘 다 잘못 읽힌다.
+ */
+export async function getLeadingStocks(): Promise<LeadingStocks> {
+  const response = await get<LeadingStocksResponse | null>('/api/stocks/leading-stocks')
+  if (response === null || !Array.isArray(response.leadingStocks)) throw malformedResponse()
+
+  const themes = response.leadingStocks.flatMap(toTopTheme)
+  // 한 장도 못 건지면 고정 목록으로 물러서는 편이 낫다. 부르는 쪽이 그렇게 받는다
+  if (themes.length === 0) throw malformedResponse()
+
+  return {
+    basis: {
+      strategyName: textOrNull(response.strategyName),
+      periodLabel: textOrNull(response.periodLabel),
+    },
+    themes,
+  }
+}
+
+/** 쓸 만한 테마면 [테마], 아니면 []. 종목코드가 없거나 틀린 행은 카드로 세울 수 없어 뺀다 */
+function toTopTheme(row: LeadingStockResponse | null): TopTheme[] {
+  if (typeof row !== 'object' || row === null) return []
+  const { stockCode } = row
+  if (typeof stockCode !== 'string' || !isStockCode(stockCode)) return []
+
+  /*
+   * 카드 라벨은 "기술주 대장" 꼴이다. 서버는 "기술주"까지만 주므로 여기서 "대장"을 붙인다.
+   * themeLabel이 비면 영문 코드(TECH)라도 쓰고, 그마저 없으면 라벨 없이 종목명만 보인다.
+   */
+  const label = textOrNull(row.themeLabel) ?? textOrNull(row.theme)
+
+  return [{
+    stockCode,
+    stockName: nameOrCode(row.stockName, stockCode),
+    theme: label === null ? '' : `${label} 대장`,
+  }]
+}
+
+/** 비었거나(공백 포함) 문자열이 아니면 null */
+function textOrNull(value: unknown): string | null {
+  return typeof value === 'string' && value.trim() !== '' ? value.trim() : null
 }
 
 /** 화면에 적을 종목 이름. 비었거나(공백 포함) 문자열이 아니면 종목코드로 대신한다. 관심종목 행도 같이 쓴다 */
@@ -336,10 +410,71 @@ function matchRank(stock: StockInfo, keyword: string): number {
   return 2
 }
 
+/** GET /api/stocks/search */
+interface SearchRowResponse {
+  stockCode?: string | null
+  stockName?: string | null
+}
+
 /**
- * 종목명·종목코드 부분 검색. 백엔드에 검색 API가 없어 넘겨받은 목록에서 찾는다.
+ * 서버에서 종목명을 찾는다.
+ *
+ * **순서는 믿지 않는다.** 서버는 가나다순으로 주므로 "삼성"에 삼성E&A·삼성SDI가 앞을 다 차지하고
+ * 정작 찾는 삼성전자가 잘린다. 찾은 종목이 무엇인지만 받아 와서, 순서는 rankStocks가 다시 매긴다.
+ *
+ * 검색창은 이것이 오기 전에도 가진 목록으로 먼저 후보를 보여 준다(components/SearchBar.tsx).
+ * 그래서 이 호출이 늦거나 실패해도 검색이 멈추지 않는다.
+ */
+export async function searchStocksRemote(keyword: string): Promise<StockInfo[]> {
+  const trimmed = keyword.trim()
+  if (trimmed === '') return []
+
+  const rows = await get<(SearchRowResponse | null)[] | null>(
+    `/api/stocks/search?keyword=${encodeURIComponent(trimmed)}`,
+  )
+  if (!Array.isArray(rows)) throw malformedResponse()
+
+  return rows.flatMap((row) => {
+    if (typeof row !== 'object' || row === null) return []
+    const { stockCode } = row
+    if (typeof stockCode !== 'string' || !isStockCode(stockCode)) return []
+    return [{ stockCode, stockName: nameOrCode(row.stockName, stockCode) }]
+  })
+}
+
+/**
+ * 찾아 놓은 후보에 순서를 매긴다. 규칙은 searchStocks와 같다 —
+ * 일치 종류(정확→앞부분→그 밖)로 먼저 세우고, 같은 종류 안에서는 거래대금 순으로 둔다.
+ *
+ * `preferred`는 거래대금 순으로 세운 목록(홈이 가진 것)이다. 여기 없는 종목은 맨 뒤로 보낸다.
+ */
+export function rankStocks(
+  found: StockInfo[],
+  keyword: string,
+  preferred: StockInfo[],
+): StockInfo[] {
+  const normalized = normalize(keyword)
+  if (normalized === '') return []
+
+  const priority = new Map(preferred.map((stock, index) => [stock.stockCode, index]))
+
+  return [...found]
+    // 두 번 세운다. sort가 안정 정렬이라 뒤 기준이 같으면 앞 기준의 순서가 남는다
+    .sort(
+      (a, b) =>
+        (priority.get(a.stockCode) ?? Number.MAX_SAFE_INTEGER) -
+        (priority.get(b.stockCode) ?? Number.MAX_SAFE_INTEGER),
+    )
+    .sort((a, b) => matchRank(a, normalized) - matchRank(b, normalized))
+    .slice(0, MAX_RESULTS)
+}
+
+/**
+ * 종목명·종목코드 부분 검색. 넘겨받은 목록에서 찾는다.
  * 목록은 GET /api/stocks 로 받은 것을 쓴다(도착 전에는 stockList.ts의 사본).
  * "삼성"처럼 여러 종목에 걸리는 말은 후보를 전부 돌려주고 고르는 건 화면에 맡긴다.
+ *
+ * 서버 검색(searchStocksRemote)이 도착하기 전과 실패했을 때 쓰는 길이다.
  *
  * **넘겨주는 목록의 순서가 곧 같은 순위 안의 우선순위다.** 서버 목록은 가나다순이라
  * 그대로 쓰면 "삼성"에 삼성E&A·삼성SDI·…·삼성전기가 앞을 다 차지하고 삼성전자가 잘린다.

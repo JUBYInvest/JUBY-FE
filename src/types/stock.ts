@@ -90,3 +90,21 @@ export interface TopStock extends StockInfo {
 
 /** 홈 테마 카드 한 장을 못 채운 이유. 요청 실패와 받은 일봉이 없는 경우를 화면이 다르게 그린다 */
 export type CardFailure = 'error' | 'empty'
+
+/**
+ * 대장주를 무엇으로 뽑았는지. 홈 머리말의 "백테스트 기법으로 투자한"을 실제 값으로 적는다.
+ * 서버가 비워 보낼 수 있어 전부 null을 허용한다 — 하나라도 비면 머리말은 예전 문구로 둔다.
+ */
+export interface LeadingBasis {
+  /** 예: "SMA 이동평균선 전략" */
+  strategyName: string | null
+  /** 예: "1년" */
+  periodLabel: string | null
+}
+
+/** GET /api/stocks/leading-stocks 를 화면 쓰임새로 옮긴 모양 */
+export interface LeadingStocks {
+  basis: LeadingBasis
+  /** 카드 순서대로. 비어 있을 수 없다(비면 호출한 쪽이 고정 목록으로 물러선다) */
+  themes: TopTheme[]
+}
