@@ -93,8 +93,8 @@ export interface TopTheme extends StockInfo {
 }
 
 /**
- * 홈 카드의 한 달 그래프. 종목 상세 API의 일봉에서 마지막 한 달을 잘라 만든다(api/cardSeries.ts).
- * prices·volumes는 날짜 오름차순이고 길이가 같다.
+ * 홈 카드의 1년 그래프. 종목 상세 API의 일봉에서 마지막 1년을 잘라 주 단위로 묶어 만든다(api/cardSeries.ts).
+ * prices(주마다 마지막 종가)·volumes(주마다 합)는 날짜 오름차순이고 길이가 같다.
  */
 export interface CardSeries {
   stockCode: string
@@ -103,7 +103,7 @@ export interface CardSeries {
   /** 종가 */
   prices: number[]
   volumes: number[]
-  /** 한 달 첫 종가 대비 마지막 종가의 등락률(%) */
+  /** 1년 첫날 종가 대비 마지막 종가의 등락률(%). 주로 묶기 전 일봉으로 낸다 */
   changeRate: number
 }
 

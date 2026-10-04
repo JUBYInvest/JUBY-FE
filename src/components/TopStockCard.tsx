@@ -9,7 +9,7 @@ import styles from './TopStockCard.module.css'
 interface Props {
   theme: TopTheme
   /**
-   * 한 달 그래프. 받는 중이면 null, 이번에는 그릴 수 없으면 'unavailable'
+   * 1년 그래프. 받는 중이면 null, 이번에는 그릴 수 없으면 'unavailable'
    * (서버에 증권사 토큰이 없어 묻지 않았거나, 물었는데 실패했다 — api/home.ts loadCardSeries).
    */
   series: CardSeries | 'unavailable' | null
@@ -18,9 +18,10 @@ interface Props {
 }
 
 /**
- * 테마별 대표 종목 카드. 큰 숫자와 그래프는 한 달 주가 흐름, 맨 아래 줄은 그 그래프가 끝나는 날의 종가다.
+ * 테마별 대표 종목 카드. 큰 숫자와 그래프는 1년 주가 흐름, 맨 아래 줄은 그 그래프가 끝나는 날의 종가다.
+ * 1년인 까닭은 머리말이 "1년 기준으로 뽑은"이라서다 — 한 달 등락을 크게 적으면 그 한 달 때문에 뽑힌 것처럼 읽혔다.
  *
- * 큰 숫자는 언제나 "한 달 전 대비"다. 그래프가 없을 때 다른 숫자(전일 대비 등)로 갈아 끼우면 카드마다
+ * 큰 숫자는 언제나 "1년 전 대비"다. 그래프가 없을 때 다른 숫자(전일 대비 등)로 갈아 끼우면 카드마다
  * 같은 자리의 뜻이 달라진다 — 그때는 비워 두고, 전일 대비는 맨 아래 줄에서 본다.
  */
 export default function TopStockCard({ theme, series, quote }: Props) {
@@ -77,7 +78,7 @@ function CardPlaceholder() {
     <>
       <p className={styles.rateRow}>
         <span className={`${styles.rate} ${styles.rateEmpty}`}>–</span>
-        <span className={styles.caption}>한 달 전 대비</span>
+        <span className={styles.caption}>1년 전 대비</span>
       </p>
       <div className={`${styles.chart} ${styles.chartEmpty}`} />
     </>
@@ -93,7 +94,7 @@ function CardUnavailable() {
     <>
       <p className={styles.rateRow}>
         <span className={`${styles.rate} ${styles.rateEmpty}`}>–</span>
-        <span className={styles.caption}>한 달 전 대비</span>
+        <span className={styles.caption}>1년 전 대비</span>
       </p>
       <div className={`${styles.chart} ${styles.chartMessage}`}>
         <span>지금은 그래프를 불러올 수 없어요</span>

@@ -9,7 +9,7 @@ import type { CardSeries, LeadingStocks, TopTheme } from '../types/stock'
  *
  * - 어떤 종목인지: GET /api/stocks/leading-stocks (DB)
  * - 종가: 홈 시세표 GET /api/stocks (DB)
- * - 한 달 그래프: 종목 상세 GET /api/stocks/{code}?period=ONE_MONTH (일봉은 DB, 그 앞에 증권사 현재가)
+ * - 1년 그래프: 종목 상세 GET /api/stocks/{code}?period=ONE_YEAR (일봉은 DB, 그 앞에 증권사 현재가)
  *
  * 그래프 일봉도 DB에 있지만, 그걸 꺼내 주는 API가 상세 하나뿐이고 그 API가 증권사 현재가부터 묻는다.
  * 서버에 저장된 증권사 토큰이 없으면(주말) 그 현재가가 서버 전체에서 1분에 1번만 돼서, 2026-10-04에는
@@ -128,7 +128,7 @@ export async function loadCardSeries(
     missing.map(async (code) => {
       try {
         // 받은 일봉은 getStockDetail이 카드 그래프로도 담는다(rememberCardSeries)
-        const detail = await getStockDetail(code, 'ONE_MONTH')
+        const detail = await getStockDetail(code, 'ONE_YEAR')
         // 마지막 봉이 기준일에 못 미쳐도(거래정지) 막 받은 값이니 그린다
         onEach(code, detail.candles.length === 0 ? null : readCardSeries(code, null))
       } catch (error: unknown) {

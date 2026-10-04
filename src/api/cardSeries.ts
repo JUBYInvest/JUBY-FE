@@ -2,16 +2,20 @@ import { periodStart } from '../utils/date'
 import type { Candle, CardSeries } from '../types/stock'
 
 /*
- * 홈 카드 그래프(한 달 종가·거래량)를 브라우저에 담아 둔다.
+ * 홈 카드 그래프(1년 종가·거래량을 주 단위로 묶은 것)를 브라우저에 담아 둔다.
+ *
+ * 1년인 까닭: 홈 머리말이 "SMA 이동평균선 전략 · 1년 기준으로 뽑은"이다. 카드가 한 달 등락을 크게 적으면 그 한 달 때문에
+ * 뽑힌 것처럼 읽혀 위계가 어긋났다(2026-10-04 사용자 지적, 같은 날 1년으로 맞춤).
  *
  * 일봉은 평일 16시 배치로 하루 한 번만 바뀐다. 한 번 받은 그래프는 다음 배치까지 그대로 맞으므로, 다시 묻지 않는다.
- * 카드가 받은 것(ONE_MONTH)과 상세 화면이 받은 것(ALL에서 마지막 한 달을 잘라)을 같이 담는다 —
- * 상세를 본 종목은 홈 카드가 서버에 묻지 않는다. 한 달을 자르는 규칙은 서버가 ONE_MONTH를 자르는 규칙과 같다(periodStart).
+ * 카드가 받은 것(ONE_YEAR)과 상세 화면이 받은 것(ALL에서 마지막 1년을 잘라)을 같이 담는다 —
+ * 상세를 본 종목은 홈 카드가 서버에 묻지 않는다. 1년을 자르는 규칙은 서버가 ONE_YEAR를 자르는 규칙과 같다(periodStart).
  *
  * 증권사를 거치는 상세 API로만 받을 수 있는 값이라(api/stock.ts "사용자가 누르지 않은 증권사 호출") 담아 두는 게 곧 딜레이를 줄이는 길이다.
  */
 
-const KEY = 'cardSeries'
+/** 한 달 그래프를 담던 'cardSeries'와 다른 키 — 옛 값을 1년 그래프로 읽지 않는다 */
+const KEY = 'cardSeriesYear'
 /** 카드는 세 장이지만 대장이 바뀌거나 상세에서 본 종목도 담으므로 조금 넉넉히 둔다. 넘치면 오래된 것부터 버린다 */
 const MAX_ENTRIES = 12
 /** 홈 시세표 기준일을 모를 때(아직 안 왔거나 실패) 받아 둔 값을 믿는 기간 */
@@ -64,21 +68,48 @@ function readAll(): Map<string, Stored> {
   return all
 }
 
-/** 받은 일봉에서 마지막 한 달을 잘라 담는다. 그릴 봉이 없으면 담지 않는다 */
+/** YYYYMMDD가 속한 주(월요일 시작)의 번호. 1970-01-01이 목요일이라 3일을 밀면 월요일에서 주가 바뀐다 */
+function weekOf(date: string): number {
+  const days = Date.UTC(Number(date.slice(0, 4)), Number(date.slice(4, 6)) - 1, Number(date.slice(6, 8))) / 86_400_000
+  return Math.floor((days + 3) / 7)
+}
+
+/**
+ * 받은 일봉에서 마지막 1년을 잘라 주 단위로 묶어 담는다. 그릴 봉이 없으면 담지 않는다.
+ *
+ * 1년이면 봉이 250개쯤이라 카드 폭(300px 안팎)에 막대가 1px 남짓이 되어 뭉개진다. 주마다 마지막 종가와 거래량 합으로 묶으면
+ * 52개쯤으로 예전 한 달 그래프와 비슷한 밀도가 된다. 등락률은 묶기 전 첫날 종가와 마지막 종가로 낸다 — "1년 전 대비"다.
+ */
 export function rememberCardSeries(stockCode: string, candles: Candle[]): void {
   const last = candles.at(-1)
   if (last === undefined) return
-  const start = periodStart(last.date, 'ONE_MONTH')
-  const month = start === null ? candles : candles.filter((candle) => candle.date >= start)
-  const first = month[0]
+  const start = periodStart(last.date, 'ONE_YEAR')
+  const year = start === null ? candles : candles.filter((candle) => candle.date >= start)
+  const first = year[0]
   if (first === undefined) return
+
+  const prices: number[] = []
+  const volumes: number[] = []
+  let week: number | null = null
+  for (const candle of year) {
+    // 거래량만 빈 봉은 차트가 그대로 그린다(api/stock.ts). 카드 막대는 그날을 비운다
+    const volume = Number.isFinite(candle.volume) ? candle.volume : 0
+    const current = weekOf(candle.date)
+    if (current === week) {
+      prices[prices.length - 1] = candle.close
+      volumes[volumes.length - 1] += volume
+    } else {
+      prices.push(candle.close)
+      volumes.push(volume)
+      week = current
+    }
+  }
 
   const entry: Stored = {
     stockCode,
     lastDate: last.date,
-    prices: month.map((candle) => candle.close),
-    // 거래량만 빈 봉은 차트가 그대로 그린다(api/stock.ts). 카드 막대는 그날을 비운다
-    volumes: month.map((candle) => (Number.isFinite(candle.volume) ? candle.volume : 0)),
+    prices,
+    volumes,
     changeRate: first.close === 0 ? 0 : ((last.close - first.close) / first.close) * 100,
     savedAt: Date.now(),
   }

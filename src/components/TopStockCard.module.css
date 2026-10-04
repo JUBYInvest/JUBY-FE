@@ -26,7 +26,7 @@
   font-weight: 700;
 }
 
-/* 카드의 큰 숫자. 언제나 한 달 전 대비 등락률이다 */
+/* 카드의 큰 숫자. 언제나 1년 전 대비 등락률이다 */
 .rateRow {
   display: flex;
   align-items: baseline;

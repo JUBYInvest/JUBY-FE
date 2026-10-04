@@ -148,7 +148,7 @@ export default function CardChart({ stock }: { stock: CardSeries }) {
   const [boxRef, size] = useSize()
 
   const lineColor = stock.changeRate >= 0 ? UP_COLOR : DOWN_COLOR
-  /* 선은 한 달 흐름의 방향이라 그대로 두고, 숫자만 보합이면 검게 적는다 */
+  /* 선은 1년 흐름의 방향이라 그대로 두고, 숫자만 보합이면 검게 적는다 */
   const rateColor = isFlatRate(stock.changeRate, 1) ? FLAT_COLOR : lineColor
 
   return (
@@ -157,8 +157,8 @@ export default function CardChart({ stock }: { stock: CardSeries }) {
         <span className={styles.rate} style={{ color: rateColor }}>
           {formatChangeRate(stock.changeRate, 1)}
         </span>
-        {/* 상세 API의 일봉에서 마지막 한 달. api/cardSeries.ts 참고 */}
-        <span className={styles.caption}>한 달 전 대비</span>
+        {/* 상세 API의 일봉에서 마지막 1년(주 단위). 머리말의 "1년 기준"과 기간을 맞춘다. api/cardSeries.ts 참고 */}
+        <span className={styles.caption}>1년 전 대비</span>
       </p>
 
       {/* 크기를 잰 뒤에야 그릴 수 있다. 첫 그림 전에는 빈 칸이고 높이는 CSS가 잡아 둔다 */}
@@ -196,7 +196,7 @@ function Sparkline({ stock, size }: { stock: CardSeries; size: Size }) {
 
   const min = Math.min(...stock.prices)
   const max = Math.max(...stock.prices)
-  /* 한 달 내내 같은 값이면 높낮이를 만들 수 없다. 가운데 선으로 눕힌다 */
+  /* 내내 같은 값이면 높낮이를 만들 수 없다. 가운데 선으로 눕힌다 */
   const toY = (price: number) =>
     max === min
       ? PAD_TOP + plotHeight / 2
