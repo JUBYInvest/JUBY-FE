@@ -1,4 +1,5 @@
 import { ApiError, get, malformedResponse, unchecked } from './client'
+import { rememberCardSeries } from './cardSeries'
 import { isLoggedIn } from '../utils/auth'
 import { fromDashedYmd } from '../utils/date'
 import { isFiniteNumber } from '../utils/format'
@@ -261,6 +262,11 @@ const PRIME_SKIP_KEY = 'kisTokenPrimeSkipUntil'
 const PRIME_OK_AGE = 6 * 60 * 60 * 1000
 const PRIME_SKIP_FORBIDDEN = 6 * 60 * 60 * 1000
 const PRIME_SKIP_UNAUTHORIZED = 10 * 60 * 1000
+/**
+ * 심기를 기다리는 한도. 상세가 이 뒤에 나가므로 길면 그대로 딜레이가 된다(기본 12초).
+ * 끊어도 서버는 하던 일을 마치므로 토큰은 대개 저장된다 — 끊는 건 브라우저가 기다리는 것뿐이다.
+ */
+const PRIME_TIMEOUT = 3_000
 /** localStorage를 못 쓰는 브라우저에서도 이 탭 안에서는 기억하도록 메모리에도 둔다 */
 const primeStamps = new Map<string, number>()
 let primeInFlight: Promise<void> | null = null
@@ -283,14 +289,29 @@ function writeStamp(key: string, value: number): void {
   }
 }
 
-/** 상세를 부르기 전에 한 번. 던지지 않는다 — 못 심어도 상세는 그대로 부른다 */
+/** 6시간 안에 이 브라우저가 토큰을 심었는가. 시계를 되돌려 미래 값이 남아도 정해진 길이보다 오래 믿지 않는다 */
+export function isKisTokenPrimed(now: number = Date.now()): boolean {
+  const primedAt = readStamp(PRIME_OK_KEY)
+  return now - primedAt < PRIME_OK_AGE && primedAt - now < PRIME_OK_AGE
+}
+
+/**
+ * 심어 둔 표시를 지운다. 상세가 서버 오류를 내면 부른다 — 심을 때 남이 받아 둔 곧 끝날 토큰을 그대로 썼으면
+ * 표시는 6시간인데 토큰은 먼저 끝난다. 그대로 두면 남은 시간 내내 심기를 건너뛰어 다시 1분에 1건이 됐다.
+ */
+export function forgetKisTokenPrime(): void {
+  writeStamp(PRIME_OK_KEY, 0)
+}
+
+/**
+ * 상세를 부르기 전에 한 번(홈에 와도 한 번 — 상세를 누를 때 이걸 기다리지 않게).
+ * 던지지 않는다 — 못 심어도 상세는 그대로 부른다.
+ */
 export function primeKisToken(stockCode: string): Promise<void> {
   if (!isLoggedIn()) return Promise.resolve()
   const now = Date.now()
+  if (isKisTokenPrimed(now)) return Promise.resolve()
   // 시계를 되돌려 미래 값이 남아도 정해진 길이보다 오래 건너뛰지는 않는다
-  if (now - readStamp(PRIME_OK_KEY) < PRIME_OK_AGE && readStamp(PRIME_OK_KEY) - now < PRIME_OK_AGE) {
-    return Promise.resolve()
-  }
   if (now < readStamp(PRIME_SKIP_KEY) && readStamp(PRIME_SKIP_KEY) - now <= PRIME_SKIP_FORBIDDEN) {
     return Promise.resolve()
   }
@@ -302,8 +323,11 @@ export function primeKisToken(stockCode: string): Promise<void> {
     try {
       await get<unknown>(`/api/market/${encodeURIComponent(stockCode)}/price`, {
         ignoreUnauthorized: true,
+        timeoutMs: PRIME_TIMEOUT,
       })
       writeStamp(PRIME_OK_KEY, Date.now())
+      // 토큰이 저장됐으니 "방금 서버 오류가 났다"는 표시는 더 맞지 않다
+      writeStamp(KIS_LIMITED_KEY, 0)
     } catch (error: unknown) {
       const status = error instanceof ApiError ? error.status : 0
       const skip =
@@ -319,6 +343,48 @@ export function primeKisToken(stockCode: string): Promise<void> {
     }
   })()
   return primeInFlight
+}
+
+/*
+ * 사용자가 누르지 않은 증권사 호출(홈 카드 그래프)을 지금 써도 되는가. **임시다 — 위 두 장치와 함께 걷는다.**
+ *
+ * 서버에 저장된 토큰이 없으면 상세 한 건이 서버 전체의 "토큰 발급 1분 1회"를 써 버린다. 그러면 바로 뒤에
+ * 사용자가 누른 종목이 1분 넘게 기다린다. 카드 그래프 하나 빠지는 것보다 그 딜레이가 훨씬 나쁘다.
+ * 그래서 토큰이 서버에 있을 때만 쓴다.
+ * - 이 브라우저가 6시간 안에 심었다(isKisTokenPrimed) → 있다.
+ * - 한국 시간으로 토큰이 끝나 있는 때가 아니고(kisTokenLikelyExpired), 30분 안에 증권사 경유 요청이 서버 오류를
+ *   낸 적도 없다 → 있을 것이다. 틀려도 30분 표시가 남아 그다음부터는 쓰지 않는다.
+ */
+const KIS_LIMITED_KEY = 'kisLimitedAt'
+const KIS_LIMITED_AGE = 30 * 60 * 1000
+
+function markKisLimited(): void {
+  writeStamp(KIS_LIMITED_KEY, Date.now())
+}
+
+/**
+ * 서버에 저장된 토큰이 끝나 있을 것 같은 때(한국 시간).
+ * 평일 16시 일봉 배치(DailyPriceScheduler — 휴장일 조회가 실전 토큰을 받아 저장한다. 공휴일도 평일이면 돈다)가 받은
+ * 토큰은 24시간 가고, 서버는 끝나기 10분 전부터 못 쓰는 토큰으로 본다(TokenService.isValid). 그래서
+ * 토 15시 45분 ~ 월 16시 5분, 그리고 평일 15시 45분 ~ 16시 5분에는 토큰이 없다.
+ */
+export function kisTokenLikelyExpired(now: number = Date.now()): boolean {
+  const kst = new Date(now + 9 * 60 * 60 * 1000)
+  const day = kst.getUTCDay()
+  const minutes = kst.getUTCHours() * 60 + kst.getUTCMinutes()
+  const from = 15 * 60 + 45
+  const until = 16 * 60 + 5
+  if (day === 0) return true
+  if (day === 6) return minutes >= from
+  if (day === 1) return minutes < until
+  return minutes >= from && minutes < until
+}
+
+export function canSpendKisCall(now: number = Date.now()): boolean {
+  if (isKisTokenPrimed(now)) return true
+  const limitedAt = readStamp(KIS_LIMITED_KEY)
+  const limitedRecently = now - limitedAt < KIS_LIMITED_AGE && limitedAt - now < KIS_LIMITED_AGE
+  return !kisTokenLikelyExpired(now) && !limitedRecently
 }
 
 /** 같은 탭에서 방금(1분) 받아 둔 상세. 있으면 화면이 서버에 묻지 않고 바로 그린다 */
@@ -395,7 +461,14 @@ export async function getStockDetail(
   const settle = () => {
     if (detailInFlight.get(memoKey) === request) detailInFlight.delete(memoKey)
   }
-  request.then(settle, settle)
+  request.then(settle, (error: unknown) => {
+    settle()
+    // 서버 오류(5xx·못 닿음)면 서버에 토큰이 없을 수 있다. 다음엔 다시 심고, 30분 동안 카드 그래프는 증권사를 쓰지 않는다
+    if (!(error instanceof ApiError) || error.status >= 500) {
+      markKisLimited()
+      forgetKisTokenPrime()
+    }
+  })
   return request
 }
 
@@ -437,6 +510,8 @@ async function fetchStockDetail(stockCode: string, period: Period, memoKey: stri
     candles: usable.sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0)),
   }
   detailMemo.set(memoKey, { savedAt: Date.now(), value: detail })
+  // 받은 일봉의 마지막 한 달은 홈 카드 그래프로도 쓴다. 상세를 본 종목은 카드가 다시 묻지 않는다
+  rememberCardSeries(stockCode, detail.candles)
   return detail
 }
 

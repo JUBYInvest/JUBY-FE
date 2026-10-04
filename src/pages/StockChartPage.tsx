@@ -35,6 +35,9 @@ const PERIOD_TABS: { period: Period; label: string }[] = [
   { period: 'ALL', label: '전체' },
 ]
 
+/** 서버 오류 뒤 첫 재시도까지. 잠깐의 오류는 대개 이걸로 풀린다(아래 effect의 schedule) */
+const QUICK_RETRY_MS = 1_500
+
 /** 처음 열었을 때 기간. 60봉쯤이 봉 모양과 흐름이 함께 읽히는 길이다 */
 const DEFAULT_PERIOD: Period = 'THREE_MONTH'
 
@@ -137,23 +140,37 @@ export default function StockChartPage() {
     const code = stockCode
 
     /*
-     * 처음에는 곧바로 보낸다. 서버가 멀쩡하면(평일) 종목을 연달아 열어도 기다리지 않는다.
-     *
-     * 서버 오류면 간격(api/stock.ts "실패한 뒤 다시 부를 간격")을 기다렸다가 한 번은 저절로 다시 부른다.
-     * 1분에 1건만 되는 날(2026-10-04 주말)은 그 안에 다시 불러도 또 실패한다 — 0.4초 뒤에 바로 다시 부르던
-     * 예전 재시도가 그랬다. 두 번째도 실패하면 "다시 시도"를 띄우고, 그 버튼도 간격 안이면 기다렸다가 보낸다.
+     * 실패하면 저절로 두 번까지 다시 부른다. 늦출수록 딜레이라 짧은 것부터 한다.
+     * - 0번째: 곧바로. 서버가 멀쩡하면(평일, 또는 로그인해 토큰을 심었으면) 종목을 연달아 열어도 기다리지 않는다.
+     * - 1번째: 1.5초 뒤. 잠깐의 서버 오류는 대개 이걸로 풀린다. 서버 오류가 나면 심어 둔 표시가 지워지므로
+     *   로그인했으면 이때 토큰을 다시 심는다(api/stock.ts forgetKisTokenPrime).
+     * - 2번째: 마지막으로 보낸 때에서 65초 뒤(api/stock.ts "실패한 뒤 다시 부를 간격"). 1분에 1건만 되는 날(주말,
+     *   비로그인)은 그 안에 다시 불러도 또 실패한다. 남은 초를 센다.
+     * 그래도 실패하면 "다시 시도"를 띄우고, 그 버튼은 2번째와 같이 간격을 지켜 보낸다.
      * 기다리는 사이 다른 종목으로 가면 정리 함수가 타이머를 지워 이 종목 요청은 더 나가지 않는다.
-     * 다시 부를 때는 토큰 심기부터 다시 한다 — 심기가 되면 그 뒤로는 실패하지 않는다.
      */
-    function load(autoRetries: number, retrying: boolean) {
-      // 이 종목을 이미 묻고 있으면 새로 보내지 않고 그 답을 받으니 기다릴 것이 없다
-      const wait = retrying && !isStockDetailInFlight(code) ? detailWaitMs() : 0
-      if (wait > 0) {
-        setState({ kind: 'waiting', stockCode: code, until: Date.now() + wait })
-        timer = setTimeout(() => load(autoRetries, retrying), wait)
+    function schedule(attempt: number) {
+      const wait =
+        attempt === 0 || isStockDetailInFlight(code)
+          ? 0
+          : attempt === 1
+            ? QUICK_RETRY_MS
+            : detailWaitMs()
+      if (wait === 0) {
+        send(attempt)
         return
       }
+      // 짧은 기다림은 뼈대로 두고, 긴 기다림만 남은 초를 센다
+      setState(
+        attempt >= 2
+          ? { kind: 'waiting', stockCode: code, until: Date.now() + wait }
+          : { kind: 'loading' },
+      )
+      // 긴 기다림은 끝날 때 다시 잰다 — 그사이 다른 탭이 보냈으면 더 기다린다
+      timer = setTimeout(() => (attempt >= 2 ? schedule(attempt) : send(attempt)), wait)
+    }
 
+    function send(attempt: number) {
       setState({ kind: 'loading' })
       // 로그인했으면 먼저 증권사 토큰을 심는다(api/stock.ts "증권사 토큰 심기"). 심는 사이 떠났으면 상세는 보내지 않는다
       primeKisToken(code)
@@ -171,15 +188,16 @@ export default function StockChartPage() {
           console.warn('종목 상세 조회 실패', error)
           // 4xx와 모양이 틀린 200은 다시 불러도 같다. 서버 오류(5xx)와 서버에 못 닿은 경우만 다시 부른다
           const serverSide = !(error instanceof ApiError) || error.status >= 500
-          if (autoRetries > 0 && serverSide) {
-            load(autoRetries - 1, true)
+          if (attempt < 2 && serverSide) {
+            schedule(attempt + 1)
             return
           }
           setState({ kind: 'error', stockCode: code })
         })
     }
-    // 다시 시도 버튼으로 왔으면(fresh) 방금 실패한 것이니 처음부터 간격을 지킨다
-    load(1, fresh)
+
+    // 다시 시도 버튼으로 왔으면(fresh) 방금 실패한 것이니 간격부터 지킨다
+    schedule(fresh ? 2 : 0)
 
     return () => {
       isStale = true

@@ -77,12 +77,8 @@ export interface StockPreview extends StockInfo {
 /**
  * 홈 상단 테마별 대표 종목 카드 한 장. GET /api/stocks/leading-stocks 의 한 행이다.
  *
- * 카드는 이 값과 홈 시세표의 종가(CardQuote)로만 그린다. 둘 다 DB만 읽는 API라 늘 받아진다.
- *
- * 2026-10-04까지는 카드마다 종목 상세 API(GET /api/stocks/{code})를 불러 한 달 그래프를 그렸다.
- * 그 API는 증권사 현재가를 함께 물어서 1분에 1건만 성공했고(70초 간격이면 셋 다 되고 이어 부르면
- * 셋 다 500), 2·3번 카드가 비었다. 스웨거상 그 API는 상세 페이지용이고, 홈 카드용은
- * "홈 화면 테마별 대장주 수익률 조회 API"인 leading-stocks다. 그래서 그래프 대신 이 API의 수익률을 쓴다.
+ * 어떤 종목을 카드에 올릴지는 이 API가 정하고, 그래프(CardSeries)와 종가(CardQuote)는 따로 받는다.
+ * 전략 수익률은 카드에 적지 않는다(2026-10-04 사용자 결정으로 그래프를 되살리며 뺐다). 값은 그대로 받아 둔다.
  */
 export interface TopTheme extends StockInfo {
   /** "기술주 대장" 같은 테마 라벨 */
@@ -97,8 +93,23 @@ export interface TopTheme extends StockInfo {
 }
 
 /**
+ * 홈 카드의 한 달 그래프. 종목 상세 API의 일봉에서 마지막 한 달을 잘라 만든다(api/cardSeries.ts).
+ * prices·volumes는 날짜 오름차순이고 길이가 같다.
+ */
+export interface CardSeries {
+  stockCode: string
+  /** 그래프 마지막 봉의 날짜. YYYYMMDD */
+  lastDate: string
+  /** 종가 */
+  prices: number[]
+  volumes: number[]
+  /** 한 달 첫 종가 대비 마지막 종가의 등락률(%) */
+  changeRate: number
+}
+
+/**
  * 카드 아래쪽에 적는 종가. 홈 시세표(GET /api/stocks, DB)에서 가져온다.
- * 수익률은 전략의 성적이라 지금 주가를 알 수 없어서, 그 종목이 얼마인지는 이걸로 보탠다.
+ * 그래프가 어느 날까지인지, 그날 종가가 얼마인지를 밝힌다. 그래프를 못 그린 카드도 이 줄은 있다.
  */
 export interface CardQuote {
   closePrice: number

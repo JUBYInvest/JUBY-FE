@@ -12,7 +12,8 @@ import TopStockCard from '../components/TopStockCard'
 import StockTable from '../components/StockTable'
 import SectionBoundary from '../components/SectionBoundary'
 import Modal from '../components/Modal'
-import { FALLBACK_LEADING, loadLeading, readCachedLeading } from '../api/home'
+import { readCardSeries } from '../api/cardSeries'
+import { FALLBACK_LEADING, loadCardSeries, loadLeading, readCachedLeading } from '../api/home'
 import { likeStock, unlikeStock } from '../api/member'
 import { byTradingValue, getStockList } from '../api/stock'
 import { STOCK_LIST } from '../api/stockList'
@@ -24,6 +25,7 @@ import { preloadStockChartPage } from '../utils/preload'
 import { describeSort, nextSort, sortStocks } from '../utils/sort'
 import type {
   CardQuote,
+  CardSeries,
   LeadingBasis,
   LeadingStocks,
   SortKey,
@@ -90,14 +92,11 @@ export default function HomePage() {
     navigationType === 'POP' ? (savedViews.get(location.key) ?? null) : null,
   )
   /*
-   * 테마별 대표 종목 카드. 어떤 종목인지와 수익률을 서버가 준다(GET /api/stocks/leading-stocks).
+   * 테마별 대표 종목 카드. 어떤 종목인지는 서버가 정한다(GET /api/stocks/leading-stocks).
    * 첫 그림은 지난 방문에 받아 둔 값으로, 그것도 없으면 고정 목록으로 그리고, 아래 effect가
-   * 받은 값으로 갈아끼운다.
-   *
-   * settled는 "서버에 물어본 결과가 나왔는가"다. 받아 둔 값으로 시작했으면 처음부터 참이다.
-   * 거짓인 동안은 카드가 수익률 자리를 비워 두고, 참인데 수익률이 없으면 못 받은 것으로 적는다.
+   * 받은 값으로 갈아끼운다. settled는 서버에 물어본 결과가 나왔는지다(지금 화면은 쓰지 않는다).
    */
-  const [{ leading, settled }, setLeadingState] = useState<{
+  const [{ leading }, setLeadingState] = useState<{
     leading: LeadingStocks
     settled: boolean
   }>(() => {
@@ -158,6 +157,38 @@ export default function HomePage() {
 
   // 종목을 누르기 전에 상세 화면 묶음을 받아 둔다. 누른 뒤 받으면 그만큼 상세 요청이 늦게 나간다
   useEffect(() => preloadStockChartPage(), [])
+
+  /*
+   * 카드 그래프. 받는 중이면 없음, 그릴 수 없으면 'unavailable'. 담아 둔 그래프는 받기 전 첫 그림부터 쓴다.
+   * 받는 길과 막는 규칙은 api/home.ts loadCardSeries — 카드 그래프가 사용자가 누를 상세의 몫을 쓰지 않게 한다.
+   */
+  const [cardSeries, setCardSeries] = useState<Map<string, CardSeries | 'unavailable'>>(
+    () => new Map(),
+  )
+  const baseDate = list.kind === 'ready' ? list.baseDate : null
+  /** 카드 종목이 바뀔 때만 다시 받는다. themes 배열은 받을 때마다 새로 만들어진다 */
+  const themeCodes = themes.map((theme) => theme.stockCode).join(',')
+
+  useEffect(() => {
+    let ignore = false
+    const codes = themeCodes === '' ? [] : themeCodes.split(',')
+    // 기준일이 바뀌면 묵은 그래프는 내리고 다시 받는다. 못 그린다고 정한 것도 다시 판단한다
+    setCardSeries(() => {
+      const next = new Map<string, CardSeries | 'unavailable'>()
+      for (const code of codes) {
+        const cached = readCardSeries(code, baseDate)
+        if (cached !== null) next.set(code, cached)
+      }
+      return next
+    })
+    void loadCardSeries(codes, baseDate, (code, series) => {
+      if (ignore) return
+      setCardSeries((prev) => new Map(prev).set(code, series ?? 'unavailable'))
+    })
+    return () => {
+      ignore = true
+    }
+  }, [themeCodes, baseDate])
 
   /** 지금 보고 있는 시세표. 떠날 때 savedViews에 옮겨 담는다 */
   const viewRef = useRef<HomeView>({
@@ -309,7 +340,7 @@ export default function HomePage() {
         {/*
           카드를 그리다 멈춰도 검색·시세표는 남는다. 경계가 없을 땐 카드 한 장 때문에 홈 전체가
           오류 화면이 됐다. 다시 시도는 대장주만 새로 받는다.
-          카드에 필요한 값은 전부 DB만 읽는 API에서 오므로 세 장이 늘 함께 그려진다 —
+          카드는 종목·종가(DB)만으로 세 장이 늘 선다. 그래프를 못 받은 카드만 그래프 자리에 알린다 —
           예전처럼 그래프가 실패해 구역 전체를 안내 한 줄로 바꾸는 일이 없다.
         */}
         <SectionBoundary onRetry={reloadLeading}>
@@ -318,8 +349,7 @@ export default function HomePage() {
               <TopStockCard
                 key={theme.stockCode}
                 theme={theme}
-                periodLabel={leading.basis.periodLabel}
-                settled={settled}
+                series={cardSeries.get(theme.stockCode) ?? null}
                 quote={quotes.get(theme.stockCode) ?? null}
               />
             ))}

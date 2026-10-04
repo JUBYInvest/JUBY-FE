@@ -1,34 +1,29 @@
 import { Link } from 'react-router-dom'
+import CardChart from './CardChart'
 import { toKoreanDate } from '../utils/date'
 import { formatChangeRate, formatPrice, isFiniteNumber, isFlatRate } from '../utils/format'
 import { toPreviewState } from '../utils/stockPreview'
-import type { CardQuote, TopTheme } from '../types/stock'
+import type { CardQuote, CardSeries, TopTheme } from '../types/stock'
 import styles from './TopStockCard.module.css'
 
 interface Props {
   theme: TopTheme
-  /** 대장주를 뽑은 기간. 예: "1년". 모르면 null */
-  periodLabel: string | null
   /**
-   * 서버에 물어본 결과가 나왔는가(성공이든 고정 목록으로 물러섰든).
-   * false면 아직 오는 중이라 수익률 자리를 비워 두고, true인데 수익률이 없으면 못 받은 것이다.
+   * 한 달 그래프. 받는 중이면 null, 이번에는 그릴 수 없으면 'unavailable'
+   * (서버에 증권사 토큰이 없어 묻지 않았거나, 물었는데 실패했다 — api/home.ts loadCardSeries).
    */
-  settled: boolean
+  series: CardSeries | 'unavailable' | null
   /** 홈 시세표에서 찾은 이 종목의 종가. 시세표가 아직 안 왔거나 이 종목이 없으면 null */
   quote: CardQuote | null
 }
 
 /**
- * 테마별 대표 종목 카드. 위쪽이 전략 수익률, 아래쪽이 종가다.
+ * 테마별 대표 종목 카드. 큰 숫자와 그래프는 한 달 주가 흐름, 맨 아래 줄은 그 그래프가 끝나는 날의 종가다.
  *
- * 둘은 뜻이 다르다. 수익률은 "이 전략으로 이 종목을 그 기간 사고팔았다면"의 성적이고,
- * 종가는 지금 이 종목의 값이다. 섞여 읽히지 않게 위아래로 나누고 각각 무엇인지 적는다.
- *
- * 카드에 필요한 값은 전부 DB만 읽는 API에서 온다. 그래서 세 장이 늘 함께 그려진다.
+ * 큰 숫자는 언제나 "한 달 전 대비"다. 그래프가 없을 때 다른 숫자(전일 대비 등)로 갈아 끼우면 카드마다
+ * 같은 자리의 뜻이 달라진다 — 그때는 비워 두고, 전일 대비는 맨 아래 줄에서 본다.
  */
-export default function TopStockCard({ theme, periodLabel, settled, quote }: Props) {
-  const { returnRate, tradeCount } = theme
-  const hasRate = settled && returnRate !== null
+export default function TopStockCard({ theme, series, quote }: Props) {
   const date = quote === null ? '' : toKoreanDate(quote.baseDate)
 
   return (
@@ -54,48 +49,62 @@ export default function TopStockCard({ theme, periodLabel, settled, quote }: Pro
       <p className={styles.theme}>{theme.theme}</p>
       <p className={styles.name}>{theme.stockName}</p>
 
-      {/* 오는 중이거나 못 받았으면 같은 회색 자리표시. 큰 글자로 진하게 "-"를 찍으면 값처럼 보인다 */}
-      <p className={`${styles.rate} ${hasRate ? toneClass(returnRate) : styles.rateEmpty}`}>
-        {hasRate ? formatChangeRate(returnRate, 1) : '–'}
-      </p>
-      <p className={styles.caption}>{describeReturn(periodLabel, tradeCount, settled, returnRate)}</p>
+      {series === null ? (
+        <CardPlaceholder />
+      ) : series === 'unavailable' ? (
+        <CardUnavailable />
+      ) : (
+        <CardChart stock={series} />
+      )}
 
-      <dl className={styles.quote}>
-        <div className={styles.quoteRow}>
-          <dt>{date === '' ? '종가' : `${date} 종가`}</dt>
-          <dd>{formatPrice(quote?.closePrice)}</dd>
-        </div>
-        <div className={styles.quoteRow}>
-          <dt>전일 대비</dt>
-          <dd className={toneClass(quote?.fluctuate ?? null)}>
+      {/* 그래프가 끝나는 날의 종가. 그래프를 못 그린 카드도 이 줄은 있다 */}
+      <p className={styles.quote}>
+        <span className={styles.quoteLabel}>{date === '' ? '종가' : `${date} 종가`}</span>
+        <span className={styles.quoteValue}>
+          {formatPrice(quote?.closePrice)}{' '}
+          <span className={toneClass(quote?.fluctuate ?? null)}>
             {formatChangeRate(quote?.fluctuate)}
-          </dd>
-        </div>
-      </dl>
+          </span>
+        </span>
+      </p>
     </Link>
+  )
+}
+
+/** 값이 오기 전 자리. 높이를 CardChart와 똑같이 잡아 도착해도 화면이 흔들리지 않는다 */
+function CardPlaceholder() {
+  return (
+    <>
+      <p className={styles.rateRow}>
+        <span className={`${styles.rate} ${styles.rateEmpty}`}>–</span>
+        <span className={styles.caption}>한 달 전 대비</span>
+      </p>
+      <div className={`${styles.chart} ${styles.chartEmpty}`} />
+    </>
+  )
+}
+
+/**
+ * 이번에는 그래프를 그릴 수 없는 카드. 높이는 자리표시와 같게 두되 반짝이지 않는다.
+ * 눌러서 들어가면 상세 차트는 볼 수 있다 — 카드가 묻지 않고 남겨 둔 몫이 그 한 번이다.
+ */
+function CardUnavailable() {
+  return (
+    <>
+      <p className={styles.rateRow}>
+        <span className={`${styles.rate} ${styles.rateEmpty}`}>–</span>
+        <span className={styles.caption}>한 달 전 대비</span>
+      </p>
+      <div className={`${styles.chart} ${styles.chartMessage}`}>
+        <span>지금은 그래프를 불러올 수 없어요</span>
+        <span className={styles.chartHint}>눌러서 차트 보기 ›</span>
+      </div>
+    </>
   )
 }
 
 /** 한국식 등락 색. 오르면 빨강, 내리면 파랑, 보합이거나 모르면 기본 글자색 */
 function toneClass(rate: number | null): string {
-  if (!isFiniteNumber(rate) || isFlatRate(rate, 1)) return styles.flat
+  if (!isFiniteNumber(rate) || isFlatRate(rate)) return styles.flat
   return rate > 0 ? styles.up : styles.down
-}
-
-/**
- * 수익률 밑에 붙는 설명. 숫자가 무엇의 수익률인지부터 밝힌다 — 주가 등락률로 읽히면 안 된다.
- *
- * 매매 횟수를 함께 적는 이유: 전략이 한 번도 사고팔지 않으면 수익률이 0%로 나온다.
- * "0%"만 보면 제자리였던 것처럼 읽히는데, 실제로는 신호가 한 번도 안 나온 것이다.
- */
-function describeReturn(
-  periodLabel: string | null,
-  tradeCount: number | null,
-  settled: boolean,
-  returnRate: number | null,
-): string {
-  const what = periodLabel === null ? '전략 수익률' : `${periodLabel} 전략 수익률`
-  if (!settled) return what
-  if (returnRate === null) return '전략 수익률을 받지 못했어요'
-  return tradeCount === null ? what : `${what} · 매매 ${tradeCount}회`
 }
