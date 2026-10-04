@@ -74,22 +74,39 @@ export interface StockPreview extends StockInfo {
   baseDate?: string
 }
 
-/** 카드 제목에 필요한 부분. 그래프가 도착하기 전에 이것만으로 먼저 그린다 */
-export type TopTheme = Pick<TopStock, 'stockCode' | 'stockName' | 'theme'>
-
-/** 홈 상단 테마별 대표 종목 카드 */
-export interface TopStock extends StockInfo {
+/**
+ * 홈 상단 테마별 대표 종목 카드 한 장. GET /api/stocks/leading-stocks 의 한 행이다.
+ *
+ * 카드는 이 값과 홈 시세표의 종가(CardQuote)로만 그린다. 둘 다 DB만 읽는 API라 늘 받아진다.
+ *
+ * 2026-10-04까지는 카드마다 종목 상세 API(GET /api/stocks/{code})를 불러 한 달 그래프를 그렸다.
+ * 그 API는 증권사 현재가를 함께 물어서 1분에 1건만 성공했고(70초 간격이면 셋 다 되고 이어 부르면
+ * 셋 다 500), 2·3번 카드가 비었다. 스웨거상 그 API는 상세 페이지용이고, 홈 카드용은
+ * "홈 화면 테마별 대장주 수익률 조회 API"인 leading-stocks다. 그래서 그래프 대신 이 API의 수익률을 쓴다.
+ */
+export interface TopTheme extends StockInfo {
   /** "기술주 대장" 같은 테마 라벨 */
   theme: string
-  /** 받아온 구간(최근 1개월) 처음 대비 등락률(%) */
-  changeRate: number
-  prices: number[]
-  /** prices와 같은 길이 */
-  volumes: number[]
+  /**
+   * 대장주를 뽑은 전략으로 그 기간을 돌렸을 때의 수익률(%). **주가 등락률이 아니다.**
+   * 서버가 못 주거나 고정 목록으로 물러섰을 때는 null.
+   */
+  returnRate: number | null
+  /** 그 기간에 전략이 사고판 횟수. 모르면 null */
+  tradeCount: number | null
 }
 
-/** 홈 테마 카드 한 장을 못 채운 이유. 요청 실패와 받은 일봉이 없는 경우를 화면이 다르게 그린다 */
-export type CardFailure = 'error' | 'empty'
+/**
+ * 카드 아래쪽에 적는 종가. 홈 시세표(GET /api/stocks, DB)에서 가져온다.
+ * 수익률은 전략의 성적이라 지금 주가를 알 수 없어서, 그 종목이 얼마인지는 이걸로 보탠다.
+ */
+export interface CardQuote {
+  closePrice: number
+  /** 전일 대비 등락률(%). 서버가 비워 보내면 null */
+  fluctuate: number | null
+  /** closePrice가 언제 값인지. YYYYMMDD */
+  baseDate: string
+}
 
 /**
  * 대장주를 무엇으로 뽑았는지. 홈 머리말의 "백테스트 기법으로 투자한"을 실제 값으로 적는다.

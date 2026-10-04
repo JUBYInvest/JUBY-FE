@@ -12,30 +12,23 @@ import TopStockCard from '../components/TopStockCard'
 import StockTable from '../components/StockTable'
 import SectionBoundary from '../components/SectionBoundary'
 import Modal from '../components/Modal'
-import {
-  FALLBACK_LEADING,
-  hasFreshTopStocks,
-  loadTopStocks,
-  readCachedLeading,
-  readCachedTopStocks,
-} from '../api/home'
+import { FALLBACK_LEADING, loadLeading, readCachedLeading } from '../api/home'
 import { likeStock, unlikeStock } from '../api/member'
 import { byTradingValue, getStockList } from '../api/stock'
 import { STOCK_LIST } from '../api/stockList'
 import { useDocumentTitle } from '../hooks/useDocumentTitle'
 import { isLoggedIn } from '../utils/auth'
 import { toKoreanDate } from '../utils/date'
+import { isFiniteNumber } from '../utils/format'
 import { preloadStockChartPage } from '../utils/preload'
 import { describeSort, nextSort, sortStocks } from '../utils/sort'
 import type {
-  CardFailure,
+  CardQuote,
   LeadingBasis,
   LeadingStocks,
   SortKey,
   SortState,
   Stock,
-  TopStock,
-  TopTheme,
 } from '../types/stock'
 import styles from './HomePage.module.css'
 
@@ -74,12 +67,6 @@ type ListState =
  * 예전에는 종목마다 현재가를 따로 불러 보이는 20개 먼저·나머지 나중·장 열림 탐지·
  * 지난 값 저장 같은 장치가 이 파일에 가득했다. 지금은 전부 없다.
  */
-/** 카드 자리의 종목이 그대로인가. 같으면 이미 그려 둔 그래프를 지우지 않는다 */
-function sameCodes(stocks: (TopStock | null)[], themes: TopTheme[]): boolean {
-  if (stocks.length !== themes.length) return false
-  return stocks.every((stock, index) => stock === null || stock.stockCode === themes[index].stockCode)
-}
-
 /**
  * 머리말 윗줄. 서버가 어떤 전략·기간으로 대장주를 골랐는지 그대로 적는다.
  * 둘 중 하나라도 못 받으면 근거를 지어내지 않고 예전 문구로 둔다.
@@ -103,27 +90,21 @@ export default function HomePage() {
     navigationType === 'POP' ? (savedViews.get(location.key) ?? null) : null,
   )
   /*
-   * 지난 방문에서 받아둔 카드가 있으면 그걸로 시작한다. 없으면 자리만 잡아 둔다.
-   * 어느 쪽이든 아래 effect가 최신 값을 받아 같은 자리에 갈아끼운다.
+   * 테마별 대표 종목 카드. 어떤 종목인지와 수익률을 서버가 준다(GET /api/stocks/leading-stocks).
+   * 첫 그림은 지난 방문에 받아 둔 값으로, 그것도 없으면 고정 목록으로 그리고, 아래 effect가
+   * 받은 값으로 갈아끼운다.
+   *
+   * settled는 "서버에 물어본 결과가 나왔는가"다. 받아 둔 값으로 시작했으면 처음부터 참이다.
+   * 거짓인 동안은 카드가 수익률 자리를 비워 두고, 참인데 수익률이 없으면 못 받은 것으로 적는다.
    */
-  /*
-   * 어떤 종목이 대장인지는 서버가 정한다(GET /api/stocks/leading-stocks).
-   * 첫 그림은 지난 방문에 받아 둔 값으로, 그것도 없으면 고정 목록으로 그린다.
-   * loadCards()가 서버 값을 받아 같은 자리에 갈아끼운다.
-   */
-  const [leading, setLeading] = useState<LeadingStocks>(
-    () => readCachedLeading() ?? FALLBACK_LEADING,
-  )
+  const [{ leading, settled }, setLeadingState] = useState<{
+    leading: LeadingStocks
+    settled: boolean
+  }>(() => {
+    const cached = readCachedLeading()
+    return { leading: cached ?? FALLBACK_LEADING, settled: cached !== null }
+  })
   const themes = leading.themes
-
-  const [topStocks, setTopStocks] = useState<(TopStock | null)[]>(
-    () => readCachedTopStocks(leading.themes) ?? leading.themes.map(() => null),
-  )
-  const [hasTopError, setHasTopError] = useState(false)
-  /** 카드마다 못 채운 이유. null이면 아직 오는 중이거나 채워졌다 */
-  const [cardFailures, setCardFailures] = useState<(CardFailure | null)[]>(() =>
-    leading.themes.map(() => null),
-  )
   const [list, setList] = useState<ListState>({ kind: 'loading' })
   const [visibleCount, setVisibleCount] = useState(
     restored?.visibleCount ?? PAGE_SIZE,
@@ -134,65 +115,26 @@ export default function HomePage() {
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false)
 
   const sentinelRef = useRef<HTMLDivElement>(null)
-  const hasStartedTop = useRef(false)
   /** 하트 요청이 진행 중인 종목. 연타로 등록·해제가 겹쳐 서버와 어긋나는 걸 막는다 */
   const pendingLikes = useRef(new Set<string>())
   /** 하트를 서버에 반영하지 못해 되돌렸을 때 알리는 말. 조용히 되돌리면 누른 게 무시된 것처럼 보인다 */
   const [likeNotice, setLikeNotice] = useState('')
 
-  /**
-   * 카드 세 장을 받는다. 증권사를 세 번 거치므로 들어올 때 한 번(10분 안에 받아 둔 게 있으면 그것도 안 한다)과
-   * 사용자가 다시 시도를 누를 때만 부른다
+  /*
+   * 대장주는 DB만 읽는 API라 몇 번을 불러도 부담이 없다. 들어올 때마다 새로 받는다.
+   * 실패해도 loadLeading()이 지난 값이나 고정 목록을 돌려주므로 카드는 늘 그려진다.
    */
-  const loadCards = useCallback((fresh = false) => {
-    loadTopStocks(
-      (next) => {
-        setLeading(next)
-        /*
-         * 종목이 그대로면 이미 그려 둔 카드를 그대로 둔다. 매번 비우면 캐시로 띄워 둔
-         * 그래프가 한 번 사라졌다가 다시 나타나 화면이 깜빡인다.
-         */
-        setTopStocks((previous) =>
-          sameCodes(previous, next.themes) ? previous : next.themes.map(() => null),
-        )
-        setCardFailures((previous) =>
-          previous.length === next.themes.length ? previous : next.themes.map(() => null),
-        )
-      },
-      (index, stock) => {
-        setTopStocks((previous) =>
-          previous.map((item, i) => (i === index ? stock : item)),
-        )
-      },
-      (index, reason) => {
-        setCardFailures((previous) =>
-          previous.map((item, i) => (i === index ? reason : item)),
-        )
-      },
-      { fresh },
-    ).catch((error: unknown) => {
-      console.warn('테마별 대표 종목 조회 실패', error)
-      setHasTopError(true)
+  const reloadLeading = useCallback(() => {
+    let ignore = false
+    void loadLeading().then((next) => {
+      if (!ignore) setLeadingState({ leading: next, settled: true })
     })
+    return () => {
+      ignore = true
+    }
   }, [])
 
-  useEffect(() => {
-    // 개발 모드는 effect를 두 번 실행한다. 그대로 두면 카드 요청이 6건이 되어 제한에 걸린다
-    if (hasStartedTop.current) return
-    hasStartedTop.current = true
-    // 첫 그림을 그린 캐시가 10분 안의 것이면 그대로 둔다(다시 시도는 이 검사 없이 새로 받는다)
-    if (hasFreshTopStocks(themes)) return
-    loadCards()
-    // themes가 바뀌면 다시 돌지만 위 가드에서 곧장 빠져나온다
-  }, [loadCards, themes])
-
-  /** 카드 구역의 다시 시도. 그리다 멈춘 값을 버리고 자리표시부터 다시 받는다 */
-  function retryCards() {
-    setTopStocks(themes.map(() => null))
-    setCardFailures(themes.map(() => null))
-    setHasTopError(false)
-    loadCards(true)
-  }
+  useEffect(() => reloadLeading(), [reloadLeading])
 
   const load = useCallback(() => {
     setList({ kind: 'loading' })
@@ -261,6 +203,25 @@ export default function HomePage() {
   }, [list.kind])
 
   const stocks = list.kind === 'ready' ? list.stocks : EMPTY_STOCKS
+
+  /*
+   * 카드가 그래프를 못 받았을 때 대신 적을 종가. 시세표는 DB만 읽어 늘 받아지므로
+   * 카드 그래프(증권사를 거치는 상세 API)가 막혀도 이 값은 있다.
+   */
+  const quotes = useMemo(() => {
+    const byCode = new Map<string, CardQuote>()
+    if (list.kind !== 'ready') return byCode
+    for (const stock of list.stocks) {
+      if (!isFiniteNumber(stock.closePrice)) continue
+      byCode.set(stock.stockCode, {
+        closePrice: stock.closePrice,
+        fluctuate: isFiniteNumber(stock.fluctuate) ? stock.fluctuate : null,
+        baseDate: list.baseDate,
+      })
+    }
+    return byCode
+  }, [list])
+
   /* 검색 후보는 거래대금 순. 서버 목록은 가나다순이라 그대로 주면 삼성전자가 삼성전기 뒤로 밀린다 */
   const searchable = useMemo(
     () => (stocks.length > 0 ? byTradingValue(stocks) : STOCK_LIST),
@@ -346,24 +307,23 @@ export default function HomePage() {
         <h1 className={styles.heading}>테마별 대표 종목</h1>
 
         {/*
-          카드를 그리다 멈춰도 검색·시세표는 남는다. 경계가 없을 땐 카드 한 장 때문에 홈 전체가 오류 화면이 됐다.
-          한 장도 못 받았을 때만 에러로 대체한다. 일부라도 왔으면 그건 보여주는 편이 낫다
+          카드를 그리다 멈춰도 검색·시세표는 남는다. 경계가 없을 땐 카드 한 장 때문에 홈 전체가
+          오류 화면이 됐다. 다시 시도는 대장주만 새로 받는다.
+          카드에 필요한 값은 전부 DB만 읽는 API에서 오므로 세 장이 늘 함께 그려진다 —
+          예전처럼 그래프가 실패해 구역 전체를 안내 한 줄로 바꾸는 일이 없다.
         */}
-        <SectionBoundary onRetry={retryCards}>
-          {hasTopError && topStocks.every((stock) => stock === null) ? (
-            <p className={styles.loading}>차트를 불러오지 못했습니다.</p>
-          ) : (
-            <div className={styles.cards}>
-              {themes.map((theme, index) => (
-                <TopStockCard
-                  key={theme.stockCode}
-                  theme={theme}
-                  stock={topStocks[index]}
-                  failure={cardFailures[index]}
-                />
-              ))}
-            </div>
-          )}
+        <SectionBoundary onRetry={reloadLeading}>
+          <div className={styles.cards}>
+            {themes.map((theme) => (
+              <TopStockCard
+                key={theme.stockCode}
+                theme={theme}
+                periodLabel={leading.basis.periodLabel}
+                settled={settled}
+                quote={quotes.get(theme.stockCode) ?? null}
+              />
+            ))}
+          </div>
         </SectionBoundary>
       </section>
 

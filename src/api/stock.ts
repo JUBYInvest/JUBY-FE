@@ -112,9 +112,9 @@ interface LeadingStockResponse {
  * 코드를 고쳐 배포해야 했다. 서버는 매일 새벽 백테스트 배치를 돌려 테마마다 성적이 가장 좋은
  * 종목을 올려 준다.
  *
- * 그래프에 쓸 일봉은 이 응답에 없다. 종목이 정해진 뒤 카드마다 상세를 따로 받는다(api/home.ts).
- * returnPercentage·tradeCount도 받지만 카드에 적지 않는다 — 카드의 숫자는 "한 달 전 대비 주가"라
- * 뜻이 다른 수익률을 나란히 놓으면 둘 다 잘못 읽힌다.
+ * 홈 카드는 이 응답만으로 그린다. 카드의 큰 숫자가 returnPercentage(전략 수익률)이고,
+ * 옆에 tradeCount(매매 횟수)를 적는다. 일봉은 이 응답에 없고, 카드도 이제 일봉을 받지 않는다 —
+ * 일봉을 주는 종목 상세 API는 증권사를 거쳐 1분에 1건만 성공한다(types/stock.ts의 TopTheme 참고).
  */
 export async function getLeadingStocks(): Promise<LeadingStocks> {
   const response = await get<LeadingStocksResponse | null>('/api/stocks/leading-stocks')
@@ -149,6 +149,9 @@ function toTopTheme(row: LeadingStockResponse | null): TopTheme[] {
     stockCode,
     stockName: nameOrCode(row.stockName, stockCode),
     theme: label === null ? '' : `${label} 대장`,
+    // 숫자가 아니면 지어내지 않고 비워 둔다. 카드가 "–"로 적는다
+    returnRate: isFiniteNumber(row.returnPercentage) ? row.returnPercentage : null,
+    tradeCount: isFiniteNumber(row.tradeCount) ? row.tradeCount : null,
   }]
 }
 
