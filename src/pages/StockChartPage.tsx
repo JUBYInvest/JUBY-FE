@@ -247,6 +247,17 @@ function PriceSection({
    * 같은 높이의 상자 하나로 바꿔 가운데에 알린다. 다시 시도는 종목 정보만 다시 받는다(뉴스는 그대로).
    */
   if (failed) {
+    /*
+     * 목록에서 들고 온 기준일 종가가 있으면 그거라도 적는다.
+     *
+     * 상세 응답은 현재가(증권사)와 일봉(DB)을 함께 담는데, 증권사 쪽이 흔들리면 응답 전체가 500이라
+     * 일봉까지 못 받는다(2026-10-04 확인). 그때 화면을 통째로 "불러오지 못했습니다"로 두면,
+     * 바로 앞 목록에서 이미 보고 온 종가조차 사라져 아무것도 모르는 화면이 된다.
+     *
+     * 이 값은 현재가가 아니라 기준일 종가다. PriceLines가 날짜를 함께 적어 구분해 준다.
+     */
+    const hasPreviewPrice = preview?.closePrice !== undefined
+
     return (
       <section className={styles.section}>
         <Link to="/" className={styles.back}>
@@ -257,8 +268,16 @@ function PriceSection({
           <span className={styles.name}>{preview?.stockName ?? stockCode}</span>
           {preview !== null && <span className={styles.code}>{stockCode}</span>}
         </h1>
+
+        {hasPreviewPrice && <PriceLines detail={null} preview={preview} />}
+
         <div className={`${styles.chartBox} ${styles.failBox}`} role="alert">
-          <p className={styles.failText}>종목 정보를 불러오지 못했습니다</p>
+          {/* 가격을 적어 뒀으면 못 받은 건 차트뿐이다. 다 못 받은 것처럼 말하지 않는다 */}
+          <p className={styles.failText}>
+            {hasPreviewPrice
+              ? '차트를 불러오지 못했습니다'
+              : '종목 정보를 불러오지 못했습니다'}
+          </p>
           <button type="button" className={styles.retryButton} onClick={onRetry}>
             다시 시도
           </button>
