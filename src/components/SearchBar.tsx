@@ -28,8 +28,11 @@ export default function SearchBar({ stocks }: Props) {
    * 후보를 두 번 그린다.
    *
    * ① 가진 목록으로 즉시. 서버를 기다리면 글자를 칠 때마다 목록이 늦게 따라와 답답하다.
-   * ② 서버 검색(GET /api/stocks/search)이 오면 그것으로 바꾼다. 홈이 받아 둔 100종목 밖도
+   * ② 서버 검색(GET /api/stocks/search)이 오면 ①과 **합친다**. 홈이 받아 둔 100종목 밖도
    *    찾을 수 있다.
+   *
+   * 바꾸지 않고 합치는 이유: 서버는 종목명만 찾는다. 종목코드("005930")와 띄어쓴 이름
+   * ("sk 하이닉스")은 0건이라, 서버 결과로 바꾸면 ①에서 뜬 후보가 0.3초 뒤 사라졌다(2026-10-04 확인).
    *
    * 서버가 늦거나 실패해도 ①이 남아 있어 검색은 멈추지 않는다.
    */
@@ -53,7 +56,12 @@ export default function SearchBar({ stocks }: Props) {
       searchStocksRemote(trimmed)
         .then((found) => {
           if (cancelled) return
-          setSuggestions(rankStocks(found, trimmed, stocks))
+          // 같은 종목이 양쪽에 있으면 하나만 남긴다
+          const merged = new Map<string, StockInfo>()
+          for (const stock of [...searchStocks(stocks, trimmed), ...found]) {
+            if (!merged.has(stock.stockCode)) merged.set(stock.stockCode, stock)
+          }
+          setSuggestions(rankStocks([...merged.values()], trimmed, stocks))
         })
         .catch((error: unknown) => {
           // 가진 목록으로 그린 후보가 그대로 남는다. 화면에는 알리지 않는다
