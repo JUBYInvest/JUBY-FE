@@ -38,10 +38,20 @@ export function formatChangeRate(
   return `${sign}${rate.toFixed(fractionDigits)}%`
 }
 
+/**
+ * 세 자리 콤마. `toLocaleString('ko-KR')`과 같은 결과인데, 그건 부를 때마다 포맷터를 새로 만든다.
+ * 시세표 100행 × 여러 칸, 상세 차트의 눈금·십자선(마우스를 움직일 때마다)이 이걸 부르므로 하나를 만들어 같이 쓴다.
+ */
+const KO_NUMBER = new Intl.NumberFormat('ko-KR')
+
+export function formatNumber(value: number): string {
+  return KO_NUMBER.format(value)
+}
+
 /** 181200 → "181,200원" */
 export function formatPrice(price: number | null | undefined): string {
   if (!isFiniteNumber(price)) return EMPTY
-  return `${price.toLocaleString('ko-KR')}원`
+  return `${formatNumber(price)}원`
 }
 
 /**
@@ -52,8 +62,8 @@ export function formatPrice(price: number | null | undefined): string {
  */
 export function formatVolume(volume: number | null | undefined): string {
   if (!isFiniteNumber(volume)) return EMPTY
-  if (volume < 10_000) return `${volume.toLocaleString('ko-KR')}주`
-  return `${Math.round(volume / 10_000).toLocaleString('ko-KR')}만주`
+  if (volume < 10_000) return `${formatNumber(volume)}주`
+  return `${formatNumber(Math.round(volume / 10_000))}만주`
 }
 
 /**
@@ -68,9 +78,9 @@ export function formatTradingValue(value: number | null | undefined): string {
     return `${(value / 1_000_000_000_000).toFixed(1)}조`
   }
   if (value >= 100_000_000) {
-    return `${Math.round(value / 100_000_000).toLocaleString('ko-KR')}억`
+    return `${formatNumber(Math.round(value / 100_000_000))}억`
   }
-  return `${Math.round(value / 10_000).toLocaleString('ko-KR')}만원`
+  return `${formatNumber(Math.round(value / 10_000))}만원`
 }
 
 /**

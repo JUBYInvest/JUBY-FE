@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import {
+  DEFAULT_TITLE,
   ask,
   createSession,
   deleteSession,
@@ -15,14 +16,12 @@ import SessionSidebar, { type SessionListState } from '../components/SessionSide
 import { useIsLoggedIn } from '../hooks/useIsLoggedIn'
 import { useMyPersonality } from '../hooks/useMyPersonality'
 import { useDocumentTitle } from '../hooks/useDocumentTitle'
-import { findStockName } from '../utils/stockName'
 import type { ChatMessage, ChatSession } from '../types/ai'
 import styles from './AiPage.module.css'
 
 /** 검사를 마치면 doneRoute가 from=ai를 보고 이 화면으로 돌려보낸다 */
 const PERSONALITY_TEST_URL = '/personality-test?from=ai'
 
-const STOCK_HINT = '종목명을 함께 입력하면 더 정확한 분석을 받을 수 있어요.'
 const LOGIN_HINT = '로그인하면 질문할 수 있어요.'
 const NO_PERSONALITY_HINT = '투자성향을 먼저 정해야 답할 수 있어요.'
 /** 같은 대화방에서 앞 질문의 답을 서버가 아직 만드는 중(409 CHAT409_1). 질문은 저장되지 않았다 */
@@ -59,7 +58,7 @@ export default function AiPage() {
    */
   const localIdRef = useRef(-1)
   /** 실패한 질문. '다시 시도'가 이걸 그대로 다시 보낸다 */
-  const lastAskRef = useRef<{ text: string; stockName: string } | null>(null)
+  const lastAskRef = useRef<{ text: string } | null>(null)
   /*
    * 질문을 보낼 때마다 하나씩 올라가는 번호.
    * 답을 기다리는 동안 다른 대화방을 누르거나 새 대화를 열면 이 번호도 올라간다.
@@ -228,8 +227,15 @@ export default function AiPage() {
       })
   }
 
-  async function send(text: string, stockName: string) {
-    lastAskRef.current = { text, stockName }
+  async function send(text: string) {
+    lastAskRef.current = { text }
+    /*
+     * 답이 온 뒤 대화방 목록을 다시 받을지. 서버는 방의 첫 질문으로만 제목을 짓는다 — 새로 만든 방이거나 아직 '새 대화'인 방이면
+     * 받아서 지어진 제목을 쓰고, 아니면 그 방을 맨 위로 올리기만 한다(목록은 최근 대화 순). 예전엔 답마다 목록을 통째로 다시 받았다.
+     */
+    const needsTitle =
+      sessionId === null ||
+      sessions.find((item) => item.sessionId === sessionId)?.title === DEFAULT_TITLE
     setPending('loading')
     askSeqRef.current += 1
     const seq = askSeqRef.current
@@ -250,7 +256,8 @@ export default function AiPage() {
       }
 
       // 같은 방 번호를 실어 보내면 서버가 앞 대화를 맥락으로 쓴다("그 종목은?")
-      const result = await ask(text, stockName, roomId)
+      // 종목명은 싣지 않는다. 서버가 질문과 앞 대화에서 찾는다(api/ai.ts ask)
+      const result = await ask(text, roomId)
       // 기다리는 사이 화면이 다른 대화방으로 바뀌었다. 이 답은 그 방의 것이 아니다
       if (seq !== askSeqRef.current) return
 
@@ -271,7 +278,17 @@ export default function AiPage() {
         },
       ])
       setPending(null)
-      loadSessions(true)
+      if (needsTitle) {
+        loadSessions(true)
+      } else {
+        const answeredRoom = roomId
+        setSessions((previous) => {
+          const room = previous.find((item) => item.sessionId === answeredRoom)
+          return room === undefined
+            ? previous
+            : [room, ...previous.filter((item) => item.sessionId !== answeredRoom)]
+        })
+      }
     } catch (error: unknown) {
       if (seq !== askSeqRef.current) return
       console.warn('AI 질문 전송 실패', error)
@@ -312,8 +329,6 @@ export default function AiPage() {
       return
     }
 
-    const stockName = findStockName(text)
-
     /* 내 질문을 먼저 띄운다. 서버를 기다렸다 그리면 반응이 느리게 느껴진다 */
     setMessages((previous) => [
       ...previous,
@@ -325,9 +340,9 @@ export default function AiPage() {
       },
     ])
     setQuestion('')
-    setNotice(stockName === '' ? STOCK_HINT : '')
+    setNotice('')
 
-    void send(text, stockName)
+    void send(text)
   }
 
   /**
@@ -348,7 +363,7 @@ export default function AiPage() {
     const last = lastAskRef.current
     if (last === null) return
     if (sessionId === null) {
-      void send(last.text, last.stockName)
+      void send(last.text)
       return
     }
 
@@ -376,7 +391,7 @@ export default function AiPage() {
       // 확인을 못 해도 다시 보내기는 한다
       console.warn('AI 대화 다시 확인 실패', error)
     }
-    void send(last.text, last.stockName)
+    void send(last.text)
   }
 
   function handleKeyDown(event: React.KeyboardEvent<HTMLTextAreaElement>) {

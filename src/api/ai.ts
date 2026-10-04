@@ -10,7 +10,8 @@ import type { AskResult, ChatMessage, ChatSession, ChatSessionDetail } from '../
  * - 질문: `POST /api/open-ai/ask`에 `chatSessionId`를 실으면 그 방에 이어 저장하고 **앞 대화를 맥락으로 쓴다**. 첫 질문이면 서버가
  *   질문 앞 30자로 방 제목을 붙인다. 같은 방에서 앞 답을 만드는 중이면 409 `CHAT409_1`이고 질문은 저장되지 않는다.
  *   성향을 안 정한 회원이면 404 `MEMBER404_2`. 답 생성이 실패하면(502) 질문만 방에 남는다.
- *   stockName은 비워 보내면 서버가 질문(과 앞 대화)에서 종목을 찾는다.
+ *   stockName은 비워 보내면 서버가 첫 AI 호출로 질문과 **앞 대화**에서 종목을 찾는다(OpenAiService.classify).
+ *   실어 보내면 서버는 그 값을 먼저 쓴다 — 스웨거대로 "종목 상세 화면처럼 종목이 분명할 때만" 싣는다.
  */
 
 /** 서버 SessionSummary(목록 한 줄, 만들기·제목 바꾸기 응답) */
@@ -37,7 +38,8 @@ interface AskResponse {
   messageId?: number | null
 }
 
-const DEFAULT_TITLE = '새 대화'
+/** 서버가 빈 방에 붙이는 제목. 첫 질문이 들어가면 서버가 질문 앞 30자로 바꾼다 */
+export const DEFAULT_TITLE = '새 대화'
 /** 서버 ChatService의 MAX_TITLE_LENGTH. 사람이 붙인 제목은 여기서 자르고, 첫 질문으로 지은 제목은 30자 + '…'다 */
 export const TITLE_MAX_LENGTH = 30
 
@@ -129,15 +131,21 @@ export async function getSessionDetail(sessionId: number): Promise<ChatSessionDe
  */
 export async function ask(
   question: string,
-  stockName: string,
   sessionId: number,
+  /**
+   * 종목이 분명할 때만(예: 종목 상세에서 묻는 경우). 비우면 서버가 질문과 앞 대화에서 찾는다.
+   * AI 화면은 비운다 — 예전에는 질문 글에서 목록의 이름을 글자로 찾아 실었는데(utils/stockName.ts, 지움), 서버는 실린 값을
+   * 먼저 쓰므로 "sk하이닉스랑 LG에너지솔루션 중에 뭐가 나아?"가 LG에너지솔루션 하나로 좁혀졌고, "그 종목은?" 같은
+   * 이어 묻기에는 "종목명을 함께 입력하라"는 엉뚱한 안내가 떴다.
+   */
+  stockName: string | null = null,
 ): Promise<AskResult> {
   const result = await post<AskResponse | null>(
     '/api/open-ai/ask',
     {
       question,
-      // 빈 문자열을 보내면 서버가 "종목명 있음"으로 오해할 수 있다. 없으면 null로 비운다
-      stockName: stockName === '' ? null : stockName,
+      // 빈 문자열은 서버가 비운 것으로 보지만(isBlank), 뜻을 분명히 하려고 null로 보낸다
+      stockName: stockName === null || stockName.trim() === '' ? null : stockName,
       chatSessionId: sessionId,
     },
     /*

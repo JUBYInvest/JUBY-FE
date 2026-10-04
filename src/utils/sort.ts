@@ -1,6 +1,12 @@
 import { isFiniteNumber } from './format'
 import type { SortKey, SortState, Stock } from '../types/stock'
 
+/**
+ * 종목명 가나다순 비교. `localeCompare(…, 'ko')`와 같은 결과인데, 그건 비교할 때마다 비교기를 새로 만든다 —
+ * 100행을 정렬하면 비교가 수백 번이다. 하나를 만들어 같이 쓴다.
+ */
+const KO_COLLATOR = new Intl.Collator('ko')
+
 /** 견줄 값. 서버가 필드를 빼거나 null·빈 문자열로 준 행은 null */
 function sortValue(stock: Stock, key: SortKey): string | number | null {
   const value: unknown = stock[key]
@@ -23,7 +29,7 @@ export function sortStocks(stocks: Stock[], sort: SortState): Stock[] {
     const right = sortValue(b, sort.key)
     if (left === null || right === null) return Number(left === null) - Number(right === null)
     if (typeof left === 'number' && typeof right === 'number') return (left - right) * sign
-    return String(left).localeCompare(String(right), 'ko') * sign
+    return KO_COLLATOR.compare(String(left), String(right)) * sign
   })
 }
 

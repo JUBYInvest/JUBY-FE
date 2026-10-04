@@ -638,7 +638,7 @@ const MAX_RESULTS = 8
 
 /**
  * 띄어쓰기와 대소문자를 무시하고 비교하려고 다듬는다. "sk 하이닉스" → "sk하이닉스"
- * 검색창과 AI 질문의 종목명 찾기(utils/stockName.ts)가 같이 쓴다.
+ * 검색창이 쓴다.
  */
 export function normalize(text: string): string {
   return text.replace(/\s+/g, '').toLowerCase()

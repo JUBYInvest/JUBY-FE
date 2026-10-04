@@ -325,7 +325,8 @@ export default function HomePage() {
     }
   }
 
-  const sortedStocks = sortStocks(stocks, sort)
+  // 하트·카드 그래프·무한 스크롤로 다시 그릴 때마다 100행을 다시 정렬하지 않는다
+  const sortedStocks = useMemo(() => sortStocks(stocks, sort), [stocks, sort])
 
   return (
     <>

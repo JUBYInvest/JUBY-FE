@@ -9,7 +9,7 @@ import {
 import type { IChartApi, ISeriesApi } from 'lightweight-charts'
 import type { Candle } from '../types/stock'
 import { toDashedYmd, toKoreanDate } from '../utils/date'
-import { formatChangeRate, isFiniteNumber, isFlatRate } from '../utils/format'
+import { formatChangeRate, formatNumber, isFiniteNumber, isFlatRate } from '../utils/format'
 import styles from './CandleChart.module.css'
 
 /** 국내 시장 관례대로 오르면 빨강, 내리면 파랑 */
@@ -23,16 +23,16 @@ const VOLUME_PANE_RATIO = 0.26
 
 /** 가격 눈금. 원 단위라 세 자리 콤마만 넣는다 */
 function formatPriceTick(price: number): string {
-  return Math.round(price).toLocaleString('ko-KR')
+  return formatNumber(Math.round(price))
 }
 
 /** 거래량 눈금. 주 단위 숫자가 길어서 만·억으로 줄인다. 1,234,567 → "123만" */
 function formatVolume(volume: number): string {
   if (volume >= 100_000_000) return `${(volume / 100_000_000).toFixed(1)}억`
   if (volume >= 10_000) {
-    return `${Math.round(volume / 10_000).toLocaleString('ko-KR')}만`
+    return `${formatNumber(Math.round(volume / 10_000))}만`
   }
-  return Math.round(volume).toLocaleString('ko-KR')
+  return formatNumber(Math.round(volume))
 }
 
 /*
