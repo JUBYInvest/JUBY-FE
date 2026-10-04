@@ -116,6 +116,29 @@
   color: var(--color-text-sub);
 }
 
+/*
+ * 실패해서 다시 부르기를 기다리는 동안 차트 자리 가운데에 남은 시간을 적는다.
+ * 한글은 낱말 단위로만 줄을 바꾼다 — 휴대폰 폭에서 "있습니/다."처럼 끝 음절만 따로 내려갔다
+ */
+.chartWait {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 100%;
+  padding: 0 16px;
+  text-align: center;
+  word-break: keep-all;
+}
+
+.chartWaitTitle {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
 /* 현재가 응답에 함께 오던 값들. 네 칸이 같은 너비로 늘어선다 */
 .summary {
   display: grid;

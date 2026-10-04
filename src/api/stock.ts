@@ -191,6 +191,69 @@ function readMemo<T>(memo: Map<string, Memo<T>>, key: string, maxAge: number): T
   return entry.value
 }
 
+/*
+ * 상세를 실패한 뒤 다시 부를 간격. **임시다 — 백엔드가 docs/남은-일.md 백엔드 10번을 고치면 이 장치를 걷는다.**
+ *
+ * 2026-10-04(일) 상세가 1분에 1건만 성공했다. 앞 요청 뒤 1분 안에 보내면 다른 종목이든 같은 종목이든 500이라,
+ * 종목 하나를 본 뒤 곧바로 다른 종목을 누르면 "차트를 불러오지 못했습니다"가 떴다. 0.4초 뒤 다시 부르던
+ * 재시도도 같은 1분 안이라 반드시 실패했다. 70초 간격으로는 늘 성공했다.
+ * 백엔드 소스로 보면 증권사 토큰이 DB에 살아 있으면(평일 16시 일봉 배치가 받아 둔다) 한도가 없고, 토큰이 끝난
+ * 주말에는 상세가 새 토큰을 저장하지 못해 요청마다 발급을 받으려다 증권사의 "1분에 1회 발급"에 걸린다.
+ *
+ * 그래서 처음에는 곧바로 보낸다 — 서버가 멀쩡하면 기다릴 까닭이 없다. 실패한 뒤 다시 부를 때만, 이 브라우저가
+ * 마지막으로 보낸 때에서 DETAIL_GAP_MS가 지나기를 기다린다(그 안에 부르면 또 실패한다). 요청이 서버에 닿는 시각은
+ * 보낸 시각과 조금씩 달라 1분에 몇 초를 더 둔다. 기다리는 동안 화면이 남은 시간을 적는다(StockChartPage).
+ * 탭 여러 개도 같은 서버 한도를 나눠 쓰므로 보낸 때를 localStorage에도 둔다.
+ */
+export const DETAIL_GAP_MS = 65 * 1000
+const DETAIL_SENT_KEY = 'stockDetailSentAt'
+/** localStorage를 못 쓰는 브라우저(사생활 보호 창 등)에서도 이 탭 안에서는 간격을 지키도록 메모리에도 둔다 */
+let detailSentAt = 0
+
+function lastDetailSentAt(): number {
+  let stored = 0
+  try {
+    const value = Number(localStorage.getItem(DETAIL_SENT_KEY))
+    if (Number.isFinite(value)) stored = value
+  } catch {
+  }
+  return Math.max(detailSentAt, stored)
+}
+
+function markDetailSent(): void {
+  detailSentAt = Date.now()
+  try {
+    localStorage.setItem(DETAIL_SENT_KEY, String(detailSentAt))
+  } catch {
+  }
+}
+
+/**
+ * 상세를 지금 보내도 되면 0, 아니면 기다릴 ms.
+ * 시계를 되돌려 보낸 때가 미래로 남아도 DETAIL_GAP_MS보다 오래 기다리지는 않는다.
+ */
+export function detailWaitMs(): number {
+  const wait = lastDetailSentAt() + DETAIL_GAP_MS - Date.now()
+  return Math.min(Math.max(wait, 0), DETAIL_GAP_MS)
+}
+
+/** 같은 탭에서 방금(1분) 받아 둔 상세. 있으면 화면이 서버에 묻지 않고 바로 그린다 */
+export function peekStockDetail(stockCode: string, period: Period = 'ALL'): StockDetail | null {
+  return readMemo(detailMemo, `${stockCode}|${period}`, DETAIL_MEMO_AGE)
+}
+
+/**
+ * 지금 서버에 묻고 있는 상세. 같은 종목을 또 부르면 새로 보내지 않고 이 답을 같이 기다린다.
+ * 없으면 개발 모드(StrictMode)는 effect를 두 번 돌려 처음 연 종목에도 요청이 둘 나갔고, 1분에 1건만 되는 날엔 둘째가 실패했다.
+ * A를 부르는 중에 B로 갔다가 A로 돌아와도 같다.
+ */
+const detailInFlight = new Map<string, Promise<StockDetail>>()
+
+/** 이 종목 상세를 지금 묻고 있는가. 그렇다면 화면은 새로 보내지 않고 그 답을 받는다 */
+export function isStockDetailInFlight(stockCode: string, period: Period = 'ALL'): boolean {
+  return detailInFlight.has(`${stockCode}|${period}`)
+}
+
 /** GET /api/stocks/{code} */
 interface StockDetailResponse {
   stockName?: string | null
@@ -226,6 +289,8 @@ export function isStockCode(code: string): boolean {
  * 기간을 바꿀 때마다 부르면 그때마다 증권사 호출이 한 번씩 나간다. 상세 화면은
  * ALL로 한 번 받아 두고 기간 탭은 화면에서 잘라 쓴다(StockChartPage 참고).
  * 없는 종목이면 ApiError(404, STOCK404_1)가 난다.
+ * 실패한 뒤 다시 부를 때는 부르는 쪽이 detailWaitMs()로 간격을 지킨다(위 "실패한 뒤 다시 부를 간격").
+ * 같은 종목을 이미 묻고 있으면 새로 보내지 않고 그 답을 준다(fresh여도 — 묻고 있는 답이 곧 새 값이다).
  */
 export async function getStockDetail(
   stockCode: string,
@@ -237,6 +302,22 @@ export async function getStockDetail(
   const remembered = options.fresh ? null : readMemo(detailMemo, memoKey, DETAIL_MEMO_AGE)
   if (remembered !== null) return remembered
 
+  const pending = detailInFlight.get(memoKey)
+  if (pending !== undefined) return pending
+
+  const request = fetchStockDetail(stockCode, period, memoKey)
+  detailInFlight.set(memoKey, request)
+  // 부르는 쪽보다 먼저 지운다. 실패를 받은 화면이 다시 부를 때는 묻는 중이 아니어야 간격을 기다린다
+  const settle = () => {
+    if (detailInFlight.get(memoKey) === request) detailInFlight.delete(memoKey)
+  }
+  request.then(settle, settle)
+  return request
+}
+
+async function fetchStockDetail(stockCode: string, period: Period, memoKey: string): Promise<StockDetail> {
+  // 실패해도 서버 한도는 쓴 것으로 본다 — 실패한 요청이 다음 1분을 비워 주는지 확인하지 못했다
+  markDetailSent()
   const response = await get<StockDetailResponse | null>(
     `/api/stocks/${encodeURIComponent(stockCode)}?period=${period}`,
   )

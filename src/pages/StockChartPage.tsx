@@ -4,9 +4,14 @@ import CandleChart from '../components/CandleChart'
 import NewsList from '../components/NewsList'
 import SectionBoundary from '../components/SectionBoundary'
 import { ApiError } from '../api/client'
-import { getStockDetail, isStockCode } from '../api/stock'
+import {
+  detailWaitMs,
+  getStockDetail,
+  isStockCode,
+  isStockDetailInFlight,
+  peekStockDetail,
+} from '../api/stock'
 import { useDocumentTitle } from '../hooks/useDocumentTitle'
-import { withRetry } from '../utils/async'
 import { periodStart, toKoreanDate } from '../utils/date'
 import {
   formatChangeRate,
@@ -39,6 +44,8 @@ const DEFAULT_PERIOD: Period = 'THREE_MONTH'
  */
 type State =
   | { kind: 'loading' }
+  /** 실패해서 다시 부르기 전에 간격(api/stock.ts DETAIL_GAP_MS)을 기다리는 중. until(ms)이 되면 보낸다 */
+  | { kind: 'waiting'; stockCode: string; until: number }
   | { kind: 'ready'; stockCode: string; detail: StockDetail }
   /** 백엔드 stock 테이블에 없는 종목코드 */
   | { kind: 'notFound'; stockCode: string }
@@ -112,30 +119,67 @@ export default function StockChartPage() {
   useEffect(() => {
     if (stockCode === undefined || !hasValidCode) return
     let isStale = false
+    let timer: ReturnType<typeof setTimeout> | undefined
 
-    setState({ kind: 'loading' })
-
-    // 증권사 초당 제한에 걸리면 500이 온다. 한 번 더 부르면 대개 통과한다
     // 다시 시도로 도는 이번 한 번만 방금 받아 둔 값을 쓰지 않고 새로 받는다
     const fresh = freshNextRef.current
     freshNextRef.current = false
-    withRetry(() => getStockDetail(stockCode, 'ALL', { fresh }), 1, 400)
-      .then((detail) => {
-        if (isStale) return
-        setState({ kind: 'ready', stockCode, detail })
-      })
-      .catch((error: unknown) => {
-        if (isStale) return
-        if (error instanceof ApiError && error.status === 404) {
-          setState({ kind: 'notFound', stockCode })
-          return
-        }
-        console.warn('종목 상세 조회 실패', error)
-        setState({ kind: 'error', stockCode })
-      })
+
+    // 방금 본 종목이면 서버에 묻지 않는다
+    const remembered = fresh ? null : peekStockDetail(stockCode)
+    if (remembered !== null) {
+      setState({ kind: 'ready', stockCode, detail: remembered })
+      return
+    }
+
+    // 안쪽 함수에서는 위의 undefined 검사가 이어지지 않아 좁혀진 값을 따로 둔다
+    const code = stockCode
+
+    /*
+     * 처음에는 곧바로 보낸다. 서버가 멀쩡하면(평일) 종목을 연달아 열어도 기다리지 않는다.
+     *
+     * 서버 오류면 간격(api/stock.ts "실패한 뒤 다시 부를 간격")을 기다렸다가 한 번은 저절로 다시 부른다.
+     * 1분에 1건만 되는 날(2026-10-04 주말)은 그 안에 다시 불러도 또 실패한다 — 0.4초 뒤에 바로 다시 부르던
+     * 예전 재시도가 그랬다. 두 번째도 실패하면 "다시 시도"를 띄우고, 그 버튼도 간격 안이면 기다렸다가 보낸다.
+     * 기다리는 사이 다른 종목으로 가면 정리 함수가 타이머를 지워 이 종목 요청은 더 나가지 않는다.
+     */
+    function load(autoRetries: number, retrying: boolean) {
+      // 이 종목을 이미 묻고 있으면 새로 보내지 않고 그 답을 받으니 기다릴 것이 없다
+      const wait = retrying && !isStockDetailInFlight(code) ? detailWaitMs() : 0
+      if (wait > 0) {
+        setState({ kind: 'waiting', stockCode: code, until: Date.now() + wait })
+        timer = setTimeout(() => load(autoRetries, retrying), wait)
+        return
+      }
+
+      setState({ kind: 'loading' })
+      getStockDetail(code, 'ALL', { fresh: true })
+        .then((detail) => {
+          if (isStale) return
+          setState({ kind: 'ready', stockCode: code, detail })
+        })
+        .catch((error: unknown) => {
+          if (isStale) return
+          if (error instanceof ApiError && error.status === 404) {
+            setState({ kind: 'notFound', stockCode: code })
+            return
+          }
+          console.warn('종목 상세 조회 실패', error)
+          // 4xx와 모양이 틀린 200은 다시 불러도 같다. 서버 오류(5xx)와 서버에 못 닿은 경우만 다시 부른다
+          const serverSide = !(error instanceof ApiError) || error.status >= 500
+          if (autoRetries > 0 && serverSide) {
+            load(autoRetries - 1, true)
+            return
+          }
+          setState({ kind: 'error', stockCode: code })
+        })
+    }
+    // 다시 시도 버튼으로 왔으면(fresh) 방금 실패한 것이니 처음부터 간격을 지킨다
+    load(1, fresh)
 
     return () => {
       isStale = true
+      clearTimeout(timer)
     }
   }, [stockCode, hasValidCode, retryCount])
 
@@ -200,6 +244,7 @@ export default function StockChartPage() {
           preview={preview}
           period={period}
           onPeriodChange={setPeriod}
+          waiting={view.kind === 'waiting' ? view : null}
           failed={view.kind === 'error'}
           onRetry={retry}
         />
@@ -222,6 +267,8 @@ interface PriceSectionProps {
   preview: StockPreview | null
   period: Period
   onPeriodChange: (period: Period) => void
+  /** 실패해서 다시 부르기를 기다리는 중이면 언제 보내는지. 차트 자리에 남은 시간을 적는다 */
+  waiting: { until: number } | null
   /** 종목 정보를 못 받았다. 가격·탭·차트 자리를 안내 상자 하나로 바꾼다 */
   failed: boolean
   onRetry: () => void
@@ -234,6 +281,7 @@ function PriceSection({
   preview,
   period,
   onPeriodChange,
+  waiting,
   failed,
   onRetry,
 }: PriceSectionProps) {
@@ -331,7 +379,10 @@ function PriceSection({
       </div>
 
       <div className={styles.chartBox}>
-        {detail === null && <div className={styles.chartSkeleton} />}
+        {detail === null && waiting !== null && (
+          <WaitNotice until={waiting.until} />
+        )}
+        {detail === null && waiting === null && <div className={styles.chartSkeleton} />}
 
         {detail !== null && shown.length === 0 && (
           <p className={styles.chartMessage}>이 기간에는 거래일이 없습니다.</p>
@@ -399,6 +450,30 @@ function PriceSection({
         </>
       )}
     </section>
+  )
+}
+
+/**
+ * 실패해서 다시 부르기를 기다리는 동안 차트 자리에 적는 안내. 남은 초를 센다.
+ * 말없이 뼈대만 1분 가까이 두면 멈춘 것처럼 보여서, 언제 다시 부르는지를 적는다.
+ */
+function WaitNotice({ until }: { until: number }) {
+  const [now, setNow] = useState(() => Date.now())
+
+  useEffect(() => {
+    // 1초마다 세면 타이머가 조금씩 밀려 숫자를 건너뛸 때가 있어 더 자주 본다
+    const id = setInterval(() => setNow(Date.now()), 250)
+    return () => clearInterval(id)
+  }, [])
+
+  // 0초는 적지 않는다. 그때는 이미 요청을 보내 '불러오는 중'으로 바뀐다
+  const seconds = Math.max(1, Math.ceil((until - now) / 1000))
+
+  return (
+    <div className={styles.chartWait}>
+      <p className={styles.chartWaitTitle}>{seconds}초 뒤에 차트를 다시 불러옵니다</p>
+      <p className={styles.chartMessage}>서버가 잠시 응답하지 못했습니다.</p>
+    </div>
   )
 }
 
