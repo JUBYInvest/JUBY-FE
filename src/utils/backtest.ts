@@ -164,9 +164,13 @@ export function periodLabel(period: BacktestPeriod): string {
 /**
  * 적합도 점수를 말로 옮긴다.
  *
- * 백엔드는 숫자만 주고 등급을 나누지 않는다. 화면에서 "적합/보통/부적합"을
+ * 프리셋 API는 숫자만 주고 등급을 나누지 않는다. 화면에서 "적합/보통/부적합"을
  * 말하려면 어딘가에서 선을 그어야 해서 여기서 긋는다.
  * 서버가 등급을 내려주기 시작하면 이 함수는 버린다.
+ *
+ * 50점 선은 AI 답변과 맞춘다. 서버 AI는 같은 점수를 50점 이상이면 "추천 (투자성향에 비교적 적합한 편)",
+ * 미만이면 "비추천"으로 말한다(OpenAiService RECOMMEND_SCORE_THRESHOLD). 그래서 50~70점은 "비교적 잘 맞아요"다 —
+ * 예전엔 "무난해요"(중립)라 같은 종목이 AI에서는 추천, 이 화면에서는 무난으로 읽혔다(2026-10-04 사용자 결정으로 바꿈).
  */
 export function scoreVerdict(score: number): {
   /** 문장 안에 넣는 꼴: "~에 적합한 종목이에요" */
@@ -182,7 +186,7 @@ export function scoreVerdict(score: number): {
   const shown = Number(score.toFixed(1))
   if (shown >= 70) return { label: '적합한', short: '잘 맞아요', tone: 'good' }
   if (shown >= 50)
-    return { label: '무난한', short: '무난해요', tone: 'normal' }
+    return { label: '비교적 잘 맞는', short: '비교적 잘 맞아요', tone: 'normal' }
   return { label: '맞지 않는', short: '잘 안 맞아요', tone: 'bad' }
 }
 
