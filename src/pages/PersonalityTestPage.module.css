@@ -167,4 +167,7 @@
   font-weight: 700;
   text-decoration: underline;
   text-underline-offset: 2px;
+  /* 문장 속 링크라 글줄은 그대로 두고 누르는 넓이만 위아래로 넓힌다 */
+  padding: 8px 2px;
+  margin: -8px -2px;
 }

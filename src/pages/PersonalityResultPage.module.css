@@ -34,7 +34,10 @@
 
 /* 주 버튼 아래 보조 링크. 다시 푸는 쪽은 눈에 덜 띄어야 한다 */
 .retry {
-  margin-top: 14px;
+  /* 글자는 13px이지만 손가락으로 누를 넓이는 44px 가까이 둔다(여백으로 넓히고 음수 여백으로 자리는 그대로) */
+  display: inline-block;
+  margin: 14px 0 -10px;
+  padding: 10px 12px;
   font-size: 13px;
   font-weight: 500;
   color: var(--color-text-sub);

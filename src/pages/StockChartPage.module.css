@@ -265,13 +265,17 @@
 
 .periodTabs {
   display: flex;
+  /*
+   * 좁은 화면에서 일곱 개가 한 줄에 안 들어가면 두 줄로 접는다. 예전엔 옆으로 밀었는데(overflow-x: auto)
+   * 320·375px에서 '전체' 탭이 잘린 채 숨어 있어도 밀 수 있다는 표시가 없었다(2026-10-05 점검).
+   * 한 줄에 다 들어가는 폭에서는 접히지 않는다.
+   */
+  flex-wrap: wrap;
   gap: 4px;
   margin: 16px 0 12px;
   padding: 4px;
   border-radius: 10px;
   background: var(--color-bg-sub);
-  /* 좁은 화면에서 일곱 개가 한 줄에 안 들어가면 옆으로 민다 */
-  overflow-x: auto;
 }
 
 .periodTab {

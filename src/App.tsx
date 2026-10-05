@@ -28,12 +28,18 @@ const StockChartPage = lazy(loadStockChartPage)
 const AiPage = lazy(() => import('./pages/AiPage'))
 const LoginPage = lazy(() => import('./pages/LoginPage'))
 const OAuthCallbackPage = lazy(() => import('./pages/OAuthCallbackPage'))
-const MypageLayout = lazy(() => import('./components/MypageLayout'))
-const MypagePersonalityPage = lazy(
-  () => import('./pages/MypagePersonalityPage'),
+/*
+ * 마이페이지는 껍데기(사이드바)와 안쪽 세 화면을 **한 묶음**으로 받는다(pages/mypageBundle.ts).
+ * 넷을 따로 lazy로 두면 껍데기 묶음이 온 뒤에야 안쪽 화면 묶음을 받기 시작해, 들어올 때마다
+ * 왕복이 하나 더 끼었다(껍데기 → 안쪽 → 요청, 2026-10-05 측정). 셋을 합쳐도 압축 20KB 남짓이다.
+ */
+const mypageBundle = () => import('./pages/mypageBundle')
+const MypageLayout = lazy(() => mypageBundle().then((m) => ({ default: m.MypageLayout })))
+const MypagePersonalityPage = lazy(() =>
+  mypageBundle().then((m) => ({ default: m.MypagePersonalityPage })),
 )
-const MypageProfilePage = lazy(() => import('./pages/MypageProfilePage'))
-const MypageLikesPage = lazy(() => import('./pages/MypageLikesPage'))
+const MypageProfilePage = lazy(() => mypageBundle().then((m) => ({ default: m.MypageProfilePage })))
+const MypageLikesPage = lazy(() => mypageBundle().then((m) => ({ default: m.MypageLikesPage })))
 const GuidePage = lazy(() => import('./pages/GuidePage'))
 const BacktestPage = lazy(() => import('./pages/BacktestPage'))
 const PersonalityTestPage = lazy(() => import('./pages/PersonalityTestPage'))

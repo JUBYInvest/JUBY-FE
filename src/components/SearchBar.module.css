@@ -23,6 +23,8 @@
 
 .input {
   flex: 1;
+  /* 상자(58px) 높이를 다 차지해 위아래 여백을 눌러도 입력이 시작된다 */
+  align-self: stretch;
   min-width: 0;
   border: none;
   outline: none;

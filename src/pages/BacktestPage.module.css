@@ -888,6 +888,15 @@
     font-size: 21px;
   }
 
+  /* 점수 옆 한 줄 평가가 "비교적 잘 맞아/요"로 꺾이지 않게 한다. 자리가 없으면 통째로 다음 줄로 */
+  .scoreBox {
+    flex-wrap: wrap;
+  }
+
+  .scoreVerdict {
+    white-space: nowrap;
+  }
+
   .card,
   .compare {
     padding: 20px 16px;

@@ -1,4 +1,4 @@
-/* 공통 헤더 바로 아래에 붙는 제목 줄. 헤더와 같은 흰 배경으로 이어진다 */
+/* 공통 헤더 바로 아래에 붙는 제목 줄. 헤더와 같은 흰 배경으로 이어진다. 좌우 여백은 머리글(Header.module.css)과 같이 줄인다 */
 .titleBar {
   display: flex;
   align-items: center;
@@ -101,4 +101,30 @@
 
 .icon {
   display: block;
+}
+
+/* 머리글과 같은 폭에서 같은 여백으로 줄인다. 이 화면만 80px 여백이 남아 휴대폰에서 제목이 가운데쯤에서 시작했다(2026-10-05) */
+@media (max-width: 900px) {
+  .titleBar {
+    padding: 0 32px;
+  }
+}
+
+@media (max-width: 600px) {
+  .titleBar {
+    height: 64px;
+    padding: 0 16px;
+  }
+
+  .title {
+    font-size: 22px;
+  }
+
+  .band {
+    padding: 56px 16px;
+  }
+
+  .headline {
+    font-size: 26px;
+  }
 }
