@@ -94,15 +94,11 @@ export default function HomePage() {
   /*
    * 테마별 대표 종목 카드. 어떤 종목인지는 서버가 정한다(GET /api/stocks/leading-stocks).
    * 첫 그림은 지난 방문에 받아 둔 값으로, 그것도 없으면 고정 목록으로 그리고, 아래 effect가
-   * 받은 값으로 갈아끼운다. settled는 서버에 물어본 결과가 나왔는지다(지금 화면은 쓰지 않는다).
+   * 받은 값으로 갈아끼운다.
    */
-  const [{ leading }, setLeadingState] = useState<{
-    leading: LeadingStocks
-    settled: boolean
-  }>(() => {
-    const cached = readCachedLeading()
-    return { leading: cached ?? FALLBACK_LEADING, settled: cached !== null }
-  })
+  const [leading, setLeading] = useState<LeadingStocks>(
+    () => readCachedLeading() ?? FALLBACK_LEADING,
+  )
   const themes = leading.themes
   const [list, setList] = useState<ListState>({ kind: 'loading' })
   const [visibleCount, setVisibleCount] = useState(
@@ -126,7 +122,7 @@ export default function HomePage() {
   const reloadLeading = useCallback(() => {
     let ignore = false
     void loadLeading().then((next) => {
-      if (!ignore) setLeadingState({ leading: next, settled: true })
+      if (!ignore) setLeading(next)
     })
     return () => {
       ignore = true

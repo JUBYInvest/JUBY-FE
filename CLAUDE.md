@@ -196,6 +196,8 @@ DB 일봉을 주는 API는 상세 하나뿐이라(스웨거·백엔드 컨트롤
   깨는 우회라, 백엔드가 그 경로를 막으면 저절로 꺼진다.
   - **홈에 와도 심는다**(`loadCardSeries`). 상세 앞에 심기가 끼면 그만큼 상세가 늦으니 미리 해 둔다.
   - **심기는 3초만 기다린다**(`PRIME_TIMEOUT`, 기본 12초면 증권사가 느린 날 상세가 12초 밀린다). 끊어도 서버는 하던 일을 마친다.
+    이 시간 초과는 차단기(client.ts)에 세지 않는다(`countsTowardBreaker: false`) — 세면 이어지는 상세의 시간 초과와 합쳐 두 번이 되어
+    15초 동안 시세표·뉴스까지 막혔다. 연결 실패는 그대로 센다.
   - **상세가 서버 오류를 내면 심어 둔 표시를 지운다**(`forgetKisTokenPrime`). 심을 때 남이 받아 둔 곧 끝날 토큰을 그대로 썼으면
     표시는 6시간인데 토큰은 먼저 끝나, 남은 시간 내내 심기를 건너뛰고 1분에 1건으로 돌아갔다(2026-10-04 점검).
 - **사용자가 누르지 않은 증권사 호출(홈 카드 그래프)은 서버에 토큰이 있을 때만 쓴다**(`canSpendKisCall`). 토큰이 없으면 카드 한 장이
@@ -241,8 +243,13 @@ DB 일봉을 주는 API는 상세 하나뿐이라(스웨거·백엔드 컨트롤
 
 - `src/utils/auth.ts` — `accessToken`. 나중에 HttpOnly 쿠키로 옮길 때 이 파일만 고치면 되게 하려는 것이다.
   refresh token은 이미 백엔드가 HttpOnly 쿠키로 둔다(2026-09-28). 예전에 저장한 `refreshToken` 키는 `clearTokens`가 지우기만 한다.
-- `src/utils/cache.ts` — TTL 있는 임시 캐시(`readCache`/`writeCache`). 읽기·쓰기 실패와
-  모양이 다른 값은 전부 "없는 셈" 친다. 지금 쓰는 키: `leadingStocks`(12h, 홈 카드 첫 그림용)뿐이다.
+- `src/utils/cache.ts` — 언제 사라져도 되는 값. 읽기·쓰기 실패와 모양이 다른 값은 전부 "없는 셈" 친다.
+  - TTL 캐시(`readCache`/`writeCache`): `leadingStocks`(12h, 홈 카드 첫 그림용).
+  - JSON 한 칸(`readJson`/`writeJson`, 모양은 읽는 쪽이 검사): `cardSeriesYear`(홈 카드 1년 그래프, 항목마다 `savedAt`).
+  - 때 한 칸(`readStamp`/`writeStamp`, 0이면 없음): `stockDetailSentAt`·`kisTokenPrimedAt`·`kisTokenPrimeSkipUntil`·`kisLimitedAt`
+    (증권사 호출 간격·토큰 심기·서버 오류 표시 — 위 "증권사(KIS) 호출"). 탭끼리 나누려고 localStorage에 두고, 못 쓰면 그 탭의 메모리에 둔다.
+    **localStorage에 값이 있으면 그걸 믿는다** — 예전엔 메모리 값과 큰 쪽을 써서, 한 탭이 표시를 지워도(0) 다른 탭은 옛 값을 믿었다.
+  오늘(2026-10-04) 한때 `stock.ts`·`cardSeries.ts`가 localStorage를 직접 만졌다가 이 파일로 옮겼다.
   예전 키 `topStocks`·`topThemes`는 더 읽지 않는다(브라우저에 남아 있어도 무해하다).
   `auth.ts`는 sessionStorage에 로그인 뒤 돌아갈 자리(`loginReturnPath`)도 둔다 — 아래 "로그인 뒤 돌아갈 곳".
   **캐시를 읽는 쪽이 모양까지 검사한다.** `readCachedLeading`은 테마마다 종목코드·이름·라벨이 문자열이고 수익률·

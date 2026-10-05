@@ -232,10 +232,11 @@ export default function AiPage() {
     /*
      * 답이 온 뒤 대화방 목록을 다시 받을지. 서버는 방의 첫 질문으로만 제목을 짓는다 — 새로 만든 방이거나 아직 '새 대화'인 방이면
      * 받아서 지어진 제목을 쓰고, 아니면 그 방을 맨 위로 올리기만 한다(목록은 최근 대화 순). 예전엔 답마다 목록을 통째로 다시 받았다.
+     * 목록에 그 방이 없어도(목록을 못 받았거나 아직 안 왔다) 다시 받는다 — 안 그러면 처음 목록이 실패한 화면은 끝까지 안 채워진다.
      */
+    const answeredRoomInList = sessions.find((item) => item.sessionId === sessionId)
     const needsTitle =
-      sessionId === null ||
-      sessions.find((item) => item.sessionId === sessionId)?.title === DEFAULT_TITLE
+      sessionId === null || answeredRoomInList === undefined || answeredRoomInList.title === DEFAULT_TITLE
     setPending('loading')
     askSeqRef.current += 1
     const seq = askSeqRef.current

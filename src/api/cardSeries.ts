@@ -1,3 +1,4 @@
+import { readJson, writeJson } from '../utils/cache'
 import { periodStart } from '../utils/date'
 import type { Candle, CardSeries } from '../types/stock'
 
@@ -55,15 +56,10 @@ function isStored(value: unknown, stockCode: string): value is Stored {
 
 function readAll(): Map<string, Stored> {
   const all = new Map<string, Stored>()
-  try {
-    const raw = localStorage.getItem(KEY)
-    if (raw === null) return all
-    const parsed: unknown = JSON.parse(raw)
-    if (typeof parsed !== 'object' || parsed === null) return all
-    for (const [stockCode, value] of Object.entries(parsed)) {
-      if (isStored(value, stockCode)) all.set(stockCode, value)
-    }
-  } catch {
+  const parsed = readJson(KEY)
+  if (typeof parsed !== 'object' || parsed === null) return all
+  for (const [stockCode, value] of Object.entries(parsed)) {
+    if (isStored(value, stockCode)) all.set(stockCode, value)
   }
   return all
 }
@@ -117,10 +113,7 @@ export function rememberCardSeries(stockCode: string, candles: Candle[]): void {
   const all = readAll()
   all.set(stockCode, entry)
   const kept = [...all.values()].sort((a, b) => b.savedAt - a.savedAt).slice(0, MAX_ENTRIES)
-  try {
-    localStorage.setItem(KEY, JSON.stringify(Object.fromEntries(kept.map((item) => [item.stockCode, item]))))
-  } catch {
-  }
+  writeJson(KEY, Object.fromEntries(kept.map((item) => [item.stockCode, item])))
 }
 
 /**

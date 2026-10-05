@@ -160,6 +160,12 @@ interface RequestOptions {
    * 원래 오래 걸리는 요청(AI 질문)용이다. 연결이 끊기는 실패는 그대로 곧바로 온다.
    */
   timeoutMs?: number | null
+  /**
+   * 일부러 짧게 끊는 요청이면 false. 그 시간 초과를 "서버 무응답"으로 세지 않는다(위 차단기). 연결 실패는 그대로 센다.
+   * 증권사 토큰 심기(api/stock.ts)가 3초에 끊는데, 증권사가 느린 날 이어지는 상세까지 시간을 넘기면 두 번 연달아로 세어
+   * 15초 동안 시세표·뉴스처럼 DB만 읽는 요청까지 막혔다. 서버는 살아 있고 증권사만 느린 것이다.
+   */
+  countsTowardBreaker?: boolean
 }
 
 /**
@@ -283,8 +289,9 @@ async function requestJson<T>(
       signal: timeoutMs === null ? undefined : AbortSignal.timeout(timeoutMs),
     })
   } catch (error: unknown) {
-    // 제한 시간 초과든 연결 실패든 '서버에 닿지 못했다'는 점은 같다
-    tripBreaker()
+    // 제한 시간 초과든 연결 실패든 '서버에 닿지 못했다'는 점은 같다. 일부러 짧게 끊은 요청의 시간 초과만 빼고 센다
+    const timedOut = error instanceof DOMException && error.name === 'TimeoutError'
+    if (!(timedOut && options?.countsTowardBreaker === false)) tripBreaker()
     /*
      * 제한 시간을 넘기면 TimeoutError로 온다. 부르는 쪽은 '왜 실패했는지'가 아니라
      * '실패했다'만 알면 되므로, 서버가 안 뜬 경우와 같은 모양의 에러로 맞춰 던진다.

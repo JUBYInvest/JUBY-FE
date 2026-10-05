@@ -1,6 +1,7 @@
 import { ApiError, get, malformedResponse, unchecked } from './client'
 import { rememberCardSeries } from './cardSeries'
 import { isLoggedIn } from '../utils/auth'
+import { readStamp, writeStamp } from '../utils/cache'
 import { fromDashedYmd } from '../utils/date'
 import { isFiniteNumber } from '../utils/format'
 import { safeLink } from '../utils/link'
@@ -205,29 +206,13 @@ function readMemo<T>(memo: Map<string, Memo<T>>, key: string, maxAge: number): T
  * 그래서 처음에는 곧바로 보낸다 — 서버가 멀쩡하면 기다릴 까닭이 없다. 실패한 뒤 다시 부를 때만, 이 브라우저가
  * 마지막으로 보낸 때에서 DETAIL_GAP_MS가 지나기를 기다린다(그 안에 부르면 또 실패한다). 요청이 서버에 닿는 시각은
  * 보낸 시각과 조금씩 달라 1분에 몇 초를 더 둔다. 기다리는 동안 화면이 남은 시간을 적는다(StockChartPage).
- * 탭 여러 개도 같은 서버 한도를 나눠 쓰므로 보낸 때를 localStorage에도 둔다.
+ * 탭 여러 개도 같은 서버 한도를 나눠 쓰므로 보낸 때를 localStorage에 둔다(utils/cache.ts writeStamp).
  */
 export const DETAIL_GAP_MS = 65 * 1000
 const DETAIL_SENT_KEY = 'stockDetailSentAt'
-/** localStorage를 못 쓰는 브라우저(사생활 보호 창 등)에서도 이 탭 안에서는 간격을 지키도록 메모리에도 둔다 */
-let detailSentAt = 0
-
-function lastDetailSentAt(): number {
-  let stored = 0
-  try {
-    const value = Number(localStorage.getItem(DETAIL_SENT_KEY))
-    if (Number.isFinite(value)) stored = value
-  } catch {
-  }
-  return Math.max(detailSentAt, stored)
-}
 
 function markDetailSent(): void {
-  detailSentAt = Date.now()
-  try {
-    localStorage.setItem(DETAIL_SENT_KEY, String(detailSentAt))
-  } catch {
-  }
+  writeStamp(DETAIL_SENT_KEY, Date.now())
 }
 
 /**
@@ -235,7 +220,7 @@ function markDetailSent(): void {
  * 시계를 되돌려 보낸 때가 미래로 남아도 DETAIL_GAP_MS보다 오래 기다리지는 않는다.
  */
 export function detailWaitMs(): number {
-  const wait = lastDetailSentAt() + DETAIL_GAP_MS - Date.now()
+  const wait = readStamp(DETAIL_SENT_KEY) + DETAIL_GAP_MS - Date.now()
   return Math.min(Math.max(wait, 0), DETAIL_GAP_MS)
 }
 
@@ -249,7 +234,7 @@ export function detailWaitMs(): number {
  * docs/남은-일.md 백엔드 7번("프론트는 /api/market 을 부르지 않는다")을 깨는 우회다 — 사용자 결정(2026-10-04).
  *
  * - 로그인해야 부를 수 있다(/api/market 은 인증 경로). 비로그인은 심지 못하고 위 간격만 지킨다.
- * - 되면 6시간 동안 다시 심지 않는다(토큰은 24시간 가고 평일 16시에 배치가 갈아 끼운다). 탭끼리 나누려고 localStorage.
+ * - 되면 6시간 동안 다시 심지 않는다(토큰은 24시간 가고 평일 16시에 배치가 갈아 끼운다). 탭끼리 나누려고 localStorage(utils/cache.ts).
  * - 4xx면 6시간 쉰다 — 백엔드가 7번대로 이 경로를 막으면(403) 저절로 꺼지고 위 간격으로 돌아간다.
  *   401(남아 있는 로그인 토큰이 죽음)은 10분만 쉰다. 다시 로그인하면 그 뒤 곧 심는다.
  * - 5xx·서버에 못 닿음은 65초만 쉰다. 누가 1분 안에 발급을 받아 간 뒤일 수 있어서다. 상세가 실패해 기다렸다
@@ -267,27 +252,7 @@ const PRIME_SKIP_UNAUTHORIZED = 10 * 60 * 1000
  * 끊어도 서버는 하던 일을 마치므로 토큰은 대개 저장된다 — 끊는 건 브라우저가 기다리는 것뿐이다.
  */
 const PRIME_TIMEOUT = 3_000
-/** localStorage를 못 쓰는 브라우저에서도 이 탭 안에서는 기억하도록 메모리에도 둔다 */
-const primeStamps = new Map<string, number>()
 let primeInFlight: Promise<void> | null = null
-
-function readStamp(key: string): number {
-  let stored = 0
-  try {
-    const value = Number(localStorage.getItem(key))
-    if (Number.isFinite(value)) stored = value
-  } catch {
-  }
-  return Math.max(primeStamps.get(key) ?? 0, stored)
-}
-
-function writeStamp(key: string, value: number): void {
-  primeStamps.set(key, value)
-  try {
-    localStorage.setItem(key, String(value))
-  } catch {
-  }
-}
 
 /** 6시간 안에 이 브라우저가 토큰을 심었는가. 시계를 되돌려 미래 값이 남아도 정해진 길이보다 오래 믿지 않는다 */
 export function isKisTokenPrimed(now: number = Date.now()): boolean {
@@ -324,6 +289,8 @@ export function primeKisToken(stockCode: string): Promise<void> {
       await get<unknown>(`/api/market/${encodeURIComponent(stockCode)}/price`, {
         ignoreUnauthorized: true,
         timeoutMs: PRIME_TIMEOUT,
+        // 3초에 일부러 끊는 것이라 서버 무응답으로 세지 않는다(client.ts 차단기)
+        countsTowardBreaker: false,
       })
       writeStamp(PRIME_OK_KEY, Date.now())
       // 토큰이 저장됐으니 "방금 서버 오류가 났다"는 표시는 더 맞지 않다
