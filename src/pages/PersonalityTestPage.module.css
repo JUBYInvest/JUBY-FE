@@ -161,3 +161,10 @@
   color: var(--color-text-sub);
   text-align: center;
 }
+
+.fallbackLink {
+  color: var(--color-text);
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}

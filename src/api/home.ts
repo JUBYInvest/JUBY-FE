@@ -27,7 +27,7 @@ import type { CardSeries, LeadingStocks, TopTheme } from '../types/stock'
  * 코드를 고쳐 배포해야 했다. 지금은 첫 방문의 첫 그림과, 서버가 못 줄 때만 쓴다.
  * 수익률은 서버만 알므로 비워 둔다 — 카드는 이름과 종가만 보이고 수익률 자리는 "–"가 된다.
  */
-export const FALLBACK_THEMES: TopTheme[] = [
+const FALLBACK_THEMES: TopTheme[] = [
   { stockCode: '000660', stockName: 'SK하이닉스', theme: '기술주 대장', returnRate: null, tradeCount: null },
   { stockCode: '012450', stockName: '한화에어로스페이스', theme: '방산주 대장', returnRate: null, tradeCount: null },
   { stockCode: '207940', stockName: '삼성바이오로직스', theme: '바이오주 대장', returnRate: null, tradeCount: null },

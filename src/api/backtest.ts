@@ -3,7 +3,8 @@ import type { BacktestPeriod, BacktestPreset, QuantScoring } from '../types/back
 
 /**
  * 백테스트 창구. 둘 다 DB만 읽는다 — 새벽 4시 배치가 미리 계산해 둔 값이라
- * 증권사 호출이 없고 응답도 즉시 온다. 로그인도 필요 없다.
+ * 증권사 호출이 없고 응답도 즉시 온다. **로그인해야 한다**(JUBY-BE d7edec4, 2026-09-28부터 토큰 없으면 401) —
+ * 비로그인 실행은 BacktestPage가 로그인 안내로 바꾼다.
  */
 
 /**

@@ -208,7 +208,7 @@ function readMemo<T>(memo: Map<string, Memo<T>>, key: string, maxAge: number): T
  * 보낸 시각과 조금씩 달라 1분에 몇 초를 더 둔다. 기다리는 동안 화면이 남은 시간을 적는다(StockChartPage).
  * 탭 여러 개도 같은 서버 한도를 나눠 쓰므로 보낸 때를 localStorage에 둔다(utils/cache.ts writeStamp).
  */
-export const DETAIL_GAP_MS = 65 * 1000
+const DETAIL_GAP_MS = 65 * 1000
 const DETAIL_SENT_KEY = 'stockDetailSentAt'
 
 function markDetailSent(): void {
@@ -255,7 +255,7 @@ const PRIME_TIMEOUT = 3_000
 let primeInFlight: Promise<void> | null = null
 
 /** 6시간 안에 이 브라우저가 토큰을 심었는가. 시계를 되돌려 미래 값이 남아도 정해진 길이보다 오래 믿지 않는다 */
-export function isKisTokenPrimed(now: number = Date.now()): boolean {
+function isKisTokenPrimed(now: number = Date.now()): boolean {
   const primedAt = readStamp(PRIME_OK_KEY)
   return now - primedAt < PRIME_OK_AGE && primedAt - now < PRIME_OK_AGE
 }
@@ -264,7 +264,7 @@ export function isKisTokenPrimed(now: number = Date.now()): boolean {
  * 심어 둔 표시를 지운다. 상세가 서버 오류를 내면 부른다 — 심을 때 남이 받아 둔 곧 끝날 토큰을 그대로 썼으면
  * 표시는 6시간인데 토큰은 먼저 끝난다. 그대로 두면 남은 시간 내내 심기를 건너뛰어 다시 1분에 1건이 됐다.
  */
-export function forgetKisTokenPrime(): void {
+function forgetKisTokenPrime(): void {
   writeStamp(PRIME_OK_KEY, 0)
 }
 
@@ -335,7 +335,7 @@ function markKisLimited(): void {
  * 토큰은 24시간 가고, 서버는 끝나기 10분 전부터 못 쓰는 토큰으로 본다(TokenService.isValid). 그래서
  * 토 15시 45분 ~ 월 16시 5분, 그리고 평일 15시 45분 ~ 16시 5분에는 토큰이 없다.
  */
-export function kisTokenLikelyExpired(now: number = Date.now()): boolean {
+function kisTokenLikelyExpired(now: number = Date.now()): boolean {
   const kst = new Date(now + 9 * 60 * 60 * 1000)
   const day = kst.getUTCDay()
   const minutes = kst.getUTCHours() * 60 + kst.getUTCMinutes()
@@ -607,7 +607,7 @@ const MAX_RESULTS = 8
  * 띄어쓰기와 대소문자를 무시하고 비교하려고 다듬는다. "sk 하이닉스" → "sk하이닉스"
  * 검색창이 쓴다.
  */
-export function normalize(text: string): string {
+function normalize(text: string): string {
   return text.replace(/\s+/g, '').toLowerCase()
 }
 

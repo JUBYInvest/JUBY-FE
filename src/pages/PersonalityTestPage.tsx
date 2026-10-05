@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
-import { useLocation, useNavigate } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { getQuestions, submitTest } from '../api/personality'
 import { useDocumentTitle } from '../hooks/useDocumentTitle'
+import { loginPathFrom } from '../utils/navigation'
 import type { Question } from '../types/personality'
 import styles from './PersonalityTestPage.module.css'
 
@@ -19,11 +20,11 @@ export default function PersonalityTestPage() {
   useDocumentTitle('투자성향테스트')
   const navigate = useNavigate()
   /* 어디서 들어왔는지(?from=mypage)·가려던 자리(?next=, 첫 로그인)를 결과 화면까지 그대로 넘긴다 */
-  const { search } = useLocation()
+  const { pathname, search } = useLocation()
 
   const [questions, setQuestions] = useState<Question[] | null>(null)
-  /** 서버 문항 대신 예비 문항으로 진행 중이다(비로그인만 여기로 온다) */
-  const [isFallback, setIsFallback] = useState(false)
+  /** 서버 문항 대신 예비 문항으로 진행 중인 까닭(비로그인만 여기로 온다). null이면 서버 문항이다 */
+  const [fallbackReason, setFallbackReason] = useState<'login' | 'server' | null>(null)
   /** 문항을 못 받았다. 그릴 게 없으니 화면 전체를 안내로 바꾼다 */
   const [hasError, setHasError] = useState(false)
   /** 문항 조회 '다시 시도'. 올리면 아래 effect가 다시 돈다 */
@@ -45,7 +46,7 @@ export default function PersonalityTestPage() {
     getQuestions()
       .then((loaded) => {
         setQuestions(loaded.questions)
-        setIsFallback(loaded.isFallback)
+        setFallbackReason(loaded.fallbackReason)
         setAnswers(Array(loaded.questions.length).fill(null))
       })
       .catch((error: unknown) => {
@@ -118,7 +119,17 @@ export default function PersonalityTestPage() {
     <>
       <h1 className={styles.title}>나의 투자성향 테스트</h1>
 
-      {isFallback && (
+      {/* 로그인만 하면 되는 경우와 서버가 실패한 경우를 가른다. 둘을 같은 말로 알리면 멀쩡한 서버가 장애로 읽힌다 */}
+      {fallbackReason === 'login' && (
+        <p className={styles.fallbackNotice} role="status">
+          지금은 임시 문항으로 진행해요. 결과는 참고로만 봐 주세요.{' '}
+          <Link to={loginPathFrom(pathname + search)} className={styles.fallbackLink}>
+            로그인하면
+          </Link>{' '}
+          정식 문항으로 검사하고 결과를 저장해요.
+        </p>
+      )}
+      {fallbackReason === 'server' && (
         <p className={styles.fallbackNotice} role="status">
           서버 문항을 불러오지 못해 임시 문항으로 진행하고 있어요. 결과는 참고로만 봐 주세요.
         </p>

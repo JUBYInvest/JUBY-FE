@@ -474,7 +474,9 @@ effect를 두 번 돌려, 두 번째가 이미 꺼낸 자리를 못 찾고 홈�
 - API 중 공개는 `/api/stocks/**`·`/api/auth/reissue`뿐이다. **`/api/backtest/**`·`/api/personality-tests`도 로그인해야 한다**
   (`d7edec4`, 의도인지 물었다). 토큰이 없으면 401 `COMMON401_1`, 토큰이 틀리면 사유별 `AUTH401_1~6`(만료·무효·검증 오류·RT 없음·
   블랙리스트·RT 쿠키 없음). 토큰 없는 성향 POST는 더 이상 NPE 500이 아니라 401이다 — `personality.ts`는 여전히 로그인했을 때만 POST한다.
-  비로그인 백테스트 실행은 "로그인하면 결과를 볼 수 있어요" + 로그인 링크(G-5), 비로그인 성향테스트는 문항 GET이 401이라 늘 예비 7문항이다.
+  비로그인 백테스트 실행은 "로그인하면 결과를 볼 수 있어요" + 로그인 링크(G-5), 비로그인 성향테스트는 문항 GET이 401이라 늘 예비 7문항이다
+  — 그때 안내는 "로그인하면 정식 문항으로 검사하고 결과를 저장해요"(`fallbackReason: 'login'`)이고, 서버가 실패한 때만
+  "서버 문항을 불러오지 못해"다. 백테스트 기간 옵션의 401은 "서버 목록을 받지 못해" 안내를 띄우지 않는다(2026-10-05).
 - CORS가 켜졌고 허용 출처는 `FRONTEND_URL` 하나다. vite 프록시(`changeOrigin`)는 Host만 바꾸고 `Origin: http://localhost:5173`은
   그대로라, `FRONTEND_URL`이 배포 주소면 로컬 개발의 POST·PATCH·DELETE가 403일 수 있다(`docs/남은-일.md`).
   `ea18fec`부터 CORS는 `WebMvcConfig`가 정하고 **`http://localhost:5173`을 늘 받은 뒤 `FRONTEND_URL`을 하나 더 받는다** — 그래서

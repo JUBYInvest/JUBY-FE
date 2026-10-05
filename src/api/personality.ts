@@ -1,4 +1,4 @@
-import { get, post } from './client'
+import { ApiError, get, post } from './client'
 import { isLoggedIn } from '../utils/auth'
 import { isFiniteNumber } from '../utils/format'
 import {
@@ -105,8 +105,13 @@ function isText(value: unknown): value is string {
 
 interface QuestionSet {
   questions: Question[]
-  /** 서버 문항이 아니라 예비 문항이다. 화면이 "임시 문항"이라고 알린다 */
-  isFallback: boolean
+  /**
+   * 서버 문항 대신 예비 문항인 까닭. null이면 서버 문항이다.
+   * 'login' — 문항 API가 로그인을 요구해(401) 못 받았다(비로그인은 늘 여기다, JUBY-BE d7edec4부터).
+   * 'server' — 서버가 실패했거나 문항 모양이 틀렸다.
+   * 화면은 둘을 다르게 알린다 — 로그인만 하면 되는데 "서버 문항을 불러오지 못해"라고 하면 장애로 읽힌다(2026-10-05 점검).
+   */
+  fallbackReason: 'login' | 'server' | null
 }
 
 /**
@@ -119,7 +124,7 @@ interface QuestionSet {
  */
 export async function getQuestions(): Promise<QuestionSet> {
   if (!USE_BACKEND_QUESTIONS) {
-    return { questions: sortByIds(MOCK_QUESTIONS), isFallback: true }
+    return { questions: sortByIds(MOCK_QUESTIONS), fallbackReason: 'server' }
   }
 
   try {
@@ -134,11 +139,12 @@ export async function getQuestions(): Promise<QuestionSet> {
     if (!parsed.every((question): question is Question => question !== null)) {
       throw new Error('보기가 비었거나 모양이 틀린 문항이 있습니다')
     }
-    return { questions: sortByIds(parsed), isFallback: false }
+    return { questions: sortByIds(parsed), fallbackReason: null }
   } catch (error: unknown) {
     if (isLoggedIn()) throw error
-    console.warn('성향 문항을 서버에서 못 받아 로컬 문항을 씁니다', error)
-    return { questions: sortByIds(MOCK_QUESTIONS), isFallback: true }
+    const reason = error instanceof ApiError && error.status === 401 ? 'login' : 'server'
+    console.warn(`성향 문항을 서버에서 못 받아 로컬 문항을 씁니다 (${reason})`, error)
+    return { questions: sortByIds(MOCK_QUESTIONS), fallbackReason: reason }
   }
 }
 

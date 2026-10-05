@@ -212,6 +212,11 @@ export default function BacktestPage() {
       )
       .catch((error: unknown) => {
         console.warn('프리셋 기간 조회 실패', error)
+        /*
+         * 비로그인은 401이다(/api/backtest/** 는 로그인 전용, JUBY-BE d7edec4). 그건 서버 장애가 아니라서 "서버 목록을
+         * 받지 못해"라고 알리면 틀린 말이 된다 — 실행하면 결과 자리가 로그인 안내를 하니 여기서는 기본 목록으로 조용히 간다.
+         */
+        if (error instanceof ApiError && error.status === 401) return
         setUsingFallback(true)
       })
   }, [])
