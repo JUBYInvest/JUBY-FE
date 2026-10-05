@@ -1,13 +1,34 @@
-/* 눈금(legend)을 차트 위에 겹쳐 놓기 위한 기준점 */
+/* 눈금(legend)을 차트 위에 겹쳐 놓기 위한 기준점. 아래에 출처 한 줄을 둔다 */
 .wrap {
   position: relative;
+  display: flex;
+  flex-direction: column;
   width: 100%;
   height: 100%;
 }
 
 .chart {
+  flex: 1;
+  min-height: 0;
   width: 100%;
-  height: 100%;
+}
+
+/*
+ * 라이선스가 요구하는 출처 링크. 차트를 가리지 않게 아래 오른쪽에 작게.
+ * 누르는 높이(28px)는 여백으로 넓히되 위로는 빼지 않는다 — 위 여백을 음수로 당기면 시간축 아래 4px을 덮어 그 자리를 끌 수 없었다
+ */
+.credit {
+  align-self: flex-end;
+  padding: 8px 0 9px;
+  margin: 0 0 -9px;
+  font-size: 11px;
+  line-height: 1;
+  color: var(--color-text-sub);
+}
+
+.credit:hover {
+  color: var(--color-text);
+  text-decoration: underline;
 }
 
 /*

@@ -81,23 +81,26 @@ export default function CandleChart({ candles }: Props) {
 
     const chart = createChart(container, {
       autoSize: true,
+      // 색은 index.css의 --color-surface·--color-text-sub·--color-border와 같은 값이다(캔버스라 CSS 변수를 못 쓴다)
       layout: {
         background: { type: ColorType.Solid, color: '#fff' },
-        textColor: '#8b95a1',
+        textColor: '#857f75',
         fontFamily: "'Pretendard', -apple-system, system-ui, sans-serif",
         fontSize: 12,
-        panes: { separatorColor: '#e5e8eb', enableResize: false },
+        panes: { separatorColor: '#e8e3da', enableResize: false },
+        // 차트 안 로고는 거래량 막대 위에 얹혀 막대를 가렸다. 라이선스가 요구하는 출처·링크는 차트 아래에 적는다(아래 .credit)
+        attributionLogo: false,
       },
       grid: {
-        vertLines: { color: '#f4f5f7' },
-        horzLines: { color: '#f4f5f7' },
+        vertLines: { color: '#f5f2ec' },
+        horzLines: { color: '#f5f2ec' },
       },
       rightPriceScale: {
-        borderColor: '#e5e8eb',
+        borderColor: '#e8e3da',
         scaleMargins: { top: 0.1, bottom: 0.1 },
       },
       timeScale: {
-        borderColor: '#e5e8eb',
+        borderColor: '#e8e3da',
         // 데이터 바깥의 빈 공간까지 밀려나가지 않도록 양끝을 막아 둔다
         fixLeftEdge: true,
         fixRightEdge: true,
@@ -144,7 +147,7 @@ export default function CandleChart({ candles }: Props) {
     )
 
     volumeSeries.priceScale().applyOptions({
-      borderColor: '#e5e8eb',
+      borderColor: '#e8e3da',
       scaleMargins: { top: 0.2, bottom: 0 },
     })
 
@@ -245,6 +248,18 @@ export default function CandleChart({ candles }: Props) {
     <div className={styles.wrap}>
       {shown !== null && <Legend point={shown} />}
       <div ref={containerRef} className={styles.chart} />
+      {/*
+        라이브러리 라이선스(Apache 2.0)가 요구하는 출처 표시와 https://www.tradingview.com/ 링크.
+        NOTICE: TradingView Lightweight Charts™ — Copyright (c) TradingView, Inc. https://www.tradingview.com/
+      */}
+      <a
+        className={styles.credit}
+        href="https://www.tradingview.com/"
+        target="_blank"
+        rel="noreferrer"
+      >
+        TradingView Lightweight Charts™
+      </a>
     </div>
   )
 }

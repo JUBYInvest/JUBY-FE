@@ -211,9 +211,9 @@ const MOCK_QUESTIONS: Question[] = [
       '나에게 1천만 원의 여유 자금이 생겼다.\n1천만 원을 예금과 주식투자로 배분한다면?',
     choices: [
       { choiceId: 1, content: '예금 1,000만 원', score: 1 },
-      { choiceId: 2, content: '예금 700만원, 주식 300만원', score: 3 },
-      { choiceId: 3, content: '예금 500만원, 주식 500만원', score: 5 },
-      { choiceId: 4, content: '예금 300만원, 주식 700만원', score: 7 },
+      { choiceId: 2, content: '예금 700만 원, 주식 300만 원', score: 3 },
+      { choiceId: 3, content: '예금 500만 원, 주식 500만 원', score: 5 },
+      { choiceId: 4, content: '예금 300만 원, 주식 700만 원', score: 7 },
       { choiceId: 5, content: '주식 1,000만 원', score: 9 },
     ],
   },
@@ -231,13 +231,13 @@ const MOCK_QUESTIONS: Question[] = [
   {
     questionId: 3,
     content:
-      '내 월급에서 여유자금이 매달 100만원씩 생긴다면,\n매달 이 돈을 적금과 주식에 어느정도로 배분할 것인가?',
+      '내 월급에서 여유자금이 매달 100만 원씩 생긴다면,\n매달 이 돈을 적금과 주식에 어느 정도로 배분할 것인가?',
     choices: [
-      { choiceId: 11, content: '적금 100만원', score: 1 },
-      { choiceId: 12, content: '적금 70만원, 주식 30만원', score: 3 },
-      { choiceId: 13, content: '적금 50만원, 주식 50만원', score: 5 },
-      { choiceId: 14, content: '적금 30만원, 주식 70만원', score: 7 },
-      { choiceId: 15, content: '주식 100만원', score: 9 },
+      { choiceId: 11, content: '적금 100만 원', score: 1 },
+      { choiceId: 12, content: '적금 70만 원, 주식 30만 원', score: 3 },
+      { choiceId: 13, content: '적금 50만 원, 주식 50만 원', score: 5 },
+      { choiceId: 14, content: '적금 30만 원, 주식 70만 원', score: 7 },
+      { choiceId: 15, content: '주식 100만 원', score: 9 },
     ],
   },
   {

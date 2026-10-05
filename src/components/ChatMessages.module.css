@@ -20,7 +20,7 @@
   margin: 0;
   max-width: 70%;
   padding: 12px 16px;
-  border-radius: 14px;
+  border-radius: var(--radius-lg);
   background: var(--color-page-bg);
   font-size: 15px;
   line-height: 1.6;
@@ -29,9 +29,10 @@
   overflow-wrap: anywhere;
 }
 
+/* 내가 보낸 질문. 주 버튼과 같은 진한 색이다 */
 .bubbleUser {
-  background: #333d4b;
-  color: #ffffff;
+  background: var(--color-primary);
+  color: var(--color-surface);
 }
 
 /* 마크다운 답변. 줄바꿈 처리는 MarkdownAnswer가 문단마다 한다. min-width 0이라야 안쪽의 표·수식이 가로 스크롤로 줄어든다 */
@@ -113,7 +114,7 @@
 .retry {
   padding: 6px 12px;
   border: 1px solid var(--color-border);
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   background: var(--color-surface);
   font-size: 13px;
   font-weight: 600;
@@ -121,7 +122,7 @@
 }
 
 .retry:hover {
-  background: var(--color-page-bg);
+  border-color: var(--color-border-strong);
 }
 
 /* 보이는 단추는 29px라 누르는 넓이만 위아래로 넓혀 45px로 맞춘다(휴대폰 규칙 44px, ::after는 테두리 안쪽 기준). 배치는 그대로다 */

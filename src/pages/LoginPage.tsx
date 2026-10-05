@@ -57,45 +57,45 @@ export default function LoginPage() {
 
   return (
     <>
-      <div className={styles.titleBar}>
-        <h1 className={styles.title}>로그인</h1>
-      </div>
+      <h1 className={styles.title}>로그인</h1>
 
-      <div className={styles.body}>
-        <div className={styles.band}>
-          <h2 className={styles.headline}>
-            초보자를 위한 주식 비서,
-            <br />
-            JUBY의 세계로!
-          </h2>
+      {/*
+        아이보리 바탕 위 흰 판 하나. 예전엔 흰 제목 줄 → 회색 띠 → 흰 빈칸으로 나뉘어
+        아래 절반이 빈 채 끝나 보였다(2026-10-05). 다른 화면처럼 제목 아래 판을 둔다
+      */}
+      <div className={styles.card}>
+        <h2 className={styles.headline}>
+          초보자를 위한 주식 비서,
+          <br />
+          JUBY의 세계로!
+        </h2>
 
-          <p className={styles.caption}>Create Your Own JUBY!</p>
+        <p className={styles.caption}>Create Your Own JUBY!</p>
 
-          {hasLoginFailed && (
-            <p className={styles.error} role="alert">
-              로그인에 실패했습니다. 다시 시도해주세요.
-            </p>
-          )}
+        {hasLoginFailed && (
+          <p className={styles.error} role="alert">
+            로그인에 실패했습니다. 다시 시도해주세요.
+          </p>
+        )}
 
-          <div className={styles.buttons}>
-            {PROVIDERS.map((provider) => (
-              <button
-                key={provider.id}
-                type="button"
-                className={provider.className}
-                onClick={() => handleSocialLogin(provider.id)}
-                aria-label={`${provider.name} 계정으로 로그인`}
-              >
-                <img
-                  className={styles.icon}
-                  src={provider.icon}
-                  alt=""
-                  width={22}
-                  height={22}
-                />
-              </button>
-            ))}
-          </div>
+        <div className={styles.buttons}>
+          {PROVIDERS.map((provider) => (
+            <button
+              key={provider.id}
+              type="button"
+              className={provider.className}
+              onClick={() => handleSocialLogin(provider.id)}
+              aria-label={`${provider.name} 계정으로 로그인`}
+            >
+              <img
+                className={styles.icon}
+                src={provider.icon}
+                alt=""
+                width={22}
+                height={22}
+              />
+            </button>
+          ))}
         </div>
       </div>
     </>

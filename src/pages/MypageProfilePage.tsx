@@ -215,14 +215,15 @@ export default function MypageProfilePage() {
         <div className={styles.buttons}>
           <button
             type="button"
-            className={styles.muted}
+            className={styles.edit}
             onClick={() => openEdit(member)}
           >
             정보 수정하기
           </button>
+          {/* 되돌릴 수 없는 동작이라 눈에 덜 띄게 둔다. 예전엔 꺼진 듯한 '정보 수정하기'보다 이쪽이 더 눈에 띄었다 */}
           <button
             type="button"
-            className={styles.outline}
+            className={styles.leave}
             onClick={() => setIsDeleteOpen(true)}
           >
             회원 탈퇴하기

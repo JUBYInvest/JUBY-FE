@@ -90,7 +90,7 @@
   margin-top: 24px;
   padding: 12px;
   border: 1px solid var(--color-border);
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   background: var(--color-surface);
 }
 
@@ -116,10 +116,7 @@
   color: var(--color-text-sub);
 }
 
-/*
- * 실패해서 다시 부르기를 기다리는 동안 차트 자리 가운데에 남은 시간을 적는다.
- * 한글은 낱말 단위로만 줄을 바꾼다 — 휴대폰 폭에서 "있습니/다."처럼 끝 음절만 따로 내려갔다
- */
+/* 실패해서 다시 부르기를 기다리는 동안 차트 자리 가운데에 남은 시간을 적는다 */
 .chartWait {
   display: flex;
   flex-direction: column;
@@ -129,7 +126,6 @@
   height: 100%;
   padding: 0 16px;
   text-align: center;
-  word-break: keep-all;
 }
 
 .chartWaitTitle {
@@ -147,7 +143,7 @@
   margin: 16px 0 0;
   padding: 0;
   border: 1px solid var(--color-border);
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   /* 칸 사이 선을 gap 1px과 배경색으로 만든다. 마지막 칸에 선이 남지 않는다 */
   background: var(--color-border);
   overflow: hidden;
@@ -175,14 +171,14 @@
  */
 .chartSkeleton,
 .textSkeleton {
-  background: linear-gradient(90deg, #f7f8f9 25%, #eef0f3 50%, #f7f8f9 75%);
+  background: linear-gradient(90deg, var(--color-skeleton) 25%, var(--color-skeleton-shine) 50%, var(--color-skeleton) 75%);
   background-size: 200% 100%;
   animation: shimmer 1.4s linear infinite;
 }
 
 .chartSkeleton {
   height: 100%;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
 }
 
 /*
@@ -192,7 +188,7 @@
 .textSkeleton {
   display: inline-block;
   height: 0.9em;
-  border-radius: 6px;
+  border-radius: var(--radius-xs);
   vertical-align: middle;
 }
 
@@ -274,15 +270,17 @@
   gap: 4px;
   margin: 16px 0 12px;
   padding: 4px;
-  border-radius: 10px;
-  background: var(--color-bg-sub);
+  /* 아이보리 바탕 위 흰 줄. 고른 칸은 뉴스 정렬 단추처럼 진한 색으로 채운다 */
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
 }
 
 .periodTab {
   flex: 1 0 auto;
   padding: 7px 10px;
   border: none;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   background: transparent;
   font-size: 13px;
   font-weight: 600;
@@ -305,10 +303,10 @@
   color: var(--color-text);
 }
 
-.periodTabActive {
-  background: var(--color-surface);
-  color: var(--color-text);
-  box-shadow: 0 1px 2px rgb(0 0 0 / 6%);
+.periodTabActive,
+.periodTabActive:hover {
+  background: var(--color-primary);
+  color: var(--color-surface);
 }
 
 .summaryDate {
@@ -320,12 +318,12 @@
 .retryButton {
   padding: 9px 16px;
   border: 1px solid var(--color-border);
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   background: var(--color-surface);
   font-size: 13px;
   font-weight: 700;
 }
 
 .retryButton:hover {
-  border-color: var(--color-text-sub);
+  border-color: var(--color-border-strong);
 }

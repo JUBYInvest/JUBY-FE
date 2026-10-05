@@ -1,15 +1,16 @@
 .sidebar {
-  border-radius: 12px;
-  /* 회색 머리와 흰 목록이 한 덩어리로 보이도록 모서리 밖을 잘라낸다 */
+  border-radius: var(--radius-md);
+  /* 펼친 메뉴·고른 줄의 바탕이 모서리 밖으로 나가지 않게 잘라낸다 */
   overflow: hidden;
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   align-self: start;
 }
 
+/* 예전엔 회색 띠였다. 아이보리 바탕과 겹쳐 탁해 보여 흰 머리에 아래 선 하나로 가른다 */
 .head {
-  padding: 20px 16px 16px;
-  background: #eceef0;
+  padding: 18px 16px 16px;
+  border-bottom: 1px solid var(--color-border);
 }
 
 .headTitle {
@@ -18,18 +19,22 @@
   font-weight: 700;
 }
 
+/* 새 대화는 이 목록의 주된 동작이다. 예전엔 작은 회색 글자라 버튼으로 보이지 않았다 */
 .newChat {
-  margin-top: 10px;
-  padding: 0;
-  border: 0;
-  background: none;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--color-text-sub);
+  width: 100%;
+  min-height: 40px;
+  margin-top: 12px;
+  padding: 0 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--color-text);
 }
 
 .newChat:hover {
-  color: var(--color-text);
+  border-color: var(--color-border-strong);
 }
 
 .list {
@@ -48,7 +53,7 @@
 }
 
 .rowOn {
-  background: var(--color-page-bg);
+  background: var(--color-bg-sub);
 }
 
 .rowHead {
@@ -58,7 +63,7 @@
 }
 
 .rowHead:hover {
-  background: var(--color-page-bg);
+  background: var(--color-bg-hover);
 }
 
 .item {
@@ -135,7 +140,7 @@
   width: 100%;
   padding: 8px 10px;
   border: 1px solid var(--color-border);
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   background: var(--color-surface);
   font: inherit;
   font-size: 16px;
@@ -216,7 +221,7 @@
 .cancel {
   height: 48px;
   border: none;
-  border-radius: 10px;
+  border-radius: var(--radius-md);
   font: inherit;
   font-size: 16px;
   font-weight: 600;
@@ -224,15 +229,15 @@
 
 .danger {
   background: var(--color-up);
-  color: #fff;
+  color: var(--color-surface);
 }
 
 .danger:hover:not(:disabled) {
-  background: #d93a48;
+  background: var(--color-danger-hover);
 }
 
 .danger:disabled {
-  background: #f4a3ab;
+  background: var(--color-danger-disabled);
   cursor: default;
 }
 
@@ -286,10 +291,27 @@
     transform: rotate(180deg);
   }
 
+  .head {
+    border-bottom: 0;
+  }
+
+  /* 접힌 줄 오른쪽 끝의 작은 테두리 단추. 머리 높이(44px) 안에 들어가게 줄이고, 누르는 넓이는 투명한 덧댐으로 44px을 지킨다 */
   .newChat {
-    min-height: 44px;
-    margin-top: 0;
-    padding: 0 8px;
+    position: relative;
+    width: auto;
+    min-height: 34px;
+    margin: 5px 0;
+    font-size: 13px;
+  }
+
+  .newChat::after {
+    content: '';
+    position: absolute;
+    inset: -5px 0;
+  }
+
+  .sidebar:has(.toggle[aria-expanded='true']) .head {
+    border-bottom: 1px solid var(--color-border);
   }
 
   .bodyClosed {

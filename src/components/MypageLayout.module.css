@@ -7,30 +7,19 @@
 
 .layout {
   display: grid;
-  grid-template-columns: 186px 1fr;
+  grid-template-columns: 240px 1fr;
   gap: 20px;
   align-items: start;
 }
 
 /* AI 주가분석 화면의 사이드바와 같은 결로 맞춘다 */
 .sidebar {
-  border-radius: 12px;
-  /* 회색 머리와 흰 목록이 한 덩어리로 보이도록 모서리 밖을 잘라낸다 */
+  border-radius: var(--radius-md);
+  /* 고른 줄의 바탕이 모서리 밖으로 나가지 않게 잘라낸다 */
   overflow: hidden;
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   align-self: start;
-}
-
-.head {
-  padding: 24px 16px;
-  background: #eceef0;
-}
-
-.headTitle {
-  margin: 0;
-  font-size: 17px;
-  font-weight: 700;
 }
 
 .list {
@@ -51,11 +40,12 @@
 }
 
 .item:hover {
-  background: var(--color-page-bg);
+  background: var(--color-bg-hover);
 }
 
-.itemOn {
-  background: var(--color-page-bg);
+.itemOn,
+.itemOn:hover {
+  background: var(--color-bg-sub);
   font-weight: 700;
 }
 
@@ -78,7 +68,7 @@
 }
 
 .logout:hover:not(:disabled) {
-  background: var(--color-page-bg);
+  background: var(--color-bg-hover);
   color: var(--color-text);
 }
 
@@ -90,7 +80,7 @@
   min-height: 420px;
   padding: 8px 0 32px;
   border: 1px solid var(--color-border);
-  border-radius: 16px;
+  border-radius: var(--radius-lg);
   background: var(--color-surface);
 }
 
@@ -102,7 +92,68 @@
 
   /* 사이드바를 옆에 두면 카드 폭이 남지 않는다. 위아래로 쌓는다 */
   .layout {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 16px;
+  }
+
+  /*
+   * 쌓으면 메뉴 네 줄이 탭마다 내용 위를 230px 넘게 차지했다. 가로 탭 한 줄로 접는다 —
+   * 상세의 기간 탭과 같은 모양(흰 줄 안에서 고른 칸만 진하게). 로그아웃은 탭이 아니라 줄 끝의 글자 단추다
+   */
+  .sidebar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px 8px;
+    overflow: visible;
+    border: 0;
+    border-radius: 0;
+    background: none;
+  }
+
+  .list {
+    display: flex;
+    flex: 1 1 auto;
+    gap: 4px;
+    padding: 4px;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    background: var(--color-surface);
+  }
+
+  .list li {
+    flex: 1 1 auto;
+  }
+
+  .item,
+  .list li:last-child .item {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 40px;
+    padding: 0 10px;
+    border: 0;
+    border-radius: var(--radius-sm);
+    white-space: nowrap;
+  }
+
+  .item:hover {
+    background: var(--color-bg-hover);
+  }
+
+  .itemOn,
+  .itemOn:hover {
+    background: var(--color-primary);
+    color: var(--color-surface);
+  }
+
+  .logout {
+    width: auto;
+    min-height: 44px;
+    margin-left: auto;
+    padding: 0 8px;
+    border-top: 0;
+    border-radius: var(--radius-sm);
   }
 }
 

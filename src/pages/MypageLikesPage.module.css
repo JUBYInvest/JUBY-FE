@@ -4,6 +4,7 @@
  */
 .notice,
 .asOf,
+.head,
 .list {
   margin-left: 20px;
   margin-right: 20px;
@@ -23,22 +24,37 @@
   color: var(--color-text-sub);
 }
 
+/* 판(MypageLayout .content)이 이미 틀이라 목록은 테두리 없이 줄만 긋는다. 예전엔 판 안에 테두리가 한 겹 더 있었다 */
 .list {
   margin-top: 0;
   margin-bottom: 0;
   padding: 0;
   list-style: none;
-  border: 1px solid var(--color-border);
-  border-radius: 12px;
-  overflow: hidden;
+  border-top: 1px solid var(--color-border);
+}
+
+/* 머리글과 행이 같은 칸을 쓴다. 마지막 칸은 '해제' 단추 폭(42px)으로 고정해야 머리글 칸이 행과 맞는다 */
+.head,
+.row {
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) 1.2fr 1fr 1fr 42px;
+  gap: 12px;
+  align-items: center;
+  padding: 14px 4px;
+}
+
+.head {
+  padding-top: 0;
+  padding-bottom: 8px;
+  font-size: 13px;
+  color: var(--color-text-sub);
+}
+
+.headNumeric {
+  text-align: right;
 }
 
 .row {
-  display: grid;
-  grid-template-columns: minmax(0, 1.6fr) 1.2fr 1fr 1fr auto;
-  gap: 12px;
-  align-items: center;
-  padding: 14px 16px;
   border-bottom: 1px solid var(--color-border);
 }
 
@@ -99,9 +115,9 @@
 
 .unlike {
   position: relative;
-  padding: 6px 10px;
+  padding: 6px 0;
   border: 1px solid var(--color-border);
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   background: var(--color-surface);
   font-size: 12px;
   font-weight: 700;
@@ -116,7 +132,7 @@
 }
 
 .unlike:hover {
-  border-color: var(--color-text-sub);
+  border-color: var(--color-border-strong);
   color: var(--color-text);
 }
 
@@ -142,8 +158,8 @@
   margin-top: 20px;
   padding: 11px 20px;
   border: none;
-  border-radius: 10px;
-  background: var(--color-text);
+  border-radius: var(--radius-md);
+  background: var(--color-primary);
   color: var(--color-surface);
   font-size: 14px;
   font-weight: 700;
@@ -151,8 +167,8 @@
 
 .skeleton {
   height: 160px;
-  border-radius: 12px;
-  background: linear-gradient(90deg, #f7f8f9 25%, #eef0f3 50%, #f7f8f9 75%);
+  border-radius: var(--radius-md);
+  background: linear-gradient(90deg, var(--color-skeleton) 25%, var(--color-skeleton-shine) 50%, var(--color-skeleton) 75%);
   background-size: 200% 100%;
   animation: shimmer 1.4s linear infinite;
 }
@@ -178,14 +194,18 @@
    * 가격 아래에 등락률을 쌓고 남는 폭은 모두 종목명에 준다. 네 칸을 한 줄에 두면 320px에서
    * 가격이 "71,200 / 원"으로 쪼개지거나 종목명이 "LG에…"로 잘린다. 자식 순서: 종목·가격·등락률·거래대금·해제
    */
+  .head {
+    display: none;
+  }
+
   .row {
-    grid-template-columns: minmax(0, 1fr) auto auto;
+    grid-template-columns: minmax(0, 1fr) auto 42px;
     grid-template-areas:
       'identity price action'
       'identity rate action';
     column-gap: 12px;
     row-gap: 2px;
-    padding: 12px;
+    padding: 12px 0;
   }
 
   .row > :nth-child(1) {

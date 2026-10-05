@@ -19,8 +19,9 @@ const UP_COLOR = '#f04452'
 const DOWN_COLOR = '#3182f6'
 /** 보합 글자색. index.css의 --color-text와 같은 값 */
 const FLAT_COLOR = '#191f28'
-const TREND_COLOR = '#b5bcc4'
-const BAR_COLOR = '#eef0f3'
+/** 처음과 끝을 잇는 점선, 거래량 막대. index.css의 따뜻한 회색 계열에 맞춘 값 */
+const TREND_COLOR = '#bdb6aa'
+const BAR_COLOR = '#f0ece4'
 
 /** 그림이 테두리에 닿지 않게 두는 여백. 아래는 막대가 바닥에 붙어야 해서 0이다 */
 const PAD_TOP = 8

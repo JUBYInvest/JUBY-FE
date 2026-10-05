@@ -1,17 +1,15 @@
+/*
+ * 바탕(아이보리)은 body가 칠한다. 예전엔 여기서 1200px 흰 판을 깔아 판 안의 카드·표가 흰 바탕 위 흰색이었다.
+ * 머리글은 화면 끝까지 흰 띠로 두고(Header.module.css), 본문만 가운데 1200px 안에 놓는다
+ */
 .page {
-  max-width: 1200px;
   min-height: 100vh;
-  margin: 0 auto;
-  background: var(--color-surface);
 }
 
 .main {
+  max-width: 1200px;
+  margin: 0 auto;
   padding: 0 80px 80px;
-}
-
-/* 화면이 여백을 직접 잡는 경우(로그인). 배경색을 가장자리까지 채워야 한다 */
-.bareMain {
-  padding: 0;
 }
 
 /*

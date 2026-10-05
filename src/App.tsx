@@ -55,7 +55,6 @@ const NotFoundPage = lazy(() => import('./pages/NotFoundPage'))
 function Layout() {
   const { pathname } = useLocation()
   const navigate = useNavigate()
-  const isLoginPage = pathname === '/login'
 
   /*
    * 컴포넌트가 아닌 client.ts가 401을 받았을 때 쓸 이동 수단을 맡겨 둔다.
@@ -70,7 +69,7 @@ function Layout() {
     <div className={styles.page}>
       <Header />
 
-      <main className={isLoginPage ? styles.bareMain : styles.main}>
+      <main className={styles.main}>
         {/*
           머리글은 경계 밖에 둔다. 아래가 멈춰도 메뉴로 빠져나갈 수 있어야 한다.
           resetKey에 현재 경로를 넘겨, 다른 화면으로 옮기면 오류 상태가 풀리게 한다.

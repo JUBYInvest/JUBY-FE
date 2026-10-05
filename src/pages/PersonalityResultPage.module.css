@@ -1,5 +1,5 @@
 /*
- * 제목과 진행률 바는 문항 화면과 똑같이 생겼다. 여기서 다시 쓰면 초록색이나 폭을 바꿀 때
+ * 제목과 진행률 바는 문항 화면과 똑같이 생겼다. 여기서 다시 쓰면 색이나 폭을 바꿀 때
  * 두 파일을 고쳐야 하므로 composes로 문항 화면 것을 그대로 가져다 쓴다.
  */
 .title {
@@ -20,8 +20,9 @@
   min-width: 180px;
   margin-top: 26px;
   padding: 12px 40px;
-  background: #4e5968;
-  border-radius: 10px;
+  border: 0;
+  background: var(--color-primary);
+  border-radius: var(--radius-md);
   font-size: 15px;
   font-weight: 700;
   color: var(--color-surface);
@@ -29,7 +30,7 @@
 }
 
 .done:hover {
-  background: #3d4754;
+  background: var(--color-primary-hover);
 }
 
 /* 주 버튼 아래 보조 링크. 다시 푸는 쪽은 눈에 덜 띄어야 한다 */

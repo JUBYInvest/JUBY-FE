@@ -1,24 +1,10 @@
-/*
- * 카드 둘레. 넓은 폭에서는 판 가운데 카드(최대 560px)가 뜨고 양옆이 남아 테두리가 겹치지 않는다.
- * 600px 아래에서는 판과 카드 폭이 같아져 테두리가 포개져 이중으로 보였다 — 옆을 띄운다(2026-10-05).
- */
-.cardWrap {
-  padding: 0;
-}
-
-@media (max-width: 600px) {
-  .cardWrap {
-    padding: 0 12px;
-  }
-}
-
 /* 카드가 올 자리를 미리 잡아 둔다. 도착해도 화면이 흔들리지 않는다 */
 .skeleton {
   max-width: 560px;
   height: 420px;
   margin: 36px auto;
-  border-radius: 16px;
-  background: linear-gradient(90deg, #f7f8f9 25%, #eef0f3 50%, #f7f8f9 75%);
+  border-radius: var(--radius-lg);
+  background: linear-gradient(90deg, var(--color-skeleton) 25%, var(--color-skeleton-shine) 50%, var(--color-skeleton) 75%);
   background-size: 200% 100%;
   animation: shimmer 1.4s linear infinite;
 }
@@ -65,8 +51,8 @@
   margin-top: 26px;
   padding: 12px 40px;
   border: 0;
-  border-radius: 10px;
-  background: #4e5968;
+  border-radius: var(--radius-md);
+  background: var(--color-primary);
   font-size: 15px;
   font-weight: 700;
   color: var(--color-surface);
@@ -74,16 +60,16 @@
 }
 
 .primary:hover {
-  background: #3d4754;
+  background: var(--color-primary-hover);
 }
 
-/* 카드 아래 보조 버튼. 결과 화면의 '검사 다시하기'와 같은 자리, 같은 무게 */
+/* 카드 아래 주 버튼. 결과 화면의 '완료'와 같은 자리, 같은 무게 */
 .retest {
   min-width: 180px;
   margin-top: 26px;
   padding: 12px 40px;
-  border-radius: 10px;
-  background: #4e5968;
+  border-radius: var(--radius-md);
+  background: var(--color-primary);
   font-size: 15px;
   font-weight: 700;
   color: var(--color-surface);
@@ -91,7 +77,7 @@
 }
 
 .retest:hover {
-  background: #3d4754;
+  background: var(--color-primary-hover);
 }
 
 @media (max-width: 600px) {

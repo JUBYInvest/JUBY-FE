@@ -121,6 +121,14 @@ export default function MypageLikesPage() {
         <p className={styles.asOf}>{toKoreanDate(state.baseDate)} 종가 기준</p>
       )}
 
+      {/* 칸 이름. 행마다 값만 있으면 "1.3조"가 무엇인지 알 수 없었다. 좁은 화면은 가격 아래 등락률을 쌓아 숨긴다 */}
+      <div className={styles.head} aria-hidden="true">
+        <span>종목</span>
+        <span className={styles.headNumeric}>종가</span>
+        <span className={styles.headNumeric}>등락률</span>
+        <span className={styles.headNumeric}>거래대금</span>
+        <span />
+      </div>
       <ul className={styles.list}>
         {state.stocks.map((stock) => (
           <li key={stock.stockCode} className={styles.row}>

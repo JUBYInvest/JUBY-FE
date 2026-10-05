@@ -7,7 +7,11 @@
   /* 메뉴 사이 간격과 같게 해서 서비스·계정 메뉴가 한 줄로 이어 보이게 한다 */
   column-gap: 28px;
   height: 76px;
-  padding: 0 80px;
+  /*
+   * 흰 띠는 화면 끝까지 칠하고, 로고·메뉴는 본문(App.module.css .main, 가운데 1200px에 좌우 80px)과 같은 줄에 세운다.
+   * 넓은 화면에서는 (화면 폭 - 1200px) / 2 만큼 더 들인다
+   */
+  padding: 0 max(80px, calc((100% - 1200px) / 2 + 80px));
   background: var(--color-surface);
   border-bottom: 1px solid var(--color-border);
 }
@@ -34,9 +38,9 @@
   margin: -15px -5px;
   /* 글자가 44px보다 짧으면('홈') 남는 넓이를 왼쪽 빈자리로 보낸다. 메뉴 사이 간격은 그대로다 */
   text-align: right;
-  /* 다른 화면은 회색. --color-text-sub(#8b95a1)는 흰 바탕 대비 3.0이라 글자에 모자라 한 단계 진한 회색(4.6)을 쓴다 */
+  /* 다른 화면은 회색. 보조 글자색(--color-text-sub, 4.0)은 메뉴 글자에 모자라 한 단계 진한 회색(5.7)을 쓴다 */
   font-weight: 500;
-  color: #6b7684;
+  color: var(--color-text-muted);
 }
 
 .menu a:hover {

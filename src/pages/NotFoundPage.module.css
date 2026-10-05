@@ -23,8 +23,8 @@
 .home {
   margin-top: 28px;
   padding: 12px 32px;
-  border-radius: 10px;
-  background: #4e5968;
+  border-radius: var(--radius-md);
+  background: var(--color-primary);
   font-size: 15px;
   font-weight: 700;
   color: var(--color-surface);
@@ -32,7 +32,7 @@
 }
 
 .home:hover {
-  background: #3d4754;
+  background: var(--color-primary-hover);
 }
 
 @media (max-width: 600px) {

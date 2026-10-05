@@ -1,43 +1,23 @@
-/* 공통 헤더 바로 아래에 붙는 제목 줄. 헤더와 같은 흰 배경으로 이어진다. 좌우 여백은 머리글(Header.module.css)과 같이 줄인다 */
-.titleBar {
-  display: flex;
-  align-items: center;
-  height: 88px;
-  padding: 0 80px;
-  background: var(--color-surface);
-  border-bottom: 1px solid var(--color-border);
-}
-
-/* Figma에서 제목 아래 밑줄이 글자 폭만큼 그어져 있다 */
+/* 마이페이지·AI와 같은 제목 규격. 예전엔 머리글 아래 흰 제목 줄(밑줄 그은 '로그인')이 따로 있었다 */
 .title {
-  margin: 0;
-  padding-bottom: 4px;
-  border-bottom: 2px solid var(--color-text);
-  font-size: 26px;
-  font-weight: 700;
+  margin: 44px 0 24px;
+  font-size: 34px;
+  font-weight: 800;
   letter-spacing: -0.02em;
 }
 
 /*
- * 위에서부터 흰색(헤더·제목 줄) → 회색 → 흰색으로 딱 끊는다.
- * 바탕을 흰색으로 되돌리고 회색은 아래 .band가 맡는다. 그라데이션은 쓰지 않는다.
+ * 문구와 버튼을 담는 흰 판. 다른 화면의 판(AI 대화창·마이페이지)과 같은 테두리·모서리다.
+ * 예전엔 회색 띠가 화면 끝까지 차고 그 아래가 흰 빈칸으로 남았다
  */
-.body {
-  /* 헤더 76px + 제목 줄 88px. 띠 아래 흰색이 화면 끝까지 이어지도록 높이를 채운다 */
-  min-height: calc(100vh - 164px);
-  background: var(--color-surface);
-}
-
-/*
- * 회색 띠. 좌우는 화면 끝까지 채우고 위아래로는 문구와 버튼을 감쌀 만큼만 차지한다.
- * align-items를 지정하지 않아야 세로 정렬에서 자식이 가로를 꽉 채운다.
- */
-.band {
+.card {
   display: flex;
   flex-direction: column;
   align-items: center;
   padding: 96px 24px;
-  background: var(--color-page-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
 }
 
 .headline {
@@ -83,9 +63,10 @@
 
 .social:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.14);
+  box-shadow: var(--shadow-hover);
 }
 
+/* 소셜 로그인 버튼 색은 각 회사가 정한 색이다 */
 .naver {
   background: #03c75a;
 }
@@ -103,24 +84,19 @@
   display: block;
 }
 
-/* 머리글과 같은 폭에서 같은 여백으로 줄인다. 이 화면만 80px 여백이 남아 휴대폰에서 제목이 가운데쯤에서 시작했다(2026-10-05) */
 @media (max-width: 900px) {
-  .titleBar {
-    padding: 0 32px;
+  .title {
+    margin: 32px 0 20px;
+    font-size: 27px;
   }
 }
 
 @media (max-width: 600px) {
-  .titleBar {
-    height: 64px;
-    padding: 0 16px;
-  }
-
   .title {
-    font-size: 22px;
+    font-size: 23px;
   }
 
-  .band {
+  .card {
     padding: 56px 16px;
   }
 

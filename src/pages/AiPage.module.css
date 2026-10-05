@@ -7,11 +7,11 @@
 
 /*
  * 사이드바 폭은 고정, 대화가 남는 자리를 전부 가져간다.
- * 이번 작업은 데스크톱 기준만 맞춘다(요구사항서 STEP 2).
+ * 186px에서는 방 제목이 여덟 글자 남짓에서 잘렸다("SK하이닉스랑 LG에…"). 마이페이지 메뉴와 같은 폭이다
  */
 .layout {
   display: grid;
-  grid-template-columns: 186px 1fr;
+  grid-template-columns: 240px 1fr;
   gap: 20px;
   align-items: start;
 }
@@ -28,7 +28,7 @@
   height: clamp(420px, calc(100dvh - 260px), 620px);
   background: var(--color-surface);
   border: 1px solid var(--color-border);
-  border-radius: 16px;
+  border-radius: var(--radius-lg);
 }
 
 /* 빈 화면과 에러 화면이 함께 쓴다. 남는 세로 공간의 한가운데에 놓는다 */
@@ -49,7 +49,7 @@
   font-weight: 400;
   letter-spacing: 0.02em;
   /* 배경 장식이라 본문보다 훨씬 연하게 둔다 */
-  color: #eceef0;
+  color: var(--color-bg-sub);
   line-height: 1.1;
 }
 
@@ -73,15 +73,16 @@
   display: inline-block;
   padding: 11px 22px;
   border: 0;
-  border-radius: 8px;
-  background: #333d4b;
-  color: #ffffff;
+  border-radius: var(--radius-md);
+  background: var(--color-primary);
+  color: var(--color-surface);
   font-size: 14px;
   font-weight: 600;
+  transition: background 0.15s;
 }
 
 .darkButton:hover {
-  background: #262f3a;
+  background: var(--color-primary-hover);
 }
 
 .errorText {
@@ -109,7 +110,7 @@
   align-items: center;
   gap: 8px;
   padding: 6px 6px 6px 16px;
-  border-radius: 10px;
+  border-radius: var(--radius-md);
   background: var(--color-page-bg);
 }
 
@@ -152,21 +153,29 @@
   text-overflow: ellipsis;
 }
 
+/* 보내기는 이 화면의 주 버튼이다. 예전엔 흰 테두리 단추라 입력칸 속 장식처럼 보였다 */
 .send {
   flex-shrink: 0;
   padding: 9px 16px;
-  border: 1px solid var(--color-border);
-  border-radius: 8px;
-  background: var(--color-surface);
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: var(--color-primary);
+  color: var(--color-surface);
   font-size: 14px;
   font-weight: 600;
+  transition: background 0.15s;
 }
 
 .send:hover:not(:disabled) {
-  background: #eceef0;
+  background: var(--color-primary-hover);
 }
 
-.send:disabled,
+.send:disabled {
+  cursor: default;
+  background: var(--color-disabled-bg);
+  color: var(--color-disabled-text);
+}
+
 .input:disabled {
   cursor: default;
   color: var(--color-text-sub);
@@ -183,7 +192,7 @@
 .skeleton {
   height: 46px;
   width: 55%;
-  border-radius: 14px;
+  border-radius: var(--radius-lg);
   background: var(--color-page-bg);
   animation: pulse 1.4s infinite ease-in-out;
 }
@@ -191,7 +200,7 @@
 .skeletonUser {
   align-self: flex-end;
   width: 35%;
-  background: #e8ebee;
+  background: var(--color-border);
 }
 
 @keyframes pulse {

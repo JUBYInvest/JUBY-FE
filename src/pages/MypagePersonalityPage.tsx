@@ -88,17 +88,16 @@ export default function MypagePersonalityPage() {
   )
 
   return (
-    // 판(MypageLayout .content) 안에 카드가 또 테두리를 두르므로, 좁은 폭에서는 옆을 띄워 겹치지 않게 한다(아래 .cardWrap)
-    <div className={styles.cardWrap}>
-      <PersonalityCard
-        type={info.investPersonality}
-        description={description}
-        imageUrl={imageUrl}
-      >
-        <Link to={TEST_URL} className={styles.retest}>
-          검사 다시하기
-        </Link>
-      </PersonalityCard>
-    </div>
+    // 판(MypageLayout .content)이 이미 틀이라 카드는 테두리 없이 그린다(plain). 예전엔 판 안에 카드 테두리가 한 겹 더 있었다
+    <PersonalityCard
+      type={info.investPersonality}
+      description={description}
+      imageUrl={imageUrl}
+      plain
+    >
+      <Link to={TEST_URL} className={styles.retest}>
+        검사 다시하기
+      </Link>
+    </PersonalityCard>
   )
 }

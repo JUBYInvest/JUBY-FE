@@ -2,14 +2,13 @@
   display: block;
   padding: 18px 18px 14px;
   border: 1px solid var(--color-border);
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   background: var(--color-surface);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
   transition: box-shadow 0.15s, transform 0.15s;
 }
 
 .card:hover {
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
+  box-shadow: var(--shadow-hover);
   transform: translateY(-2px);
 }
 
@@ -52,12 +51,12 @@
 
 /* 값이 오기 전 자리. 빈 칸으로 두면 카드가 찌그러져 보인다 */
 .rateEmpty {
-  color: #d7dbe0;
+  color: var(--color-disabled-text);
 }
 
 .chartEmpty {
-  border-radius: 8px;
-  background: linear-gradient(90deg, #f7f8f9 25%, #eef0f3 50%, #f7f8f9 75%);
+  border-radius: var(--radius-sm);
+  background: linear-gradient(90deg, var(--color-skeleton) 25%, var(--color-skeleton-shine) 50%, var(--color-skeleton) 75%);
   background-size: 200% 100%;
   animation: shimmer 1.4s linear infinite;
 }
@@ -71,11 +70,10 @@
   gap: 6px;
   padding: 0 12px;
   border: 1px dashed var(--color-border);
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   font-size: 13px;
   color: var(--color-text-sub);
   text-align: center;
-  word-break: keep-all;
 }
 
 .chartHint {

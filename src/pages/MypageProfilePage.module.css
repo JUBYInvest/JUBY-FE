@@ -39,39 +39,42 @@
   margin-top: 32px;
 }
 
-.muted,
-.outline,
+.edit,
+.leave,
 .primary {
   min-width: 150px;
   padding: 12px 24px;
-  border-radius: 10px;
+  border-radius: var(--radius-md);
   font-size: 15px;
   font-weight: 700;
-  transition: background 0.15s;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
 }
 
 /*
- * 정보 수정하기. 아직 API를 연결하지 않아 주 버튼처럼 보이면 안 된다.
- * 누를 수는 있게 두고(안내를 띄운다) 무게만 낮춘다.
+ * 정보 수정하기가 이 화면의 주된 동작이다. 수정 API를 붙이기 전에 무게를 낮춰 둔 연회색(#b0b8c1, 흰 글자 대비 2.0)이
+ * 붙인 뒤에도 남아 꺼진 버튼처럼 보였다
  */
-.muted {
+.edit {
   border: 0;
-  background: #b0b8c1;
+  background: var(--color-primary);
   color: var(--color-surface);
 }
 
-.muted:hover {
-  background: #9aa4b0;
+.edit:hover {
+  background: var(--color-primary-hover);
 }
 
-.outline {
+/* 탈퇴는 테두리 단추에 보조 글자색. 마우스를 올리면 경고색으로 무엇을 하는지 알린다 */
+.leave {
   border: 1px solid var(--color-border);
   background: var(--color-surface);
-  color: var(--color-text);
+  font-weight: 600;
+  color: var(--color-text-sub);
 }
 
-.outline:hover {
-  background: var(--color-page-bg);
+.leave:hover {
+  border-color: var(--color-up);
+  color: var(--color-up);
 }
 
 /* 조회 실패 화면 */
@@ -99,20 +102,20 @@
 .primary {
   margin-top: 26px;
   border: 0;
-  background: #4e5968;
+  background: var(--color-primary);
   color: var(--color-surface);
 }
 
 .primary:hover {
-  background: #3d4754;
+  background: var(--color-primary-hover);
 }
 
 .skeleton {
   max-width: 560px;
   height: 420px;
   margin: 36px auto;
-  border-radius: 16px;
-  background: linear-gradient(90deg, #f7f8f9 25%, #eef0f3 50%, #f7f8f9 75%);
+  border-radius: var(--radius-lg);
+  background: linear-gradient(90deg, var(--color-skeleton) 25%, var(--color-skeleton-shine) 50%, var(--color-skeleton) 75%);
   background-size: 200% 100%;
   animation: shimmer 1.4s linear infinite;
 }
@@ -162,7 +165,7 @@
 .cancel {
   height: 48px;
   border: none;
-  border-radius: 10px;
+  border-radius: var(--radius-md);
   font: inherit;
   font-size: 16px;
   font-weight: 600;
@@ -171,15 +174,15 @@
 /* 되돌릴 수 없는 동작이라 등락 빨강과 같은 경고색을 쓴다 */
 .danger {
   background: var(--color-up);
-  color: #fff;
+  color: var(--color-surface);
 }
 
 .danger:hover:not(:disabled) {
-  background: #d93a48;
+  background: var(--color-danger-hover);
 }
 
 .danger:disabled {
-  background: #f4a3ab;
+  background: var(--color-danger-disabled);
   cursor: default;
 }
 
@@ -236,7 +239,7 @@
   height: 44px;
   padding: 0 14px;
   border: 1px solid var(--color-border);
-  border-radius: 10px;
+  border-radius: var(--radius-md);
   background: var(--color-bg-sub);
   font: inherit;
   /* 16px 아래면 아이폰·아이패드 사파리가 누르는 순간 화면을 확대하고 되돌리지 않는다 */

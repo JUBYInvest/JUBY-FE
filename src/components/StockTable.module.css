@@ -26,7 +26,7 @@
   z-index: 2;
   height: 46px;
   border: 1px solid var(--color-border);
-  border-radius: 12px 12px 0 0;
+  border-radius: var(--radius-md) var(--radius-md) 0 0;
   background: var(--color-surface);
   font-size: 14px;
   color: var(--color-text-sub);
@@ -38,7 +38,7 @@
   list-style: none;
   border: 1px solid var(--color-border);
   border-top: 0;
-  border-radius: 0 0 12px 12px;
+  border-radius: 0 0 var(--radius-md) var(--radius-md);
   /* 마지막 행의 모서리를 컨테이너 곡률에 맞춰 잘라낸다 */
   overflow: hidden;
   background: var(--color-surface);
@@ -62,7 +62,7 @@
 }
 
 .row:hover {
-  background: var(--color-page-bg);
+  background: var(--color-bg-hover);
 }
 
 .sortButton {
@@ -116,7 +116,8 @@
   padding: 0;
   border: none;
   background: none;
-  color: #c9cfd6;
+  /* 누를 수 있는 것이라 흰 바탕 대비 3 이상이어야 한다. 예전 #c9cfd6은 1.6이라 거의 안 보였다 */
+  color: var(--color-text-sub);
 }
 
 .heart:hover {
@@ -145,7 +146,7 @@
 .nameLink:focus-visible::after {
   outline: 2px solid var(--color-down);
   outline-offset: -2px;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
 }
 
 /* 금액·비율은 오른쪽에 붙여야 자릿수를 위아래로 견주기 좋다 */

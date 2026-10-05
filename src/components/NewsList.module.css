@@ -22,7 +22,7 @@
   height: 36px;
   padding: 0 16px;
   border: 1px solid var(--color-border);
-  border-radius: 18px;
+  border-radius: var(--radius-pill);
   background: var(--color-surface);
   font-size: 14px;
   font-weight: 600;
@@ -30,17 +30,15 @@
 }
 
 .tab:hover {
-  border-color: var(--color-text-sub);
+  border-color: var(--color-border-strong);
+  color: var(--color-text);
 }
 
-.tabActive {
-  border-color: var(--color-text);
-  background: var(--color-text);
-  color: #fff;
-}
-
+.tabActive,
 .tabActive:hover {
-  border-color: var(--color-text);
+  border-color: var(--color-primary);
+  background: var(--color-primary);
+  color: var(--color-surface);
 }
 
 .list {
@@ -56,13 +54,13 @@
   display: block;
   padding: 18px 20px;
   border: 1px solid var(--color-border);
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   background: var(--color-surface);
   transition: box-shadow 0.15s, transform 0.15s;
 }
 
 .card:hover {
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
+  box-shadow: var(--shadow-hover);
   transform: translateY(-2px);
 }
 
@@ -140,7 +138,7 @@
   flex-direction: column;
   padding: 18px 20px;
   border: 1px solid var(--color-border);
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   background: var(--color-surface);
 }
 
@@ -152,8 +150,8 @@
 
 .bone {
   display: block;
-  border-radius: 6px;
-  background: linear-gradient(90deg, #f7f8f9 25%, #eef0f3 50%, #f7f8f9 75%);
+  border-radius: var(--radius-xs);
+  background: linear-gradient(90deg, var(--color-skeleton) 25%, var(--color-skeleton-shine) 50%, var(--color-skeleton) 75%);
   background-size: 200% 100%;
   animation: shimmer 1.4s linear infinite;
 }
@@ -220,7 +218,7 @@
   margin-top: 20px;
   padding: 32px 16px;
   border: 1px solid var(--color-border);
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   background: var(--color-surface);
 }
 
@@ -233,8 +231,8 @@
 .errorRetry {
   padding: 8px 18px;
   border: none;
-  border-radius: 8px;
-  background: var(--color-text);
+  border-radius: var(--radius-sm);
+  background: var(--color-primary);
   color: var(--color-surface);
   font-size: 14px;
   font-weight: 600;
@@ -254,7 +252,7 @@
   margin-top: 12px;
   padding: 12px;
   border: 1px solid var(--color-border);
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   background: var(--color-surface);
   font-size: 14px;
   font-weight: 700;
@@ -262,7 +260,7 @@
 }
 
 .more:hover:not(:disabled) {
-  background: var(--color-bg-sub);
+  border-color: var(--color-border-strong);
 }
 
 .more:disabled {

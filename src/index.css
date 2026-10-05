@@ -1,13 +1,52 @@
+/*
+ * 색·모서리·그림자 기준값. 화면 CSS는 여기 이름만 쓴다(2026-10-05 정리 — 회색만 열여덟 가지,
+ * 모서리 아홉 가지, 그림자 열한 가지가 섞여 화면마다 버튼과 카드가 조금씩 달랐다).
+ */
 :root {
+  /* 한국식 시세 색 — 오르면 빨강, 내리면 파랑 */
   --color-up: #f04452;
   --color-down: #3182f6;
-  --color-page-bg: #f4f5f7;
-  /* 흰 바탕 위에 한 겹 얹는 옅은 배경(알약 배지 등) */
-  --color-bg-sub: #f2f4f6;
+
+  /* 바탕은 살짝 따뜻한 아이보리, 카드·머리글은 흰색으로 띄운다. 구역은 선보다 바탕 차이로 나뉜다 */
+  --color-page-bg: #f8f6f0;
   --color-surface: #ffffff;
+  /* 흰 카드 안에 한 겹 얹는 옅은 바탕(입력칸·알약 배지·고른 줄·막대 바탕) */
+  --color-bg-sub: #f3f0e9;
+  /* 흰 카드 안에서 마우스를 올린 줄 */
+  --color-bg-hover: #faf8f4;
+  --color-border: #e8e3da;
+  /* 마우스를 올렸거나 포커스가 간 테두리 */
+  --color-border-strong: #cdc6b9;
+
   --color-text: #191f28;
-  --color-text-sub: #8b95a1;
-  --color-border: #e5e8eb;
+  /* 보조 글자(흰 바탕 대비 4.0). 짧은 단서·숫자 단위에 쓴다 */
+  --color-text-sub: #857f75;
+  /* 글로 읽혀야 하는 회색(흰 바탕 대비 5.7). 머리글 메뉴처럼 본문만큼 읽히는 자리 */
+  --color-text-muted: #6b665d;
+
+  /* 주 버튼은 한 색이다. 예전엔 #191f28·#333d4b·#4e5968이 화면마다 섞였다 */
+  --color-primary: #191f28;
+  --color-primary-hover: #333d4b;
+  --color-disabled-bg: #ece8e0;
+  --color-disabled-text: #a9a296;
+  /* 되돌릴 수 없는 동작(탈퇴·대화 지우기)의 빨간 단추. 바탕은 --color-up이다 */
+  --color-danger-hover: #d93a48;
+  --color-danger-disabled: #f4a3ab;
+
+  /* 값이 오기 전 뼈대의 반짝임 두 색 */
+  --color-skeleton: #f3f0ea;
+  --color-skeleton-shine: #e8e3da;
+
+  /* 모서리는 다섯 가지만 쓴다. xs: 글자 줄 안의 작은 것, sm: 작은 단추, md: 카드·입력칸·큰 단추, lg: 큰 판·모달 */
+  --radius-xs: 4px;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-pill: 999px;
+
+  /* 카드는 테두리로 나누고 그림자를 쓰지 않는다. 그림자는 떠 있는 층과 눌러 볼 카드에 마우스를 올렸을 때만 */
+  --shadow-pop: 0 8px 24px rgba(25, 31, 40, 0.1);
+  --shadow-hover: 0 6px 16px rgba(25, 31, 40, 0.08);
 }
 
 * {
@@ -20,6 +59,12 @@ body {
   color: var(--color-text);
   font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Malgun Gothic',
     system-ui, sans-serif;
+  /*
+   * 한글은 낱말 단위로만 줄을 바꾼다. 기본값이면 "찾아보/세요", "신호로 삼/는"처럼 음절 사이에서 끊겼다.
+   * 띄어쓰기 없이 칸보다 긴 덩어리(주소 등)는 넘치기 전에 아무 데서나 끊는다
+   */
+  word-break: keep-all;
+  overflow-wrap: break-word;
 }
 
 a {

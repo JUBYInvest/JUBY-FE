@@ -458,7 +458,7 @@ export default function AiPage() {
               {personality.kind === 'found' ? (
                 <div className={styles.personality}>
                   <p className={styles.personalityText}>
-                    현재 당신의 투자성향은 ‘{personality.name}’ 입니다.
+                    현재 당신의 투자성향은 ‘{personality.name}’입니다.
                   </p>
                   <Link className={styles.darkButton} to={PERSONALITY_TEST_URL}>
                     투자성향 변경하기
@@ -513,7 +513,7 @@ export default function AiPage() {
                 value={question}
                 onChange={(event) => setQuestion(event.target.value)}
                 onKeyDown={handleKeyDown}
-                placeholder="예시 : 삼성전자의 주가 현황을 알려줘."
+                placeholder="예: 삼성전자 주가 어때?"
                 rows={1}
                 maxLength={QUESTION_MAX_LENGTH}
                 disabled={pending === 'loading'}

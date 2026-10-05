@@ -61,11 +61,8 @@ export default function MypageLayout() {
       <h1 className={styles.title}>마이페이지</h1>
 
       <div className={styles.layout}>
-        <aside className={styles.sidebar}>
-          <div className={styles.head}>
-            <h2 className={styles.headTitle}>마이페이지</h2>
-          </div>
-
+        {/* 제목이 바로 위에 있어 메뉴 머리에 '마이페이지'를 또 적지 않는다(예전엔 두 번 보였다) */}
+        <aside className={styles.sidebar} aria-label="마이페이지 메뉴">
           <ul className={styles.list}>
             {MENU.map((item) => (
               <li key={item.to}>

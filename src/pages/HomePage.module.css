@@ -32,8 +32,9 @@
 .asOf,
 .sortNote {
   padding: 4px 10px;
-  border-radius: 999px;
-  background: var(--color-bg-sub);
+  border-radius: var(--radius-pill);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
   color: var(--color-text-sub);
   font-size: 13px;
   font-weight: 600;
@@ -81,7 +82,7 @@
   align-items: center;
   justify-content: center;
   border: none;
-  border-radius: 10px;
+  border-radius: var(--radius-md);
   font: inherit;
   font-size: 16px;
   font-weight: 600;
@@ -89,8 +90,12 @@
 }
 
 .modalPrimary {
-  background: var(--color-text);
-  color: #fff;
+  background: var(--color-primary);
+  color: var(--color-surface);
+}
+
+.modalPrimary:hover {
+  background: var(--color-primary-hover);
 }
 
 .modalSecondary {
@@ -115,8 +120,8 @@
   }
 
   /*
-   * 예전에는 여기서 두 줄로 내렸다(그래프가 좁아져서). 그래프가 없어진 뒤로는 셋을 나란히 둬도
-   * 숫자가 읽힌다. 두 줄로 내리면 세 번째 카드만 홀로 아랫줄에 남아 어색했다.
+   * 셋을 나란히 둔다(768px에서 한 장 220px 남짓 — 그래프와 숫자가 읽힌다).
+   * 두 줄로 내리면 세 번째 카드만 홀로 아랫줄에 남아 어색했다.
    */
   .cards {
     gap: 16px;
@@ -128,8 +133,31 @@
     font-size: 23px;
   }
 
+  /*
+   * 세 장을 위아래로 쌓으면 한 장이 290px쯤이라 시세표가 1,360px 아래에서 시작했다.
+   * 옆으로 밀어 보는 줄로 바꾸고, 다음 카드가 오른쪽에 걸쳐 보이게 해 밀 수 있다는 걸 알린다.
+   * 줄은 본문 좌우 여백(16px)까지 넓혀 화면 끝에서 끝까지 민다
+   */
   .cards {
-    grid-template-columns: 1fr;
+    grid-template-columns: none;
+    grid-auto-flow: column;
+    grid-auto-columns: 84%;
+    gap: 12px;
+    margin: 16px -16px 0;
+    /* 위 4px: 마우스를 올리면 카드가 2px 떠오르는데 스크롤 상자가 그 윗부분을 자른다 */
+    padding: 4px 16px 8px;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    scroll-padding: 0 16px;
+    scrollbar-width: none;
+  }
+
+  .cards::-webkit-scrollbar {
+    display: none;
+  }
+
+  .cards > * {
+    scroll-snap-align: start;
   }
 
   /* 기준일 배지와 제목이 한 줄에 다 안 들어간다 */
@@ -148,12 +176,12 @@
   margin-top: 12px;
   padding: 9px 16px;
   border: 1px solid var(--color-border);
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   background: var(--color-surface);
   font-size: 13px;
   font-weight: 700;
 }
 
 .retry:hover {
-  border-color: var(--color-text-sub);
+  border-color: var(--color-border-strong);
 }
