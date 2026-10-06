@@ -73,7 +73,7 @@ mixed content(https 사이트가 http를 부르면 브라우저가 막는다) �
 넣어야 쓰기 요청이 확실히 된다(`docs/남은-일.md`).
 `VITE_API_ORIGIN`의 소셜 로그인 이동은 주소창 이동이라 CORS를 받지 않는다. 재발급은 받으므로 배포 주소가 허용 출처에 있어야 한다.
 
-`index.html`의 `og:image`는 절대주소여야 해서 배포 도메인이 정해진 뒤에 채운다.
+`index.html`의 `og:image`는 절대주소(`https://juby-fe.vercel.app/og.png`)다. 배포 주소가 바뀌면 같이 바꾼다.
 
 ## 규칙
 
