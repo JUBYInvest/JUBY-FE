@@ -129,18 +129,6 @@ export function malformedResponse(): ApiError {
   return new ApiError(MALFORMED_MESSAGE, 200, null)
 }
 
-/**
- * 응답 값을 거르지 않고 화면 타입으로 넘긴다. 타입만 맞출 뿐 값은 그대로다.
- *
- * 스웨거 응답 스키마엔 필수 표시가 없어 src/api/*.ts의 응답 인터페이스는 필드를 전부 비어 올 수 있게
- * (`?: T | null`) 적는다. 화면 타입으로 옮길 때 걸러 낸 곳은 그 검사로 타입이 좁혀지고, 걸러 내지 않은 곳만
- * 이걸 쓴다 — **이 호출이 곧 빈 값을 화면(포맷 함수 등)에 맡겼거나 아직 막지 않은 자리다**
- * (docs/수정-결과-2026-09-27.md "F-15에서 드러난 자리").
- */
-export function unchecked<T>(value: T | null | undefined): T {
-  return value as T
-}
-
 function isApiResponse(body: unknown): body is ApiResponse<unknown> {
   return (
     typeof body === 'object' &&

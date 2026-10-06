@@ -6,18 +6,18 @@ export interface StockInfo {
 
 /**
  * GET /api/stocks 한 줄. **기준일(baseDate) 종가**다.
- *
- * 예전에는 종목당 현재가를 따로 받아 값이 null일 수 있었는데, 지금은 백엔드가
- * daily_price 테이블에서 100종목을 한 번에 주므로 값이 비는 일이 없다.
  * 16시 배치 전에는 전 거래일, 후에는 당일 값이다.
+ *
+ * 백엔드가 daily_price 테이블에서 100종목을 한 번에 주어 보통은 값이 다 있다. 그래도 스웨거에 필수 표시가 없고
+ * 그날 일봉이 빠진 종목은 비어 온다 — 숫자 칸은 null일 수 있다(포맷 함수가 "-"로 적고 정렬이 맨 뒤로 보낸다).
  */
 export interface Stock extends StockInfo {
-  closePrice: number
+  closePrice: number | null
   /** 등락률(%). 1.01이면 +1.01% */
-  fluctuate: number
+  fluctuate: number | null
   /** 거래대금(원). 거래량이 아니다 */
-  tradingValue: number
-  /** 로그인한 회원의 관심종목이면 true. 비로그인은 항상 false */
+  tradingValue: number | null
+  /** 로그인한 회원의 관심종목이면 true. 비로그인은 항상 false(서버가 비워 보내도 false) */
   isLiked: boolean
 }
 
@@ -38,7 +38,8 @@ export interface Candle {
   high: number
   low: number
   close: number
-  volume: number
+  /** 비어 온 날은 null이다(범례는 "-", 거래량 막대는 그날만 빈다) */
+  volume: number | null
 }
 
 /** 백엔드 Period enum. 상세 화면의 기간 탭이 이 값을 그대로 쓴다 */
@@ -53,9 +54,10 @@ export type Period =
 
 /** GET /api/stocks/{code} — 일봉은 DB, 현재가·등락률만 증권사에서 */
 export interface StockDetail extends StockInfo {
-  currentPrice: number
-  /** 전일 대비 등락률(%) */
-  comparePrev: number
+  /** 증권사에서 받은 현재가. 비어 오면 null("-") */
+  currentPrice: number | null
+  /** 전일 대비 등락률(%). 비어 오면 null("-") */
+  comparePrev: number | null
   period: Period
   /** 오름차순 */
   candles: Candle[]

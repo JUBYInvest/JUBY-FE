@@ -1,5 +1,6 @@
 import { readJson, writeJson } from '../utils/cache'
 import { periodStart } from '../utils/date'
+import { isFiniteNumber } from '../utils/format'
 import type { Candle, CardSeries } from '../types/stock'
 
 /*
@@ -89,7 +90,7 @@ export function rememberCardSeries(stockCode: string, candles: Candle[]): void {
   let week: number | null = null
   for (const candle of year) {
     // 거래량만 빈 봉은 차트가 그대로 그린다(api/stock.ts). 카드 막대는 그날을 비운다
-    const volume = Number.isFinite(candle.volume) ? candle.volume : 0
+    const volume = isFiniteNumber(candle.volume) ? candle.volume : 0
     const current = weekOf(candle.date)
     if (current === week) {
       prices[prices.length - 1] = candle.close

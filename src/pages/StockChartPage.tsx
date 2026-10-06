@@ -18,6 +18,7 @@ import {
   formatChangeRate,
   formatPrice,
   formatVolume,
+  isFiniteNumber,
   isFlatRate,
 } from '../utils/format'
 import { readPreview } from '../utils/stockPreview'
@@ -77,8 +78,9 @@ function nameOrCode(name: string | null | undefined, stockCode: string | undefin
   return typeof name === 'string' && name.trim() !== '' ? name : (stockCode ?? '')
 }
 
-function toRateClassName(rate: number): string | undefined {
-  if (isFlatRate(rate)) return styles.flat
+function toRateClassName(rate: number | null): string | undefined {
+  // 비어 온 등락률("-")은 보합처럼 검정으로 둔다
+  if (!isFiniteNumber(rate) || isFlatRate(rate)) return styles.flat
   return rate > 0 ? styles.up : styles.down
 }
 

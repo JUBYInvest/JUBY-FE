@@ -9,6 +9,7 @@ import {
   formatChangeRate,
   formatPrice,
   formatTradingValue,
+  isFiniteNumber,
   isFlatRate,
 } from '../utils/format'
 import type { LikeStock } from '../types/member'
@@ -19,8 +20,9 @@ type State =
   | { kind: 'ready'; baseDate: string; stocks: LikeStock[] }
   | { kind: 'error' }
 
-function rateClassName(rate: number): string {
-  if (isFlatRate(rate)) return `${styles.numeric} ${styles.flat}`
+/** 비어 온 등락률("-")은 보합처럼 검정으로 둔다(홈 시세표와 같다) */
+function rateClassName(rate: number | null): string {
+  if (!isFiniteNumber(rate) || isFlatRate(rate)) return `${styles.numeric} ${styles.flat}`
   return `${styles.numeric} ${rate > 0 ? styles.up : styles.down}`
 }
 
@@ -138,8 +140,8 @@ export default function MypageLikesPage() {
                 state={toPreviewState({
                   stockCode: stock.stockCode,
                   stockName: stock.stockName,
-                  closePrice: stock.closePrice,
-                  fluctuate: stock.fluctuate,
+                  closePrice: stock.closePrice ?? undefined,
+                  fluctuate: stock.fluctuate ?? undefined,
                   baseDate: state.baseDate,
                 })}
                 className={styles.name}

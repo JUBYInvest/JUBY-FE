@@ -1,6 +1,7 @@
-import { ApiError, get, malformedResponse, patch, post, remove, unchecked } from './client'
+import { ApiError, get, malformedResponse, patch, post, remove } from './client'
 import { isStockCode, nameOrCode } from './stock'
 import { clearTokens } from '../utils/auth'
+import { finiteOrNull } from '../utils/format'
 import type {
   LikeStock,
   LikeStockList,
@@ -131,15 +132,15 @@ export async function getLikeStocks(): Promise<LikeStockList> {
   }
   return {
     // 기준일이 빈 건 화면이 그 줄을 숨긴다(fromDashedYmd → "")
-    baseDate: unchecked(result.baseDate),
-    totalCount: unchecked(result.totalCount),
+    baseDate: typeof result.baseDate === 'string' ? result.baseDate : '',
+    totalCount: finiteOrNull(result.totalCount) ?? likeStockList.length,
     likeStockList,
   }
 }
 
 /*
  * 서버가 실제로 주는 모양. 스웨거에 필수 표시가 없어 필드를 전부 비어 올 수 있게 적는다.
- * 화면 타입(types/member.ts)으로 옮기는 자리에서 걸러 내고, 걸러 내지 않은 값은 unchecked()로 넘긴다.
+ * 화면 타입(types/member.ts)으로 옮기는 자리에서 거른다(api/stock.ts와 같다).
  */
 
 /** GET /api/members/me/like-stocks */
@@ -170,9 +171,9 @@ function toLikeStock(row: LikeStockResponse | null): LikeStock[] {
   return [{
     stockCode,
     stockName: nameOrCode(row.stockName, stockCode),
-    closePrice: unchecked(row.closePrice),
-    fluctuate: unchecked(row.fluctuate),
-    tradingValue: unchecked(row.tradingValue),
-    likedAt: unchecked(row.likedAt),
+    closePrice: finiteOrNull(row.closePrice),
+    fluctuate: finiteOrNull(row.fluctuate),
+    tradingValue: finiteOrNull(row.tradingValue),
+    likedAt: typeof row.likedAt === 'string' ? row.likedAt : null,
   }]
 }

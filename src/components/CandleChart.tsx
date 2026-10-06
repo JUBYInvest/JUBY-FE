@@ -212,13 +212,18 @@ export default function CandleChart({ candles }: Props) {
       })),
     )
 
+    // 거래량이 빈 날은 막대를 비운다(값 없이 시각만 주면 라이브러리가 그 자리를 건너뛴다)
     volumeSeries.setData(
-      candles.map((candle) => ({
-        time: toDashedYmd(candle.date),
-        value: candle.volume,
-        color:
-          candle.close >= candle.open ? UP_VOLUME_COLOR : DOWN_VOLUME_COLOR,
-      })),
+      candles.map((candle) =>
+        isFiniteNumber(candle.volume)
+          ? {
+              time: toDashedYmd(candle.date),
+              value: candle.volume,
+              color:
+                candle.close >= candle.open ? UP_VOLUME_COLOR : DOWN_VOLUME_COLOR,
+            }
+          : { time: toDashedYmd(candle.date) },
+      ),
     )
 
     /*

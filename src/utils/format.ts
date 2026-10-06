@@ -10,6 +10,11 @@ export function isFiniteNumber(value: unknown): value is number {
   return typeof value === 'number' && Number.isFinite(value)
 }
 
+/** 숫자로 쓸 수 있으면 그 값, 아니면 null. 응답을 화면 타입으로 옮기는 자리(src/api/*.ts)에서 쓴다 */
+export function finiteOrNull(value: unknown): number | null {
+  return isFiniteNumber(value) ? value : null
+}
+
 /**
  * 보합(변동 없음)인지. 오름의 빨강도 내림의 파랑도 쓰지 않아야 하는 경우다.
  *

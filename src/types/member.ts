@@ -34,18 +34,19 @@ export interface PersonalityInfo {
   personalityImg: string | null
 }
 
-/** GET /api/members/me/like-stocks 한 줄. 시세는 baseDate 기준 종가다 */
+/** GET /api/members/me/like-stocks 한 줄. 시세는 baseDate 기준 종가다. 숫자 칸은 비어 오면 null("-") */
 export interface LikeStock extends StockInfo {
-  closePrice: number
-  fluctuate: number
-  tradingValue: number
-  /** ISO 날짜시각 */
-  likedAt: string
+  closePrice: number | null
+  fluctuate: number | null
+  tradingValue: number | null
+  /** ISO 날짜시각. 비어 오면 null */
+  likedAt: string | null
 }
 
 export interface LikeStockList {
-  /** YYYY-MM-DD */
+  /** YYYY-MM-DD. 비어 오면 ""(화면이 기준일 줄을 숨긴다) */
   baseDate: string
+  /** 서버가 비워 보내면 받은 목록의 길이 */
   totalCount: number
   likeStockList: LikeStock[]
 }

@@ -1,9 +1,9 @@
-import { ApiError, get, malformedResponse, unchecked } from './client'
+import { ApiError, get, malformedResponse } from './client'
 import { rememberCardSeries } from './cardSeries'
 import { isLoggedIn } from '../utils/auth'
 import { readStamp, writeStamp } from '../utils/cache'
 import { fromDashedYmd } from '../utils/date'
-import { isFiniteNumber } from '../utils/format'
+import { finiteOrNull } from '../utils/format'
 import { safeLink } from '../utils/link'
 import { sortStocks } from '../utils/sort'
 import type {
@@ -34,7 +34,7 @@ interface StockList {
 
 /*
  * 아래 *Response는 서버가 실제로 주는 모양이다. 스웨거에 필수 표시가 없어 필드를 전부 비어 올 수 있게 적는다.
- * 화면 타입(types/*.ts)으로 옮기는 자리에서 걸러 내고, 걸러 내지 않은 값은 unchecked()로 넘긴다.
+ * 화면 타입(types/*.ts)으로 옮기는 자리에서 거른다 — 숫자는 finiteOrNull, 문자열은 typeof로 보고 비면 null이나 대신할 값을 둔다.
  */
 
 /** GET /api/stocks */
@@ -81,10 +81,10 @@ function toStock(row: StockRowResponse | null): Stock[] {
   return [{
     stockCode,
     stockName: nameOrCode(row.stockName, stockCode),
-    closePrice: unchecked(row.closePrice),
-    fluctuate: unchecked(row.fluctuate),
-    tradingValue: unchecked(row.tradingValue),
-    isLiked: unchecked(row.isLiked),
+    closePrice: finiteOrNull(row.closePrice),
+    fluctuate: finiteOrNull(row.fluctuate),
+    tradingValue: finiteOrNull(row.tradingValue),
+    isLiked: row.isLiked === true,
   }]
 }
 
@@ -153,8 +153,8 @@ function toTopTheme(row: LeadingStockResponse | null): TopTheme[] {
     stockName: nameOrCode(row.stockName, stockCode),
     theme: label === null ? '' : `${label} 대장`,
     // 숫자가 아니면 지어내지 않고 비워 둔다. 카드가 "–"로 적는다
-    returnRate: isFiniteNumber(row.returnPercentage) ? row.returnPercentage : null,
-    tradeCount: isFiniteNumber(row.tradeCount) ? row.tradeCount : null,
+    returnRate: finiteOrNull(row.returnPercentage),
+    tradeCount: finiteOrNull(row.tradeCount),
   }]
 }
 
@@ -378,7 +378,7 @@ interface StockDetailResponse {
   currentPrice?: number | null
   comparePrev?: number | null
   period?: Period | null
-  dailyPrices?: DailyPriceResponse[] | null
+  dailyPrices?: (DailyPriceResponse | null)[] | null
 }
 
 interface DailyPriceResponse {
@@ -467,12 +467,13 @@ async function fetchStockDetail(stockCode: string, period: Period, memoKey: stri
   }
 
   const detail: StockDetail = {
-    stockName: unchecked(response.stockName),
-    stockCode: unchecked(response.stockCode),
+    stockName: nameOrCode(response.stockName, stockCode),
+    // 종목코드·기간은 보낸 값을 되돌려 주는 자리라 보낸 값을 쓴다. 비어 와도 화면이 흔들리지 않는다
+    stockCode,
     // 현재가·등락률이 빈 건 포맷 함수가 "-"로 적는다
-    currentPrice: unchecked(response.currentPrice),
-    comparePrev: unchecked(response.comparePrev),
-    period: unchecked(response.period),
+    currentPrice: finiteOrNull(response.currentPrice),
+    comparePrev: finiteOrNull(response.comparePrev),
+    period,
     // 서버가 오름차순으로 주지만 기대지 않는다. 차트는 순서가 어긋나면 그리지 못한다
     candles: usable.sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0)),
   }
@@ -482,21 +483,32 @@ async function fetchStockDetail(stockCode: string, period: Period, memoKey: stri
   return detail
 }
 
-/** 날짜가 틀린 봉과 시·고·저·종이 빈 봉은 getStockDetail이 뺀다(hasPrices). 거래량은 비어도 둔다 */
-function toCandle(price: DailyPriceResponse): Candle {
+/** 거르기 전의 봉. 시·고·저·종이 비어 올 수 있다 */
+interface RawCandle extends Omit<Candle, 'open' | 'high' | 'low' | 'close'> {
+  open: number | null
+  high: number | null
+  low: number | null
+  close: number | null
+}
+
+/**
+ * 날짜가 틀린 봉과 시·고·저·종이 빈 봉은 getStockDetail이 뺀다(hasPrices). 거래량은 비어도 둔다.
+ * 배열 칸 자체가 null이면 날짜가 ""라 날짜 검사에서 빠진다
+ */
+function toCandle(price: DailyPriceResponse | null): RawCandle {
   return {
-    date: fromDashedYmd(price.date),
-    open: unchecked(price.openPrice),
-    high: unchecked(price.highPrice),
-    low: unchecked(price.lowPrice),
-    close: unchecked(price.closePrice),
-    volume: unchecked(price.volume),
+    date: fromDashedYmd(price?.date),
+    open: finiteOrNull(price?.openPrice),
+    high: finiteOrNull(price?.highPrice),
+    low: finiteOrNull(price?.lowPrice),
+    close: finiteOrNull(price?.closePrice),
+    volume: finiteOrNull(price?.volume),
   }
 }
 
-/** 차트가 그릴 수 있는 봉인가. 시·고·저·종이 모두 유한한 숫자여야 한다(unchecked로 넘긴 자리라 여기서 본다) */
-function hasPrices(candle: Candle): boolean {
-  return [candle.open, candle.high, candle.low, candle.close].every((value) => Number.isFinite(value))
+/** 차트가 그릴 수 있는 봉인가. 시·고·저·종이 모두 유한한 숫자여야 한다 */
+function hasPrices(candle: RawCandle): candle is Candle {
+  return candle.open !== null && candle.high !== null && candle.low !== null && candle.close !== null
 }
 
 /** GET /api/stocks/{code}/news */
@@ -551,10 +563,11 @@ export async function getStockNews(
       .map(toNewsItem)
       .filter((item) => item.title.trim() !== '' && item.link.trim() !== ''),
     receivedCount: response.newsList.length,
-    page: unchecked(response.page),
+    // 쪽 번호·정렬은 보낸 값을 되돌려 주는 자리라 보낸 값을 쓴다
+    page,
     // 비면 "더 보기"를 못 가린다. null로 넘기면 화면이 꽉 찬 페이지인지로 가린다
-    totalCount: isFiniteNumber(response.totalCount) ? response.totalCount : null,
-    sort: unchecked(response.sort),
+    totalCount: finiteOrNull(response.totalCount),
+    sort,
   }
   newsMemo.set(memoKey, { savedAt: Date.now(), value: newsPage })
   return newsPage
