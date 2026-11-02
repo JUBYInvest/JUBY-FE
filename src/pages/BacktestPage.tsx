@@ -8,6 +8,7 @@ import { STOCK_LIST } from '../api/stockList'
 import BacktestGuide from '../components/backtest/BacktestGuide'
 import BacktestResult from '../components/backtest/BacktestResult'
 import SectionBoundary from '../components/SectionBoundary'
+import Spinner from '../components/Spinner'
 import { COMPARE_PERIOD, useBacktestRun } from '../hooks/useBacktestRun'
 import { useIsLoggedIn } from '../hooks/useIsLoggedIn'
 import { useMyPersonality } from '../hooks/useMyPersonality'
@@ -321,7 +322,9 @@ export default function BacktestPage() {
         */}
         <div className={styles.myBanner}>
           {personality.kind === 'loading' ? (
-            <p className={styles.myText}>내 투자성향을 불러오는 중이에요.</p>
+            <p className={styles.myText}>
+              <Spinner size={16} /> 내 투자성향을 불러오는 중이에요.
+            </p>
           ) : personality.kind === 'error' ? (
             /* 못 불러왔으면 검사를 권하지 않는다 — 다시 검사하면 멀쩡한 성향을 덮어쓴다 */
             <>
@@ -544,7 +547,13 @@ export default function BacktestPage() {
               disabled={!canRun}
               onClick={() => handleSubmit()}
             >
-              {isRunning ? '불러오는 중…' : '백테스트 시작하기'}
+              {isRunning ? (
+                <>
+                  <Spinner size={18} /> 불러오는 중…
+                </>
+              ) : (
+                '백테스트 시작하기'
+              )}
             </button>
 
             {/* 버튼이 꺼져 있는 이유를 말해 준다. 안 그러면 왜 안 눌리는지 알 길이 없다 */}
@@ -564,7 +573,9 @@ export default function BacktestPage() {
 
         <div ref={resultRef}>
           {result.kind === 'loading' && (
-            <p className={styles.loadingBox}>백테스트 결과를 불러오는 중…</p>
+            <p className={styles.loadingBox}>
+              <Spinner size={20} /> 백테스트 결과를 불러오는 중…
+            </p>
           )}
 
           {result.kind === 'error' && (

@@ -1,0 +1,29 @@
+.spinner {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  vertical-align: -0.2em;
+  color: var(--color-brand-700);
+}
+
+/* 초록 단추 안처럼 글자가 흰 곳은 글자색을 따른다 */
+:where(button, a) .spinner {
+  color: currentColor;
+}
+
+.spinner svg {
+  animation: spin 0.9s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spinner svg {
+    animation: none;
+  }
+}

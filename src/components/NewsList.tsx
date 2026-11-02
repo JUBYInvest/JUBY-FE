@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { NEWS_LAST_PAGE, NEWS_PAGE_SIZE, getStockNews } from '../api/news'
 import NewsAsk from './NewsAsk'
+import Spinner from './Spinner'
 import type { NewsItem, NewsSort } from '../types/news'
 import styles from './NewsList.module.css'
 
@@ -257,7 +258,13 @@ export default function NewsList({ stockCode, stockName }: Props) {
           onClick={() => void loadMore()}
           disabled={isLoadingMore}
         >
-          {isLoadingMore ? '불러오는 중…' : '뉴스 더 보기'}
+          {isLoadingMore ? (
+            <>
+              <Spinner size={18} /> 불러오는 중…
+            </>
+          ) : (
+            '뉴스 더 보기'
+          )}
         </button>
       )}
     </>

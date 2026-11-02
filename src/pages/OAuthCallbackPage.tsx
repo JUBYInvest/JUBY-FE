@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
+import Spinner from '../components/Spinner'
 import { checkAfterLogin } from '../api/member'
 import { saveTokens, takeReturnPath, toUsableToken } from '../utils/auth'
 import { forgetLoginProvider, rememberLoginProvider } from '../utils/lastLogin'
@@ -72,5 +73,9 @@ export default function OAuthCallbackPage({ failed = false }: Props) {
     })
   }, [failed, location.hash, location.search, navigate])
 
-  return <p className={styles.message}>로그인 중</p>
+  return (
+    <p className={styles.message}>
+      <Spinner size={20} /> 로그인 중
+    </p>
+  )
 }

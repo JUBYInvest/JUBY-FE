@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { TITLE_MAX_LENGTH, normalizeTitle } from '../api/ai'
 import Modal from './Modal'
+import Spinner from './Spinner'
 import type { ChatSession } from '../types/ai'
 import styles from './SessionSidebar.module.css'
 
@@ -213,7 +214,9 @@ export default function SessionSidebar({
           {!isLoggedIn ? (
             <p className={styles.empty}>로그인하면 이전 대화를 저장할 수 있어요.</p>
           ) : listState === 'loading' ? (
-            <p className={styles.empty}>대화 목록을 불러오는 중이에요</p>
+            <p className={styles.empty}>
+              <Spinner size={16} /> 대화 목록을 불러오는 중이에요
+            </p>
           ) : listState === 'error' ? (
             <p className={styles.empty}>
               목록을 불러오지 못했어요.

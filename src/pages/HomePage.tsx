@@ -13,6 +13,7 @@ import TopStockCard from '../components/TopStockCard'
 import StockTable from '../components/StockTable'
 import VolumeRank from '../components/VolumeRank'
 import SectionBoundary from '../components/SectionBoundary'
+import Spinner from '../components/Spinner'
 import Modal from '../components/Modal'
 import { readCardSeries } from '../api/cardSeries'
 import { FALLBACK_LEADING, loadCardSeries, loadLeading, readCachedLeading } from '../api/home'
@@ -449,7 +450,9 @@ export default function HomePage() {
           )}
 
           {listTab === 'all' && list.kind === 'loading' && (
-            <p className={styles.loading}>시세를 불러오는 중…</p>
+            <p className={styles.loading}>
+              <Spinner size={18} /> 시세를 불러오는 중…
+            </p>
           )}
 
           {listTab === 'all' && list.kind === 'error' && (
@@ -474,7 +477,11 @@ export default function HomePage() {
               />
 
               <div ref={sentinelRef} className={styles.sentinel}>
-                {visibleCount < stocks.length && '불러오는 중…'}
+                {visibleCount < stocks.length && (
+                  <>
+                    <Spinner size={16} /> 불러오는 중…
+                  </>
+                )}
               </div>
             </SectionBoundary>
           )}

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { getQuestions, submitTest } from '../api/personality'
 import { useDocumentTitle } from '../hooks/useDocumentTitle'
+import Spinner from '../components/Spinner'
 import { loginPathFrom } from '../utils/navigation'
 import type { Question } from '../types/personality'
 import styles from './PersonalityTestPage.module.css'
@@ -71,7 +72,11 @@ export default function PersonalityTestPage() {
     )
   }
   if (questions === null) {
-    return <p className={styles.message}>불러오는 중…</p>
+    return (
+      <p className={styles.message}>
+        <Spinner size={18} /> 불러오는 중…
+      </p>
+    )
   }
 
   const total = questions.length
