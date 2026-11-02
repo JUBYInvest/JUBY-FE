@@ -13,6 +13,11 @@
   grid-template-columns: var(--columns);
   column-gap: var(--space-3);
   align-items: center;
+  /*
+   * 오른쪽 끝 숫자(거래대금)가 줄 끝·먹 선 끝에 붙지 않게 띄운다. 왼쪽은 순번이 칸 가운데라 이만큼 떨어져 보인다
+   * (2026-11-02 사용자 "오른쪽 여백을 조금만 띄워줘", judge/feature.mjs H-8)
+   */
+  padding-right: var(--space-3);
 }
 
 /*
@@ -220,6 +225,7 @@
   .head,
   .row {
     column-gap: 6px;
+    padding-right: var(--space-2);
   }
 
   .colVolume {

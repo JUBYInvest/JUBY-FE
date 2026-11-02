@@ -108,6 +108,20 @@ for (const width of [1920, 1101]) {
   await context.close()
 }
 
+// H-8 시세표 줄·칸 머리의 맨 오른쪽 숫자(거래대금, 휴대폰은 등락률)가 줄 끝에 붙지 않는다 — 왼쪽은 순번이 칸 가운데라 띄어 보이는데
+// 오른쪽만 0px이었다(2026-11-02 사용자 "현재주가보기에서 오른쪽 여백을 조금만 띄워줘"). 넓은 화면 8px 넘게, 휴대폰 6px 넘게
+for (const [width, height, least] of [[1920, 1080, 8], [1440, 900, 8], [390, 844, 6]]) {
+  const { context, page } = await open('/', { width, height })
+  const gaps = await page.evaluate(() => {
+    const textRight = (el) => { const r = document.createRange(); r.selectNodeContents(el); return r.getBoundingClientRect().right }
+    const lastShown = (box) => [...box.children].filter((c) => getComputedStyle(c).display !== 'none' && c.textContent.trim() !== '').at(-1)
+    const boxes = [document.querySelector('[class*="_table_"] [class*="_head_"]'), ...[...document.querySelectorAll('[class*="_body_"] > li')].slice(0, 5)]
+    return boxes.map((box) => { const cell = box && lastShown(box); return cell ? Math.round(box.getBoundingClientRect().right - textRight(cell)) : null })
+  })
+  report(`H-8 ${width}`, gaps.length === 6 && gaps.every((g) => g !== null && g >= least), `칸 머리·첫 다섯 줄의 맨 오른쪽 글자와 줄 끝 사이 ${JSON.stringify(gaps)}px`)
+  await context.close()
+}
+
 /* ── 종목 상세 ── */
 {
   const plotH = []
