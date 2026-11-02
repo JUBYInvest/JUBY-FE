@@ -1,29 +1,20 @@
 import { useState } from 'react'
 import { useLocation } from 'react-router-dom'
 import { API_ORIGIN } from '../api/client'
+import { LOGIN_STEPS } from '../content/loginSteps'
 import { useDocumentTitle } from '../hooks/useDocumentTitle'
 import type { SocialType } from '../types/member'
 import { rememberReturnPath } from '../utils/auth'
 import { readLastLoginProvider } from '../utils/lastLogin'
 import { toReturnPath } from '../utils/navigation'
+import { SOCIAL_PROVIDERS } from '../utils/social'
 import styles from './LoginPage.module.css'
 
-/** 소셜 로그인 단추. 국내에서 많이 쓰는 순(카카오 → 네이버 → Google)이고, 글자는 누르면 일어나는 일 그대로다 */
-const PROVIDERS: { id: string; type: SocialType; label: string; icon: string; className: string }[] = [
-  { id: 'kakao', type: 'KAKAO', label: '카카오로 로그인', icon: '/social/kakao.svg', className: styles.kakao },
-  { id: 'naver', type: 'NAVER', label: '네이버로 로그인', icon: '/social/naver.svg', className: styles.naver },
-  { id: 'google', type: 'GOOGLE', label: 'Google로 로그인', icon: '/social/google.svg', className: styles.google },
-]
+/** 소셜 단추의 모양. 단추 순서·글자·아이콘·주소는 utils/social 한 표를 따른다(카카오 → 네이버 → Google) */
+const PROVIDER_CLASS: Record<SocialType, string> = { KAKAO: styles.kakao, NAVER: styles.naver, GOOGLE: styles.google }
 
-/**
- * 로그인하면 이어지는 순서. 정말 차례가 있다 — 첫 로그인 회원은 성향테스트부터 하고(OAuthCallbackPage),
- * 백테스트는 그 성향에 맞는 전략을 미리 고르고, AI는 그 성향을 알고 답한다
- */
-const STEPS = [
-  { title: '투자성향 테스트', description: '처음 로그인하면 10문항으로 내 성향부터 찾아요' },
-  { title: '주식 백테스트', description: '성향에 맞는 전략을 지난 주가에 적용해 점수로 봐요' },
-  { title: 'AI 주가분석', description: '궁금한 종목을 AI에게 말로 물어봐요' },
-]
+/** "최근 사용" 표시. 단추 이름이 아니라 설명으로 읽힌다(aria-describedby) — 이름은 누르면 일어나는 일 그대로 둔다 */
+const LAST_USED_ID = 'login-last-used'
 
 export default function LoginPage() {
   useDocumentTitle('로그인')
@@ -48,11 +39,11 @@ export default function LoginPage() {
    * 로그인을 마친 백엔드는 `/oauth2/callback#accessToken=…`(실패면 `/oauth2/error?error=…`)으로 되돌려보낸다
    * (JUBY-BE dev `7e5b023`, 2026-09-28). 되돌아올 주소는 백엔드 설정(`FRONTEND_URL`)이 정한다 — 이 화면이 아니다.
    */
-  function handleSocialLogin(provider: string) {
+  function handleSocialLogin(path: string) {
     // 바깥 화면을 거쳐 페이지가 새로 뜨므로 돌아갈 자리를 적어 두고 떠난다. 콜백이 꺼내 쓴다
     rememberReturnPath(returnPath)
     // 주소창 이동이라 프록시를 탈 수 없다. 백엔드 주소로 곧장 간다(client.ts의 API_ORIGIN)
-    window.location.href = `${API_ORIGIN}/oauth2/authorization/${provider}`
+    window.location.href = `${API_ORIGIN}/oauth2/authorization/${path}`
   }
 
   /*
@@ -74,16 +65,30 @@ export default function LoginPage() {
         )}
 
         <ul className={styles.providers}>
-          {PROVIDERS.map((provider) => (
-            <li key={provider.id}>
-              <button type="button" className={provider.className} onClick={() => handleSocialLogin(provider.id)}>
-                <img className={styles.icon} src={provider.icon} alt="" width={20} height={20} />
-                <span className={styles.label}>{provider.label}</span>
-                {/* 앞 공백은 화면에 안 보이고 읽어 주는 이름을 "네이버로 로그인 최근 사용"으로 띄운다 */}
-                {lastProvider === provider.type && <span className={styles.lastUsed}> 최근 사용</span>}
-              </button>
-            </li>
-          ))}
+          {SOCIAL_PROVIDERS.map((provider) => {
+            const isLast = lastProvider === provider.type
+            return (
+              <li key={provider.type}>
+                <button
+                  type="button"
+                  className={PROVIDER_CLASS[provider.type]}
+                  aria-describedby={isLast ? LAST_USED_ID : undefined}
+                  onClick={() => handleSocialLogin(provider.path)}
+                >
+                  {/* 배치는 안쪽 줄이 맡는다(LoginPage.module.css .inner) — 단추 자체에는 공통 단추 모양만 */}
+                  <span className={styles.inner}>
+                    <img className={styles.icon} src={provider.icon} alt="" width={20} height={20} />
+                    <span className={styles.label}>{provider.name}로 로그인</span>
+                  </span>
+                  {isLast && (
+                    <span id={LAST_USED_ID} className={styles.lastUsed} aria-hidden="true">
+                      최근 사용
+                    </span>
+                  )}
+                </button>
+              </li>
+            )
+          })}
         </ul>
 
         <div className={styles.notes}>
@@ -97,7 +102,7 @@ export default function LoginPage() {
           로그인하면 이렇게 시작해요
         </h2>
         <ol className={styles.steps}>
-          {STEPS.map((step, index) => (
+          {LOGIN_STEPS.map((step, index) => (
             <li key={step.title} className={styles.step}>
               <span className={styles.stepNumber} aria-hidden="true">
                 {index + 1}

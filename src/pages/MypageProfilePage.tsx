@@ -10,6 +10,7 @@ import { useLoad } from '../hooks/useLoad'
 import { useLogout } from '../hooks/useLogout'
 import { toDashedYmd, toYmd } from '../utils/date'
 import { formatBirth } from '../utils/format'
+import { forgetLoginProvider } from '../utils/lastLogin'
 import { socialLabel } from '../utils/social'
 import type { MemberInfo, ProfileImageUrl } from '../types/member'
 import styles from './MypageProfilePage.module.css'
@@ -78,6 +79,8 @@ export default function MypageProfilePage() {
        */
       // 토큰과 이 브라우저에 남긴 최근 본 백테스트를 지운다(로그아웃과 같은 한 곳 — api/auth.ts clearSession)
       clearSession()
+      // 로그인 화면의 "최근 사용"도 지운다 — 가리키던 계정이 없어졌다. 로그아웃은 두는 값이라 clearSession에 넣지 않는다(utils/lastLogin)
+      forgetLoginProvider()
       navigate('/', { replace: true })
     } catch (error: unknown) {
       console.warn('회원 탈퇴 실패', error)

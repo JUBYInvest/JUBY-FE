@@ -1,5 +1,6 @@
 // 블랙박스 흐름 판정 — 홈(순위 탭·검색 최근)·건너뛰기·지수 띠 장 상태·상세(정상·실패·임시 차트·물어서 찾기)·주식 모아보기·마이페이지 한눈에.
 // /api는 전부 가짜(mock.mjs), 백엔드 호스트는 막는다. 운영 빌드(vite preview)에서 잰다.
+// M1의 가입 경로는 2026-11-02부터 "Google로 가입한 계정"이다(로그인 단추 "Google로 로그인"과 같은 표기 — utils/social.ts 한 표).
 //   node flow.mjs <BASE> [--only H,S,K,I,D,L,M] [--headed]
 import { cli, judge, kst, noOverflow, sleep } from './lib.mjs'
 
@@ -264,7 +265,7 @@ await run('M', async () => {
   await t.goto('/mypage', 1500)
   const sections = await t.page.locator('section[aria-label]').count()
   const member = await t.page.getByText('허광엽 님').count()
-  const social = await t.page.getByText('구글로 가입한 계정').count()
+  const social = await t.page.getByText('Google로 가입한 계정').count()
   const strategy = await t.page.getByText('이동평균 교차 전략').count()
   const likesLead = await t.page.getByText('2개 중 1개 올랐고 1개 내렸어요').count()
   const session = await t.page.getByRole('link', { name: /삼성전자 주가 어때\?/ }).count()

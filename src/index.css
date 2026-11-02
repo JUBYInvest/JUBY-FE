@@ -82,8 +82,7 @@
   --color-chart-grid: #f1f4f2;
   --color-chart-trend: #b4bdb9;
 
-  /* 소셜 로그인 버튼 색은 각 회사가 정한 색이다 */
-  --color-naver: #03c75a;
+  /* 카카오 로그인 단추 색은 회사가 정한 색이다(네이버·Google은 흰 단추에 회사 아이콘 — LoginPage.module.css) */
   --color-kakao: #fee500;
   /* 카카오 단추에 마우스를 올렸을 때·눌렀을 때. 회사 지침 색을 한 단계 눌렀다(2026-11-02 로그인 다시 디자인) */
   --color-kakao-hover: #f2d900;

@@ -7,6 +7,8 @@
  */
 .page {
   --login-column: 400px;
+  /* 회사 아이콘 칸. 단추 안 양옆 칸이 이 폭이다(LoginPage.tsx의 img width와 같다) */
+  --login-icon: 20px;
 
   display: flex;
   flex-direction: column;
@@ -58,16 +60,14 @@
 }
 
 /*
- * 소셜 단추. 회사 아이콘은 왼쪽 끝, 글자는 가운데(각 회사 단추 지침의 배치). 높이·모서리·포커스는 공통 단추(lg)를 쓴다.
+ * 소셜 단추. 모양(높이·모서리·포커스·색)은 공통 단추이고, 단추 자체에는 자리(폭·기준 위치)만 준다. 아이콘·글자 배치는 안쪽 줄(.inner)이 맡는다 —
+ * 단추의 display·padding을 덮던 때는 공통 단추 CSS가 다른 화면 묶음과 함께 나중에 다시 들어오면(같은 우선순위) 그쪽이 이겨,
+ * 홈에 다녀온 뒤 아이콘이 글자 옆으로 붙었다(2026-11-02 검토, judge/login.mjs L10).
  * 카카오는 회사 지침 색(노랑 위 먹 글자), 네이버·Google은 흰 바탕 단추에 회사 아이콘 — 네이버 초록 위 흰 글자는 대비 2.4:1이라 쓰지 않는다
  */
 .provider {
   position: relative;
-  display: grid;
-  grid-template-columns: 20px minmax(0, 1fr) 20px;
-  column-gap: var(--space-3);
   width: 100%;
-  padding: 0 var(--space-4);
 }
 
 .kakao {
@@ -91,6 +91,15 @@
   composes: provider;
 }
 
+/* 회사 아이콘은 왼쪽 끝, 글자는 단추 가운데(각 회사 단추 지침의 배치). 양옆 칸 폭이 같아 글자가 늘 가운데다 */
+.inner {
+  display: grid;
+  grid-template-columns: var(--login-icon) minmax(0, 1fr) var(--login-icon);
+  align-items: center;
+  column-gap: var(--space-3);
+  width: 100%;
+}
+
 .icon {
   display: block;
 }
@@ -99,7 +108,10 @@
   text-align: center;
 }
 
-/* 이 브라우저에서 지난번에 로그인한 곳(utils/lastLogin). 소셜 계정마다 JUBY 계정이 따로라 같은 곳을 다시 고르게 돕는다 */
+/*
+ * 이 브라우저에서 지난번에 로그인한 곳(utils/lastLogin). 소셜 계정마다 JUBY 계정이 따로라 같은 곳을 다시 고르게 돕는다.
+ * 320px에서 가장 긴 글자("Google로 로그인")와도 15px 떨어진다(judge/login.mjs L8)
+ */
 .lastUsed {
   position: absolute;
   top: 50%;
@@ -111,6 +123,13 @@
   color: var(--color-text-on-brand);
   font-size: var(--font-xs);
   font-weight: 700;
+}
+
+/* 고대비(강제 색) 모드는 바탕색을 지운다 — 테두리로 표시 모양을 남긴다. 없으면 단추 글자 옆 낱말처럼 읽혔다 */
+@media (forced-colors: active) {
+  .lastUsed {
+    border: 1px solid CanvasText;
+  }
 }
 
 .notes {
@@ -212,7 +231,7 @@
 
   .stepNumber {
     flex: none;
-    width: 40px;
+    width: var(--space-10);
   }
 }
 
