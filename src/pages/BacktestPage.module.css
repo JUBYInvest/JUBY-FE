@@ -14,16 +14,10 @@
   min-width: 0;
 }
 
-/* 홈·AI·성향테스트와 같은 규격. 페이지마다 제목 크기가 다르면 화면을 옮길 때 눈이 흔들린다 */
+/* 화면 제목 규격(section.module.css). 페이지마다 제목 크기가 다르면 화면을 옮길 때 눈이 흔들린다 */
 .title {
+  composes: pageTitle from '../components/section.module.css';
   margin: 0;
-  padding-bottom: var(--space-3);
-  border-bottom: 2px solid var(--color-rule);
-  font-size: var(--font-4xl);
-  font-weight: 700;
-  /* 줄 높이를 정해 둔다 — 오른쪽 가이드 제목(.guideTitle)이 같은 높이로 먹 선을 긋는다 */
-  line-height: 1.25;
-  letter-spacing: -0.03em;
 }
 
 /* ── 내 투자성향 안내 ──────────────────────────────────────────────── */
@@ -620,17 +614,15 @@
 
 /*
  * 왼쪽 화면 제목(.title)과 같은 높이로 먹 선을 긋는다 — 두 줄일 때는 22px 아래에 그어 나란한 두 선이 어긋났다(2026-11-02).
- * 한 줄로 두고 글자는 선 쪽(아래)에 붙인다
+ * 한 줄로 두고 글자는 선 쪽(아래)에 붙인다. 글자는 구역 제목 규격(section.module.css)
  */
 .guideTitle {
+  composes: title from '../components/section.module.css';
   display: flex;
   align-items: flex-end;
   min-height: calc(var(--font-4xl) * 1.25 + var(--space-3) + 2px);
-  margin: 0;
   padding-bottom: var(--space-3);
   border-bottom: 2px solid var(--color-rule);
-  font-size: var(--font-2xl);
-  font-weight: 700;
   line-height: 1.4;
 }
 

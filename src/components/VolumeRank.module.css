@@ -93,27 +93,10 @@
 
 /* 받는 동안 표 열 줄쯤의 자리를 잡는다 */
 .skeleton {
+  composes: shimmer from './skeleton.module.css';
   height: 330px;
   margin-top: var(--space-5);
   border-radius: var(--radius-md);
-  background: linear-gradient(90deg, var(--color-skeleton) 25%, var(--color-skeleton-shine) 50%, var(--color-skeleton) 75%);
-  background-size: 200% 100%;
-  animation: shimmer 1.4s linear infinite;
-}
-
-@keyframes shimmer {
-  from {
-    background-position: 200% 0;
-  }
-  to {
-    background-position: -200% 0;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .skeleton {
-    animation: none;
-  }
 }
 
 /* 휴대폰: 평균 거래대금 칸을 접는다(시세표가 거래대금 칸을 접는 것과 같다) */

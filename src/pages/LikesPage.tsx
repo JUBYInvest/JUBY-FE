@@ -231,7 +231,7 @@ function LikesBoard() {
                       <button
                         key={item.key}
                         type="button"
-                        className={styles.tab}
+                        className={order === item.key ? styles.tabActive : styles.tab}
                         aria-pressed={order === item.key}
                         onClick={() => setOrder(item.key)}
                       >
@@ -284,7 +284,7 @@ function LikesNews({ stocks }: { stocks: LikeStock[] }) {
           <button
             key={stock.stockCode}
             type="button"
-            className={styles.tab}
+            className={stock.stockCode === selected.stockCode ? styles.tabActive : styles.tab}
             aria-pressed={stock.stockCode === selected.stockCode}
             onClick={() => setPicked(stock.stockCode)}
           >

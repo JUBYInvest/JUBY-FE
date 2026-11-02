@@ -40,24 +40,11 @@
 }
 
 .title {
-  margin: 0;
-  font-size: var(--font-2xl);
-  font-weight: 700;
-  letter-spacing: -0.02em;
+  composes: title from './section.module.css';
 }
 
 .more {
-  display: flex;
-  align-items: center;
-  min-height: 44px;
-  margin-left: auto;
-  font-size: var(--font-md);
-  font-weight: 600;
-  color: var(--color-text-sub);
-}
-
-.more:hover {
-  color: var(--color-text);
+  composes: more from './section.module.css';
 }
 
 .intro {

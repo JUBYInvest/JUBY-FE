@@ -25,7 +25,7 @@
 
 .title {
   margin: var(--space-1) 0 0;
-  font-size: var(--font-5xl);
+  font-size: var(--font-4xl);
   font-weight: 700;
   letter-spacing: -0.02em;
 }
@@ -107,24 +107,15 @@
 }
 
 .sectionHead {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--space-1) var(--space-3);
-  min-height: var(--section-head-height);
-  border-bottom: 2px solid var(--color-rule);
+  composes: head from '../components/section.module.css';
 }
 
 .sectionTitle {
-  margin: 0;
-  font-size: var(--font-2xl);
-  font-weight: 700;
-  letter-spacing: -0.02em;
+  composes: title from '../components/section.module.css';
 }
 
 .sectionNote {
-  font-size: var(--font-sm);
-  color: var(--color-text-sub);
+  composes: note from '../components/section.module.css';
 }
 
 /* ── 한눈에 보기 지도 ──────────────────────────────────────────────── */
@@ -250,42 +241,18 @@
 
 /* ── 담은 종목 목록 ────────────────────────────────────────────────── */
 
+/* 정렬·종목 탭(tabs.module.css). 굵은 먹 선 머리 안이라 막대는 먹 선 바로 위(0) */
 .tabs {
-  display: flex;
-  align-self: stretch;
-  gap: var(--space-4);
-  margin-left: auto;
+  composes: tabs from '../components/tabs.module.css';
+  --tab-bar-offset: 0;
 }
 
 .tab {
-  position: relative;
-  min-width: 44px;
-  min-height: 44px;
-  padding: 0;
-  border: 0;
-  background: none;
-  color: var(--color-text-sub);
-  font-size: var(--font-md);
-  font-weight: 600;
-  white-space: nowrap;
+  composes: tab from '../components/tabs.module.css';
 }
 
-.tab:hover {
-  color: var(--color-text);
-}
-
-.tab[aria-pressed='true'] {
-  color: var(--color-text);
-}
-
-.tab[aria-pressed='true']::after {
-  content: '';
-  position: absolute;
-  right: 0;
-  bottom: 0;
-  left: 0;
-  height: 2px;
-  background: var(--color-brand-700);
+.tabActive {
+  composes: tabActive from '../components/tabs.module.css';
 }
 
 .list {
@@ -428,10 +395,8 @@
 }
 
 .skeleton {
+  composes: shimmer from '../components/skeleton.module.css';
   border-radius: var(--radius-md);
-  background: linear-gradient(90deg, var(--color-skeleton) 25%, var(--color-skeleton-shine) 50%, var(--color-skeleton) 75%);
-  background-size: 200% 100%;
-  animation: shimmer 1.4s linear infinite;
 }
 
 .skeletonHead {
@@ -443,20 +408,7 @@
   margin-top: var(--space-6);
 }
 
-@keyframes shimmer {
-  from {
-    background-position: 200% 0;
-  }
-  to {
-    background-position: -200% 0;
-  }
-}
-
 @media (prefers-reduced-motion: reduce) {
-  .skeleton {
-    animation: none;
-  }
-
   .tile {
     transition: none;
   }
@@ -558,7 +510,8 @@
   display: none;
 }
 
-.newsTabs .tab {
+.newsTabs .tab,
+.newsTabs .tabActive {
   flex: none;
 }
 

@@ -46,75 +46,41 @@
 }
 
 /*
- * 구역 제목 줄. 굵은 먹 선이 구역을 연다. 높이 46px(선 안쪽 44px)에 제목과 옆 글은 글자 바닥선을 맞춘 한 줄로 가운데 둔다 —
+ * 구역 제목 줄(section.module.css). 굵은 먹 선이 구역을 연다. 높이 46px(선 안쪽 44px)에 제목과 옆 글은 글자 바닥선을 맞춘 한 줄로 가운데 둔다 —
  * 오른쪽 열 커뮤니티 제목 줄(HomeRail .head)과 높이·제목 자리가 같다(사용설명서 제목 줄은 검색 줄 높이로 늘어 선만 맞춘다)
  */
 .sectionHead {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  align-content: center;
-  gap: var(--space-1) var(--space-3);
-  min-height: var(--section-head-height);
-  border-bottom: 2px solid var(--color-rule);
+  composes: head from '../components/section.module.css';
 }
 
 .heading {
-  margin: 0;
-  font-size: var(--font-2xl);
-  font-weight: 700;
-  letter-spacing: -0.02em;
+  composes: title from '../components/section.module.css';
 }
 
 /* 제목 옆 한 줄 설명 */
 .lede {
-  margin: 0;
-  font-size: var(--font-md);
-  color: var(--color-text-sub);
+  composes: note from '../components/section.module.css';
 }
 
-/* '현재 주가 보기'의 두 탭(전체 종목 · 실시간 거래대금 순위). 다른 화면의 밑줄 탭과 같은 모양 */
+/* '현재 주가 보기'의 두 탭(전체 종목 · 실시간 거래대금 순위). 밑줄 탭(tabs.module.css)을 가는 선 위에 왼쪽부터 세운다 */
 .listTabs {
-  display: flex;
-  gap: var(--space-5);
+  composes: tabs from '../components/tabs.module.css';
+  --tab-gap: var(--space-5);
+  --tabs-margin-left: 0;
   border-bottom: 1px solid var(--color-border);
 }
 
-.listTab,
-.listTabActive {
-  position: relative;
-  min-height: 44px;
-  padding: 0;
-  border: 0;
-  background: none;
-  color: var(--color-text-sub);
-  font-size: var(--font-md);
-  font-weight: 600;
-  white-space: nowrap;
-}
-
-.listTab:hover {
-  color: var(--color-text);
+.listTab {
+  composes: tab from '../components/tabs.module.css';
 }
 
 .listTabActive {
-  color: var(--color-text);
-}
-
-.listTabActive::after {
-  content: '';
-  position: absolute;
-  right: 0;
-  bottom: -1px;
-  left: 0;
-  height: 2px;
-  background: var(--color-brand-700);
+  composes: tabActive from '../components/tabs.module.css';
 }
 
 /* 언제 값인지("9월 25일 종가 기준") */
 .asOf {
-  font-size: var(--font-md);
-  color: var(--color-text-sub);
+  composes: note from '../components/section.module.css';
   white-space: nowrap;
 }
 

@@ -509,7 +509,9 @@
 }
 
 /* 기간 탭. 밑줄 탭(다른 화면의 정렬·뉴스 탭과 같은 모양) */
+/* 기간 탭(tabs.module.css). 일곱이 한 줄에 서야 해서 탭 폭을 줄인다. 가는 선(1px) 위라 막대는 기본 자리(-1px) */
 .periodTabs {
+  --tab-min-width: 32px;
   display: flex;
   /* 좁은 화면에서 한 줄에 안 들어가면 두 줄로 접는다(옆으로 밀면 '전체' 탭이 잘린 채 숨었다, 2026-10-05 점검) */
   flex-wrap: wrap;
@@ -517,37 +519,12 @@
   border-bottom: 1px solid var(--color-border);
 }
 
-.periodTab,
+.periodTab {
+  composes: tab from '../components/tabs.module.css';
+}
+
 .periodTabActive {
-  position: relative;
-  min-width: 32px;
-  height: 44px;
-  padding: 0;
-  border: 0;
-  background: none;
-  color: var(--color-text-sub);
-  font-size: var(--font-md);
-  font-weight: 600;
-  white-space: nowrap;
-}
-
-.periodTab:hover {
-  color: var(--color-text);
-}
-
-/* 고른 기간. StockChartPage.tsx가 .periodTab 대신 이걸 단다 */
-.periodTabActive {
-  color: var(--color-text);
-}
-
-.periodTabActive::after {
-  content: '';
-  position: absolute;
-  right: 0;
-  bottom: -1px;
-  left: 0;
-  height: 2px;
-  background: var(--color-brand-700);
+  composes: tabActive from '../components/tabs.module.css';
 }
 
 /* 종목 정보를 못 받았을 때 탭·차트 자리를 대신하는 면. 높이는 탭 + 차트 자리 그대로라 아래가 밀리지 않는다 */
@@ -643,14 +620,8 @@
  * 일봉이 오기 전 자리. 백엔드가 건당 2초 넘게 걸려 그동안 칸이 통째로 비어 있었다.
  * 칸을 채워 두면 자리는 잡혀 있고 뭔가 오는 중이라는 게 보인다.
  */
-.chartSkeleton,
-.textSkeleton {
-  background: linear-gradient(90deg, var(--color-skeleton) 25%, var(--color-skeleton-shine) 50%, var(--color-skeleton) 75%);
-  background-size: 200% 100%;
-  animation: shimmer 1.4s linear infinite;
-}
-
 .chartSkeleton {
+  composes: shimmer from '../components/skeleton.module.css';
   height: 100%;
   border-radius: var(--radius-sm);
 }
@@ -660,6 +631,7 @@
  * 줄 높이는 글자가 있을 때와 같다 — 값이 와도 아래가 밀리지 않는다. 크기는 부모 글자 크기를 따른다.
  */
 .textSkeleton {
+  composes: shimmer from '../components/skeleton.module.css';
   display: inline-block;
   height: 0.9em;
   border-radius: var(--radius-sm);
@@ -686,22 +658,6 @@
   width: 5em;
 }
 
-@keyframes shimmer {
-  from {
-    background-position: 200% 0;
-  }
-  to {
-    background-position: -200% 0;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .chartSkeleton,
-  .textSkeleton {
-    animation: none;
-  }
-}
-
 /* ── 휴대폰 ─────────────────────────────────────────────────────────── */
 
 @media (max-width: 600px) {
@@ -725,13 +681,9 @@
   }
 
   .periodTabs {
+    --tab-min-width: 40px;
     justify-content: space-between;
     gap: 0;
-  }
-
-  .periodTab,
-  .periodTabActive {
-    min-width: 40px;
   }
 }
 

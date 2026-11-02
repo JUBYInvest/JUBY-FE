@@ -22,46 +22,19 @@
   font-weight: 700;
 }
 
-/* 정렬은 밑줄 탭(다른 화면의 탭과 같은 모양) */
+/* 정렬은 밑줄 탭(tabs.module.css). 열이 좁아 탭 사이를 조금 좁힌다. 가는 선(1px) 위라 막대는 기본 자리(-1px) */
 .tabs {
-  display: flex;
-  align-self: stretch;
-  gap: var(--space-3);
-  margin-left: auto;
+  composes: tabs from './tabs.module.css';
+  --tab-gap: var(--space-3);
 }
 
-.tab,
-.tabActive {
-  position: relative;
-  min-width: 44px;
-  /* 좁아서 탭 줄이 제목 아래로 접혀도 누르는 넓이를 지킨다(탭이 셋 — '물어서 찾기', 2026-10-30) */
-  min-height: 44px;
-  padding: 0;
-  white-space: nowrap;
-  border: 0;
-  background: none;
-  color: var(--color-text-sub);
-  font-size: var(--font-md);
-  font-weight: 600;
-}
-
-.tab:hover {
-  color: var(--color-text);
+.tab {
+  composes: tab from './tabs.module.css';
 }
 
 /* 고른 정렬. NewsList.tsx가 .tab 대신 이걸 단다 */
 .tabActive {
-  color: var(--color-text);
-}
-
-.tabActive::after {
-  content: '';
-  position: absolute;
-  right: 0;
-  bottom: -1px;
-  left: 0;
-  height: 2px;
-  background: var(--color-brand-700);
+  composes: tabActive from './tabs.module.css';
 }
 
 .list {
@@ -161,11 +134,9 @@
 }
 
 .bone {
+  composes: shimmer from './skeleton.module.css';
   display: block;
   border-radius: var(--radius-sm);
-  background: linear-gradient(90deg, var(--color-skeleton) 25%, var(--color-skeleton-shine) 50%, var(--color-skeleton) 75%);
-  background-size: 200% 100%;
-  animation: shimmer 1.4s linear infinite;
 }
 
 /* 출처·시간 한 줄 → 제목 → 요약 두 줄. 각 글자 줄 높이에 맞춘다 */
@@ -191,21 +162,6 @@
   width: 80%;
   height: 15px;
   margin-top: 8px;
-}
-
-@keyframes shimmer {
-  from {
-    background-position: 200% 0;
-  }
-  to {
-    background-position: -200% 0;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .bone {
-    animation: none;
-  }
 }
 
 /* 화면에는 안 보이고 화면 읽기 프로그램만 읽는 글 */

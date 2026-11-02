@@ -1,18 +1,16 @@
 .title {
+  composes: pageTitle from './section.module.css';
   margin: 0 0 var(--space-6);
-  padding-bottom: var(--space-3);
-  border-bottom: 2px solid var(--color-rule);
-  font-size: var(--font-4xl);
-  font-weight: 700;
-  letter-spacing: -0.02em;
 }
 
 .layout {
   /*
    * 왼쪽 메뉴 한 줄 높이(가는 선 포함)와 메뉴 세 줄 + 목록 아래 선의 높이, 본문 위 여백. 본문 맨 위에서 --mypage-menu-height 아래에 메뉴 맨 아래 선이
-   * 있다 — 한눈에 보기가 첫 두 칸의 먹 선을 여기에 맞춘다(2026-11-02, 5.5px 어긋났었다. MypageHomePage .member)
+   * 있다 — 한눈에 보기가 첫 두 칸의 먹 선을 여기에 맞춘다(2026-11-02, 5.5px 어긋났었다. MypageHomePage .member).
+   * 한 줄은 44px(누르는 넓이 규칙). 2026-11-03 칸 제목 줄을 다른 화면처럼 46px로 키우자 40px 메뉴(121px)로는 내 정보 줄(77px)과
+   * 제목 줄이 들어가지 않아 먹 선이 10px 내려갔다 — 메뉴를 44px로 늘려 133px에 맞춘다
    */
-  --mypage-menu-row: 40px;
+  --mypage-menu-row: 44px;
   --mypage-menu-height: calc(var(--mypage-menu-row) * 3 + 1px);
   --mypage-content-top: 8px;
 

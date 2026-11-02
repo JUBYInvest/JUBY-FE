@@ -91,10 +91,8 @@
 }
 
 .chartEmpty {
+  composes: shimmer from './skeleton.module.css';
   border-radius: var(--radius-sm);
-  background: linear-gradient(90deg, var(--color-skeleton) 25%, var(--color-skeleton-shine) 50%, var(--color-skeleton) 75%);
-  background-size: 200% 100%;
-  animation: shimmer 1.4s linear infinite;
 }
 
 /* 그래프를 그릴 수 없을 때. 반짝이지 않아 '오는 중'과 갈린다 */
@@ -128,21 +126,6 @@
 
 .flat {
   color: var(--color-text);
-}
-
-@keyframes shimmer {
-  from {
-    background-position: 200% 0;
-  }
-  to {
-    background-position: -200% 0;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .chartEmpty {
-    animation: none;
-  }
 }
 
 /* 휴대폰: 한 줄짜리 행. 왼쪽 테마·이름·종가, 가운데 작은 그래프, 오른쪽 1년 변화 */

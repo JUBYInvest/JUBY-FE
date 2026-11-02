@@ -10,9 +10,7 @@
 }
 
 .headTitle {
-  margin: 0;
-  font-size: var(--font-xl);
-  font-weight: 700;
+  composes: title from './section.module.css';
 }
 
 /* 새 대화는 이 목록의 주된 동작이다. 예전엔 작은 회색 글자라 버튼으로 보이지 않았다 */

@@ -3,12 +3,8 @@
  * 본문 글줄은 읽기 좋게 760px까지만 편다
  */
 .title {
+  composes: pageTitle from '../components/section.module.css';
   margin: 0;
-  padding-bottom: var(--space-3);
-  border-bottom: 2px solid var(--color-rule);
-  font-size: var(--font-4xl);
-  font-weight: 700;
-  letter-spacing: -0.02em;
 }
 
 .layout {
@@ -30,11 +26,7 @@
 }
 
 .stepsTitle {
-  margin: 0;
-  padding-bottom: var(--space-2);
-  border-bottom: 2px solid var(--color-rule);
-  font-size: var(--font-xl);
-  font-weight: 700;
+  composes: head title from '../components/section.module.css';
 }
 
 .stepList {
@@ -135,27 +127,10 @@
 }
 
 .skeleton {
+  composes: shimmer from '../components/skeleton.module.css';
   height: 120px;
   margin-top: 28px;
   border-radius: var(--radius-md);
-  background: linear-gradient(90deg, var(--color-skeleton) 25%, var(--color-skeleton-shine) 50%, var(--color-skeleton) 75%);
-  background-size: 200% 100%;
-  animation: shimmer 1.4s linear infinite;
-}
-
-@keyframes shimmer {
-  from {
-    background-position: 200% 0;
-  }
-  to {
-    background-position: -200% 0;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .skeleton {
-    animation: none;
-  }
 }
 
 @media (max-width: 900px) {

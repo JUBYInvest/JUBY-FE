@@ -3,8 +3,8 @@
  * 넓으면 두 칸씩 두 줄, 좁으면 한 줄로 쌓는다(오른쪽 내용 폭으로 가른다 — 사이드바가 옆에 붙어 화면 폭과 다르다).
  */
 .home {
-  /* 칸 제목 줄 높이(먹 선 포함). 넓은 화면은 이 높이로 첫 먹 선 자리를 셈한다(아래 .member) */
-  --mypage-head-height: 32px;
+  /* 칸 제목 줄 높이(먹 선 포함, 다른 화면의 구역 제목 줄과 같다 — 2026-11-03). 넓은 화면은 이 높이로 첫 먹 선 자리를 셈한다(아래 .member) */
+  --mypage-head-height: var(--section-head-height);
 
   container-type: inline-size;
 }
@@ -54,10 +54,10 @@
 }
 
 .memberSkeleton {
+  composes: shimmer from '../components/skeleton.module.css';
   height: 72px;
   margin-bottom: var(--space-6);
   border-radius: var(--radius-md);
-  background: var(--color-skeleton);
 }
 
 /* ── 네 칸 ── */
@@ -79,21 +79,16 @@
 }
 
 .sectionHead {
-  display: flex;
-  align-items: baseline;
+  composes: head from '../components/section.module.css';
   justify-content: space-between;
-  gap: var(--space-3);
-  min-height: var(--mypage-head-height);
   margin-bottom: var(--space-4);
-  padding-bottom: var(--space-2);
-  border-bottom: 2px solid var(--color-rule);
 }
 
 /*
  * 메뉴가 왼쪽에 설 때(901px 이상) 첫 두 칸(내 투자성향·관심종목)의 먹 선이 왼쪽 메뉴 맨 아래 선과 같은 높이에 오게
  * 내 정보 줄이 남는 높이를 채운다 — 메뉴 높이 − 본문 위 여백 − 제목 줄(MypageLayout의 두 값과 위 .home의 값).
- * 이름·이메일이 길어 내 정보 줄이 접히면 먹 선이 그만큼 내려간다 — 원래 높이(77px)가 이 높이(81px)에 4px 모자라 한 줄만 늘어도
- * 17px 넘게 내려가므로 몇 px 어긋나 보이지는 않는다(2026-11-02 긴 이메일로 잼: 1000px 48px, 901px 68px)
+ * 이름·이메일이 길어 내 정보 줄이 접히면 먹 선이 그만큼 내려간다 — 원래 높이(77px)가 이 높이(79px)에 2px 모자라 한 줄만 늘어도
+ * 15px 넘게 내려가므로 몇 px 어긋나 보이지는 않는다(2026-11-02 긴 이메일로 잼: 1000px 48px, 901px 68px — 그때는 81px)
  */
 @media (min-width: 901px) {
   .member {
@@ -102,22 +97,12 @@
 }
 
 .sectionTitle {
-  margin: 0;
-  font-size: var(--font-xl);
-  font-weight: 700;
+  composes: title from '../components/section.module.css';
 }
 
-/* 제목 줄 오른쪽 글자 링크. 누르는 넓이는 여백으로 넓히고 음수 여백으로 줄 높이를 지킨다 */
+/* 제목 줄 오른쪽 글자 링크(section.module.css). 줄이 46px이라 44px 링크가 그대로 든다 */
 .more {
-  display: inline-flex;
-  align-items: center;
-  min-height: 44px;
-  margin: -12px -8px -12px 0;
-  padding: 0 8px;
-  border-radius: var(--radius-sm);
-  font-size: var(--font-sm);
-  font-weight: 600;
-  color: var(--color-text-sub);
+  composes: more from '../components/section.module.css';
   white-space: nowrap;
 }
 
@@ -300,26 +285,9 @@
 }
 
 .skeleton {
+  composes: shimmer from '../components/skeleton.module.css';
   height: 180px;
   border-radius: var(--radius-md);
-  background: linear-gradient(90deg, var(--color-skeleton) 25%, var(--color-skeleton-shine) 50%, var(--color-skeleton) 75%);
-  background-size: 200% 100%;
-  animation: shimmer 1.4s linear infinite;
-}
-
-@keyframes shimmer {
-  from {
-    background-position: 200% 0;
-  }
-  to {
-    background-position: -200% 0;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .skeleton {
-    animation: none;
-  }
 }
 
 @media (max-width: 600px) {
