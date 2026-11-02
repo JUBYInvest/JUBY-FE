@@ -3,7 +3,7 @@ import { rememberCardSeries } from './cardSeries'
 import { readMemo, type Memo } from './memo'
 import { isLoggedIn } from '../utils/auth'
 import { readStamp, writeStamp } from '../utils/cache'
-import { fromDashedYmd } from '../utils/date'
+import { fromDashedYmd, kstNow } from '../utils/date'
 import { finiteOrNull } from '../utils/format'
 import type { Candle, LeadingStocks, Period, Stock, StockDetail, TopTheme } from '../types/stock'
 
@@ -301,9 +301,7 @@ function markKisLimited(): void {
  * 토 15시 45분 ~ 월 16시 5분, 그리고 평일 15시 45분 ~ 16시 5분에는 토큰이 없다.
  */
 function kisTokenLikelyExpired(now: number = Date.now()): boolean {
-  const kst = new Date(now + 9 * 60 * 60 * 1000)
-  const day = kst.getUTCDay()
-  const minutes = kst.getUTCHours() * 60 + kst.getUTCMinutes()
+  const { day, minutes } = kstNow(now)
   const from = 15 * 60 + 45
   const until = 16 * 60 + 5
   if (day === 0) return true

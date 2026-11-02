@@ -2,6 +2,7 @@ import { get } from './client'
 import { isDayOffToday } from './marketCalendar'
 import { canSpendKisCall } from './stock'
 import { readCache, writeCache } from '../utils/cache'
+import { kstNow } from '../utils/date'
 import { isFiniteNumber, numberFromText } from '../utils/format'
 import type { MarketIndex, MarketIndices } from '../types/market'
 
@@ -59,8 +60,7 @@ interface MarketIndexResponse {
  */
 export function isMarketHours(now: number = Date.now()): boolean {
   if (isDayOffToday(now)) return false
-  const kst = new Date(now + 9 * 60 * 60 * 1000)
-  const minutes = kst.getUTCHours() * 60 + kst.getUTCMinutes()
+  const { minutes } = kstNow(now)
   return minutes >= 9 * 60 && minutes < 15 * 60 + 35
 }
 
