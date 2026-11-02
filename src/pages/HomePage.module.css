@@ -177,16 +177,12 @@
   border-bottom: 1px solid var(--color-border);
 }
 
+/*
+ * 칸 사이 세로 선. 첫 칸·끝 칸도 안 여백이 가운데 칸과 같다(TopStockCard) — 첫 칸 왼쪽·끝 칸 오른쪽을 0으로 두던 때는
+ * "기술주 대장"·"종가"가 위아래 선 끝에 붙어 칸이 한쪽으로 쏠려 보였다(2026-11-02 사용자, judge/feature.mjs H-6)
+ */
 .cards > * + * {
   border-left: 1px solid var(--color-border);
-}
-
-.cards > :first-child {
-  padding-left: 0;
-}
-
-.cards > :last-child {
-  padding-right: 0;
 }
 
 @media (max-width: 1100px) {

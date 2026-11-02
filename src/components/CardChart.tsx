@@ -26,7 +26,7 @@ const TREND_LINE = 'var(--color-chart-trend)'
 /** 거래량 막대 */
 const BAR_FILL = 'var(--color-bg-sub)'
 
-/** 그림이 테두리에 닿지 않게 두는 여백. 아래는 막대가 바닥에 붙어야 해서 0이다 */
+/** 그림이 테두리에 닿지 않게 두는 여백. 아래는 막대가 바닥에 붙어야 해서 0이다(꺾은선은 아래 LINE_PAD_BOTTOM만큼 띄운다) */
 const PAD_TOP = 8
 const PAD_SIDE = 8
 /**
@@ -39,6 +39,12 @@ const BAR_WIDTH_RATIO = 0.8
 /** 가장 큰 거래량 막대가 차지할 높이의 역수. 4면 아래 1/4까지만 올라온다 */
 const VOLUME_HEAD_ROOM = 4
 const DOT_RADIUS = 3.5
+const DOT_STROKE = 2
+/**
+ * 꺾은선의 아래 여백 — 끝점 동그라미(반지름 + 테두리 반)가 다 들어가는 만큼. 막대처럼 바닥까지 쓰던 때는 끝값이 1년 최저면
+ * 끝점이 판 바닥에 걸려 반이 잘렸다(2026-11-02, judge/feature.mjs H-7). 위·옆 여백(8px)은 이미 그보다 넓다
+ */
+const LINE_PAD_BOTTOM = DOT_RADIUS + DOT_STROKE / 2
 /** 좌표를 끊는 자리. 곡선·점선은 셋째, 막대는 넷째 자리까지 쓴다 */
 const CURVE_DIGITS = 3
 const BAR_DIGITS = 4
@@ -193,6 +199,8 @@ function Sparkline({ stock, size }: { stock: CardSeries; size: Size }) {
   const left = PAD_SIDE
   const plotWidth = Math.max(canvasWidth - PAD_SIDE * 2, 0)
   const plotHeight = Math.max(canvasHeight - PAD_TOP, 0)
+  /** 꺾은선이 쓰는 높이. 막대(plotHeight)보다 끝점만큼 낮다 */
+  const lineHeight = Math.max(plotHeight - LINE_PAD_BOTTOM, 0)
   /** 값 하나가 차지하는 가로 칸. 꺾은선의 점은 칸 가운데, 막대는 칸 안쪽에 놓는다 */
   const band = plotWidth / count
   const centerX = (index: number) => left + band * (index + 0.5)
@@ -202,8 +210,8 @@ function Sparkline({ stock, size }: { stock: CardSeries; size: Size }) {
   /* 내내 같은 값이면 높낮이를 만들 수 없다. 가운데 선으로 눕힌다 */
   const toY = (price: number) =>
     max === min
-      ? PAD_TOP + plotHeight / 2
-      : PAD_TOP + ((max - price) / (max - min)) * plotHeight
+      ? PAD_TOP + lineHeight / 2
+      : PAD_TOP + ((max - price) / (max - min)) * lineHeight
 
   const maxVolume = Math.max(...stock.volumes)
   const barWidth = Math.max(Math.round(band * BAR_WIDTH_RATIO), 1)
@@ -273,7 +281,7 @@ function Sparkline({ stock, size }: { stock: CardSeries; size: Size }) {
         cy={lastPoint.y}
         r={DOT_RADIUS}
         style={{ fill: 'var(--color-surface)', stroke: lineColor }}
-        strokeWidth={2}
+        strokeWidth={DOT_STROKE}
       />
     </svg>
   )

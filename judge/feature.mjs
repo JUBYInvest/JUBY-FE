@@ -1,6 +1,8 @@
 // 디자인 재정비 화면별 판정(결과 보고서 1절 H-1~5, S-1~4, L-1~4). /api는 전부 가짜(mock.mjs).
 // S-1·S-3·S-4·L-2는 그 뒤 바뀐 것(M-8 한 판·휴장일·관심종목 뉴스)에 맞춰 2026-10-31에 기대값을 고쳤다.
 // H-1·H-4는 커뮤니티가 채팅이 되어(2026-11-02) 글 5개 대신 대화창·입력칸, 말마다 "예시 글" 대신 칸의 "예시" 표시를 본다.
+// H-6·L-5(2026-11-02 사용자 "첫번째 박스는 과하게 좌측에, 세번째 박스는 과하게 우측에 붙어있어"): 세로 선으로 나눈 칸은 첫 칸·끝 칸도 안 여백이 같다.
+// H-7(같은 날, 그 캡처에서 찾음): 1년 그래프의 끝점·선이 그래프 판 밖으로 잘리지 않는다(가짜 한화에어로스페이스는 끝값이 1년 최저다).
 // node feature.mjs <BASE> [--repo DIR]
 import { chromium } from 'playwright'
 import { fileURLToPath } from 'node:url'
@@ -32,6 +34,23 @@ const inView = (page, sel) => page.evaluate((sel) => {
   const limit = innerHeight - (bar ? bar.getBoundingClientRect().height : 0)
   return [...document.querySelectorAll(sel)].filter((e) => { const r = e.getBoundingClientRect(); return r.height > 0 && r.top >= 0 && r.bottom <= limit + 0.5 }).length
 }, sel)
+
+/**
+ * 세로 선으로 나눈 칸들(sel)의 안 여백 — 칸 테두리에서 글자까지. 칸마다 [왼쪽, 오른쪽]. 글자는 칸 안 글 조각(Range)의 바깥 끝으로 잰다
+ * (그래프·막대처럼 칸 폭을 다 쓰는 그림은 빼고 글만 본다)
+ */
+const insets = (page, sel) => page.evaluate((sel) => [...document.querySelectorAll(sel)].map((cell) => {
+  const box = cell.getBoundingClientRect()
+  const walker = document.createTreeWalker(cell, NodeFilter.SHOW_TEXT)
+  let left = Infinity, right = -Infinity
+  for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+    if (!node.textContent.trim()) continue
+    const range = document.createRange(); range.selectNodeContents(node)
+    for (const r of range.getClientRects()) if (r.width > 0) { left = Math.min(left, r.left); right = Math.max(right, r.right) }
+  }
+  return [Math.round(left - box.left), Math.round(box.right - right)]
+}), sel)
+const evenInsets = (cells) => cells.length > 1 && cells.every(([l]) => l >= 12 && Math.abs(l - cells[1][0]) <= 1) && cells.at(-1)[1] >= 12
 
 /* ── 홈 ── */
 {
@@ -68,6 +87,22 @@ const inView = (page, sel) => page.evaluate((sel) => {
   report('H-4', samples === 2 && postFiles.join() === 'src/content/communityPreview.ts' && stepFiles.join() === 'src/content/homeGuide.ts', `"예시" 표시(칸 제목·안내) ${samples}, 대화가 있는 파일 — 커뮤니티 ${JSON.stringify(postFiles)}, 사용설명서 단계 ${JSON.stringify(stepFiles)}`)
   const width = await page.evaluate(() => { const m = document.querySelector('main'); const cs = getComputedStyle(m); return m.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight) })
   report('H-5', Math.round(width) === 1680, `1920 본문 폭 ${Math.round(width)}px(좌우 빈자리 각 ${Math.round((1920 - width) / 2)}px)`)
+  await context.close()
+}
+for (const width of [1920, 1101]) {
+  // H-6 테마 세 칸: 첫 칸도 왼쪽 여백이 가운데 칸과 같고, 끝 칸도 오른쪽 여백이 12px 넘는다(전엔 첫 칸 왼쪽·끝 칸 오른쪽이 0이라 글자가 선 끝에 붙었다)
+  const { context, page } = await open('/', { width, height: 1080 })
+  const cells = await insets(page, '[class*="_cards_"] > a')
+  report(`H-6 ${width}`, cells.length === 3 && evenInsets(cells), `테마 칸 안 여백 [왼쪽, 오른쪽] ${JSON.stringify(cells)}`)
+  const dots = await page.evaluate(() => [...document.querySelectorAll('[class*="_cards_"] > a svg')].map((svg) => {
+    const c = svg.querySelector('circle')
+    if (!c) return null
+    const h = svg.getBoundingClientRect().height, w = svg.getBoundingClientRect().width
+    const r = Number(c.getAttribute('r')) + Number(c.getAttribute('stroke-width') ?? 0) / 2
+    const cx = Number(c.getAttribute('cx')), cy = Number(c.getAttribute('cy'))
+    return Math.round(Math.min(cy - r, h - (cy + r), cx - r, w - (cx + r)) * 10) / 10
+  }))
+  report(`H-7 ${width}`, dots.length === 3 && dots.every((d) => d !== null && d >= 0), `끝점 동그라미와 그래프 판 끝 사이(음수면 잘림) ${JSON.stringify(dots)}`)
   await context.close()
 }
 
@@ -122,6 +157,9 @@ const inView = (page, sel) => page.evaluate((sel) => {
   const rowsAfter = await page.locator('[class*="_row_"]').count()
   // 2026-10-30 보강 뒤 이 화면의 요청은 휴장일(지수 띠 장 상태, K-1) + 관심종목 목록 + 고른 종목 뉴스 1건이다(CLAUDE.md "주식 모아보기")
   const LIKES_REQUESTS = ['GET /api/market/holiday?basedate=20261029', 'GET /api/members/me/like-stocks', `GET /api/news?query=${encodeURIComponent('삼성전자')}`]
+  // L-5 다섯 숫자 칸: 첫 칸도 왼쪽 여백이 다른 칸과 같다
+  const statCells = await insets(page, '[class*="_stats_"] > div')
+  report('L-5', statCells.length === 5 && evenInsets(statCells), `숫자 칸 안 여백 [왼쪽, 오른쪽] ${JSON.stringify(statCells)}`)
   report('L-2a', JSON.stringify(before) === JSON.stringify(LIKES_REQUESTS) && m.h1 === '관심종목 2개 중 1개가 올랐어요' && m.stats === 5 && m.tiles === 2 && m.rows === 2 && m.handoff === 4,
     `요청 ${JSON.stringify(before)}, 한 문장 "${m.h1}", 숫자 ${m.stats}, 지도 칸 ${m.tiles}, 목록 ${m.rows}, 바로 가기 ${m.handoff}`)
   // 고른 종목(첫 종목)을 빼면 뉴스가 다음 첫 종목으로 옮겨 1건 더 받는다
