@@ -131,15 +131,14 @@
   color: var(--color-brand-100);
 }
 
-/* 백엔드 API가 나오기 전의 예시 값이라는 표시. 휴대폰에서도 남긴다 — 실제 지수로 읽히면 안 된다 */
+/*
+ * 백엔드 API가 나오기 전의 예시 값이라는 표시. 휴대폰에서도 남긴다 — 실제 지수로 읽히면 안 된다.
+ * 기준 시각(.asOf)이 설 자리에 같은 모양의 글로 적는다 — 둥근 바탕을 깐 표시는 "AI가 만든 화면" 같았다(2026-11-02 사용자)
+ */
 .sample {
   flex-shrink: 0;
   margin: 0 0 0 auto;
-  padding: var(--space-1) var(--space-2);
-  border-radius: var(--radius-pill);
-  background: var(--color-brand-800);
   font-size: var(--font-xs);
-  font-weight: 600;
   color: var(--color-brand-100);
 }
 
@@ -187,7 +186,6 @@
   }
 
   .sample {
-    padding: var(--space-1) 6px;
     font-size: var(--font-2xs);
   }
 

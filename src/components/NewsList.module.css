@@ -153,6 +153,23 @@
   .list li:first-child {
     grid-column: 1 / -1;
   }
+
+  /*
+   * 둘씩 짝짓는 목록(관심종목 뉴스 — 6건씩 펼친다, KeywordNews). 첫 기사가 한 줄을 다 쓰면 1 | 2·3 | 4·5 | 6으로 끝이 홀로 남아
+   * 1·2, 3·4, 5·6으로 세운다(2026-11-02 사용자). 첫 기사도 다른 기사와 같은 크기다. 종목 상세 뉴스는 5건씩이라 첫 기사 + 둘씩이 맞는다
+   */
+  .paired li:first-child {
+    grid-column: auto;
+  }
+
+  .paired li:first-child .title {
+    font-size: var(--font-lg);
+  }
+
+  .paired li:first-child .description {
+    -webkit-line-clamp: 2;
+    color: var(--color-text-sub);
+  }
 }
 
 .empty {

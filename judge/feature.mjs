@@ -3,6 +3,7 @@
 // H-1·H-4는 커뮤니티가 채팅이 되어(2026-11-02) 글 5개 대신 대화창·입력칸, 말마다 "예시 글" 대신 칸의 "예시" 표시를 본다.
 // H-6·L-5(2026-11-02 사용자 "첫번째 박스는 과하게 좌측에, 세번째 박스는 과하게 우측에 붙어있어"): 세로 선으로 나눈 칸은 첫 칸·끝 칸도 안 여백이 같다.
 // H-7(같은 날, 그 캡처에서 찾음): 1년 그래프의 끝점·선이 그래프 판 밖으로 잘리지 않는다(가짜 한화에어로스페이스는 끝값이 1년 최저다).
+// L-6·L-7·B-1(같은 날 사용자): 주식 모아보기 배치(지도 왼쪽 전체 | 목록·뉴스 오른쪽 위아래)와 뉴스 둘씩 짝짓기, 지수 띠의 예시 값 표시는 글자로만.
 // node feature.mjs <BASE> [--repo DIR]
 import { chromium } from 'playwright'
 import { fileURLToPath } from 'node:url'
@@ -143,6 +144,20 @@ for (const width of [1920, 1101]) {
   await context.close()
 }
 
+/* ── 아래 지수 띠 ── */
+{
+  // B-1 예시 값 표시는 기준 시각("10월 29일 11:00 기준")처럼 띠 위 글자로만 적는다 — 둥근 바탕 표시는 "AI가 만든 화면" 같았다(2026-11-02 사용자)
+  const { context, page } = await open('/', { width: 1440, height: 900 })
+  const s = await page.evaluate(() => {
+    const el = [...document.querySelectorAll('aside[aria-label="국내 지수"] p')].find((p) => /예시 값/.test(p.textContent))
+    if (!el) return null
+    const cs = getComputedStyle(el)
+    return { text: el.textContent.trim(), bg: cs.backgroundColor, radius: cs.borderTopLeftRadius, padding: cs.paddingLeft, weight: cs.fontWeight }
+  })
+  report('B-1', s !== null && s.bg === 'rgba(0, 0, 0, 0)' && s.radius === '0px' && s.padding === '0px', `예시 값 표시 ${JSON.stringify(s)}`)
+  await context.close()
+}
+
 /* ── 주식 모아보기 ── */
 {
   const { context, page, raw } = await open('/likes')
@@ -157,9 +172,18 @@ for (const width of [1920, 1101]) {
   const rowsAfter = await page.locator('[class*="_row_"]').count()
   // 2026-10-30 보강 뒤 이 화면의 요청은 휴장일(지수 띠 장 상태, K-1) + 관심종목 목록 + 고른 종목 뉴스 1건이다(CLAUDE.md "주식 모아보기")
   const LIKES_REQUESTS = ['GET /api/market/holiday?basedate=20261029', 'GET /api/members/me/like-stocks', `GET /api/news?query=${encodeURIComponent('삼성전자')}`]
-  // L-5 다섯 숫자 칸: 첫 칸도 왼쪽 여백이 다른 칸과 같다
-  const statCells = await insets(page, '[class*="_stats_"] > div')
-  report('L-5', statCells.length === 5 && evenInsets(statCells), `숫자 칸 안 여백 [왼쪽, 오른쪽] ${JSON.stringify(statCells)}`)
+  // L-5 다섯 숫자 칸: 첫 칸도 왼쪽 여백이 다른 칸과 같다. 두 줄로 접히는 폭(1100)에서도 같고, 바깥 오른쪽 끝에 세로 선이 없다
+  for (const width of [1440, 1100]) {
+    const v = width === 1440 ? page : (await open('/likes', { width, height: 1000 })).page
+    const statCells = await insets(v, '[class*="_stats_"] > div')
+    const edge = await v.evaluate(() => {
+      const box = document.querySelector('[class*="_stats_"]').getBoundingClientRect()
+      return [...document.querySelectorAll('[class*="_stats_"] > div')].filter((d) => Math.abs(d.getBoundingClientRect().right - box.right) < 1 && parseFloat(getComputedStyle(d).borderRightWidth) > 0).length
+    })
+    report(`L-5 ${width}`, statCells.length === 5 && statCells.every(([l]) => l >= 12 && Math.abs(l - statCells[0][0]) <= 1) && edge === 0,
+      `숫자 칸 안 여백 [왼쪽, 오른쪽] ${JSON.stringify(statCells)}, 바깥 오른쪽 끝 세로 선 ${edge}`)
+    if (v !== page) await v.context().close()
+  }
   report('L-2a', JSON.stringify(before) === JSON.stringify(LIKES_REQUESTS) && m.h1 === '관심종목 2개 중 1개가 올랐어요' && m.stats === 5 && m.tiles === 2 && m.rows === 2 && m.handoff === 4,
     `요청 ${JSON.stringify(before)}, 한 문장 "${m.h1}", 숫자 ${m.stats}, 지도 칸 ${m.tiles}, 목록 ${m.rows}, 바로 가기 ${m.handoff}`)
   // 고른 종목(첫 종목)을 빼면 뉴스가 다음 첫 종목으로 옮겨 1건 더 받는다
@@ -172,6 +196,47 @@ for (const width of [1920, 1101]) {
   const rowsBack = await f.page.locator('[class*="_row_"]').count()
   report('L-2c', rowsBack === 2 && /해제하지 못했어요/.test(status ?? ''), `해제 실패(500) 뒤 목록 ${rowsBack}줄, 안내 "${status}"`)
   await f.context.close()
+  // L-7 넓으면 한눈에 보기가 왼쪽 칸 전체이고 담은 종목·관심종목 뉴스가 오른쪽에 위아래로 선다. 두 칸 제목 줄 먹 선이 같은 높이,
+  // 오른쪽을 끝까지 내려도 지도가 화면에 남는다. 1100 이하는 지도 → 목록 → 뉴스로 쌓인다
+  // L-6 뉴스가 넓은 칸에서 두 줄로 설 때 둘씩 짝짓는다(1·2, 3·4, 5·6) — 첫 기사가 한 줄을 다 쓰면 1 | 2·3 | 4·5 | 6으로 끝이 홀로 남았다
+  for (const width of [1920, 1440, 1100]) {
+    const l = await open('/likes', { width, height: width === 1100 ? 1000 : 1080, wait: 2200 })
+    const r = await l.page.evaluate(async () => {
+      const rect = (id) => {
+        const b = document.querySelector(`section[aria-labelledby="${id}"]`)?.getBoundingClientRect()
+        return b ? { left: Math.round(b.left), right: Math.round(b.right), top: Math.round(b.top + scrollY), bottom: Math.round(b.bottom + scrollY) } : null
+      }
+      const head = (id) => (document.getElementById(id)?.parentElement.getBoundingClientRect().bottom ?? NaN) + scrollY
+      const out = { map: rect('likes-map-title'), list: rect('likes-list-title'), news: rect('likes-news-title'),
+        mapH: Math.round(document.querySelector('[class*="_map_"]')?.getBoundingClientRect().height ?? 0),
+        heads: Math.abs(head('likes-map-title') - head('likes-list-title')) }
+      // 처음 열었을 때 칸마다 등락률이 첫 화면(지수 띠 위)에 보인다 — 지도가 화면 높이만큼 길어 칸 아래는 처음엔 띠 밑이다
+      const barTop = document.querySelector('aside[aria-label="국내 지수"]')?.getBoundingClientRect().top ?? innerHeight
+      out.ratesShown = [...document.querySelectorAll('[data-market] > span:last-child > span:first-child')].map((e) => e.getBoundingClientRect().bottom <= barTop)
+      scrollTo(0, document.documentElement.scrollHeight)
+      await new Promise((done) => setTimeout(done, 300))
+      // 끝에서는 지도가 오른쪽 칸 끝과 함께 끝나며 조금 밀려 올라간다 — 화면(지수 띠 위)의 60% 넘게 지도가 보이면 된다(전엔 38%)
+      const m = document.querySelector('section[aria-labelledby="likes-map-title"]').getBoundingClientRect()
+      const bar = document.querySelector('aside[aria-label="국내 지수"]')?.getBoundingClientRect().top ?? innerHeight
+      out.shownAtEnd = Math.round(((Math.min(m.bottom, bar) - Math.max(m.top, 0)) / bar) * 100)
+      out.newsTops = [...document.querySelectorAll('section[aria-labelledby="likes-news-title"] li')].slice(0, 6).map((li) => Math.round(li.getBoundingClientRect().top))
+      out.newsColumns = new Set([...document.querySelectorAll('section[aria-labelledby="likes-news-title"] li')].map((li) => Math.round(li.getBoundingClientRect().left))).size
+      return out
+    })
+    await l.context.close()
+    const { map, list, news } = r
+    if (width > 1100) {
+      const ok = map && list && news && map.right < list.left && Math.abs(news.left - list.left) <= 1 && news.top >= list.bottom && r.heads <= 0.6 && r.mapH >= 420 && r.shownAtEnd >= 60 && r.ratesShown.length === 2 && r.ratesShown.every(Boolean)
+      report(`L-7 ${width}`, ok, `지도 ${JSON.stringify(map)} · 목록 ${JSON.stringify(list)} · 뉴스 ${JSON.stringify(news)} · 제목 줄 차이 ${r.heads.toFixed(1)}px · 지도 높이 ${r.mapH} · 첫 화면에 칸 등락률 ${JSON.stringify(r.ratesShown)} · 끝까지 내린 뒤 지도가 보이는 몫 ${r.shownAtEnd}%`)
+    } else {
+      report('L-7 1100', map && list && news && map.bottom <= list.top && list.bottom <= news.top, `쌓인 순서 지도 ${map?.top}~${map?.bottom} → 목록 ${list?.top}~${list?.bottom} → 뉴스 ${news?.top}~`)
+    }
+    // 넓은 칸이라 두 줄로 서면 둘씩, 한 줄이면 이 검사는 해당 없음
+    if (r.newsColumns >= 2) {
+      const t = r.newsTops
+      report(`L-6 ${width}`, t.length === 6 && t[0] === t[1] && t[2] === t[3] && t[4] === t[5] && t[1] < t[2] && t[3] < t[4], `뉴스 6건의 줄 위치 ${JSON.stringify(t)}`)
+    }
+  }
   const g = await open('/likes', { login: false })
   const loginLink = await g.page.getByRole('link', { name: '로그인' }).last().getAttribute('href')
   report('L-3', g.log.length === 0 && loginLink === '/login?next=%2Flikes', `비로그인 요청 ${g.log.length}건, 로그인 링크 ${loginLink}`)

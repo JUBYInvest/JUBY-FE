@@ -218,39 +218,42 @@ function LikesBoard() {
               </div>
             </section>
 
-            <section aria-labelledby="likes-list-title">
-              <div className={styles.sectionHead}>
-                <h2 id="likes-list-title" className={styles.sectionTitle}>
-                  담은 종목
-                </h2>
-                <div className={styles.tabs} role="group" aria-label="정렬">
-                  {ORDERS.map((item) => (
-                    <button
-                      key={item.key}
-                      type="button"
-                      className={styles.tab}
-                      aria-pressed={order === item.key}
-                      onClick={() => setOrder(item.key)}
-                    >
-                      {item.label}
-                    </button>
-                  ))}
+            {/* 넓은 화면은 오른쪽 한 칸에 담은 종목(위)·관심종목 뉴스(아래)를 둔다. 왼쪽 칸 전체가 지도다 */}
+            <div className={styles.side}>
+              <section aria-labelledby="likes-list-title">
+                <div className={styles.sectionHead}>
+                  <h2 id="likes-list-title" className={styles.sectionTitle}>
+                    담은 종목
+                  </h2>
+                  <div className={styles.tabs} role="group" aria-label="정렬">
+                    {ORDERS.map((item) => (
+                      <button
+                        key={item.key}
+                        type="button"
+                        className={styles.tab}
+                        aria-pressed={order === item.key}
+                        onClick={() => setOrder(item.key)}
+                      >
+                        {item.label}
+                      </button>
+                    ))}
+                  </div>
                 </div>
-              </div>
-              <ul className={styles.list}>
-                {sorted.map((stock) => (
-                  <LikeRow
-                    key={stock.stockCode}
-                    stock={stock}
-                    baseDate={state.baseDate}
-                    onUnlike={() => void handleUnlike(stock.stockCode)}
-                  />
-                ))}
-              </ul>
-            </section>
-          </div>
+                <ul className={styles.list}>
+                  {sorted.map((stock) => (
+                    <LikeRow
+                      key={stock.stockCode}
+                      stock={stock}
+                      baseDate={state.baseDate}
+                      onUnlike={() => void handleUnlike(stock.stockCode)}
+                    />
+                  ))}
+                </ul>
+              </section>
 
-          <LikesNews stocks={stocks} />
+              <LikesNews stocks={stocks} />
+            </div>
+          </div>
         </>
       )}
     </section>

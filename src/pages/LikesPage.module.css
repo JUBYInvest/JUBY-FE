@@ -84,12 +84,26 @@
   min-width: 0;
 }
 
+/*
+ * 넓은 화면: 왼쪽 칸 전체가 한눈에 보기, 오른쪽 칸에 담은 종목(위)·관심종목 뉴스(아래)(2026-11-02 사용자 "한눈에보기를 아예 왼쪽 전면에 놓고,
+ * 담은 종목과 관심종목을 상하분할해서 오른쪽에"). 두 칸 제목 줄은 같은 높이에서 먹 선을 긋는다. 1100px 이하는 지도 → 목록 → 뉴스로 쌓는다
+ */
 .body {
   display: grid;
   grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
   gap: clamp(32px, 3vw, 56px);
   align-items: start;
   margin-top: var(--space-8);
+}
+
+/* 지도는 오른쪽을 내려 읽는 동안 화면에 붙어 따라온다 — 목록이 길거나 뉴스를 읽을 때도 왼쪽이 비지 않는다 */
+.mapSection {
+  position: sticky;
+  top: var(--space-6);
+}
+
+.side {
+  min-width: 0;
 }
 
 .sectionHead {
@@ -115,17 +129,26 @@
 
 /* ── 한눈에 보기 지도 ──────────────────────────────────────────────── */
 
+/*
+ * 넓은 화면은 화면 높이를 채운다 — 붙는 자리 위 여백(24) + 제목 줄(46) + 지도 위아래 여백(12·12) + 범례(18) + 아래 여백(24)
+ * + 아래 지수 띠(44)를 뺀 높이. 낮은 창에서도 420px. dvh를 모르는 브라우저는 앞 줄의 vh를 쓴다
+ */
 .map {
   position: relative;
-  height: clamp(320px, 48vh, 520px);
+  height: max(420px, calc(100vh - 180px));
+  height: max(420px, calc(100dvh - 180px));
   margin-top: var(--space-3);
 }
 
+/*
+ * 이름·등락률·가격은 칸 위에 모은다 — 넓은 화면의 지도는 화면 높이만큼 길어(.map) 처음 열면 칸 아래쪽이 지수 띠 밑에 있다.
+ * 아래에 두던 때는 스크롤하기 전엔 숫자가 안 보였다(2026-11-02, judge/feature.mjs L-7)
+ */
 .tile {
   position: absolute;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
+  gap: var(--space-1);
   padding: var(--space-3) var(--space-4);
   /* 칸 사이를 흰 줄로 가른다 */
   border: 2px solid var(--color-surface);
@@ -444,18 +467,31 @@
     grid-template-columns: minmax(0, 1fr);
   }
 
+  /* 한 열이면 지도는 제자리에 두고 높이도 화면에 맞추지 않는다(아래 목록이 너무 밀린다) */
+  .mapSection {
+    position: static;
+  }
+
+  .map {
+    height: clamp(320px, 48vh, 520px);
+  }
+
   .stats {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
+  /*
+   * 두 줄로 접히면 아래 두 칸이 한 줄씩 다 쓴다. 안 여백은 위 칸과 같고(첫 칸 왼쪽 0이던 것과 같은 어긋남이었다), 바깥 오른쪽 끝에는
+   * 세로 선을 두지 않는다 — 칸 사이 선(.stats > div)이 줄 끝 칸에도 남아 표 밖에 선이 하나 더 그어졌다(judge/feature.mjs L-5)
+   */
   .statWide {
     grid-column: span 3;
     border-top: 1px solid var(--color-border);
-    border-right: 0;
   }
 
+  .stats > div:nth-child(3),
   .stats > div.statWide {
-    padding-left: 0;
+    border-right: 0;
   }
 }
 

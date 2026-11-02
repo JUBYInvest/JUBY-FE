@@ -73,7 +73,8 @@ export default function KeywordNews({ query }: { query: string }) {
 
   return (
     <>
-      <ul className={newsStyles.list}>
+      {/* 6건씩 펼쳐, 넓은 칸에서 두 줄로 설 때 둘씩 짝짓는다(NewsList.module.css .paired) */}
+      <ul className={`${newsStyles.list} ${newsStyles.paired}`}>
         {state.items.slice(0, visibleCount).map((item) => (
           <li key={item.link}>
             <a className={newsStyles.card} href={item.link} target="_blank" rel="noreferrer">
