@@ -29,6 +29,7 @@ node backtest.mjs http://localhost:4198               # 백테스트 즉석 실�
 node feature.mjs http://localhost:4198                # 10-30 재정비 화면별(홈·상세·주식 모아보기)
 node community.mjs http://localhost:4198              # 홈 커뮤니티 채팅(11-02): 예시 대화 파일과 같은 말·최신이 아래·한국 시각·이어 말하기·잠긴 입력칸·키보드·좁은 폭·띄어쓰기·휠·사파리
 node lines.mjs http://localhost:4198                  # 나란한 열의 선(11-02): 홈·백테스트·마이페이지 다섯 쌍 + 홈의 다른 상태가 같은 높이, 두 열 화면 전부 옆 열 선 어긋남 0
+node motion.mjs http://localhost:4198                 # 화면 전환(11-03): 메뉴 막대 미끄러짐·본문 떠오름(같은 때·곡선)·뒤로 가기·움직임 줄이기·줄이 다른 메뉴·묶음 받는 동안 띠 아래 줄
 node login.mjs http://localhost:4198                  # 로그인 화면(11-02): 글자 든 단추 셋·가운데 한 줄·떠나는 주소·최근 사용(적기·지우기)·실패 안내·좁은 폭·다른 화면에 다녀온 뒤·고대비
 ```
 
