@@ -1,53 +1,54 @@
-/* 마이페이지·AI와 같은 제목 규격. 예전엔 머리글 아래 흰 제목 줄(밑줄 그은 '로그인')이 따로 있었다 */
+/*
+ * 로그인(2026-11-02 다시 디자인 — 사용자 "너무나 별론데, 최신 환경에 맞춰서 아예 다시 디자인해줘").
+ * 한 가지 일만 하는 화면이라 가운데 한 줄(400px)에 모은다: 제목 + 굵은 먹 선(다른 화면과 같은 규격), 한 줄 안내,
+ * 글자가 든 소셜 단추 셋, 작은 안내. 그 아래 "로그인하면 이렇게 시작해요" 세 칸 — 가운데 칸 폭이 단추 줄 폭과 같아서
+ * 칸 사이 세로 선이 단추 양 끝과 한 줄에 선다. 넓은 화면에서 가운데 한 줄만 떠 보이지 않게 세 칸이 폭을 받친다.
+ * 지나온 판: 가운데 흰 판(넓은 화면에서 좌우가 빔) → 글 | 옅은 면 위 아이콘 동그라미 셋(2026-10-30, 무슨 단추인지 글자가 없었다)
+ */
+.page {
+  --login-column: 400px;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-20);
+  /* 1080 높이에서 위아래 빈자리가 비슷하게(가운데보다 조금 위) */
+  padding-top: clamp(var(--space-4), 12vh, 144px);
+}
+
+.panel {
+  width: min(100%, var(--login-column));
+}
+
 .title {
-  margin: 0 0 var(--space-8);
+  margin: 0;
   padding-bottom: var(--space-3);
   border-bottom: 2px solid var(--color-rule);
   font-size: var(--font-4xl);
   font-weight: 700;
+  line-height: 1.25;
   letter-spacing: -0.02em;
 }
 
-/* 왼쪽 글 | 오른쪽 소셜 단추 면. 상자 없이 제목의 먹 선 아래에 둔다 */
-.card {
-  display: grid;
-  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
-  gap: clamp(32px, 4vw, 80px);
-  align-items: stretch;
-}
-
-.intro {
-  padding: var(--space-6) 0;
-}
-
-.side {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  min-height: 280px;
-  padding: var(--space-10) var(--space-6);
-  border-radius: var(--radius-lg);
-  background: var(--color-bg-sub);
-}
-
-.headline {
-  margin: 0;
-  font-size: var(--font-5xl);
-  font-weight: 700;
-  line-height: 1.35;
-  letter-spacing: -0.03em;
-}
-
-.caption {
-  margin: 20px 0 0;
-  font-size: var(--font-base);
-  font-weight: 500;
+.lead {
+  margin: var(--space-4) 0 0;
+  font-size: var(--font-lg);
+  line-height: 1.5;
   color: var(--color-text-sub);
 }
 
-/* 서비스 가치 세 줄. 가운데 판 안에서 왼쪽 정렬로 읽힌다 */
-.values {
+/* 로그인을 마치지 못하고 돌아왔을 때. 경고색 대신 옅은 면에 본문 색이다(빨강은 상승으로 읽힌다) */
+.error {
+  margin: var(--space-5) 0 0;
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-sub);
+  font-size: var(--font-md);
+  font-weight: 600;
+  line-height: 1.5;
+}
+
+.providers {
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
@@ -56,108 +57,171 @@
   list-style: none;
 }
 
-.value {
-  display: flex;
-  align-items: flex-start;
-  gap: var(--space-2);
-  font-size: var(--font-base);
-  line-height: 1.5;
-}
-
-.check {
-  flex: none;
-  margin-top: 2px;
-  color: var(--color-brand-700);
-}
-
-.error {
-  margin: 14px 0 0;
-  font-size: var(--font-md);
-  font-weight: 600;
-  color: var(--color-text);
-}
-
-.buttons {
-  display: flex;
-  gap: 16px;
-}
-
-.error {
-  margin-bottom: var(--space-5);
-}
-
-.social {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 52px;
-  height: 52px;
-  padding: 0;
-  border: none;
-  border-radius: 50%;
-  transition: transform 0.15s, box-shadow 0.15s;
-}
-
-.social:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-pop);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .social {
-    transition: none;
-  }
-
-  .social:hover {
-    transform: none;
-  }
-}
-
-/* 소셜 로그인 버튼 색은 각 회사가 정한 색이다 */
-.naver {
-  background: var(--color-naver);
+/*
+ * 소셜 단추. 회사 아이콘은 왼쪽 끝, 글자는 가운데(각 회사 단추 지침의 배치). 높이·모서리·포커스는 공통 단추(lg)를 쓴다.
+ * 카카오는 회사 지침 색(노랑 위 먹 글자), 네이버·Google은 흰 바탕 단추에 회사 아이콘 — 네이버 초록 위 흰 글자는 대비 2.4:1이라 쓰지 않는다
+ */
+.provider {
+  position: relative;
+  display: grid;
+  grid-template-columns: 20px minmax(0, 1fr) 20px;
+  column-gap: var(--space-3);
+  width: 100%;
+  padding: 0 var(--space-4);
 }
 
 .kakao {
+  composes: base lg from '../components/buttons.module.css';
+  composes: provider;
   background: var(--color-kakao);
+  color: var(--color-text);
 }
 
+.kakao:hover {
+  background: var(--color-kakao-hover);
+}
+
+.kakao:active {
+  background: var(--color-kakao-active);
+}
+
+.naver,
 .google {
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
+  composes: secondary lg from '../components/buttons.module.css';
+  composes: provider;
 }
 
 .icon {
   display: block;
 }
 
+.label {
+  text-align: center;
+}
+
+/* 이 브라우저에서 지난번에 로그인한 곳(utils/lastLogin). 소셜 계정마다 JUBY 계정이 따로라 같은 곳을 다시 고르게 돕는다 */
+.lastUsed {
+  position: absolute;
+  top: 50%;
+  right: var(--space-3);
+  transform: translateY(-50%);
+  padding: 2px var(--space-2);
+  border-radius: var(--radius-pill);
+  background: var(--color-primary);
+  color: var(--color-text-on-brand);
+  font-size: var(--font-xs);
+  font-weight: 700;
+}
+
+.notes {
+  margin-top: var(--space-5);
+  font-size: var(--font-sm);
+  line-height: 1.6;
+  color: var(--color-text-sub);
+}
+
+.notes p {
+  margin: 0;
+}
+
+/* ── 로그인하면 이렇게 시작해요 ── */
+.next {
+  width: min(100%, calc(var(--login-column) * 3));
+}
+
+.nextTitle {
+  margin: 0;
+  padding-bottom: var(--space-3);
+  border-bottom: 1px solid var(--color-border);
+  font-size: var(--font-md);
+  font-weight: 600;
+  text-align: center;
+  color: var(--color-text-sub);
+}
+
+/* 가운데 칸 = 단추 줄 폭. 양옆 칸이 남는 폭을 나눠 갖는다 */
+.steps {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) min(100%, var(--login-column)) minmax(0, 1fr);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.step {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-6);
+}
+
+.step + .step {
+  border-left: 1px solid var(--color-border);
+}
+
+/* 차례 번호는 로고와 같은 넓은 글꼴(32px — 이 글꼴을 쓰는 가장 작은 크기) */
+.stepNumber {
+  font-family: var(--font-wide);
+  font-size: var(--font-5xl);
+  line-height: 1;
+}
+
+.stepText {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  font-size: var(--font-md);
+  line-height: 1.5;
+  color: var(--color-text-sub);
+}
+
+.stepText strong {
+  font-size: var(--font-lg);
+  color: var(--color-text);
+}
+
+/* 세 칸이 나란히 서기 좁으면 단추 줄 폭 그대로 위아래로 쌓는다(번호 | 글) */
 @media (max-width: 900px) {
-  .title {
-    margin-bottom: var(--space-5);
-    font-size: var(--font-3xl);
+  .page {
+    gap: var(--space-12);
   }
 
-  .card {
+  .next {
+    width: min(100%, var(--login-column));
+  }
+
+  .nextTitle {
+    text-align: left;
+  }
+
+  .steps {
     grid-template-columns: minmax(0, 1fr);
+  }
+
+  .step {
+    flex-direction: row;
+    align-items: baseline;
     gap: var(--space-4);
+    padding: var(--space-5) 0;
   }
 
-  .intro {
-    padding: 0;
+  .step + .step {
+    border-top: 1px solid var(--color-border);
+    border-left: 0;
   }
 
-  .side {
-    min-height: 0;
-    padding: var(--space-8) var(--space-4);
+  .stepNumber {
+    flex: none;
+    width: 40px;
   }
 }
 
 @media (max-width: 600px) {
-  .title {
-    font-size: var(--font-3xl);
+  .page {
+    padding-top: var(--space-2);
   }
 
-  .headline {
+  .title {
     font-size: var(--font-3xl);
   }
 }

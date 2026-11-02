@@ -1,37 +1,28 @@
+import { useState } from 'react'
 import { useLocation } from 'react-router-dom'
 import { API_ORIGIN } from '../api/client'
 import { useDocumentTitle } from '../hooks/useDocumentTitle'
+import type { SocialType } from '../types/member'
 import { rememberReturnPath } from '../utils/auth'
+import { readLastLoginProvider } from '../utils/lastLogin'
 import { toReturnPath } from '../utils/navigation'
 import styles from './LoginPage.module.css'
 
-
-const PROVIDERS = [
-  {
-    id: 'naver',
-    name: '네이버',
-    icon: '/social/naver.svg',
-    className: `${styles.social} ${styles.naver}`,
-  },
-  {
-    id: 'kakao',
-    name: '카카오',
-    icon: '/social/kakao.svg',
-    className: `${styles.social} ${styles.kakao}`,
-  },
-  {
-    id: 'google',
-    name: '구글',
-    icon: '/social/google.svg',
-    className: `${styles.social} ${styles.google}`,
-  },
+/** 소셜 로그인 단추. 국내에서 많이 쓰는 순(카카오 → 네이버 → Google)이고, 글자는 누르면 일어나는 일 그대로다 */
+const PROVIDERS: { id: string; type: SocialType; label: string; icon: string; className: string }[] = [
+  { id: 'kakao', type: 'KAKAO', label: '카카오로 로그인', icon: '/social/kakao.svg', className: styles.kakao },
+  { id: 'naver', type: 'NAVER', label: '네이버로 로그인', icon: '/social/naver.svg', className: styles.naver },
+  { id: 'google', type: 'GOOGLE', label: 'Google로 로그인', icon: '/social/google.svg', className: styles.google },
 ]
 
-/** 로그인하면 쓸 수 있는 것. 세 화면 모두 결과를 보려면 로그인해야 한다 */
-const VALUES = [
-  { name: '백테스트', desc: '전략을 과거 주가에 적용해 점수로 확인해요' },
-  { name: 'AI 분석', desc: '궁금한 종목을 AI에게 바로 물어봐요' },
-  { name: '성향 맞춤', desc: '내 투자성향에 맞는 전략을 골라 드려요' },
+/**
+ * 로그인하면 이어지는 순서. 정말 차례가 있다 — 첫 로그인 회원은 성향테스트부터 하고(OAuthCallbackPage),
+ * 백테스트는 그 성향에 맞는 전략을 미리 고르고, AI는 그 성향을 알고 답한다
+ */
+const STEPS = [
+  { title: '투자성향 테스트', description: '처음 로그인하면 10문항으로 내 성향부터 찾아요' },
+  { title: '주식 백테스트', description: '성향에 맞는 전략을 지난 주가에 적용해 점수로 봐요' },
+  { title: 'AI 주가분석', description: '궁금한 종목을 AI에게 말로 물어봐요' },
 ]
 
 export default function LoginPage() {
@@ -46,6 +37,8 @@ export default function LoginPage() {
   const hasLoginFailed = state?.loginFailed === true
   /** 로그인 뒤 돌아갈 자리(`?next=`). 로그인 화면으로 보낸 쪽이 달아 준다(loginPathFrom) */
   const returnPath = toReturnPath(new URLSearchParams(location.search).get('next'))
+  /** 이 브라우저에서 지난번에 로그인한 곳. 그 단추에 "최근 사용"을 붙인다(utils/lastLogin) */
+  const [lastProvider] = useState(readLastLoginProvider)
 
   /*
    * fetch를 쓰면 안 된다. 이 주소는 백엔드가 302로 네이버·카카오·구글 로그인 화면에
@@ -62,69 +55,61 @@ export default function LoginPage() {
     window.location.href = `${API_ORIGIN}/oauth2/authorization/${provider}`
   }
 
+  /*
+   * 2026-11-02 다시 디자인(사용자 "너무나 별론데… 최신 환경에 맞춰서 아예 다시"). 가운데 한 줄에 제목·안내·글자가 든 소셜 단추 셋을 두고,
+   * 아래에 로그인하면 이어지는 세 칸을 둔다. 예전엔 아이콘만 있는 동그라미 셋이 오른쪽 큰 회색 면에 떠 있었다
+   */
   return (
-    <>
-      <h1 className={styles.title}>로그인</h1>
+    <div className={styles.page}>
+      <section className={styles.panel} aria-labelledby="login-title">
+        <h1 id="login-title" className={styles.title}>
+          로그인
+        </h1>
+        <p className={styles.lead}>따로 가입할 필요 없이, 쓰던 계정으로 바로 시작해요.</p>
 
-      {/*
-        왼쪽은 무엇을 할 수 있는지, 오른쪽 옅은 면은 소셜 로그인 단추(2026-10-30 재정비 — 가운데 흰 판 하나는 넓은 화면에서
-        좌우가 비었다). 좁은 화면은 위아래로 쌓는다
-      */}
-      <div className={styles.card}>
-        <div className={styles.intro}>
-          <h2 className={styles.headline}>
-            초보자를 위한 주식 비서,
-            <br />
-            JUBY의 세계로!
-          </h2>
+        {hasLoginFailed && (
+          <p className={styles.error} role="alert">
+            로그인을 마치지 못했어요. 쓰려던 계정의 단추를 다시 눌러 주세요.
+          </p>
+        )}
 
-          <p className={styles.caption}>로그인하면 이런 걸 할 수 있어요</p>
-
-          {/* 판이 크고 비어 보였다. 무엇을 할 수 있는지 소셜 단추 위에 세 줄로 적는다 */}
-          <ul className={styles.values}>
-            {VALUES.map((value) => (
-              <li key={value.name} className={styles.value}>
-                <svg className={styles.check} width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                  <path d="m5 12.5 4.5 4.5L19 7.5" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-                <span>
-                  <b>{value.name}</b> {value.desc}
-                </span>
-              </li>
-            ))}
-          </ul>
-
-        </div>
-
-        {/* 소셜 단추는 오른쪽 옅은 면에 모은다(좁은 화면은 글 아래) */}
-        <div className={styles.side}>
-          {hasLoginFailed && (
-            <p className={styles.error} role="alert">
-              로그인에 실패했습니다. 다시 시도해주세요.
-            </p>
-          )}
-
-          <div className={styles.buttons}>
-            {PROVIDERS.map((provider) => (
-              <button
-                key={provider.id}
-                type="button"
-                className={provider.className}
-                onClick={() => handleSocialLogin(provider.id)}
-                aria-label={`${provider.name} 계정으로 로그인`}
-              >
-                <img
-                  className={styles.icon}
-                  src={provider.icon}
-                  alt=""
-                  width={22}
-                  height={22}
-                />
+        <ul className={styles.providers}>
+          {PROVIDERS.map((provider) => (
+            <li key={provider.id}>
+              <button type="button" className={provider.className} onClick={() => handleSocialLogin(provider.id)}>
+                <img className={styles.icon} src={provider.icon} alt="" width={20} height={20} />
+                <span className={styles.label}>{provider.label}</span>
+                {/* 앞 공백은 화면에 안 보이고 읽어 주는 이름을 "네이버로 로그인 최근 사용"으로 띄운다 */}
+                {lastProvider === provider.type && <span className={styles.lastUsed}> 최근 사용</span>}
               </button>
-            ))}
-          </div>
+            </li>
+          ))}
+        </ul>
+
+        <div className={styles.notes}>
+          {returnPath !== null && returnPath !== '/' && <p>로그인하면 보던 화면으로 돌아가요.</p>}
+          <p>처음 가입한 곳과 다른 계정으로 로그인하면 JUBY 계정이 새로 만들어져요.</p>
         </div>
-      </div>
-    </>
+      </section>
+
+      <section className={styles.next} aria-labelledby="login-next-title">
+        <h2 id="login-next-title" className={styles.nextTitle}>
+          로그인하면 이렇게 시작해요
+        </h2>
+        <ol className={styles.steps}>
+          {STEPS.map((step, index) => (
+            <li key={step.title} className={styles.step}>
+              <span className={styles.stepNumber} aria-hidden="true">
+                {index + 1}
+              </span>
+              <span className={styles.stepText}>
+                <strong>{step.title}</strong>
+                <span>{step.description}</span>
+              </span>
+            </li>
+          ))}
+        </ol>
+      </section>
+    </div>
   )
 }

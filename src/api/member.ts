@@ -29,7 +29,7 @@ interface MemberInfoResponse {
 
 const SOCIAL_TYPES: readonly string[] = ['NAVER', 'KAKAO', 'GOOGLE'] satisfies readonly SocialType[]
 
-function isSocialType(value: unknown): value is SocialType {
+export function isSocialType(value: unknown): value is SocialType {
   return typeof value === 'string' && SOCIAL_TYPES.includes(value)
 }
 
@@ -54,17 +54,23 @@ function toMemberInfo(row: MemberInfoResponse): MemberInfo {
 }
 
 /**
- * 성향테스트를 아직 안 한 회원인가(`GET /api/members/me`의 `onboarded`, 성향을 저장하면 참). 로그인 콜백이 부른다.
- * 값이 불리언 false일 때만 참이다 — 빠졌거나 모양이 다르면(옛 서버) 멀쩡한 회원을 검사로 끌고 가지 않는다.
+ * 로그인을 마친 뒤 한 번 묻는 회원 정보(`GET /api/members/me`). 로그인 콜백이 부른다.
+ * - `needsOnboarding`: 성향테스트를 아직 안 한 회원인가(`onboarded`, 성향을 저장하면 참). 값이 불리언 false일 때만 참이다 —
+ *   빠졌거나 모양이 다르면(옛 서버) 멀쩡한 회원을 검사로 끌고 가지 않는다.
+ * - `socialType`: 가입 경로. 로그인 화면이 다음에 그 단추에 "최근 사용"을 붙인다(utils/lastLogin, 2026-11-02 — 요청은 늘지 않았다).
  * 401이어도 로그인 화면으로 보내지 않는다. 콜백이 가려던 자리로 보내고, 그 화면이 알아서 한다.
  */
-export async function needsOnboarding(): Promise<boolean> {
-  const member = await get<{ onboarded?: unknown } | null>('/api/members/me', {
+export async function checkAfterLogin(): Promise<{ needsOnboarding: boolean; socialType: SocialType | null }> {
+  const member = await get<{ onboarded?: unknown; socialType?: unknown } | null>('/api/members/me', {
     ignoreUnauthorized: true,
     // "로그인 중" 화면에 붙잡아 두는 요청이라 짧게 끊는다. 못 받으면 검사 없이 가려던 자리로 간다
     timeoutMs: 5_000,
   })
-  return typeof member === 'object' && member !== null && member.onboarded === false
+  if (typeof member !== 'object' || member === null) return { needsOnboarding: false, socialType: null }
+  return {
+    needsOnboarding: member.onboarded === false,
+    socialType: isSocialType(member.socialType) ? member.socialType : null,
+  }
 }
 
 /**

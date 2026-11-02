@@ -1,7 +1,8 @@
 import { useEffect, useRef } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { needsOnboarding } from '../api/member'
+import { checkAfterLogin } from '../api/member'
 import { saveTokens, takeReturnPath, toUsableToken } from '../utils/auth'
+import { rememberLoginProvider } from '../utils/lastLogin'
 import { loginPathFrom, toReturnPath } from '../utils/navigation'
 import styles from './OAuthCallbackPage.module.css'
 
@@ -59,16 +60,17 @@ export default function OAuthCallbackPage({ failed = false }: Props) {
      *
      * 성향테스트를 아직 안 한 회원(onboarded=false)은 검사부터 한다(사용자 결정 2026-09-30). 마치면 가려던 자리로
      * 돌아간다(`?next=`, PersonalityResultPage). 온보딩 여부를 못 받으면 그냥 가려던 자리로 간다 — 검사는 권하는 것일 뿐이다.
-     * 묻는 동안은 "로그인 중"이 그대로 보인다.
+     * 묻는 동안은 "로그인 중"이 그대로 보인다. 같은 응답의 가입 경로는 다음 로그인 화면의 "최근 사용"으로 적어 둔다.
      */
     const destination = returnPath ?? '/'
-    void needsOnboarding()
+    void checkAfterLogin()
       .catch((error: unknown) => {
         console.warn('온보딩 여부 조회 실패', error)
-        return false
+        return { needsOnboarding: false, socialType: null }
       })
-      .then((needed) => {
-        const toTest = needed && !destination.startsWith('/personality-test')
+      .then(({ needsOnboarding, socialType }) => {
+        if (socialType !== null) rememberLoginProvider(socialType)
+        const toTest = needsOnboarding && !destination.startsWith('/personality-test')
         navigate(toTest ? onboardingPath(destination) : destination, { replace: true })
       })
   }, [failed, location.hash, location.search, navigate])
