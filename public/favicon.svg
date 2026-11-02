@@ -1,22 +1,18 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 48 48" fill="none">
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
   <!--
-    상승 추세 캔들차트. 색은 한국식이다 — 상승 빨강, 하락 파랑.
-    src/index.css의 color-up(#f04452) / color-down(#3182f6) 변수와 같은 값을 쓴다.
-    CSS 변수는 여기서 못 쓰므로(파비콘은 문서 밖이다) 값을 직접 적었다. 바꿀 땐 둘 다 고친다.
-    (XML 주석에는 이중 하이픈을 못 넣어서 변수명 앞 접두사는 생략했다.)
-
-    탭에서는 16px로 줄어든다. 몸통을 굵게(12) 잡고 꼬리를 2로 둔 건 그 크기에서
-    캔들 세 개가 뭉개지지 않고 계단처럼 읽히는 최소 두께라서다.
+    브라우저 탭 아이콘(2026-11-02 다시 그림). 브랜드 초록 바탕에 오르는 캔들 둘 — 앞 것은 연초록, 뒤의 더 높은 것은 흰색.
+    예전 것은 빨강·파랑 캔들 셋이 투명 바탕에 놓여 16px에서 보라빛 덩어리로 보였다.
+    색은 src/index.css의 brand-700(#15803d)·brand-300(#86efac)과 같은 값이다. 파비콘은 문서 밖이라 CSS 변수를 못 써 값을 직접 적었다 —
+    바꿀 땐 둘 다 고친다. 몸통 16·꼬리 4(16px 탭에서 4px·1px)는 두 캔들이 뭉개지지 않는 최소 두께다.
+    og.png와 apple-touch-icon.png도 이 그림으로 만든다(docs/UI-다듬기-결과-2026-11-02.md).
   -->
-  <g fill="#3182f6">
-    <rect x="8" y="30" width="2" height="16" rx="1" />
-    <rect x="3" y="34" width="12" height="9" rx="2" />
+  <rect width="64" height="64" rx="16" fill="#15803d" />
+  <g fill="#86efac">
+    <rect x="20" y="24" width="4" height="28" rx="2" />
+    <rect x="14" y="31" width="16" height="15" rx="3" />
   </g>
-  <g fill="#f04452">
-    <rect x="23" y="16" width="2" height="22" rx="1" />
-    <rect x="18" y="20" width="12" height="13" rx="2" />
-
-    <rect x="38" y="2" width="2" height="22" rx="1" />
-    <rect x="33" y="5" width="12" height="14" rx="2" />
+  <g fill="#ffffff">
+    <rect x="40" y="10" width="4" height="30" rx="2" />
+    <rect x="34" y="16" width="16" height="18" rx="3" />
   </g>
 </svg>
