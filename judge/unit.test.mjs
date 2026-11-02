@@ -293,6 +293,19 @@ describe('utils 작은 것들', async () => {
     assert.deepEqual(s.nextSort({ key: 'closePrice', direction: 'desc' }, 'stockName'), { key: 'stockName', direction: 'asc' })
     assert.equal(s.describeSort({ key: 'tradingValue', direction: 'desc' }), '거래대금 많은 순')
   })
+  test('sortBy — 주식 모아보기 담은 순(못 읽는 날짜·빈 값은 뒤, 같은 값은 원래 순서)', () => {
+    const likes = [
+      { code: 'a', likedAt: '2026-10-30T10:00:00' },
+      { code: 'b', likedAt: 'not-a-date' },
+      { code: 'c', likedAt: '2026-11-01T09:00:00' },
+      { code: 'd', likedAt: null },
+      { code: 'e', likedAt: '2026-10-30T10:00:00' },
+    ]
+    const at = (row) => (row.likedAt === null ? null : Date.parse(row.likedAt))
+    assert.deepEqual(s.sortBy(likes, at, 'desc').map((r) => r.code), ['c', 'a', 'e', 'b', 'd'])
+    assert.deepEqual(s.sortBy(likes, at, 'asc').map((r) => r.code), ['a', 'e', 'c', 'b', 'd'])
+    assert.deepEqual(likes.map((r) => r.code), ['a', 'b', 'c', 'd', 'e'])
+  })
   test('readPreview — 종목코드·모양·날짜 없는 가격', () => {
     assert.deepEqual(readPreview(toPreviewState({ stockCode: '005930', stockName: '삼성전자', closePrice: 71000, fluctuate: 1.2, baseDate: '20261028' }), '005930'),
       { stockCode: '005930', stockName: '삼성전자', closePrice: 71000, fluctuate: 1.2, baseDate: '20261028' })

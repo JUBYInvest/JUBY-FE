@@ -8,7 +8,7 @@ import { STOCK_LIST } from '../api/stockList'
 import BacktestGuide from '../components/backtest/BacktestGuide'
 import BacktestResult from '../components/backtest/BacktestResult'
 import SectionBoundary from '../components/SectionBoundary'
-import { useBacktestRun } from '../hooks/useBacktestRun'
+import { COMPARE_PERIOD, useBacktestRun } from '../hooks/useBacktestRun'
 import { useIsLoggedIn } from '../hooks/useIsLoggedIn'
 import { useMyPersonality } from '../hooks/useMyPersonality'
 import { useDocumentTitle } from '../hooks/useDocumentTitle'
@@ -21,10 +21,10 @@ import { INVEST_TYPES, PERIODS, findByPersonality, findInvestType, periodLabel, 
 import styles from './BacktestPage.module.css'
 
 /**
- * 종목 상세의 '이 종목 백테스트'로 왔을 때 채우는 기간. 비교 기간(hooks/useBacktestRun COMPARE_PERIOD)과 같아 고른 조합이
+ * 종목 상세의 '이 종목 백테스트'로 왔을 때 채우는 기간. 비교 기간과 같은 값이라 고른 조합이
  * 비교 다섯 건 중 하나와 겹친다(요청 6건이 5건)
  */
-const QUICK_PERIOD: BacktestPeriod = 'ONE_YEAR'
+const QUICK_PERIOD: BacktestPeriod = COMPARE_PERIOD
 
 /**
  * 이 전략으로 고를 수 있는 기간. 로컬 표(최소 기간)와 서버가 실제로 계산해 둔 기간의 교집합이다.

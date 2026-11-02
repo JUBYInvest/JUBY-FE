@@ -17,6 +17,7 @@ import {
 import { loginPathFrom } from '../utils/navigation'
 import { preloadStockChartPage } from '../utils/preload'
 import { toPreviewState } from '../utils/stockPreview'
+import { sortBy } from '../utils/sort'
 import { squarify } from '../utils/treemap'
 import type { LikeStock } from '../types/member'
 import styles from './LikesPage.module.css'
@@ -306,18 +307,13 @@ function summarize(total: number, ups: number, downs: number): string {
   return `관심종목 ${total}개 중 오른 종목이 없어요`
 }
 
-/** 값이 빈 줄은 방향과 상관없이 맨 뒤로 보낸다(utils/sort.sortStocks와 같은 규칙) */
+/** 셋 다 큰 값(높은 등락률·많은 거래대금·최근에 담음)이 위다. 값이 빈 줄은 맨 뒤(utils/sort.sortBy) */
 function sortLikes(stocks: LikeStock[], order: ListOrder): LikeStock[] {
-  const key = (s: LikeStock): number | null =>
-    order === 'rate' ? s.fluctuate : order === 'value' ? s.tradingValue : s.likedAt === null ? null : Date.parse(s.likedAt)
-  return [...stocks].sort((a, b) => {
-    const x = key(a)
-    const y = key(b)
-    const xOk = x !== null && Number.isFinite(x)
-    const yOk = y !== null && Number.isFinite(y)
-    if (!xOk || !yOk) return xOk === yOk ? 0 : xOk ? -1 : 1
-    return y - x
-  })
+  return sortBy(
+    stocks,
+    (s) => (order === 'rate' ? s.fluctuate : order === 'value' ? s.tradingValue : s.likedAt === null ? null : Date.parse(s.likedAt)),
+    'desc',
+  )
 }
 
 /** 등락률 → 지도 칸 색 단계(빨강·파랑 세 단계씩, 보합·모름은 회색). 색은 등락 뜻으로만 쓴다 */

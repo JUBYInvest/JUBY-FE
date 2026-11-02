@@ -22,12 +22,22 @@ function sortValue(stock: Stock, key: SortKey): string | number | null {
  * 표 중간에 빈 행이 끼고 앞뒤가 뒤섞였다). 종목명이 비면 localeCompare가 던져 표가 통째로 멈췄다.
  */
 export function sortStocks(stocks: Stock[], sort: SortState): Stock[] {
-  const sign = sort.direction === 'asc' ? 1 : -1
+  return sortBy(stocks, (stock) => sortValue(stock, sort.key), sort.direction)
+}
 
-  return [...stocks].sort((a, b) => {
-    const left = sortValue(a, sort.key)
-    const right = sortValue(b, sort.key)
-    if (left === null || right === null) return Number(left === null) - Number(right === null)
+/**
+ * 값 하나로 세운 새 배열. 값이 null이거나 유한하지 않은 숫자·빈 글자면 방향과 상관없이 맨 뒤다(위 sortStocks의 규칙).
+ * 글자는 가나다순으로 견준다. 시세표가 아닌 목록(주식 모아보기의 담은 순 등)도 비교식을 따로 쓰지 않고 이걸 쓴다
+ */
+export function sortBy<T>(items: readonly T[], value: (item: T) => string | number | null, direction: 'asc' | 'desc'): T[] {
+  const sign = direction === 'asc' ? 1 : -1
+  const usable = (v: string | number | null): v is string | number =>
+    typeof v === 'number' ? Number.isFinite(v) : typeof v === 'string' && v !== ''
+
+  return [...items].sort((a, b) => {
+    const left = value(a)
+    const right = value(b)
+    if (!usable(left) || !usable(right)) return Number(!usable(left)) - Number(!usable(right))
     if (typeof left === 'number' && typeof right === 'number') return (left - right) * sign
     return KO_COLLATOR.compare(String(left), String(right)) * sign
   })
