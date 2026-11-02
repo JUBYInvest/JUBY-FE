@@ -1,5 +1,6 @@
 // 디자인 재정비 화면별 판정(결과 보고서 1절 H-1~5, S-1~4, L-1~4). /api는 전부 가짜(mock.mjs).
 // S-1·S-3·S-4·L-2는 그 뒤 바뀐 것(M-8 한 판·휴장일·관심종목 뉴스)에 맞춰 2026-10-31에 기대값을 고쳤다.
+// H-1·H-4는 커뮤니티가 채팅이 되어(2026-11-02) 글 5개 대신 대화창·입력칸, 말마다 "예시 글" 대신 칸의 "예시" 표시를 본다.
 // node feature.mjs <BASE> [--repo DIR]
 import { chromium } from 'playwright'
 import { fileURLToPath } from 'node:url'
@@ -40,9 +41,11 @@ const inView = (page, sel) => page.evaluate((sel) => {
     themes: await inView(page, '[class*="_cards_"] > a'),
     rows: await inView(page, '[class*="_body_"] > li'),
     steps: await inView(page, '[class*="_steps_"] li'),
-    posts: await inView(page, '[class*="_posts_"] li'),
+    // 커뮤니티는 2026-11-02부터 채팅이다(글 5개 → 대화창 + 입력칸). 말 하나하나는 community.mjs가 본다
+    chat: await inView(page, '[aria-labelledby="home-community-title"] [role="log"]'),
+    composer: await inView(page, '#home-community-input'),
   }
-  report('H-1', h1.search === 1 && h1.themes === 3 && h1.rows >= 6 && h1.steps === 4 && h1.posts === 5, `1920×1080 첫 화면 — 검색 ${h1.search}, 테마 ${h1.themes}, 시세표 ${h1.rows}행, 사용설명서 ${h1.steps}단계, 커뮤니티 ${h1.posts}글`)
+  report('H-1', h1.search === 1 && h1.themes === 3 && h1.rows >= 6 && h1.steps === 4 && h1.chat === 1 && h1.composer === 1, `1920×1080 첫 화면 — 검색 ${h1.search}, 테마 ${h1.themes}, 시세표 ${h1.rows}행, 사용설명서 ${h1.steps}단계, 커뮤니티 대화창 ${h1.chat}·입력칸 ${h1.composer}`)
   const h2 = await page.evaluate(() => {
     const cards = [...document.querySelectorAll('[class*="_cards_"] > a')]
     const boxed = cards.filter((c) => { const cs = getComputedStyle(c); return cs.boxShadow !== 'none' || ['Top', 'Right', 'Bottom'].every((s) => parseFloat(cs[`border${s}Width`]) > 0) })
@@ -54,13 +57,15 @@ const inView = (page, sel) => page.evaluate((sel) => {
   await sleep(300)
   const firstRate = await page.locator('[class*="_body_"] > li').first().locator('span').nth(4).textContent()
   report('H-3', ranks.length >= 13 && ranks.slice(0, 3).join(',') === '1,2,3' && /^\+2\.10%$/.test(firstRate?.trim() ?? ''), `순번 ${ranks.length}개(${ranks.slice(0, 3)}), 등락률 정렬 뒤 첫 줄 ${firstRate?.trim()}`)
-  const samples = await page.getByText('예시 글', { exact: true }).count()
+  // 채팅이 된 뒤(2026-11-02)로는 말마다가 아니라 칸 제목 옆 "예시"와 칸 아래 안내 한 줄로 밝힌다
+  const community = page.locator('section[aria-labelledby="home-community-title"]')
+  const samples = (await community.getByText('예시', { exact: true }).count()) + (await community.getByText(/지금 보이는 대화는 예시/).count())
   const files = []
   const walk = (d) => { for (const f of readdirSync(d)) { const p = join(d, f); if (statSync(p).isDirectory()) walk(p); else if (/\.(ts|tsx)$/.test(f)) files.push(p) } }
   walk(join(REPO, 'src'))
   const holders = (needle) => files.filter((f) => readFileSync(f, 'utf8').includes(needle)).map((f) => f.replace(REPO + '/', ''))
   const postFiles = holders('주린이공부중'), stepFiles = holders('10문항으로 나에게 맞는 전략을')
-  report('H-4', samples === 5 && postFiles.join() === 'src/content/communityPreview.ts' && stepFiles.join() === 'src/content/homeGuide.ts', `"예시 글" 표시 ${samples}, 글이 있는 파일 — 커뮤니티 ${JSON.stringify(postFiles)}, 사용설명서 단계 ${JSON.stringify(stepFiles)}`)
+  report('H-4', samples === 2 && postFiles.join() === 'src/content/communityPreview.ts' && stepFiles.join() === 'src/content/homeGuide.ts', `"예시" 표시(칸 제목·안내) ${samples}, 대화가 있는 파일 — 커뮤니티 ${JSON.stringify(postFiles)}, 사용설명서 단계 ${JSON.stringify(stepFiles)}`)
   const width = await page.evaluate(() => { const m = document.querySelector('main'); const cs = getComputedStyle(m); return m.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight) })
   report('H-5', Math.round(width) === 1680, `1920 본문 폭 ${Math.round(width)}px(좌우 빈자리 각 ${Math.round((1920 - width) / 2)}px)`)
   await context.close()

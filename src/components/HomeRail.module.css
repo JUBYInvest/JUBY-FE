@@ -98,7 +98,7 @@
   color: var(--color-text-sub);
 }
 
-/* 커뮤니티 */
+/* 커뮤니티 — 채팅(2026-11-02). 스크롤되는 대화창이라 가는 테두리 하나로 경계를 둔다(AI 대화창과 같은 규칙) */
 .sampleTag {
   padding: 2px 6px;
   border-radius: var(--radius-sm);
@@ -108,88 +108,178 @@
   font-weight: 700;
 }
 
-.tabs {
+.chat {
   display: flex;
-  align-self: stretch;
-  gap: var(--space-4);
-  margin-left: auto;
+  flex-direction: column;
+  margin-top: var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
 }
 
-.tab {
-  position: relative;
-  min-width: 44px;
-  padding: 0;
-  border: none;
-  background: none;
-  color: var(--color-text-sub);
-  font-size: var(--font-md);
-  font-weight: 600;
+/*
+ * 대화창. column-reverse라 스크롤 기준이 아래 끝이다 — 처음부터 최신 말이 보이고, 말이 적으면 아래에 붙는다.
+ * 1920×1080 첫 화면에 사용설명서 4단계와 이 창·입력칸이 함께 들어오는 높이다
+ */
+.log {
+  display: flex;
+  flex-direction: column-reverse;
+  height: 360px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: var(--space-4) var(--space-4) var(--space-2);
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
 }
 
-.tab:hover {
-  color: var(--color-text);
-}
-
-.tab[aria-pressed='true'] {
-  color: var(--color-text);
-}
-
-.tab[aria-pressed='true']::after {
-  content: '';
-  position: absolute;
-  right: 0;
-  bottom: 4px;
-  left: 0;
-  height: 2px;
-  background: var(--color-brand-700);
-}
-
-.posts {
+.messages {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
   margin: 0;
   padding: 0;
   list-style: none;
 }
 
-.post {
-  padding: var(--space-3) 0;
-  border-bottom: 1px solid var(--color-border);
+.message {
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr);
+  gap: var(--space-2);
+  align-items: start;
 }
 
-.postTitle {
+/* 같은 사람이 이어 말한 줄은 앞 말풍선에 붙인다 */
+.continued {
+  margin-top: calc(var(--space-2) - var(--space-3));
+}
+
+.avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-pill);
+  background: var(--color-brand-50);
+  color: var(--color-brand-800);
+  font-size: var(--font-sm);
+  font-weight: 700;
+}
+
+.continued .avatar {
+  height: 0;
+  background: none;
+}
+
+.messageBody {
+  min-width: 0;
+}
+
+.messageMeta {
   display: flex;
   align-items: baseline;
   gap: var(--space-2);
-  margin: 0;
-  font-size: var(--font-base);
-  font-weight: 600;
+  margin: 0 0 var(--space-1);
+  font-size: var(--font-sm);
 }
 
-.postTag {
-  flex: none;
+.messageMeta strong {
+  font-weight: 700;
+}
+
+.messageMeta time {
+  font-size: var(--font-xs);
+  color: var(--color-text-sub);
+  font-variant-numeric: tabular-nums;
+}
+
+/* 말풍선은 옅은 면. 왼쪽 위 모서리만 작게 깎아 누가 한 말인지(이름 쪽) 가리킨다 */
+.bubble {
+  display: inline-block;
+  /* 한 열이 되는 1100px 이하에서 창이 넓어져도 한 말풍선이 줄 끝까지 늘지 않게 */
+  max-width: min(100%, 560px);
+  margin: 0;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-sm) var(--radius-lg) var(--radius-lg) var(--radius-lg);
+  background: var(--color-bg-sub);
+  font-size: var(--font-md);
+  line-height: 1.5;
+  overflow-wrap: break-word;
+}
+
+.continued .bubble {
+  border-top-left-radius: var(--radius-lg);
+}
+
+.stockTag {
+  margin-right: var(--space-2);
   font-size: var(--font-xs);
   font-weight: 700;
   color: var(--color-brand-700);
 }
 
-.postText {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+/* 입력 줄. 대화창과 가는 선으로 가른다. 백엔드가 없어 잠겨 있다(HomeRail CommunityChat) */
+.composer {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border-top: 1px solid var(--color-border);
 }
 
-.postMeta {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 2px var(--space-3);
-  margin: var(--space-1) 0 0;
-  font-size: var(--font-sm);
+.input {
+  flex: 1;
+  /* 가로 줄의 칸은 제 최소 폭 아래로 줄지 않는다 — 320px에서 보내기 단추를 밀어내지 않게 */
+  min-width: 0;
+  min-height: 40px;
+  padding: 0 var(--space-3);
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-sub);
+  font: inherit;
+  /* 16px 아래면 아이폰 사파리가 누르는 순간 화면을 확대한다 */
+  font-size: var(--font-lg);
   color: var(--color-text-sub);
+}
+
+.input::placeholder {
+  color: var(--color-text-sub);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.input:disabled {
+  cursor: not-allowed;
+}
+
+.send {
+  composes: primary md from './buttons.module.css';
+  flex-shrink: 0;
 }
 
 .notice {
   margin: var(--space-3) 0 0;
   font-size: var(--font-sm);
   color: var(--color-text-sub);
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* 좁은 화면(한 열)은 대화창을 조금 낮춰 아래 시세표가 덜 밀리게 한다. 누르는 넓이는 44px */
+@media (max-width: 600px) {
+  .log {
+    height: 320px;
+    padding: var(--space-3) var(--space-3) var(--space-2);
+  }
+
+  .input {
+    min-height: 44px;
+  }
 }

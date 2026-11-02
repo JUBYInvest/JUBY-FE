@@ -116,6 +116,18 @@ export function toKoreanDateTime(ms: number): string {
 }
 
 /**
+ * 한국 시각으로 "오전 9:56"·"오후 12:05"(채팅 말의 시각, 홈 커뮤니티). 자정은 "오전 12:00"이다.
+ * 다른 시각 표시와 같이 한국 시간으로 적는다. 유한한 숫자가 아니면 ""
+ */
+export function toKoreanClock(ms: number): string {
+  if (!Number.isFinite(ms)) return ''
+  const kst = new Date(ms + 9 * 60 * 60 * 1000)
+  const hours = kst.getUTCHours()
+  const minutes = String(kst.getUTCMinutes()).padStart(2, '0')
+  return `${hours < 12 ? '오전' : '오후'} ${hours % 12 === 0 ? 12 : hours % 12}:${minutes}`
+}
+
+/**
  * 지난 때를 "방금"·"12분 전"·"3시간 전"·"2일 전"으로. 일주일이 넘으면 날짜("10월 21일")로 적는다.
  * 네이버 뉴스처럼 서버가 "몇 분 전"을 지어 주지 않는 기사에 쓴다. 읽지 못한 때(NaN)면 ""(그 칸을 비운다)
  */
