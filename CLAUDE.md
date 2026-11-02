@@ -41,8 +41,8 @@ npx tsc -b --noEmit      # 타입만 빠르게 확인
 판정은 2026-10-31부터 저장소 안에 있다(사용자 결정 — 그 전엔 세션 임시 폴더라 며칠 지나면 사라졌다). 돌리는 법은 [judge/README.md](judge/README.md).
 
 - 함수 단위(utils·api 계층): 러너 없이 Node가 `.ts` 원본을 곧바로 읽는다 — `judge/loader.mjs`(확장자 없는 상대 경로에 `.ts`를 붙이고
-  `import.meta.env`를 바꿔 치기)·`register.mjs`(fetch·localStorage·window 흉내) + `node:test`. `cd judge && node --import ./register.mjs unit.test.mjs`(53항목).
-- 화면: 운영 빌드 + Playwright 크롬. `flow`(흐름)·`repro`(결함 재현)·`ai`(AI 화면)·`common`(16화면 공통)·`quick`·`ui`·`backtest`·`feature`.
+  `import.meta.env`를 바꿔 치기)·`register.mjs`(fetch·localStorage·window 흉내) + `node:test`. `cd judge && node --import ./register.mjs unit.test.mjs`(54항목).
+- 화면: 운영 빌드 + Playwright 크롬. `flow`(흐름)·`repro`(결함 재현)·`ai`(AI 화면)·`community`(홈 커뮤니티 채팅)·`common`(16화면 공통)·`quick`·`ui`·`backtest`·`feature`.
 
 ## 브라우저로 검증하는 법
 
@@ -842,7 +842,7 @@ effect를 두 번 돌려, 두 번째가 이미 꺼낸 자리를 못 찾고 홈�
   - **본문 폭은 1680px까지**(`--content-max`), 좌우 여백은 `--page-gutter`(16~56px). 1920에서 좌우 빈자리가 각 120px이다 — 1360px일 때 "토스증권에 비해
     양옆이 너무 비어 보인다"는 말을 들었다(2026-10-30). 넓어진 폭은 두 열(홈 오른쪽 열·백테스트 가이드·사용설명서 단계 `clamp(320px, 24vw, 420px)`)과
     상세 세 열이 쓴다. 글 문단은 한 줄이 한글 75자를 넘지 않게 따로 최대 폭을 둔다(뉴스 요약 70em, 사용설명서 본문 760px).
-  - **밑줄 탭**: 정렬·기간·뉴스 정렬·커뮤니티 정렬은 모두 같은 모양 — 보조 글자색, 고른 것은 먹 글자 + 아래 2px 브랜드 막대(`aria-pressed`·`aria-selected`).
+  - **밑줄 탭**: 정렬·기간·뉴스 정렬은 모두 같은 모양 — 보조 글자색, 고른 것은 먹 글자 + 아래 2px 브랜드 막대(`aria-pressed`·`aria-selected`).
     알약 칩·채운 탭을 쓰지 않는다.
   - **단추는 세 종류뿐이다**(`components/buttons.module.css`를 `composes`로 가져다 쓴다): primary(브랜드 채움, 한 화면의 주 행동), secondary(흰 바탕 +
     먹 테두리 — 예전 옅은 회색 테두리는 흰 바탕에서 단추로 안 읽혔다), ghost(바탕·테두리 없음). 높이 md 40px·lg 48px(600px 이하 md 44px), 모서리 같음,
@@ -858,8 +858,14 @@ effect를 두 번 돌려, 두 번째가 이미 꺼낸 자리를 못 찾고 홈�
     입력칸 글자는 16px 아래로 내리지 않는다(아래 "휴대폰에서 지킬 것").
   - 캔버스(`CandleChart`)는 CSS 변수를 못 읽어 그릴 때 `utils/cssToken.ts`로 토큰 값을 꺼낸다. SVG(`CardChart`)는 `style`에 `var(--…)`를 쓴다.
     색을 코드에 다시 적지 않는다.
-  - 고치기 쉬운 글은 `src/content/`에 둔다: 홈 오른쪽 위·사용설명서 화면의 "처음이라면 이 순서로" 단계(`homeGuide.ts`), 홈 커뮤니티 예시 글
+  - 고치기 쉬운 글은 `src/content/`에 둔다: 홈 오른쪽 위·사용설명서 화면의 "처음이라면 이 순서로" 단계(`homeGuide.ts`), 홈 커뮤니티 예시 대화
     (`communityPreview.ts` — 커뮤니티 백엔드가 없어 화면이 "예시"라고 밝힌다, 사용자 결정 2026-10-30). 사용설명서 본문은 여전히 `src/api/guide.ts`(사용자 몫)다.
+  - **홈 커뮤니티는 채팅창이다**(2026-11-02 사용자 요청 "글 형식이 아니라 채팅 형식", `HomeRail`의 `CommunityChat`). 오래된 말이 위, 최신이 아래이고
+    대화창 안에서만 스크롤한다. 창을 `column-reverse`로 세워 스크롤 기준이 아래 끝이라 처음부터 최신 말이 보이고 글꼴이 늦게 와도 아래에 붙어 있다 —
+    스크립트로 내리지 않는다(말 순서는 DOM에서 오래된 순 그대로라 읽어 주는 순서도 같다). 창은 `role="log"`에 `tabIndex=0`(키보드로 스크롤).
+    같은 사람이 이어 말하면 이름·시각은 한 번만 보이고 읽어 주는 쪽에는 이름을 남긴다. 시각은 한국 시각 "오전 10:56"(`utils/date toKoreanClock`).
+    **입력칸·보내기는 잠겨 있다** — 백엔드가 없어 써도 갈 곳이 없다. 말풍선은 옅은 면(`--color-bg-sub`), 종목 이름은 브랜드 초록 글자다(등락색을 쓰지 않는다).
+    판정은 `judge/community.mjs`(9항목).
   - 한글은 `body`의 `word-break: keep-all`로 낱말 단위로만 줄을 바꾼다("찾아보/세요", "신호로 삼/는"처럼 음절 사이에서 끊겼다).
     띄어쓰기 없이 칸보다 긴 덩어리는 `overflow-wrap: break-word`가 끊는다. 서버가 주는 자유 글은 여전히 `anywhere`를 준다(아래).
 - **키보드로 들어오면 첫 Tab이 "본문으로 건너뛰기"다**(`App.tsx`, 2026-10-31). 진한 초록 머리글 위에 흰 보조 단추로 뜨고, 누르면 `main`에 포커스를 준다.
@@ -946,3 +952,4 @@ effect를 두 번 돌려, 두 번째가 이미 꺼낸 자리를 못 찾고 홈�
 - 2026-10-31 증권사 직통 API 셋 연결과 UI 보강(K-1~K-3, U-1·U-2): [docs/API-연결-UI-보강-결과-2026-10-31.md](docs/API-연결-UI-보강-결과-2026-10-31.md).
 - 2026-10-31 코드 검토·화이트박스·블랙박스 판정으로 찾은 결함 수정과 구조 정리(커밋 6개): [docs/리팩토링-결과-2026-10-31.md](docs/리팩토링-결과-2026-10-31.md).
   같은 날 2부 — 판정을 저장소 `judge/`에 들이고 묵은 기대값 13건을 맞춤, 최근 본 백테스트 계정별, AI 화면 판정 27항목 위에서 구조 분리: 같은 문서 2부.
+- 2026-11-02 홈 커뮤니티를 글 목록에서 채팅창으로(예시 대화, 입력칸 잠김): [docs/커뮤니티-채팅-결과-2026-11-02.md](docs/커뮤니티-채팅-결과-2026-11-02.md).
