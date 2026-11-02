@@ -9,11 +9,12 @@
 
 .layout {
   /*
-   * 왼쪽 메뉴 한 줄 높이(가는 선 포함)와 메뉴 세 줄 + 목록 아래 선의 높이. 본문 맨 위에서 --mypage-menu-height 아래에 메뉴 맨 아래 선이
+   * 왼쪽 메뉴 한 줄 높이(가는 선 포함)와 메뉴 세 줄 + 목록 아래 선의 높이, 본문 위 여백. 본문 맨 위에서 --mypage-menu-height 아래에 메뉴 맨 아래 선이
    * 있다 — 한눈에 보기가 첫 두 칸의 먹 선을 여기에 맞춘다(2026-11-02, 5.5px 어긋났었다. MypageHomePage .member)
    */
   --mypage-menu-row: 40px;
   --mypage-menu-height: calc(var(--mypage-menu-row) * 3 + 1px);
+  --mypage-content-top: 8px;
 
   display: grid;
   grid-template-columns: clamp(240px, 17vw, 320px) minmax(0, 1fr);
@@ -89,7 +90,7 @@
 .content {
   min-height: 420px;
   /* 상자 없이 제목의 굵은 먹 선 아래에 놓는다(2026-10-30) */
-  padding: 8px 0 32px;
+  padding: var(--mypage-content-top) 0 32px;
 }
 
 @media (max-width: 900px) {
