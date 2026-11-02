@@ -93,9 +93,12 @@
   list-style: none;
 }
 
+/*
+ * 본문 묶음 사이는 선 대신 여백으로 나눈다. 오른쪽 "처음이라면" 단계 줄과 나란히 서는데, 본문 길이에 따라 선이
+ * 1px 차이로 어긋나 보였다(2026-11-02, judge/lines.mjs). 선은 오른쪽 단계 목록만 쓴다
+ */
 .item {
   padding: 24px 0;
-  border-bottom: 1px solid var(--color-border);
 }
 
 .head {

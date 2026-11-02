@@ -80,9 +80,21 @@
   align-items: baseline;
   justify-content: space-between;
   gap: var(--space-3);
+  /* 높이를 정해 둔다 — 넓은 화면은 이 높이로 첫 먹 선 자리를 셈한다(아래 .member) */
+  min-height: 32px;
   margin-bottom: var(--space-4);
   padding-bottom: var(--space-2);
   border-bottom: 2px solid var(--color-rule);
+}
+
+/*
+ * 메뉴가 왼쪽에 설 때(901px 이상) 첫 두 칸(내 투자성향·관심종목)의 먹 선이 왼쪽 메뉴 맨 아래 선과 같은 높이에 오게
+ * 내 정보 줄이 남는 높이를 채운다 — 메뉴 높이(MypageLayout --mypage-menu-height) − 본문 위 여백 8px − 제목 줄 32px
+ */
+@media (min-width: 901px) {
+  .member {
+    min-height: calc(var(--mypage-menu-height) - 8px - 32px);
+  }
 }
 
 .sectionTitle {

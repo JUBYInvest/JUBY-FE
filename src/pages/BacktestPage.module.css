@@ -21,6 +21,8 @@
   border-bottom: 2px solid var(--color-rule);
   font-size: var(--font-4xl);
   font-weight: 700;
+  /* 줄 높이를 정해 둔다 — 오른쪽 가이드 제목(.guideTitle)이 같은 높이로 먹 선을 긋는다 */
+  line-height: 1.25;
   letter-spacing: -0.03em;
 }
 
@@ -616,7 +618,14 @@
   min-width: 0;
 }
 
+/*
+ * 왼쪽 화면 제목(.title)과 같은 높이로 먹 선을 긋는다 — 두 줄일 때는 22px 아래에 그어 나란한 두 선이 어긋났다(2026-11-02).
+ * 한 줄로 두고 글자는 선 쪽(아래)에 붙인다
+ */
 .guideTitle {
+  display: flex;
+  align-items: flex-end;
+  min-height: calc(var(--font-4xl) * 1.25 + var(--space-3) + 2px);
   margin: 0;
   padding-bottom: var(--space-3);
   border-bottom: 2px solid var(--color-rule);
@@ -629,10 +638,12 @@
   padding-top: var(--space-5);
 }
 
+/*
+ * 가이드 묶음 사이는 선 대신 여백으로 나눈다. 왼쪽 입력 칸들과 따로 쌓이는 글이라, 가는 선을 두면 폭에 따라 왼쪽 입력칸
+ * 테두리와 몇 px 차이로 나란히 서서 어긋나 보였다(2026-11-02, judge/lines.mjs). 왼쪽 입력도 여백으로만 나뉜다
+ */
 .guideSection + .guideSection {
-  margin-top: 22px;
-  padding-top: 22px;
-  border-top: 1px solid var(--color-border);
+  margin-top: var(--space-10);
 }
 
 .guideHeading {

@@ -21,7 +21,7 @@ export default function HomeRail() {
 
 function GuideSteps() {
   return (
-    <section aria-labelledby="home-guide-title">
+    <section className={styles.guide} aria-labelledby="home-guide-title">
       <div className={styles.head}>
         <h2 id="home-guide-title" className={styles.title}>
           사용설명서
@@ -30,37 +30,40 @@ function GuideSteps() {
           전체 보기
         </Link>
       </div>
-      <p className={styles.intro}>{HOME_GUIDE_INTRO}</p>
-      <ol className={styles.steps}>
-        {HOME_GUIDE_STEPS.map((step, index) => {
-          const body = (
-            <>
-              <span className={styles.stepNumber} aria-hidden="true">
-                {index + 1}
-              </span>
-              <span className={styles.stepText}>
-                <strong>{step.title}</strong>
-                <small>{step.description}</small>
-              </span>
-            </>
-          )
-          return (
-            <li key={step.title}>
-              {/* 홈 안에서 홈으로 가는 링크는 같은 화면이라 글로만 둔다 */}
-              {step.to === undefined || step.to === '/' ? (
-                <div className={styles.step}>{body}</div>
-              ) : (
-                <Link to={step.to} className={`${styles.step} ${styles.stepLink}`}>
-                  {body}
-                  <span className={styles.chevron} aria-hidden="true">
-                    ›
-                  </span>
-                </Link>
-              )}
-            </li>
-          )
-        })}
-      </ol>
+      {/* 넓은 화면에서 제목 줄은 홈 검색 줄, 이 묶음은 대표 종목 줄에 놓인다(HomeRail.module.css) */}
+      <div className={styles.guideBody}>
+        <p className={styles.intro}>{HOME_GUIDE_INTRO}</p>
+        <ol className={styles.steps}>
+          {HOME_GUIDE_STEPS.map((step, index) => {
+            const body = (
+              <>
+                <span className={styles.stepNumber} aria-hidden="true">
+                  {index + 1}
+                </span>
+                <span className={styles.stepText}>
+                  <strong>{step.title}</strong>
+                  <small>{step.description}</small>
+                </span>
+              </>
+            )
+            return (
+              <li key={step.title}>
+                {/* 홈 안에서 홈으로 가는 링크는 같은 화면이라 글로만 둔다 */}
+                {step.to === undefined || step.to === '/' ? (
+                  <div className={styles.step}>{body}</div>
+                ) : (
+                  <Link to={step.to} className={`${styles.step} ${styles.stepLink}`}>
+                    {body}
+                    <span className={styles.chevron} aria-hidden="true">
+                      ›
+                    </span>
+                  </Link>
+                )}
+              </li>
+            )
+          })}
+        </ol>
+      </div>
     </section>
   )
 }
@@ -77,7 +80,7 @@ function CommunityChat() {
   const [now] = useState(() => Date.now())
 
   return (
-    <section aria-labelledby="home-community-title">
+    <section className={styles.community} aria-labelledby="home-community-title">
       <div className={styles.head}>
         <h2 id="home-community-title" className={styles.title}>
           커뮤니티

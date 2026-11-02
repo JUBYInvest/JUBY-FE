@@ -20,8 +20,12 @@
   grid-area: search;
 }
 
+/* 대표 종목 줄이 오른쪽 사용설명서보다 낮으면 세 칸을 늘려, 세 칸 아래 선이 4단계 아래 선과 같은 높이에 온다 */
 .themes {
   grid-area: themes;
+  display: flex;
+  flex-direction: column;
+  align-self: stretch;
   margin-top: var(--space-8);
 }
 
@@ -30,18 +34,28 @@
   margin-top: var(--space-10);
 }
 
+/*
+ * 오른쪽 열은 왼쪽의 세 줄(검색 · 대표 종목 · 현재 주가)을 그대로 나눠 쓴다(subgrid, HomeRail). 그래서 검색창 아래 끝과
+ * 사용설명서 먹 선, 세 칸 아래 선과 4단계 아래 선, '현재 주가 보기'와 '커뮤니티'의 먹 선이 같은 높이다 — 따로 쌓던 때는
+ * 1~6px씩 어긋났다(2026-11-02 사용자 캡처, judge/lines.mjs)
+ */
 .rail {
   grid-area: rail;
+  display: grid;
+  grid-template-rows: subgrid;
 }
 
-/* 구역 제목 줄. 굵은 먹 선이 구역을 연다 */
+/*
+ * 구역 제목 줄. 굵은 먹 선이 구역을 연다. 높이 46px(선 안쪽 44px)에 제목과 옆 글은 글자 바닥선을 맞춘 한 줄로 가운데 둔다 —
+ * 오른쪽 열 제목 줄(HomeRail .head)과 높이·제목 자리가 같다
+ */
 .sectionHead {
   display: flex;
   flex-wrap: wrap;
   align-items: baseline;
+  align-content: center;
   gap: var(--space-1) var(--space-3);
-  min-height: 44px;
-  padding-bottom: var(--space-2);
+  min-height: 46px;
   border-bottom: 2px solid var(--color-rule);
 }
 
@@ -158,6 +172,7 @@
 /* 테마 대표 종목 세 칸. 칸 사이는 세로 선, 아래는 가는 선 */
 .cards {
   display: grid;
+  flex: 1 0 auto;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   border-bottom: 1px solid var(--color-border);
 }
@@ -186,6 +201,7 @@
   }
 
   .rail {
+    display: block;
     margin-top: var(--space-10);
   }
 }
@@ -199,6 +215,11 @@
   .list,
   .rail {
     margin-top: var(--space-8);
+  }
+
+  /* 설명이 둘째 줄로 내려가면 먹 선에 붙지 않게 아래를 띄운다 */
+  .sectionHead {
+    padding-bottom: var(--space-2);
   }
 
   .lede {

@@ -8,6 +8,13 @@
 }
 
 .layout {
+  /*
+   * 왼쪽 메뉴 한 줄 높이(가는 선 포함)와 메뉴 세 줄 + 목록 아래 선의 높이. 본문 맨 위에서 --mypage-menu-height 아래에 메뉴 맨 아래 선이
+   * 있다 — 한눈에 보기가 첫 두 칸의 먹 선을 여기에 맞춘다(2026-11-02, 5.5px 어긋났었다. MypageHomePage .member)
+   */
+  --mypage-menu-row: 40px;
+  --mypage-menu-height: calc(var(--mypage-menu-row) * 3 + 1px);
+
   display: grid;
   grid-template-columns: clamp(240px, 17vw, 320px) minmax(0, 1fr);
   gap: clamp(20px, 2.5vw, 40px);
@@ -28,8 +35,10 @@
 }
 
 .item {
-  display: block;
-  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  min-height: var(--mypage-menu-row);
+  padding: 0 16px;
   border-bottom: 1px solid var(--color-border);
   font-size: var(--font-md);
 }

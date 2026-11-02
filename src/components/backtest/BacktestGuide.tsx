@@ -24,11 +24,7 @@ export default function BacktestGuide({ investType, savedPersonality, onSelect }
   const idBase = useId()
   return (
     <aside className={styles.guide}>
-      <h2 className={styles.guideTitle}>
-        JUBY의
-        <br />
-        백테스트 가이드
-      </h2>
+      <h2 className={styles.guideTitle}>JUBY의 백테스트 가이드</h2>
 
       <div className={styles.guideCard}>
         <section className={styles.guideSection}>
