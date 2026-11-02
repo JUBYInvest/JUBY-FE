@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { COMMUNITY_PREVIEW_MESSAGES } from '../content/communityPreview'
 import { HOME_GUIDE_INTRO, HOME_GUIDE_STEPS } from '../content/homeGuide'
-import { toKoreanClock } from '../utils/date'
+import { toChatRows } from '../utils/chat'
 import styles from './HomeRail.module.css'
 
 /**
@@ -73,11 +73,12 @@ function GuideSteps() {
  * 커뮤니티 백엔드가 없어 입력칸·보내기는 잠그고 "준비 중"이라고 밝힌다 — 써도 아무 데도 가지 않는 칸을 열어 두지 않는다.
  * 오래된 말이 위, 최신이 아래다. 대화창 안에서만 스크롤하고 처음에는 맨 아래(최신)가 보인다 — 창을 column-reverse로 세워
  * 스크롤 기준이 아래 끝이라 글꼴이 늦게 와 높이가 바뀌어도 아래에 붙어 있다(스크립트로 내리지 않는다). 말 순서(DOM)는 오래된 순 그대로다.
- * 같은 사람이 이어 말하면 이름·시각을 한 번만 보이고, 읽어 주는 쪽에는 이름을 남긴다.
+ * 같은 사람이 같은 분에 이어 말하면 이름·시각을 한 번만 보이고, 읽어 주는 쪽에는 이름을 남긴다(줄 짓기는 utils/chat.ts).
+ * 화면에서 여백으로 띄운 자리(이름 | 시각, 종목 | 본문)에도 글자 빈칸을 둔다 — 없으면 읽어 주는 쪽·복사한 글이 "SK하이닉스1년"처럼 붙었다.
  */
 function CommunityChat() {
-  // 처음 그릴 때의 시각으로 "N분 전"을 시계 시각으로 바꾼다. 다시 그려도 시각이 흔들리지 않게 한 번만 잰다
-  const [now] = useState(() => Date.now())
+  // 처음 그릴 때의 시각으로 "N분 전"을 시계 시각으로 바꾼다. 다시 그려도 시각이 흔들리지 않게 한 번만 짓는다
+  const [rows] = useState(() => toChatRows(COMMUNITY_PREVIEW_MESSAGES, Date.now()))
 
   return (
     <section className={styles.community} aria-labelledby="home-community-title">
@@ -91,31 +92,31 @@ function CommunityChat() {
         {/* 스크롤되는 칸이라 키보드로도 들어와 위아래로 움직일 수 있게 tabIndex를 준다 */}
         <div className={styles.log} role="log" aria-label="커뮤니티 예시 대화" tabIndex={0}>
           <ol className={styles.messages}>
-            {COMMUNITY_PREVIEW_MESSAGES.map((message, index) => {
-              const at = now - message.minutesAgo * 60_000
-              const continued = index > 0 && COMMUNITY_PREVIEW_MESSAGES[index - 1].author === message.author
-              return (
-                <li key={message.id} className={`${styles.message} ${continued ? styles.continued : ''}`}>
-                  <span className={styles.avatar} aria-hidden="true">
-                    {continued ? '' : message.author.slice(0, 1)}
-                  </span>
-                  <div className={styles.messageBody}>
-                    {continued ? (
-                      <span className={styles.srOnly}>{message.author}</span>
-                    ) : (
-                      <p className={styles.messageMeta}>
-                        <strong data-author>{message.author}</strong>
-                        <time dateTime={new Date(at).toISOString()}>{toKoreanClock(at)}</time>
-                      </p>
-                    )}
-                    <p className={styles.bubble} data-bubble>
-                      {message.stock !== null && <span className={styles.stockTag}>{message.stock}</span>}
-                      {message.text}
+            {rows.map((row) => (
+              <li key={row.id} className={`${styles.message} ${row.continued ? styles.continued : ''}`}>
+                <span className={styles.avatar} aria-hidden="true">
+                  {row.continued ? '' : row.initial}
+                </span>
+                <div className={styles.messageBody}>
+                  {row.continued ? (
+                    <span className={styles.srOnly}>{row.author} </span>
+                  ) : (
+                    <p className={styles.messageMeta}>
+                      <strong data-author>{row.author}</strong>{' '}
+                      {row.time !== '' && <time dateTime={row.iso}>{row.time}</time>}
                     </p>
-                  </div>
-                </li>
-              )
-            })}
+                  )}
+                  <p className={styles.bubble} data-bubble>
+                    {row.stock !== null && (
+                      <>
+                        <span className={styles.stockTag}>{row.stock}</span>{' '}
+                      </>
+                    )}
+                    {row.text}
+                  </p>
+                </div>
+              </li>
+            ))}
           </ol>
         </div>
         <div className={styles.composer}>

@@ -29,10 +29,13 @@ export async function judge({ BASE, ONLY = null, HEADED = false } = {}) {
   let realHits = 0
   const report = (id, ok, msg) => { const line = `${ok === null ? 'INFO' : ok ? 'PASS' : 'FAIL'}  ${id}  ${msg}`; results.push(line); console.log(line) }
 
-  /** 시계를 at에 못박고(기본 목 11:00) 로그인 토큰(user번 회원)을 심은 새 탭. seed는 localStorage에 넣을 값, 나머지는 mock 옵션 */
+  /**
+   * 시계를 at에 못박고(기본 목 11:00) 로그인 토큰(user번 회원)을 심은 새 탭. seed는 localStorage에 넣을 값, timezoneId는 보는 사람의
+   * 시간대(기본은 이 컴퓨터 — 한국 시각으로 적는지 보려면 다른 시간대를 준다), 나머지는 mock 옵션
+   */
   async function open(opts = {}) {
-    const { loggedIn = true, user = 1, at = THU_11, width = 1440, height = 900, seed = null, ...mockOpts } = opts
-    const context = await browser.newContext({ viewport: { width, height } })
+    const { loggedIn = true, user = 1, at = THU_11, width = 1440, height = 900, seed = null, timezoneId = undefined, ...mockOpts } = opts
+    const context = await browser.newContext({ viewport: { width, height }, timezoneId })
     await seedLogin(context, loggedIn, { at, user, seed })
     const log = await mock(context, { now: at, ...mockOpts })
     const page = await context.newPage()

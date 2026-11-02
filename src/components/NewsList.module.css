@@ -219,15 +219,7 @@
 
 /* 화면에는 안 보이고 화면 읽기 프로그램만 읽는 글 */
 .srOnly {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  margin: -1px;
-  padding: 0;
-  overflow: hidden;
-  clip: rect(0 0 0 0);
-  white-space: nowrap;
-  border: 0;
+  composes: srOnly from './a11y.module.css';
 }
 
 /* 첫 페이지를 못 받았을 때. 목록이 있을 자리를 옅은 면으로 지킨다 */

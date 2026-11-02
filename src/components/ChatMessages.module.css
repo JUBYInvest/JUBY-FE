@@ -117,10 +117,5 @@
 
 /* 점 애니메이션은 눈에만 보인다. 읽어주는 쪽에는 문장으로 알린다 */
 .srOnly {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  clip-path: inset(50%);
-  white-space: nowrap;
+  composes: srOnly from './a11y.module.css';
 }

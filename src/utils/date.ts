@@ -103,13 +103,25 @@ export function toKoreanDate(
   return `${prefix}${month}월 ${day}일`
 }
 
+/** 한국 시간은 UTC보다 9시간 빠르다(일광 절약 시간 없음) */
+const KST_OFFSET_MS = 9 * 60 * 60 * 1000
+
+/**
+ * 한국 시각의 벽시계를 UTC 칸에 담은 Date(getUTCHours()가 한국 시). Date가 담지 못하는 값(NaN, ±8.64e15 밖)이면 null —
+ * Number.isFinite만 보면 1e16 같은 값이 "오후 NaN:NaN"으로 새어 나갔다
+ */
+function kstClock(ms: number): Date | null {
+  const kst = new Date(ms + KST_OFFSET_MS)
+  return Number.isNaN(kst.getTime()) ? null : kst
+}
+
 /**
  * 한국 시각으로 "10월 29일 11:00". 종목 상세 머리 가격의 기준 시각(응답을 받은 때)에 쓴다.
- * 시장 시각이라 보는 사람의 시간대가 아니라 한국 시간으로 적는다. 유한한 숫자가 아니면 ""(그 줄을 숨긴다)
+ * 시장 시각이라 보는 사람의 시간대가 아니라 한국 시간으로 적는다. 시각이 아니면 ""(그 줄을 숨긴다)
  */
 export function toKoreanDateTime(ms: number): string {
-  if (!Number.isFinite(ms)) return ''
-  const kst = new Date(ms + 9 * 60 * 60 * 1000)
+  const kst = kstClock(ms)
+  if (kst === null) return ''
   const hours = String(kst.getUTCHours()).padStart(2, '0')
   const minutes = String(kst.getUTCMinutes()).padStart(2, '0')
   return `${kst.getUTCMonth() + 1}월 ${kst.getUTCDate()}일 ${hours}:${minutes}`
@@ -117,14 +129,20 @@ export function toKoreanDateTime(ms: number): string {
 
 /**
  * 한국 시각으로 "오전 9:56"·"오후 12:05"(채팅 말의 시각, 홈 커뮤니티). 자정은 "오전 12:00"이다.
- * 다른 시각 표시와 같이 한국 시간으로 적는다. 유한한 숫자가 아니면 ""
+ * 다른 시각 표시와 같이 한국 시간으로 적는다. 시각이 아니면 ""
  */
 export function toKoreanClock(ms: number): string {
-  if (!Number.isFinite(ms)) return ''
-  const kst = new Date(ms + 9 * 60 * 60 * 1000)
+  const kst = kstClock(ms)
+  if (kst === null) return ''
   const hours = kst.getUTCHours()
   const minutes = String(kst.getUTCMinutes()).padStart(2, '0')
   return `${hours < 12 ? '오전' : '오후'} ${hours % 12 === 0 ? 12 : hours % 12}:${minutes}`
+}
+
+/** `<time dateTime>`에 넣는 ISO 시각("2026-10-29T02:00:00.000Z"). 시각이 아니면 "" — toISOString은 던져서 그리던 화면을 멈춘다 */
+export function toIsoTime(ms: number): string {
+  const date = new Date(ms)
+  return Number.isNaN(date.getTime()) ? '' : date.toISOString()
 }
 
 /**
@@ -148,7 +166,7 @@ export function timeAgo(ms: number, now: number = Date.now()): string {
  * 장 상태·증권사 조회 기간은 보는 사람의 시간대가 아니라 한국 시간으로 정한다
  */
 export function kstNow(now: number = Date.now()): { ymd: string; day: number; minutes: number } {
-  const kst = new Date(now + 9 * 60 * 60 * 1000)
+  const kst = new Date(now + KST_OFFSET_MS)
   const ymd = `${kst.getUTCFullYear()}${String(kst.getUTCMonth() + 1).padStart(2, '0')}${String(kst.getUTCDate()).padStart(2, '0')}`
   return { ymd, day: kst.getUTCDay(), minutes: kst.getUTCHours() * 60 + kst.getUTCMinutes() }
 }
@@ -163,7 +181,7 @@ export function weekdayOf(ymd: string): number {
 export function shiftYmd(ymd: string, days: number): string {
   if (!isYmd(ymd)) return ''
   const moved = Date.UTC(Number(ymd.slice(0, 4)), Number(ymd.slice(4, 6)) - 1, Number(ymd.slice(6, 8))) + days * 86_400_000
-  return kstNow(moved - 9 * 60 * 60 * 1000).ymd
+  return kstNow(moved - KST_OFFSET_MS).ymd
 }
 
 const WEEKDAY_NAMES = ['일', '월', '화', '수', '목', '금', '토']

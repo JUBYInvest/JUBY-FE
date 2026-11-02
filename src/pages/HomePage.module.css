@@ -47,7 +47,7 @@
 
 /*
  * 구역 제목 줄. 굵은 먹 선이 구역을 연다. 높이 46px(선 안쪽 44px)에 제목과 옆 글은 글자 바닥선을 맞춘 한 줄로 가운데 둔다 —
- * 오른쪽 열 제목 줄(HomeRail .head)과 높이·제목 자리가 같다
+ * 오른쪽 열 커뮤니티 제목 줄(HomeRail .head)과 높이·제목 자리가 같다(사용설명서 제목 줄은 검색 줄 높이로 늘어 선만 맞춘다)
  */
 .sectionHead {
   display: flex;
@@ -55,7 +55,7 @@
   align-items: baseline;
   align-content: center;
   gap: var(--space-1) var(--space-3);
-  min-height: 46px;
+  min-height: var(--section-head-height);
   border-bottom: 2px solid var(--color-rule);
 }
 

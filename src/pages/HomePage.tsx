@@ -393,6 +393,14 @@ export default function HomePage() {
           </SectionBoundary>
         </section>
 
+        {/*
+          오른쪽 열은 시세표보다 앞에 둔다 — 1100px 이하에서는 화면에도 시세표 위에 보이고, 키보드(Tab)·읽어 주는 순서가 보이는 순서와
+          같아야 한다. 시세표 뒤에 두던 때는 그 순서로 가려면 시세표 행(링크·하트)을 다 지나야 했다. 넓은 화면의 자리는 격자 영역이 정한다
+        */}
+        <div className={styles.rail}>
+          <HomeRail />
+        </div>
+
         <section className={styles.list}>
           <div className={styles.sectionHead}>
             <h2 className={styles.heading}>현재 주가 보기</h2>
@@ -472,10 +480,6 @@ export default function HomePage() {
           )}
           </div>
         </section>
-
-        <div className={styles.rail}>
-          <HomeRail />
-        </div>
       </div>
 
       <Modal

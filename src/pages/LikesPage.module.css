@@ -101,7 +101,7 @@
   flex-wrap: wrap;
   align-items: center;
   gap: var(--space-1) var(--space-3);
-  min-height: 46px;
+  min-height: var(--section-head-height);
   border-bottom: 2px solid var(--color-rule);
 }
 

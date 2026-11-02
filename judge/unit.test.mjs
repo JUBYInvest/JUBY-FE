@@ -67,6 +67,13 @@ describe('utils/date', async () => {
     assert.equal(d.toKoreanClock(kst(2026, 10, 30, 0, 0)), '오전 12:00')
     assert.equal(d.toKoreanClock(Number.NaN), '')
   })
+  test('Date가 담지 못하는 값(1e16)도 던지지 않고 "" — toKoreanClock·toKoreanDateTime·toIsoTime', () => {
+    assert.equal(d.toKoreanClock(1e16), '')
+    assert.equal(d.toKoreanDateTime(1e16), '')
+    assert.equal(d.toIsoTime(THU_11), '2026-10-29T02:00:00.000Z')
+    assert.equal(d.toIsoTime(Number.NaN), '')
+    assert.equal(d.toIsoTime(1e16), '')
+  })
   test('timeAgo', () => {
     const now = THU_11
     assert.equal(d.timeAgo(now - 10_000, now), '방금')
@@ -81,6 +88,31 @@ describe('utils/date', async () => {
 })
 
 /* ── utils/format ───────────────────────────────────────────────────── */
+describe('utils/chat — 홈 커뮤니티 말 줄', async () => {
+  test('오래된 말이 위, 같은 사람이 같은 분에 이어 말할 때만 묶는다, 첫 글자는 이모지도 온전히', async () => {
+    const { toChatRows } = await src('utils/chat.ts')
+    const rows = toChatRows([
+      { id: 3, author: '가', stock: null, text: 'c', minutesAgo: 2 },
+      { id: 1, author: '가', stock: null, text: 'a', minutesAgo: 30 },
+      { id: 2, author: '가', stock: '삼성전자', text: 'b', minutesAgo: 30 },
+      { id: 4, author: '😀개미', stock: null, text: 'd', minutesAgo: 1 },
+    ], THU_11)
+    assert.deepEqual(rows.map((r) => r.id), [1, 2, 3, 4])
+    assert.deepEqual(rows.map((r) => r.continued), [false, true, false, false])
+    assert.deepEqual(rows.map((r) => r.time), ['오전 10:30', '오전 10:30', '오전 10:58', '오전 10:59'])
+    assert.equal(rows[3].initial, '😀')
+    assert.equal(rows[1].stock, '삼성전자')
+    assert.equal(rows[0].iso, '2026-10-29T01:30:00.000Z')
+  })
+  test('시각을 지을 수 없는 말도 던지지 않고 시각만 비운다', async () => {
+    const { toChatRows } = await src('utils/chat.ts')
+    const rows = toChatRows([{ id: 1, author: '가', stock: null, text: 'a', minutesAgo: Number.NaN }], THU_11)
+    assert.equal(rows.length, 1)
+    assert.equal(rows[0].time, '')
+    assert.equal(rows[0].iso, '')
+  })
+})
+
 describe('utils/format', async () => {
   const f = await src('utils/format.ts')
   test('numberFromText', () => {

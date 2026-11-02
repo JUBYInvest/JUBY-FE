@@ -1,0 +1,15 @@
+/*
+ * 화면에는 안 보이고 화면 읽기 프로그램만 읽는 글. 화면 CSS가 `composes: srOnly from '…/a11y.module.css'`로 가져다 쓴다
+ * (2026-11-02 — 세 화면이 조금씩 다른 벌을 따로 적고 있었다)
+ */
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}

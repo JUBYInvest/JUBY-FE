@@ -6,19 +6,13 @@
  * 백엔드가 생기면 src/api로 옮기고 이 파일을 지운다.
  */
 
-export interface PreviewMessage {
-  id: number
-  /** 말한 사람의 별명. 같은 사람이 이어 말하면 화면이 이름을 한 번만 보인다 */
-  author: string
-  /** 이야기하는 종목 이름. 없으면 null */
-  stock: string | null
-  text: string
-  /** 몇 분 전 말인지. 지금 시각에서 빼서 "오전 10:48"처럼 보인다 */
-  minutesAgo: number
-}
+import type { ChatMessageSource } from '../utils/chat'
 
-/** 오래된 말부터 적는다(채팅은 아래가 최신이다) */
-export const COMMUNITY_PREVIEW_MESSAGES: PreviewMessage[] = [
+/**
+ * 오래된 말부터 적는다(채팅은 아래가 최신이다 — 순서가 틀려도 화면이 몇 분 전인지로 다시 세운다).
+ * 같은 사람이 같은 분(minutesAgo)에 이어 말하면 화면이 이름·시각을 한 번만 보인다(utils/chat.ts)
+ */
+export const COMMUNITY_PREVIEW_MESSAGES: ChatMessageSource[] = [
   { id: 1, author: '월급쟁이투자', stock: null, text: '투자성향 테스트 해 봤는데 위험중립형 나왔어요. 다들 뭐 나오셨어요?', minutesAgo: 64 },
   { id: 2, author: '주린이공부중', stock: null, text: '저는 안정추구형이요. 10문항이라 금방 끝나더라고요', minutesAgo: 61 },
   { id: 3, author: '반도체관심', stock: 'SK하이닉스', text: '1년 그래프로 보니 생각보다 많이 내렸네요', minutesAgo: 35 },
