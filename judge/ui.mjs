@@ -425,7 +425,8 @@ async function u4() {
     const lines = descs.map((d) => { const cs = getComputedStyle(d); return Math.round(d.getBoundingClientRect().height / parseFloat(cs.lineHeight === 'normal' ? String(parseFloat(cs.fontSize) * 1.5) : cs.lineHeight)) })
     return { count: titles.length, lines, clamp: descs.map((d) => getComputedStyle(d).webkitLineClamp) }
   })
-  report('U4-4', news.count === 5 && news.lines.every((l) => l <= 2), `첫 로드 ${news.count}건, 요약 줄 수 ${JSON.stringify(news.lines)}, line-clamp ${JSON.stringify([...new Set(news.clamp)])}`)
+  // 2026-11-02부터 6건씩 펼친다(넓은 칸 두 줄이 둘씩 짝이 맞게, feature.mjs S-5) — U-4 때는 5건
+  report('U4-4', news.count === 6 && news.lines.every((l) => l <= 2), `첫 로드 ${news.count}건, 요약 줄 수 ${JSON.stringify(news.lines)}, line-clamp ${JSON.stringify([...new Set(news.clamp)])}`)
   if (SHOTS) await s.page.screenshot({ path: `${SHOTS}/u4-stock-1440.png`, fullPage: true })
   await s.close()
 }

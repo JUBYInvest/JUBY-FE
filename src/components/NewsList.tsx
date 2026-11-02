@@ -11,9 +11,10 @@ const TABS: { key: NewsSort; label: string }[] = [
 
 /**
  * 한 번에 펼치는 기사 수. 서버는 10건씩 주지만 10건을 다 펼치면 뉴스가 1,600px 남짓이라 첫 화면에 한 건도 안 보였다.
- * 받아 둔 기사가 남았으면 '뉴스 더 보기'가 서버에 묻지 않고 더 펼친다 — 요청 수는 그대로다
+ * 받아 둔 기사가 남았으면 '뉴스 더 보기'가 서버에 묻지 않고 더 펼친다 — 요청 수는 그대로다.
+ * 짝수다 — 넓은 칸에서는 두 줄로 서서 둘씩 짝짓는다(NewsList.module.css). 5건씩이던 때는 끝 기사가 홀로 남았다(2026-11-02)
  */
-const NEWS_STEP = 5
+const NEWS_STEP = 6
 
 interface Props {
   stockCode: string
@@ -41,7 +42,7 @@ type State =
  *
  * 정렬은 서버가 한다(`GET /api/stocks/{code}/news?sort=`). 최신순은 발행일 순,
  * 관련도순은 벡터 검색이 매긴 순서라 화면에서 흉내 낼 수 없어 탭을 바꾸면 다시 받는다.
- * 10건씩 오고 page는 0~9까지라 최대 100건이다. 화면에는 5건씩 펼친다(NEWS_STEP).
+ * 10건씩 오고 page는 0~9까지라 최대 100건이다. 화면에는 6건씩 펼친다(NEWS_STEP).
  */
 export default function NewsList({ stockCode, stockName }: Props) {
   const [sort, setSort] = useState<NewsSort>('LATEST')

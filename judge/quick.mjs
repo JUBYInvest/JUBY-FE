@@ -534,8 +534,8 @@ async function regressGroup() {
     await page.getByRole('tab', { name: '1년' }).click()
     await sleep(300)
     const selected = await page.getByRole('tab', { name: '1년' }).getAttribute('aria-selected')
-    // 뉴스는 5건씩 펼친다(2026-10-29 리디자인 U-4). 받아 둔 10건을 다 펼친 뒤에야 다음 페이지를 묻는다
-    await until(() => page.getByText('관련 기사 5', { exact: true }).isVisible(), 5000)
+    // 뉴스는 6건씩 펼친다(2026-10-29 리디자인 U-4는 5건 — 2026-11-02 넓은 칸 두 줄이 둘씩 짝이 맞게 6건). 받아 둔 10건을 다 펼친 뒤에야 다음 페이지를 묻는다
+    await until(() => page.getByText('관련 기사 6', { exact: true }).isVisible(), 5000)
     const first = await page.getByText(/^관련 기사 \d+$/).count()
     const newsReq = () => log.filter((l) => /\/news\?/.test(l)).length
     const r0 = newsReq()
@@ -545,7 +545,7 @@ async function regressGroup() {
     await page.getByRole('button', { name: '뉴스 더 보기' }).click()
     await sleep(800)
     const third = { shown: await page.getByText(/^관련 기사 \d+$/).count(), req: newsReq() - r0, page1: log.some((l) => /\/news\?sort=LATEST&page=1/.test(l)) }
-    report('R1 상세', selected === 'true' && first === 5 && second.shown === 10 && second.req === 0 && third.req === 1 && third.page1 && third.shown === 15 && errors.length === 0,
+    report('R1 상세', selected === 'true' && first === 6 && second.shown === 10 && second.req === 0 && third.req === 1 && third.page1 && third.shown === 18 && errors.length === 0,
       `1년 탭 ${selected}, 기사 처음 ${first} → 더 보기 ${JSON.stringify(second)} → 다시 ${JSON.stringify(third)}, 예외 ${errors.length}`)
     const canvas = page.locator('[class*="_chartBox_"] canvas').first()
     await page.evaluate(() => window.scrollTo(0, 0))

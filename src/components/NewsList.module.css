@@ -133,42 +133,16 @@
   overflow: hidden;
 }
 
-/* 첫 기사: 제목을 크게, 요약을 세 줄까지 본문 색으로 */
-.list li:first-child .title {
-  font-size: var(--font-xl);
-}
-
-.list li:first-child .description {
-  -webkit-line-clamp: 3;
-  color: var(--color-text);
-}
-
+/*
+ * 넓은 칸에서는 두 줄로 세워 둘씩 짝짓는다(1·2, 3·4, 5·6). 기사는 모두 같은 크기다 — 첫 기사만 크게 한 줄을 다 쓰면
+ * 1 | 2·3 | 4·5로 서고 더 보기 뒤에는 끝이 홀로 남았다(2026-11-02 사용자 "1, 23, 45, 6 이런식으로 나눠지는데 해결좀").
+ * 그래서 펼치는 수도 짝수다(NewsList NEWS_STEP·KeywordNews STEP 6)
+ */
 @container (min-width: 760px) {
   .list {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     column-gap: var(--space-10);
-  }
-
-  .list li:first-child {
-    grid-column: 1 / -1;
-  }
-
-  /*
-   * 둘씩 짝짓는 목록(관심종목 뉴스 — 6건씩 펼친다, KeywordNews). 첫 기사가 한 줄을 다 쓰면 1 | 2·3 | 4·5 | 6으로 끝이 홀로 남아
-   * 1·2, 3·4, 5·6으로 세운다(2026-11-02 사용자). 첫 기사도 다른 기사와 같은 크기다. 종목 상세 뉴스는 5건씩이라 첫 기사 + 둘씩이 맞는다
-   */
-  .paired li:first-child {
-    grid-column: auto;
-  }
-
-  .paired li:first-child .title {
-    font-size: var(--font-lg);
-  }
-
-  .paired li:first-child .description {
-    -webkit-line-clamp: 2;
-    color: var(--color-text-sub);
   }
 }
 

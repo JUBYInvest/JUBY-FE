@@ -1,5 +1,6 @@
 // 디자인 재정비 화면별 판정(결과 보고서 1절 H-1~5, S-1~4, L-1~4). /api는 전부 가짜(mock.mjs).
 // S-1·S-3·S-4·L-2는 그 뒤 바뀐 것(M-8 한 판·휴장일·관심종목 뉴스)에 맞춰 2026-10-31에 기대값을 고쳤다.
+// S-2는 2026-11-02 뉴스를 6건씩 펼치게 되어(S-5) 첫 화면 뉴스 5건 → 6건(펼친 것이 다 보인다).
 // H-1·H-4는 커뮤니티가 채팅이 되어(2026-11-02) 글 5개 대신 대화창·입력칸, 말마다 "예시 글" 대신 칸의 "예시" 표시를 본다.
 // H-6·L-5(2026-11-02 사용자 "첫번째 박스는 과하게 좌측에, 세번째 박스는 과하게 우측에 붙어있어"): 세로 선으로 나눈 칸은 첫 칸·끝 칸도 안 여백이 같다.
 // H-7(같은 날, 그 캡처에서 찾음): 1년 그래프의 끝점·선이 그래프 판 밖으로 잘리지 않는다(가짜 한화에어로스페이스는 끝값이 1년 최저다).
@@ -117,7 +118,7 @@ for (const width of [1920, 1101]) {
       return plot && info && chart ? { h: Math.round(plot.height), gap: Math.round(chart.bottom - info.bottom) } : { h: -1, gap: null } }))
     if (w === 1920) {
       const s2 = { info: await inView(page, 'h1'), price: await inView(page, '[class*="_priceNumber_"]'), acts: await inView(page, '[class*="_actionPanel_"] a'), chart: await inView(page, '[class*="_chartBox_"]'), news: await inView(page, '[class*="_newsColumn_"] li') }
-      report('S-2', s2.info === 1 && s2.price === 1 && s2.acts === 2 && s2.chart === 1 && s2.news === 5, `1920×1080 첫 화면 — 이름 ${s2.info}, 큰 가격 ${s2.price}, 바로 가기 ${s2.acts}, 차트 ${s2.chart}, 뉴스 ${s2.news}건`)
+      report('S-2', s2.info === 1 && s2.price === 1 && s2.acts === 2 && s2.chart === 1 && s2.news === 6, `1920×1080 첫 화면 — 이름 ${s2.info}, 큰 가격 ${s2.price}, 바로 가기 ${s2.acts}, 차트 ${s2.chart}, 뉴스 ${s2.news}건`)
       // S-3 손으로 계산: 판정용 일봉(mock.candles)에 기간 탭과 같은 규칙(1주 7일 전, 달·해는 말일 맞춤)
       const all = candles('005930').map((c) => ({ ...c, d: c.date.replaceAll('-', '') }))
       const last = all.at(-1)
@@ -142,6 +143,19 @@ for (const width of [1920, 1101]) {
   const order = await page.evaluate(() => ['h1', '[class*="_actionPanel_"]', '[class*="_chartBox_"]', '[aria-label="시세 요약"]', '[aria-label="기간별 주가 변화"]', '[class*="_newsColumn_"]'].map((s) => Math.round(document.querySelector(s)?.getBoundingClientRect().top ?? -1)))
   report('S-4', order.every((y, i) => y >= 0 && (i === 0 || y > order[i - 1])), `375 세로 위치(이름·행동·차트·시세 요약·기간별 변화·뉴스) ${JSON.stringify(order)}`)
   await context.close()
+  // S-5 뉴스가 두 줄로 서는 폭(1440 — 차트 아래 넓은 칸)에서 둘씩 짝짓는다. 처음 6건, 더 보기 뒤 받아 둔 10건까지(전엔 첫 기사가 한 줄을 다 써
+  // 1 | 2·3 | 4·5, 더 보기 뒤 … | 10으로 끝이 홀로 남았다 — 주식 모아보기 L-6과 같은 모양, 2026-11-02 실제 서버로 둘러보다 찾음)
+  {
+    const { context, page } = await open('/stocks/005930', { width: 1440, height: 900, wait: 2200 })
+    const tops = () => page.$$eval('[class*="_newsColumn_"] li', (lis) => lis.map((li) => Math.round(li.getBoundingClientRect().top + scrollY)))
+    const paired = (t) => t.length % 2 === 0 && t.every((y, i) => (i % 2 === 0 ? y === t[i + 1] : i === t.length - 1 || y < t[i + 1]))
+    const first = await tops()
+    await page.getByRole('button', { name: '뉴스 더 보기' }).click()
+    await sleep(600)
+    const more = await tops()
+    report('S-5', first.length === 6 && paired(first) && more.length === 10 && paired(more), `뉴스 줄 위치 처음 ${JSON.stringify(first)} · 더 보기 뒤 ${JSON.stringify(more)}`)
+    await context.close()
+  }
 }
 
 /* ── 아래 지수 띠 ── */
