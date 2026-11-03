@@ -31,8 +31,24 @@ export default function Header() {
   const { pathname, search } = useLocation()
   const navigationType = useNavigationType()
   const headerRef = useRef<HTMLElement>(null)
+  const serviceRef = useRef<HTMLElement>(null)
   const activeRef = useRef<HTMLAnchorElement | null>(null)
   const chunkLoading = useSyncExternalStore(subscribeRouteChunk, isRouteChunkLoading)
+
+  /*
+   * 좁은 화면(800px 이하)은 서비스 메뉴 줄이 옆으로 밀린다. 지금 화면 메뉴가 줄 밖(또는 끝의 흐린 자리)에 있으면 줄 가운데로 민다 —
+   * 주소로 곧장 /guide를 열면 '사용설명서'가 오른쪽 밖에 있었다(지시서 N-1). 줄의 scrollLeft만 바꾼다(scrollIntoView는 페이지까지 움직인다)
+   */
+  useLayoutEffect(() => {
+    const nav = serviceRef.current
+    const link = nav?.querySelector<HTMLAnchorElement>('a[aria-current="page"]')
+    if (nav == null || link == null || nav.scrollWidth <= nav.clientWidth) return
+    const area = nav.getBoundingClientRect()
+    const box = link.getBoundingClientRect()
+    const fade = Number.parseFloat(getComputedStyle(nav).paddingRight) || 0
+    if (box.left >= area.left && box.right <= area.right - fade) return
+    nav.scrollLeft += box.left - area.left - (area.width - box.width) / 2
+  }, [pathname])
 
   // 그리기 전에 건다 — 새 자리의 막대가 한 번 보였다가 뒤로 튀지 않게
   useLayoutEffect(() => {
@@ -67,7 +83,7 @@ export default function Header() {
         JUBY
       </Link>
 
-      <nav className={`${styles.menu} ${styles.service}`} aria-label="서비스">
+      <nav ref={serviceRef} className={`${styles.menu} ${styles.service}`} aria-label="서비스">
         <MenuLink to="/" label="홈" />
         <MenuLink to="/likes" label="주식 모아보기" />
         <MenuLink to="/backtest" label="주식 백테스트" />
