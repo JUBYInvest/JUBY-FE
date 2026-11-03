@@ -335,6 +335,27 @@ describe('utils 작은 것들', async () => {
   })
 })
 
+/* ── utils/guideMarkdown — 사용설명서 글 ──────────────────────────────── */
+describe('utils/guideMarkdown', async () => {
+  const g = await src('utils/guideMarkdown.ts')
+  test('맨 앞 "# 제목"을 떼고, "## 꼭지"에 장 id + 순서를 단다', () => {
+    const doc = g.readGuideDocument('backtest', '# 백테스트 **완전** 가이드\n\n> 안내\n\n## 1. 전략별 매매 규칙\n\n### 🛡 RSI\n\n## 2. 결과 `지표` 읽는 법 ##\n')
+    assert.equal(doc.title, '백테스트 완전 가이드')
+    assert.ok(doc.body.startsWith('\n> 안내'))
+    assert.deepEqual(doc.sections, [{ id: 'backtest-1', title: '1. 전략별 매매 규칙' }, { id: 'backtest-2', title: '2. 결과 지표 읽는 법' }])
+  })
+  test('제목이 없으면 null·본문 그대로, 코드 블록 안의 "## "는 꼭지가 아니다, CRLF도 읽는다', () => {
+    const doc = g.readGuideDocument('ai', '본문\r\n```\r\n## 코드\r\n```\r\n## 진짜 꼭지\r\n')
+    assert.equal(doc.title, null)
+    assert.ok(doc.body.startsWith('본문'))
+    assert.deepEqual(doc.sections, [{ id: 'ai-1', title: '진짜 꼭지' }])
+    assert.deepEqual(g.readGuideDocument('x', '#해시태그\n##붙은 줄').sections, [])
+  })
+  test('plainText — 꾸밈을 걷고 빈칸을 하나로', () => {
+    assert.equal(g.plainText('**MDD**  (최대 낙폭) `식` [링크](/guide) *기울임*'), 'MDD (최대 낙폭) 식 링크 기울임')
+  })
+})
+
 /* ── utils/cache·recentStocks·recentBacktests ───────────────────────── */
 describe('localStorage 값', async () => {
   const c = await src('utils/cache.ts')

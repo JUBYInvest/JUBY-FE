@@ -1,6 +1,6 @@
 // 나란한 열의 가로선 판정(2026-11-02 사용자 "묘하게 선의 위치가 맞지 않는 것들을 찾아서 다 정리해줘" — 홈 '현재 주가 보기'와
 // '커뮤니티'의 굵은 먹 선이 3px 어긋난 캡처). 두 열이 나란한 폭(1101px 이상)에서 본다. /api는 전부 가짜(mock.mjs).
-// 같은 날 검토로 더했다: A6 홈의 다른 상태(비로그인·순위 탭·대표 종목과 시세표 실패), G는 두 열 화면에서 견준 선이 0쌍이면 실패(안 그려진 화면이 통과하던 빈틈).
+// 2026-11-03 A7 사용설명서(장 제목 | 차례). 같은 날(11-02) 검토로 더했다: A6 홈의 다른 상태(비로그인·순위 탭·대표 종목과 시세표 실패), G는 두 열 화면에서 견준 선이 0쌍이면 실패(안 그려진 화면이 통과하던 빈틈).
 // 1100.5px 같은 소수점 폭(화면 배율)은 크롬·WebKit이 iframe 폭까지 정수로 반올림해 여기서는 못 잰다 — 홈은 넓은 화면 규칙을 HomePage 한 곳에서 가른다.
 // node lines.mjs <BASE> [--only A1,G] [--headed]
 import { cli, judge, sleep } from './lib.mjs'
@@ -88,6 +88,11 @@ await j.run('A6', async () => {
   } })
 })
 
+// A7 사용설명서(2026-11-03): 왼쪽 장 제목 줄과 오른쪽 차례 제목 줄이 같은 높이에서 먹 선으로 끝난다
+await j.run('A7', () => pairs('A7', '/guide', '사용설명서: 장 제목 먹 선 = 차례 먹 선', new Function(`
+  const bottom = ${BOTTOM}
+  return [['장 제목', bottom(document.getElementById('guide-chapter-title'))], ['차례', bottom(document.getElementById('guide-toc-title'))]]`)))
+
 await j.run('A4', () => pairs('A4', '/backtest', '백테스트: 화면 제목 먹 선 = 가이드 제목 먹 선', new Function(`
   const bottom = ${BOTTOM}
   return [['주식 백테스트 이용하기', bottom(document.querySelector('main h1'))], ['가이드', bottom(document.querySelector('main aside h2'))]]`)))
@@ -103,8 +108,8 @@ await j.run('A5', () => pairs('A5', '/mypage', '마이페이지 한눈에 보기
  * 굵은 먹 선(2px)끼리 24px 안에서 어긋난 것이 없어야 한다. 단추·링크·입력칸·표 칸의 테두리와 단추·링크 안의 선(고른 전략 카드의
  * 매수·매도 줄)은 그 단추의 일부라 뺀다. 검색창·대화창처럼 단추가 아닌 상자의 테두리는 센다
  */
-/** 넓은 화면에서 두 열 이상이고 옆 열에 선이 있는 화면 — 견준 선이 0쌍이면 화면이 안 그려진 것이라 실패로 본다(사용설명서는 본문 선을 걷어 견줄 쌍이 없다) */
-const TWO_COLUMNS = new Set(['home', 'home-out', 'stock', 'backtest', 'mypage', 'mypage-personality', 'mypage-profile'])
+/** 넓은 화면에서 두 열 이상이고 옆 열에 선이 있는 화면 — 견준 선이 0쌍이면 화면이 안 그려진 것이라 실패로 본다(사용설명서는 2026-11-03부터 장 제목 | 차례 두 열) */
+const TWO_COLUMNS = new Set(['home', 'home-out', 'stock', 'backtest', 'guide', 'mypage', 'mypage-personality', 'mypage-profile'])
 const SCREENS = [
   ['home', '/', true], ['home-out', '/', false], ['stock', '/stocks/005930', true], ['likes', '/likes', true],
   ['backtest', '/backtest', true], ['ai', '/ai', true], ['guide', '/guide', true], ['mypage', '/mypage', true],

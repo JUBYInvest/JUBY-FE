@@ -1,0 +1,171 @@
+/*
+ * 사용설명서 본문(GuideArticle.tsx). 오래 읽는 글이라 앱의 다른 글보다 크게(16px, 줄 높이 1.75) 먹 글자로 둔다.
+ * 제목 위계: 꼭지(## → h3) 앱의 구역 제목 줄(46px·20px + 굵은 먹 선) · 전략·묶음(### → h4) 18px · 지표(#### → h5) 16px 굵게.
+ * 꼭지 먹 선 말고는 가로선을 두지 않는다(표 칸 선은 칸 몫) — 옆 차례 열은 머리 먹 선 하나뿐이라 어긋날 선이 없다(judge/lines.mjs G).
+ */
+.body {
+  font-size: var(--font-lg);
+  line-height: 1.75;
+  color: var(--color-text);
+}
+
+.body > :first-child {
+  margin-top: var(--space-6);
+}
+
+.body p {
+  margin: 0 0 var(--space-4);
+}
+
+.body strong {
+  font-weight: 700;
+}
+
+.sectionHead {
+  composes: head from './section.module.css';
+  margin: var(--space-12) 0 var(--space-4);
+}
+
+.section {
+  composes: title from './section.module.css';
+  /* 차례로 옮겨 오면 화면 맨 위에 딱 붙지 않게 */
+  scroll-margin-top: var(--space-6);
+}
+
+.topic {
+  margin: var(--space-10) 0 var(--space-3);
+  font-size: var(--font-xl);
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.term {
+  margin: var(--space-8) 0 var(--space-2);
+  font-size: var(--font-lg);
+  font-weight: 700;
+  line-height: 1.5;
+}
+
+/* 굵은 글 한 줄뿐인 문단(자주 묻는 질문의 Q., 돌파 전략의 매수·매도 조건) — 아래 글·표를 여는 머리말 */
+.body .lead {
+  margin: var(--space-6) 0 var(--space-2);
+}
+
+/* 식 한 줄(샤프 지수 = 연평균 수익률 ÷ 변동성). 상자 대신 왼쪽 먹 선 */
+.body .formula {
+  margin: var(--space-4) 0;
+  padding: 2px 0 2px var(--space-4);
+  border-left: 3px solid var(--color-rule);
+  font-weight: 600;
+}
+
+.body .formula code {
+  padding: 0;
+  background: none;
+  font-size: inherit;
+}
+
+/* 안내·예시·팁·유의사항(노션의 인용). 묶어 보여야 하는 글이라 옅은 면 */
+.body blockquote {
+  margin: var(--space-5) 0;
+  padding: var(--space-4) var(--space-5);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-sub);
+  font-size: var(--font-base);
+}
+
+.body blockquote p {
+  margin: 0;
+}
+
+.body blockquote p + p {
+  margin-top: var(--space-2);
+}
+
+.figure {
+  margin: var(--space-6) 0;
+}
+
+.figure img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.tableWrap {
+  margin: var(--space-4) 0 var(--space-6);
+  overflow-x: auto;
+}
+
+/* 표는 상자 없이 줄로만 — 머리 아래 진한 가는 선, 줄 사이 가는 선. 첫 칸은 글 왼쪽 끝에 맞춘다 */
+.body table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--font-base);
+  line-height: 1.6;
+}
+
+.body th {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--color-border-strong);
+  text-align: left;
+  font-size: var(--font-md);
+  font-weight: 600;
+  color: var(--color-text-sub);
+}
+
+.body td {
+  padding: 12px;
+  border-bottom: 1px solid var(--color-border);
+  vertical-align: top;
+}
+
+.body th:first-child,
+.body td:first-child {
+  padding-left: 0;
+}
+
+/* 두 칸 표(구분 | 조건, 지표 | 의미)의 첫 칸은 짧은 이름이라 꺾지 않는다 — 휴대폰에서 "🔵 / 매수"로 갈라졌다 */
+.body table:has(th:nth-child(2):last-child) td:first-child {
+  white-space: nowrap;
+}
+
+.body ol,
+.body ul {
+  margin: 0 0 var(--space-4);
+  padding-left: 1.5em;
+}
+
+.body li + li {
+  margin-top: var(--space-2);
+}
+
+.body li::marker {
+  font-weight: 700;
+}
+
+.body code {
+  padding: 1px 6px;
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-sub);
+  font-family: inherit;
+  font-size: 0.95em;
+}
+
+.body a {
+  color: var(--color-brand-700);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+@media (max-width: 600px) {
+  .body th,
+  .body td {
+    padding-right: var(--space-2);
+    padding-left: var(--space-2);
+  }
+
+  .body blockquote {
+    padding: var(--space-4);
+  }
+}

@@ -12,8 +12,8 @@ interface Props {
 }
 
 /**
- * "처음이라면 이 순서로" 단계(src/content/homeGuide.ts). 홈 오른쪽 열(HomeRail)과 사용설명서 화면이 같이 쓴다 —
- * 두 곳에 같은 마크업과 같은 CSS 여섯 규칙이 따로 적혀 있었다(2026-11-03). 정말 차례가 있는 글이라 번호를 단다
+ * "처음이라면 이 순서로" 단계(src/content/homeGuide.ts). 홈 오른쪽 열(HomeRail)이 쓴다 — 사용설명서 화면도 쓰다가
+ * 그 화면에 장 차례가 들어오며 걷었다(2026-11-03). 정말 차례가 있는 글이라 번호를 단다
  */
 export default function GuideSteps({ className, here, chevron = false }: Props) {
   const stepClass = chevron ? `${styles.step} ${styles.withChevron}` : styles.step

@@ -148,7 +148,8 @@ function Layout() {
                 <Route path="profile" element={<MypageProfilePage />} />
               </Route>
 
-              <Route path="/guide" element={<GuidePage />} />
+              {/* 사용설명서. 글이 있는 첫 장이 /guide, 나머지 장은 /guide/<장> */}
+              <Route path="/guide/:chapterId?" element={<GuidePage />} />
               <Route path="/backtest" element={<BacktestPage />} />
 
               {/*
