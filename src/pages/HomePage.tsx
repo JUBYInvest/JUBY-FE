@@ -23,7 +23,7 @@ import { getStockList } from '../api/stock'
 import { STOCK_LIST } from '../api/stockList'
 import { useDocumentTitle } from '../hooks/useDocumentTitle'
 import { useIsLoggedIn } from '../hooks/useIsLoggedIn'
-import { toKoreanDate } from '../utils/date'
+import { sharedYmd, toKoreanDate } from '../utils/date'
 import { isFiniteNumber } from '../utils/format'
 import { loginPathFrom } from '../utils/navigation'
 import { preloadStockChartPage } from '../utils/preload'
@@ -274,6 +274,12 @@ export default function HomePage() {
     return byCode
   }, [list])
 
+  /*
+   * 카드 셋이 같은 날의 종가면 그 날을 구역 제목 줄에 한 번만 적는다("현재 주가 보기"와 같다). 다르거나 모르면 카드마다 적는다.
+   * 지금은 카드 날짜가 모두 시세표 응답의 baseDate 한 칸이라 다를 일이 없다 — 카드 값의 출처가 늘면 이 갈래가 쓰인다
+   */
+  const cardDate = sharedYmd(themes.map((theme) => quotes.get(theme.stockCode)?.baseDate ?? ''))
+
   /* 검색 후보는 거래대금 순. 서버 목록은 가나다순이라 그대로 주면 삼성전자가 삼성전기 뒤로 밀린다 */
   const searchable = useMemo(
     () => (stocks.length > 0 ? byTradingValue(stocks) : STOCK_LIST),
@@ -366,6 +372,9 @@ export default function HomePage() {
           <div className={styles.sectionHead}>
             {/* 홈의 대표 제목. 아래 '현재 주가 보기'가 h2로 이어진다 */}
             <h1 className={styles.heading}>테마별 대표 종목</h1>
+            {cardDate !== null && toKoreanDate(cardDate) !== '' && (
+              <span className={styles.asOf}>{toKoreanDate(cardDate)} 종가 기준</span>
+            )}
             {/*
               무엇을 보여 주는지 쉬운 말로. 예전 머리말("SMA 이동평균선 전략 · 1년 기준으로 뽑은")은 사실과 달랐다 —
               백엔드는 테마마다 정해 둔 종목을 주고(JUBY-BE LeadingStockTheme) 전략 결과로 고르지 않는다(dev 3dc3f3a 확인).
@@ -388,6 +397,7 @@ export default function HomePage() {
                   theme={theme}
                   series={cardSeries.get(theme.stockCode) ?? null}
                   quote={quotes.get(theme.stockCode) ?? null}
+                  showDate={cardDate === null}
                 />
               ))}
             </div>

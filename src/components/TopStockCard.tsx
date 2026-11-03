@@ -15,6 +15,8 @@ interface Props {
   series: CardSeries | 'unavailable' | null
   /** 홈 시세표에서 찾은 이 종목의 종가. 시세표가 아직 안 왔거나 이 종목이 없으면 null */
   quote: CardQuote | null
+  /** 카드에 기준일을 적는가. 세 카드가 같은 날이면 홈이 구역 제목 줄에 한 번만 적고 false를 준다 */
+  showDate: boolean
 }
 
 /**
@@ -26,7 +28,7 @@ interface Props {
  * "1년 전보다" 숫자는 언제나 1년간 주가 변화다. 전략 수익률이 아니다. 그래프가 없을 때 다른 숫자(전일 대비 등)로 갈아 끼우면 카드마다
  * 같은 자리의 뜻이 달라진다 — 그때는 비워 두고, 전일 대비는 맨 아래 줄에서 본다.
  */
-export default function TopStockCard({ theme, series, quote }: Props) {
+export default function TopStockCard({ theme, series, quote, showDate }: Props) {
   const date = quote === null ? '' : toKoreanDate(quote.baseDate)
 
   return (
@@ -51,7 +53,7 @@ export default function TopStockCard({ theme, series, quote }: Props) {
     >
       <p className={styles.top}>
         <span className={styles.theme}>{theme.theme}</span>
-        <span className={styles.quoteLabel}>{date === '' ? '종가' : `${date} 종가`}</span>
+        {showDate && date !== '' && <span className={styles.quoteLabel}>{date} 종가</span>}
       </p>
       <p className={styles.name}>{theme.stockName}</p>
       {/* 그래프가 끝나는 날의 종가. 그래프를 못 그린 카드도 이 줄은 있다 */}

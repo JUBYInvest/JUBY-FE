@@ -103,6 +103,15 @@ export function toKoreanDate(
   return `${prefix}${month}월 ${day}일`
 }
 
+/**
+ * 기준일(YYYYMMDD)이 모두 같으면 그 날, 하나라도 다르거나 비었거나 여덟 자리가 아니면 null. 홈 테마 카드 셋이 같은 날의 종가면 구역 제목 줄에
+ * 한 번만 적고, 아니면 카드마다 적는다(2026-11-03 지시서 N-3 — 카드 셋마다 "11월 3일 종가"가 되풀이됐다)
+ */
+export function sharedYmd(dates: readonly string[]): string | null {
+  const first = dates[0]
+  return first !== undefined && /^\d{8}$/.test(first) && dates.every((date) => date === first) ? first : null
+}
+
 /** 한국 시간은 UTC보다 9시간 빠르다(일광 절약 시간 없음) */
 const KST_OFFSET_MS = 9 * 60 * 60 * 1000
 
