@@ -1,6 +1,10 @@
 // 판정용 가짜 /api. 스웨거(2026-10-29 GET /v3/api-docs)와 백엔드 소스에서 옮긴 *Response 모양대로 짓는다. 값은 실제와 다르다 —
 // 화면 동작 판정에만 쓴다. 같은 출처의 /api/ 는 전부 지어 주고, 백엔드 호스트(api.juby.store)로 가는 요청은 막는다.
 // 2026-10-30의 mock(judge2)과 10-31의 덧판(judge3)을 2026-10-31에 하나로 합쳤다.
+import { createHash } from 'node:crypto'
+import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
+import { fileURLToPath } from 'node:url'
+
 export const wrap = (code, result) => JSON.stringify({ isSuccess: true, code, message: 'ok', result })
 export const fail = (code = 'COMMON500_1', message = '서버 문제입니다.') => JSON.stringify({ isSuccess: false, code, message, result: null })
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
@@ -228,6 +232,45 @@ export const ROOM_1 = { title: '삼성전자 주가 어때?', messages: [
  *   askDelay(ms, 기본 300), askStatus: 'ok' | 'MEMBER404_2' | 'CHAT409_1' | '500' | 'empty'(답이 빈 글) | (n번째 질문) => 그중 하나
  *   createStatus: 500(방 만들기 실패), renameStatus: 500 | 404, deleteStatus: 500 | 404
  */
+/*
+ * 바깥 글꼴(index.html의 Pretendard CDN·Google Fonts)은 처음 한 번만 받아 judge/.cache/fonts에 담고 다음부터 거기서 준다(2026-11-03).
+ * 글꼴 CSS가 첫 그림을 막아 domcontentloaded가 CDN 응답을 기다린다 — 평소 0.3초가 CDN이 늦은 회차엔 1.4초였고, 더 늦으면 4~5초짜리
+ * page.goto 시간 초과로 판정이 띄엄띄엄 멈췄다(ui·backtest·feature·market, 같은 빌드를 다시 돌리면 통과). 판정이 바깥 망 사정에 기대지 않게 한다.
+ * 받는 건 Node fetch다 — 가로챈 요청 안의 route.fetch()는 다른 가로채기를 건너뛰어 쓰지 않는다(CLAUDE.md). 공개 글꼴뿐이고 저장소에는 올리지 않는다(.gitignore).
+ * Google Fonts CSS는 브라우저(user-agent)마다 달라 그것까지 열쇠에 넣는다. 못 받으면 예전처럼 망으로 보낸다
+ */
+const FONT_HOSTS = new Set(['cdn.jsdelivr.net', 'fonts.googleapis.com', 'fonts.gstatic.com'])
+const FONT_CACHE = fileURLToPath(new URL('./.cache/fonts/', import.meta.url))
+const fontLoads = new Map()
+async function serveFont(route) {
+  const req = route.request()
+  const ua = req.headers()['user-agent'] ?? ''
+  const key = createHash('sha1').update(`${req.url()}\n${ua}`).digest('hex')
+  const bodyPath = `${FONT_CACHE}${key}.bin`
+  const metaPath = `${FONT_CACHE}${key}.json`
+  if (!existsSync(metaPath)) {
+    if (!fontLoads.has(key)) {
+      fontLoads.set(key, (async () => {
+        const res = await fetch(req.url(), { headers: { 'user-agent': ua } })
+        if (!res.ok) throw new Error(`글꼴 ${res.status} ${req.url()}`)
+        mkdirSync(FONT_CACHE, { recursive: true })
+        writeFileSync(`${bodyPath}.tmp`, Buffer.from(await res.arrayBuffer()))
+        renameSync(`${bodyPath}.tmp`, bodyPath)
+        writeFileSync(`${metaPath}.tmp`, JSON.stringify({ contentType: res.headers.get('content-type') }))
+        renameSync(`${metaPath}.tmp`, metaPath)
+      })().catch(() => {}).finally(() => fontLoads.delete(key)))
+    }
+    await fontLoads.get(key)
+    if (!existsSync(metaPath)) return route.continue().catch(() => {})
+  }
+  const { contentType } = JSON.parse(readFileSync(metaPath, 'utf8'))
+  return route.fulfill({
+    status: 200,
+    headers: { 'content-type': contentType ?? 'application/octet-stream', 'access-control-allow-origin': '*' },
+    body: readFileSync(bodyPath),
+  }).catch(() => {})
+}
+
 export async function mock(context, opts = {}) {
   const { presetMissing = () => false, run = () => 'ok', askDelay = 300, askStatus = 'ok', createStatus = null, renameStatus = null, deleteStatus = null } = opts
   const { personality = 'found', personalityDelay = 0, likeList = 'ok', likeListDelay = 0, likeWrite = 'ok', likeWriteDelay = 0 } = opts
@@ -254,6 +297,7 @@ export async function mock(context, opts = {}) {
     const req = route.request()
     const url = new URL(req.url())
     if (url.hostname === 'api.juby.store') { log.push('BLOCKED ' + url.pathname); return route.abort() }
+    if (FONT_HOSTS.has(url.hostname)) return serveFont(route)
     if (!url.pathname.startsWith('/api/')) return route.continue()
     const m = req.method(), p = url.pathname, q = url.searchParams
     log.push(`${m} ${p}${url.search}`)

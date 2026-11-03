@@ -42,6 +42,9 @@ node login.mjs http://localhost:4198                  # 로그인 화면(11-02):
 
 - **`/api`는 전부 가짜다**(`mock.mjs`). 증권사(KIS) 경로를 실제로 부르지 않는다. 백엔드 호스트(`api.juby.store`)로 가는 요청은 막고(`BLOCKED`), 응답에
   `x-vercel-id`가 붙으면(실제 응답) 판정이 센다(`X1`). 가로채기 안에서 `route.fetch()`를 부르지 않는다 — 실제 망으로 나간다.
+- **바깥 글꼴(Pretendard CDN·Google Fonts)은 처음 한 번만 받아 `judge/.cache/fonts`에 담고 다음부터 거기서 준다**(`mock.mjs serveFont`, 2026-11-03).
+  글꼴 CSS가 첫 그림을 막아 화면 열기(`domcontentloaded`)가 CDN 응답을 기다렸다 — 평소 0.3초가 CDN이 늦으면 1.4초, 더 늦으면 4~5초짜리 `page.goto` 시간 초과로
+  판정이 띄엄띄엄 멈췄다. 담은 뒤 0.07초다. 글꼴을 바꾸면(index.html 주소가 바뀌면) 열쇠가 달라 저절로 새로 받는다. 지워도 된다(`.gitignore`).
 - 가짜 응답은 스웨거(`GET /v3/api-docs`)와 백엔드 소스에서 옮긴 `*Response` 모양대로다. 값은 지은 것이라 **화면 동작 판정에만** 쓴다.
   옵션(지연·실패·빈 값)은 `mock.mjs`의 `mock()` 주석에 있다.
 - 로그인은 가짜 access token(`tokenFor(회원번호)` — 백엔드 JwtUtil 모양, subject가 회원 번호)을 localStorage에 심어 흉내 낸다. 소셜 로그인은 하지 않는다.

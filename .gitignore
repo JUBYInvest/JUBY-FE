@@ -30,4 +30,5 @@ dist-ssr
 
 # 판정(judge/)이 남기는 것
 judge/shots
+judge/.cache
 judge/out
