@@ -5,7 +5,7 @@ import styles from '../../pages/BacktestPage.module.css'
 export interface StepItem {
   key: BacktestStep
   label: string
-  /** 고른 값. 아직이면 null */
+  /** 고른 값. 고르지 않았으면 null(줄에는 "미완성") */
   value: string | null
 }
 
@@ -41,7 +41,7 @@ export default function BacktestSteps({ steps, active, onPick }: Props) {
             >
               <span className={styles.railNo}>{index + 1}</span>{' '}
               <span className={styles.railLabel}>{step.label}</span>{' '}
-              <span className={step.value === null ? styles.railEmpty : styles.railValue}>{step.value ?? '아직'}</span>
+              <span className={step.value === null ? styles.railEmpty : styles.railValue}>{step.value ?? '미완성'}</span>
             </a>
           </li>
         ))}

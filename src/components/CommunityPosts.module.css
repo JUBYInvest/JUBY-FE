@@ -17,6 +17,19 @@
   border-bottom: 1px solid var(--color-border);
 }
 
+/* 커뮤니티 화면: 홈에서 눌러 온 글. 옆 열 목록의 고른 줄(sideList itemOn)과 같은 옅은 초록 + 왼쪽 초록 막대 — 면이 글자에 붙지 않게 양옆으로 조금 넓힌다 */
+.postOn {
+  composes: post;
+  margin: 0 calc(-1 * var(--space-3));
+  padding-inline: var(--space-3);
+  background: var(--color-brand-50);
+  box-shadow: inset 3px 0 0 var(--color-brand-700);
+}
+
+.postOn:focus {
+  outline: none;
+}
+
 .listCompact .post {
   grid-template-columns: 28px minmax(0, 1fr);
   gap: var(--space-2) var(--space-3);
@@ -78,6 +91,41 @@
   -webkit-line-clamp: 2;
   font-size: var(--font-md);
   line-height: 1.55;
+}
+
+/*
+ * 홈(linked): 줄 어디를 눌러도 커뮤니티 화면의 그 글로 간다. 글 링크의 ::after가 줄을 덮는다(홈 시세표 종목명 링크와 같은 방식 —
+ * 줄을 통째로 <a>로 싸면 별명·공감 수까지 링크 이름이 된다). 줄 안에 따로 눌리는 것은 두지 않는다(종목 이름은 굵은 글자).
+ * 덮개는 줄(li)을 기준으로 서므로 두 줄로 자른 글(overflow: hidden)에 잘리지 않는다
+ */
+.linked .post {
+  position: relative;
+}
+
+.postLink::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+}
+
+.linked .post:hover .postLink {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.postLink:focus-visible {
+  outline: none;
+}
+
+.postLink:focus-visible::after {
+  outline: 2px solid var(--color-brand-700);
+  outline-offset: -2px;
+  border-radius: var(--radius-sm);
+}
+
+/* 홈 글 링크 안의 종목 이름 — 링크가 아니라 초록을 쓰지 않는다(초록은 행동·선택에만) */
+.stockText {
+  font-weight: 700;
 }
 
 /* 종목 이름. 그 종목 상세로 간다 — 등락색이 아니라 브랜드 초록 글자다 */

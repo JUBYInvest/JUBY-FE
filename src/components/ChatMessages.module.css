@@ -16,12 +16,16 @@
   justify-content: flex-end;
 }
 
+/*
+ * AI 쪽 말풍선(답·기다리는 점·그만 기다림·실패)은 흰 대화창 위의 옅은 면이다. 바탕이 흰색 하나가 된 뒤(2026-10-30) 페이지 바탕(흰색)을
+ * 그대로 쓰고 있어 말풍선이 대화창에 묻혀 글자만 떠 있었다(2026-11-03 사용자 "AI가 대답하는 곳에 말풍선을 띄워줘", judge/ai.mjs A18)
+ */
 .bubble {
   margin: 0;
   max-width: 70%;
   padding: 12px 16px;
   border-radius: var(--radius-lg);
-  background: var(--color-page-bg);
+  background: var(--color-bg-sub);
   font-size: var(--font-base);
   line-height: 1.6;
   /* 답변 안의 줄바꿈을 화면에 그대로 반영한다. 긴 단어는 강제로 접는다 */

@@ -83,6 +83,26 @@ async function run(opts, period) {
   report('B6', /결과를 불러오지 못했어요/.test(r.text) && /잠시 후 다시 시도/.test(r.text) && r.errors.length === 0, `안내 ${/결과를 불러오지 못했어요/.test(r.text)}, 예외 ${r.errors.length}`)
 }
 
+// B7 왼쪽 날개 진행 단계: 고르지 않은 단계는 "미완성"(2026-11-03 사용자 — 그 전엔 "아직"), 종목을 고르면 그 줄이 종목 이름이 된다
+{
+  const context = await browser.newContext({ viewport: { width: 1440, height: 1000 } })
+  await seedLogin(context)
+  await mock(context, {})
+  const page = await context.newPage()
+  await page.goto(BASE + '/backtest', { waitUntil: 'domcontentloaded' })
+  await sleep(1200)
+  const values = () => page.$$eval('nav[aria-label="백테스트 단계"] li a', (as) => as.map((a) => a.lastElementChild?.textContent.trim() ?? ''))
+  const before = await values()
+  await page.locator('#backtest-stock').fill('삼성전자')
+  await page.getByRole('button', { name: /삼성전자\s*005930/ }).first().click()
+  await sleep(300)
+  const after = await values()
+  const rail = await page.locator('nav[aria-label="백테스트 단계"]').innerText()
+  report('B7', before.length === 4 && before[0] === '미완성' && before[3] === '미완성' && after[0] === '삼성전자' && !/아직/.test(rail),
+    `고르기 전 ${JSON.stringify(before)}, 종목 고른 뒤 ${JSON.stringify(after)}, 날개에 "아직" ${/아직/.test(rail)}`)
+  await context.close()
+}
+
 await browser.close()
 console.log(out.join('\n'))
 console.log(`backtest PASS ${out.filter((l) => l.startsWith('PASS')).length} FAIL ${out.filter((l) => l.startsWith('FAIL')).length}`)

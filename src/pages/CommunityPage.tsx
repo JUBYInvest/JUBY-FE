@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react'
+import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import type { CommunityPost, CommunityStatus } from '../api/community'
 import CommunityPosts from '../components/CommunityPosts'
@@ -7,6 +7,7 @@ import { COMMUNITY_RULES } from '../content/communityRules'
 import { useCommunityFeed } from '../hooks/useCommunityFeed'
 import { useDocumentTitle } from '../hooks/useDocumentTitle'
 import { useIsLoggedIn } from '../hooks/useIsLoggedIn'
+import { useCommunityHandoff } from '../hooks/useStockHandoff'
 import { loginPathFrom } from '../utils/navigation'
 import styles from './CommunityPage.module.css'
 
@@ -36,11 +37,15 @@ function stocksOf(posts: CommunityPost[]): { code: string; name: string; count: 
  * 커뮤니티(2026-11-03 사용자 "AI 주가분석과 사용설명서 사이에 커뮤니티… 홈 오른쪽 하단에 보이는 게 메인으로"). 토스증권 커뮤니티처럼
  * 글 줄이 이어지는 게시판이다. 넓은 화면(1200px~)은 사용설명서와 같은 세 열 — 왼쪽 종목으로 보기 | 가운데 글 | 오른쪽 연결·이용 안내.
  * 글은 웹소켓으로 받는다(src/api/community.ts). 서버가 없는 지금은 예시 글이고, 보고 있는 동안 예시 새 글이 띄엄띄엄 들어온다 —
- * 바로 끼우지 않고 "새 글 N개"로 모았다가 누르면 위에 세운다(읽던 글이 밀리지 않게). 글쓰기는 실제 연결이 열렸을 때만 열린다
+ * 바로 끼우지 않고 "새 글 N개"로 모았다가 누르면 위에 세운다(읽던 글이 밀리지 않게). 글쓰기는 실제 연결이 열렸을 때만 열린다.
+ * 홈 글 줄을 눌러 왔으면 그 글을 표시하고 그리로 옮겨 포커스를 준다(한 번만 — 새로고침·메뉴로 오면 표시가 없다)
  */
 export default function CommunityPage() {
   useDocumentTitle('커뮤니티')
-  const { posts, pending, status, revealPending, sendPost } = useCommunityFeed()
+  const opened = useCommunityHandoff()
+  const { posts, pending, status, revealPending, sendPost } = useCommunityFeed(opened)
+  const feedRef = useRef<HTMLElement>(null)
+  const jumpedRef = useRef(false)
   const [order, setOrder] = useState<Order>('latest')
   const [stockCode, setStockCode] = useState<string | null>(null)
   // "N분 전"은 목록이 바뀔 때마다 새로 센다 — 새 글을 세웠는데 앞 글이 "방금"에 멈춰 있지 않게
@@ -50,6 +55,16 @@ export default function CommunityPage() {
   const stocks = stocksOf(all)
   const picked = stocks.find((stock) => stock.code === stockCode) ?? null
   const shown = all.filter((post) => picked === null || post.stockCode === picked.code).sort(order === 'latest' ? byLatest : byPopular)
+
+  // 눌러 온 글이 그려지면 화면 가운데로 옮기고 포커스를 준다(읽어 주는 쪽도 그 글부터). 목록이 오기 전에는 그 줄이 없다
+  useEffect(() => {
+    if (opened === null || posts === null || jumpedRef.current) return
+    const row = feedRef.current?.querySelector<HTMLElement>('li[aria-current="true"]')
+    if (row == null) return
+    jumpedRef.current = true
+    row.scrollIntoView({ block: 'center' })
+    row.focus({ preventScroll: true })
+  }, [opened, posts])
 
   return (
     <>
@@ -83,7 +98,7 @@ export default function CommunityPage() {
           </ul>
         </nav>
 
-        <section className={styles.feed} aria-labelledby="community-feed-title">
+        <section ref={feedRef} className={styles.feed} aria-labelledby="community-feed-title">
           <div className={styles.head}>
             <h2 id="community-feed-title" className={styles.headTitle}>
               {picked === null ? '전체 글' : `${picked.name} 이야기`}
@@ -118,7 +133,7 @@ export default function CommunityPage() {
           ) : shown.length === 0 ? (
             <p className={styles.message}>{picked === null ? '아직 올라온 글이 없어요.' : `${picked.name} 이야기는 아직 없어요.`}</p>
           ) : (
-            <CommunityPosts posts={shown} now={now} />
+            <CommunityPosts posts={shown} now={now} currentId={opened?.postId ?? null} />
           )}
         </section>
 

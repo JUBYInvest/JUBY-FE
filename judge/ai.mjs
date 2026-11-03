@@ -400,5 +400,39 @@ await run('A17', async () => {
   await t.close()
 })
 
+/* ── A18 AI 쪽 말풍선이 보인다(2026-11-03 사용자 "AI가 대답하는 곳에 말풍선을 띄워줘(지금은 아무것도 안보임)") ─────
+   바탕이 흰색 하나가 된 뒤(10-30) AI 쪽 말풍선(답·기다리는 점·그만 기다림·실패)은 대화창과 같은 흰색이라 글자만 떠 있었다.
+   말풍선 바탕이 대화창 바탕과 달라야 하고, 답 안의 표 머리·코드 바탕은 말풍선 바탕과 또 달라야 한다(같으면 말풍선 안에서 사라진다) */
+const fill = (locator) => locator.evaluate((el) => {
+  const bg = (node) => getComputedStyle(node).backgroundColor
+  const clear = (c) => c === 'transparent' || /rgba\(.*,\s*0\)$/.test(c)
+  let back = el.parentElement
+  while (back && clear(bg(back))) back = back.parentElement
+  return { own: bg(el), behind: back ? bg(back) : 'none', padLeft: parseFloat(getComputedStyle(el).paddingLeft) }
+})
+await run('A18', async () => {
+  const t = await open({ askDelay: 1500 })
+  await t.goto('/ai', 1500)
+  await ask(t.page, '말풍선 질문')
+  const dots = t.page.locator('[class*="_loading_"]').first()
+  await dots.waitFor({ timeout: 2000 })
+  const waiting = await fill(dots)
+  await answerBubble(t.page).waitFor({ timeout: 5000 }); await sleep(300)
+  const answer = await fill(answerBubble(t.page))
+  const mine = await fill(t.page.locator('[class*="_bubbleUser_"]').first())
+  report('A18a', !/rgba\(.*,\s*0\)$|transparent/.test(answer.own) && answer.own !== answer.behind && waiting.own !== waiting.behind && answer.padLeft >= 12 && mine.own !== answer.own,
+    `답 말풍선 ${answer.own} / 뒤 ${answer.behind}, 기다리는 점 ${waiting.own} / 뒤 ${waiting.behind}, 안 여백 ${answer.padLeft}px, 내 말풍선 ${mine.own}`)
+  await t.close()
+
+  const r = await open()
+  await r.goto('/ai', 1500)
+  await room(r.page).click()
+  const th = r.page.locator('[class*="_bubbleAnswer_"] th').first()
+  await th.waitFor({ timeout: 5000 }).catch(() => {})
+  const head = (await th.count()) ? await fill(th) : null
+  report('A18b', head !== null && head.own !== head.behind && !/transparent/.test(head.own), `답 안 표 머리 ${head?.own} / 말풍선 ${head?.behind}`)
+  await r.close()
+})
+
 if (RECORD) { writeFileSync(ORDER_FILE, JSON.stringify(orders, null, 1) + '\n'); console.log(`요청 순서 기록 → ${ORDER_FILE.pathname}`) }
 await j.finish()

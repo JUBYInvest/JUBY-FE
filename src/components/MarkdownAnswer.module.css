@@ -57,20 +57,21 @@
 .markdown blockquote {
   margin: 0 0 8px;
   padding-left: 10px;
-  border-left: 3px solid var(--color-border);
+  border-left: 3px solid var(--color-border-strong);
   color: var(--color-text-sub);
 }
 
 .markdown hr {
   margin: 12px 0;
   border: 0;
-  border-top: 1px solid var(--color-border);
+  border-top: 1px solid var(--color-border-strong);
 }
 
+/* 답은 옅은 면 말풍선 안이라(ChatMessages .bubble) 코드·표는 흰 면으로 한 겹 띄운다 — 같은 옅은 면이면 말풍선에 묻힌다 */
 .markdown code {
   padding: 1px 4px;
   border-radius: var(--radius-sm);
-  background: var(--color-bg-sub);
+  background: var(--color-surface);
   font-size: 0.9em;
 }
 
@@ -79,7 +80,7 @@
   padding: 10px 12px;
   overflow-x: auto;
   border-radius: var(--radius-sm);
-  background: var(--color-bg-sub);
+  background: var(--color-surface);
   white-space: pre;
   overflow-wrap: normal;
 }
@@ -96,6 +97,7 @@
 
 .markdown table {
   border-collapse: collapse;
+  background: var(--color-surface);
   font-size: var(--font-md);
 }
 

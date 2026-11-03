@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
+import { toCommunityPost, type CommunityPost } from '../api/community'
 import { isStockCode } from '../api/stock'
 import { PERIODS } from '../utils/backtest'
 import type { BacktestPeriod } from '../types/backtest'
@@ -37,8 +38,17 @@ export function toSessionHandoff(sessionId: number): { openSession: number } {
   return { openSession: sessionId }
 }
 
+/**
+ * 홈 커뮤니티 글 줄이 싣는 글(2026-11-03 사용자 "홈화면에서 커뮤니티의 글을 클릭하면 커뮤니티로 가는 기능"). 글 상세 화면은 없어(커뮤니티 서버가 없다)
+ * 커뮤니티 화면이 목록에서 그 글로 옮겨 표시한다. 번호가 아니라 글을 싣는 건, 홈에서 세운 새 글(웹소켓 — 지금은 목업)이 커뮤니티 화면이 따로 받는
+ * 처음 목록에 아직 없을 수 있어서다
+ */
+export function toCommunityHandoff(post: CommunityPost): { communityPost: CommunityPost } {
+  return { communityPost: post }
+}
+
 /** 이 파일이 싣는 state 칸. 받는 화면은 이 중 하나라도 있으면 읽은 뒤 state를 비운다 */
-const HANDOFF_KEYS = ['handoff', 'plan', 'openSession'] as const
+const HANDOFF_KEYS = ['handoff', 'plan', 'openSession', 'communityPost'] as const
 
 function field(state: unknown, key: (typeof HANDOFF_KEYS)[number]): unknown {
   if (typeof state !== 'object' || state === null || !(key in state)) return undefined
@@ -71,6 +81,12 @@ function readSession(state: unknown): number | null {
   return typeof sessionId === 'number' && Number.isInteger(sessionId) && sessionId > 0 ? sessionId : null
 }
 
+/** 주소 기록에 남은 값이라 서버 글과 같은 검사(toCommunityPost)를 다시 거친다 */
+function readCommunityPost(state: unknown): CommunityPost | null {
+  const post = field(state, 'communityPost')
+  return post === undefined ? null : toCommunityPost(post)
+}
+
 /**
  * 처음 그릴 때 한 번만 읽고, 곧바로 같은 주소로 바꿔 넣으며(replace) state를 비운다. 그대로 두면 새로고침·뒤로 갔다
  * 앞으로 오기에 같은 state가 살아 있어 백테스트가 다시 계산되고 AI 방이 또 생긴다. 읽은 값은 이 화면이 떠 있는 동안 그대로다 —
@@ -100,4 +116,9 @@ export function useBacktestHandoff(): { stock: StockInfo | null; plan: BacktestP
  */
 export function useAiHandoff(): { stock: StockInfo | null; session: number | null } {
   return useHandoffState((state) => ({ stock: readHandoff(state), session: readSession(state) }))
+}
+
+/** 커뮤니티 화면이 받는 글(홈 글 줄을 눌러 왔을 때). 메뉴·주소로 들어오면 null */
+export function useCommunityHandoff(): CommunityPost | null {
+  return useHandoffState(readCommunityPost)
 }

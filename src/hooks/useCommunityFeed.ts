@@ -23,9 +23,10 @@ const withoutDuplicates = (list: CommunityPost[]) => list.filter((post, index) =
 
 /**
  * 커뮤니티 글 목록 + 웹소켓(src/api/community.ts). 홈 오른쪽 칸과 커뮤니티 화면이 같이 쓴다.
- * 화면을 떠나면 연결을 닫고, 닫힌 뒤 온 일은 버린다
+ * 화면을 떠나면 연결을 닫고, 닫힌 뒤 온 일은 버린다.
+ * `seed`는 홈에서 눌러 온 글이다 — 처음 목록에 없으면(홈에서 세운 새 글) 목록에 넣는다. 처음 그릴 때의 값만 쓴다
  */
-export function useCommunityFeed(): Feed {
+export function useCommunityFeed(seed: CommunityPost | null = null): Feed {
   const [posts, setPosts] = useState<CommunityPost[] | null>(null)
   const [pending, setPending] = useState<CommunityPost[]>([])
   const [status, setStatus] = useState<CommunityStatus>('connecting')
@@ -34,7 +35,7 @@ export function useCommunityFeed(): Feed {
   useEffect(() => {
     let isStale = false
     loadCommunityPosts().then((list) => {
-      if (!isStale) setPosts(list)
+      if (!isStale) setPosts(seed === null ? list : withoutDuplicates([...list, seed]))
     })
 
     const update = (list: CommunityPost[], event: CommunityEvent) => {
@@ -66,14 +67,17 @@ export function useCommunityFeed(): Feed {
       connectionRef.current = null
       connection.close()
     }
-  }, [])
+  }, [seed])
+
+  // 이미 목록에 선 글은 새 글로 세지 않는다(홈에서 눌러 온 새 글이 웹소켓으로 다시 오는 경우)
+  const fresh = posts === null ? pending : pending.filter((post) => !posts.some((shown) => shown.postId === post.postId))
 
   const revealPending = () => {
-    setPosts((list) => withoutDuplicates([...pending, ...(list ?? [])]))
+    setPosts((list) => withoutDuplicates([...fresh, ...(list ?? [])]))
     setPending([])
   }
 
   const sendPost = (content: string, stockCode: string | null) => connectionRef.current?.sendPost(content, stockCode) ?? false
 
-  return { posts, pending, status, revealPending, sendPost }
+  return { posts, pending: fresh, status, revealPending, sendPost }
 }
