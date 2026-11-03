@@ -6,7 +6,8 @@
 //     지표 여섯은 세 칸 두 줄(600px 이하 두 칸) — 다섯 칸이던 때는 '거래횟수' 하나만 둘째 줄에 남았다. 가이드 칸 작은 제목은 16px.
 //     결과 칸 제목·지표 글자는 결과 제목과 왼쪽 끝이 같다(휴대폰에서 상자이던 때의 안 여백 16·12px이 남아 있었다)
 //  C3 주식 모아보기: 나란한 두 구역 제목('한눈에 보기' | '담은 종목')의 글자 바닥선이 맞는다(탭이 있는 쪽이 10px 위였다). 하트는 종목 이름 줄 옆에 선다
-//  C4 AI 이전 대화: 넓은 화면의 머리는 46px 한 줄(제목 + 새 대화)이고 먹 선은 그 바로 아래다(단추 아래에 선이 그어졌었다)
+//  C4 AI 이전 대화: 넓은 화면의 머리는 46px 한 줄(제목 + 새 대화)이고 먹 선은 그 바로 아래다(단추 아래에 선이 그어졌었다).
+//     C4b 새 대화의 보이는 끝이 먹 선에 닿지 않는다(8px 넘게)
 //  C5 마이페이지: 세 화면의 맨 위 한 줄(이름·성향 이름)은 같은 크기이고 화면 제목보다 작다. 구역 안 결론 줄·성향 칸 제목은 구역 제목보다 작다.
 //     본문 링크는 같은 곳으로 가는 왼쪽 메뉴와 같은 이름이다('투자유형 자세히'·'내 정보 보기'가 메뉴로는 '투자유형 보기'·'내 정보 확인'이었다)
 //  C6 투자성향 테스트: 옅은 면 판 안에 보기 칸을 얹지 않는다(판 안에 상자). 결과 화면에 다 찬 진행 막대를 두지 않는다(먹 선 아래 초록 줄로만 보였다)
@@ -111,6 +112,23 @@ await j.run('C4', async () => {
     return { h: Math.round(hr.height), rule: getComputedStyle(head).borderBottomWidth, sameLine: br.top < tr.bottom && br.bottom > tr.top, below: Math.round(hr.bottom - br.bottom) }
   })
   j.report('C4', r.h === 46 && r.rule === '2px' && r.sameLine, `머리 ${r.h}px·아래 선 ${r.rule}, 새 대화 단추 ${r.sameLine ? '제목과 한 줄' : '제목 아래'}(먹 선까지 ${r.below}px)`)
+  // C4b 새 대화의 눈에 보이는 끝(상자가 있으면 상자, 없으면 글자)이 먹 선에서 8px 넘게 떨어져 있다 — 40px 테두리 단추가 46px 줄 바닥에 앉아
+  // 아래 테두리가 먹 선에 닿아 보였다(2026-11-03 사용자 "이 픽셀을 확실히 띄워주던가 새대화 창을 지워주던가"). 넓은 화면 셋과 900px 이하는 접는 한 줄이라 뺀다
+  for (const width of [1920, 1440, 1100]) {
+    await t.page.setViewportSize({ width, height: 900 }); await sleep(300)
+    const g = await t.page.evaluate(() => {
+      const title = [...document.querySelectorAll('main h2')].find((h) => h.textContent.trim() === '이전 대화내용')
+      const head = title.parentElement
+      const button = [...head.querySelectorAll('button')].find((b) => b.textContent.includes('새 대화'))
+      const cs = getComputedStyle(button)
+      const boxed = parseFloat(cs.borderBottomWidth) > 0 || !/rgba\(0, 0, 0, 0\)|transparent/.test(cs.backgroundColor)
+      const range = document.createRange(); range.selectNodeContents(button)
+      const ink = boxed ? button.getBoundingClientRect().bottom : range.getBoundingClientRect().bottom
+      const ruleTop = head.getBoundingClientRect().bottom - parseFloat(getComputedStyle(head).borderBottomWidth)
+      return { boxed, gap: Math.round((ruleTop - ink) * 10) / 10, height: Math.round(button.getBoundingClientRect().height) }
+    })
+    j.report(`C4b-${width}`, g.gap > 8 && g.height >= 40, `새 대화 ${g.boxed ? '상자' : '글자'} 아래 끝 → 먹 선 ${g.gap}px, 누르는 높이 ${g.height}px`)
+  }
   await t.close()
 })
 
