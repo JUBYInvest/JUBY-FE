@@ -1,31 +1,37 @@
+/*
+ * 화면이 멈췄을 때와 없는 주소(NotFoundPage)가 같이 쓰는 틀. 로그인 화면과 같은 꼴이다(2026-11-03): 가운데 한 줄(400px)에
+ * 화면 제목 + 굵은 먹 선(다른 화면과 같은 28px, 900px 이하 24px), 안내, 단추. 그 전엔 가운데 맞춘 24px 제목에 선이 없어
+ * 이 화면만 제목 규격이 달랐다. 제목 값은 section.module.css pageTitle과 같게 적는다 — 이 파일은 첫 묶음에 들어가
+ * 공용 모듈을 가져오면 그 모듈이 첫 묶음으로 옮겨 화면 CSS와의 순서가 바뀐다
+ */
 .wrap {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 120px 24px;
-  text-align: center;
+  width: min(100%, 400px);
+  margin: 0 auto;
+  padding-top: clamp(var(--space-4), 12vh, 144px);
 }
 
 .title {
   margin: 0;
-  font-size: var(--font-3xl);
+  padding-bottom: var(--space-3);
+  border-bottom: 2px solid var(--color-rule);
+  font-size: var(--font-4xl);
   font-weight: 700;
+  line-height: 1.25;
+  letter-spacing: -0.02em;
 }
 
 .description {
-  max-width: 420px;
-  margin: 12px 0 0;
-  font-size: var(--font-base);
-  line-height: 1.7;
+  margin: var(--space-4) 0 0;
+  font-size: var(--font-lg);
+  line-height: 1.6;
   color: var(--color-text-sub);
 }
 
 .actions {
   display: flex;
   flex-wrap: wrap;
-  justify-content: center;
-  gap: 12px;
-  margin-top: 28px;
+  gap: var(--space-3);
+  margin-top: var(--space-6);
 }
 
 .retry {
@@ -36,8 +42,8 @@
   composes: secondary lg from './buttons.module.css';
 }
 
-@media (max-width: 600px) {
-  .wrap {
-    padding: 72px 16px;
+@media (max-width: 900px) {
+  .title {
+    font-size: var(--font-3xl);
   }
 }

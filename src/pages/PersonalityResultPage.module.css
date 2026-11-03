@@ -1,19 +1,13 @@
 /*
- * 제목과 진행률 바는 문항 화면과 똑같이 생겼다. 여기서 다시 쓰면 색이나 폭을 바꿀 때
+ * 한 줄 틀·제목은 문항 화면과 똑같이 생겼다. 여기서 다시 쓰면 폭이나 크기를 바꿀 때
  * 두 파일을 고쳐야 하므로 composes로 문항 화면 것을 그대로 가져다 쓴다.
  */
+.page {
+  composes: page from './PersonalityTestPage.module.css';
+}
+
 .title {
   composes: title from './PersonalityTestPage.module.css';
-}
-
-.progressTrack {
-  composes: progressTrack from './PersonalityTestPage.module.css';
-}
-
-/* 결과 화면은 언제나 다 채워진 상태다 */
-.progressFill {
-  composes: progressFill from './PersonalityTestPage.module.css';
-  width: 100%;
 }
 
 .done {

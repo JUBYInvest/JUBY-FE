@@ -122,7 +122,7 @@ export default function PersonalityTestPage() {
   }
 
   return (
-    <>
+    <div className={styles.page}>
       <h1 className={styles.title}>나의 투자성향 테스트</h1>
 
       {/* 로그인만 하면 되는 경우와 서버가 실패한 경우를 가른다. 둘을 같은 말로 알리면 멀쩡한 서버가 장애로 읽힌다 */}
@@ -141,27 +141,26 @@ export default function PersonalityTestPage() {
         </p>
       )}
 
-      <div
-        className={styles.progressTrack}
-        role="progressbar"
-        aria-valuemin={1}
-        aria-valuemax={total}
-        aria-valuenow={currentIndex + 1}
-      >
+      <div className={styles.progressRow}>
         <div
-          className={styles.progressFill}
-          style={{ width: `${((currentIndex + 1) / total) * 100}%` }}
-        />
+          className={styles.progressTrack}
+          role="progressbar"
+          aria-valuemin={1}
+          aria-valuemax={total}
+          aria-valuenow={currentIndex + 1}
+        >
+          <div
+            className={styles.progressFill}
+            style={{ width: `${((currentIndex + 1) / total) * 100}%` }}
+          />
+        </div>
+        <span className={styles.counter}>
+          {currentIndex + 1} / {total}
+        </span>
       </div>
 
       <section className={styles.card}>
-        <div className={styles.cardHead}>
-          <span className={styles.questionNo}>Q{currentIndex + 1}.</span>
-          <span className={styles.counter}>
-            {currentIndex + 1} / {total}
-          </span>
-        </div>
-
+        <span className={styles.questionNo}>Q{currentIndex + 1}.</span>
         <p className={styles.question}>{question.content}</p>
 
         <div className={styles.choices}>
@@ -211,6 +210,6 @@ export default function PersonalityTestPage() {
           </button>
         </div>
       </section>
-    </>
+    </div>
   )
 }

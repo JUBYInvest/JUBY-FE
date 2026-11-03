@@ -41,7 +41,7 @@ export default function MypageHomePage() {
       <div className={styles.grid}>
         <Section
           title="내 투자성향"
-          more={{ to: '/mypage/personality', label: '투자유형 자세히' }}
+          more={{ to: '/mypage/personality', label: '투자유형 보기' }}
         >
           <PersonalityPart state={personality} onRetry={retryPersonality} />
         </Section>
@@ -140,7 +140,7 @@ function MemberLine({ state, onRetry }: { state: Load<MemberInfo>; onRetry: () =
         </p>
       </div>
       <Link to="/mypage/profile" className={styles.memberEdit}>
-        내 정보 보기
+        내 정보 확인
       </Link>
     </div>
   )

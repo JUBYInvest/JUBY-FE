@@ -1,4 +1,4 @@
-/* 오류 화면(ErrorBoundary)과 같은 틀 — 가운데 제목·설명·단추 */
+/* 오류 화면(ErrorBoundary)과 같은 틀 — 가운데 한 줄에 제목 + 먹 선·설명·단추 */
 .wrap {
   composes: wrap from '../components/ErrorBoundary.module.css';
 }
@@ -13,5 +13,5 @@
 
 .home {
   composes: primary lg from '../components/buttons.module.css';
-  margin-top: 28px;
+  margin-top: var(--space-6);
 }

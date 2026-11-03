@@ -41,18 +41,9 @@ export default function PersonalityResultPage() {
   const strategy = isPersonalityType(result.type) ? findByPersonality(result.type) : null
 
   return (
-    <>
+    <div className={styles.page}>
+      {/* 다 채운 진행 막대는 두지 않는다 — 제목 먹 선 바로 아래 초록 줄 하나로만 보여 선이 두 겹으로 읽혔다(2026-11-03) */}
       <h1 className={styles.title}>나의 투자성향 테스트</h1>
-
-      <div
-        className={styles.progressTrack}
-        role="progressbar"
-        aria-valuemin={0}
-        aria-valuemax={100}
-        aria-valuenow={100}
-      >
-        <div className={styles.progressFill} />
-      </div>
 
       <PersonalityCard
         type={result.type}
@@ -80,6 +71,6 @@ export default function PersonalityResultPage() {
           검사 다시하기
         </Link>
       </PersonalityCard>
-    </>
+    </div>
   )
 }

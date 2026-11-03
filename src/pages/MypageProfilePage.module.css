@@ -19,9 +19,10 @@
   min-width: 0;
 }
 
+/* 마이페이지 세 화면의 맨 위 한 줄과 같은 24px(600px 이하 20px) — 28px이던 때는 화면 제목과 같은 크기였다(2026-11-03) */
 .name {
   margin: 0;
-  font-size: var(--font-4xl);
+  font-size: var(--font-3xl);
   font-weight: 700;
   letter-spacing: -0.02em;
   overflow-wrap: anywhere;
@@ -191,7 +192,7 @@
   }
 
   .name {
-    font-size: var(--font-3xl);
+    font-size: var(--font-2xl);
   }
 
   .row {

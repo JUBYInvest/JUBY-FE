@@ -241,10 +241,11 @@
 
 /* ── 담은 종목 목록 ────────────────────────────────────────────────── */
 
-/* 정렬·종목 탭(tabs.module.css). 굵은 먹 선 머리 안이라 막대는 먹 선 바로 위(0) */
+/* 정렬·종목 탭(tabs.module.css). 굵은 먹 선 머리 안이라 막대는 먹 선 바로 위(0), 글자는 제목과 바닥선을 맞춘다 */
 .tabs {
   composes: tabs from '../components/tabs.module.css';
   --tab-bar-offset: 0;
+  --tabs-align: baseline;
 }
 
 .tab {
@@ -276,7 +277,8 @@
 
 .heart {
   grid-area: heart;
-  align-self: stretch;
+  /* 종목 이름 줄 옆에 선다. 칸을 다 채우면 하트가 이름과 단추 줄 사이에 떠 있었다(2026-11-03) */
+  align-self: start;
   display: flex;
   align-items: center;
   justify-content: center;

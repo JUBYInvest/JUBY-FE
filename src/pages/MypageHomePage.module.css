@@ -110,9 +110,10 @@
   background: var(--color-bg-hover);
 }
 
+/* 구역 안의 결론 한 줄(내 성향 이름·관심종목 오르내림). 구역 제목(20px)보다 한 단계 아래 18px — 같은 크기면 어느 쪽이 제목인지 흐렸다(2026-11-03) */
 .lead {
   margin: 0;
-  font-size: var(--font-2xl);
+  font-size: var(--font-xl);
   font-weight: 700;
   letter-spacing: -0.01em;
 }
@@ -295,7 +296,7 @@
   }
 
   .lead {
-    font-size: var(--font-xl);
+    font-size: var(--font-lg);
   }
 
   .row {

@@ -65,9 +65,13 @@
   color: var(--color-text-sub);
 }
 
+/*
+ * 마이페이지 세 화면의 맨 위 한 줄(한눈에 보기 이름·이 성향 이름·내 정보 이름)은 24px(600px 이하 20px)로 같다(2026-11-03).
+ * 32px이던 때는 화면 제목 '마이페이지'(28px)보다 컸다
+ */
 .type {
   margin: var(--space-1) 0 0;
-  font-size: var(--font-5xl);
+  font-size: var(--font-3xl);
   font-weight: 700;
   letter-spacing: -0.03em;
 }
@@ -118,12 +122,13 @@
   border-top: 1px solid var(--color-border);
 }
 
+/* '다섯 성향 둘러보기'(구역 제목 20px) 안에서 고른 성향의 이름. 구역 제목보다 크면 위계가 뒤집힌다 — 18px(2026-11-03, 24px이었다) */
 .panelTitle {
   display: flex;
   align-items: baseline;
   gap: var(--space-3);
   margin: 0;
-  font-size: var(--font-3xl);
+  font-size: var(--font-xl);
   font-weight: 700;
   letter-spacing: -0.02em;
 }
@@ -258,7 +263,7 @@
   }
 
   .type {
-    font-size: var(--font-4xl);
+    font-size: var(--font-2xl);
   }
 
   .facts div {
