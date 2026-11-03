@@ -17,7 +17,7 @@ const QUICK_RETRY_MS = 1_500
  * effect가 돌기 전 첫 렌더에 A의 결과가 남아 있어, B 코드 옆에 A의 이름·현재가·차트와 탭 제목이 그려졌다.
  * 렌더에서 코드를 견줘 다르면 불러오는 중으로 본다(아래 view).
  */
-export type DetailView =
+type DetailView =
   | { kind: 'loading' }
   /** 실패해서 다시 부르기 전에 간격(api/stock.ts DETAIL_GAP_MS)을 기다리는 중. until(ms)이 되면 보낸다 */
   | { kind: 'waiting'; stockCode: string; until: number }

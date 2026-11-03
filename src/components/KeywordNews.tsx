@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { ApiError } from '../api/client'
 import { searchNews } from '../api/news'
 import type { NewsItem } from '../types/news'
+import NewsCard from './NewsCard'
 import newsStyles from './NewsList.module.css'
 
 /** 처음 보여 주는 기사 수와 "뉴스 더 보기" 한 번에 늘리는 수. 서버는 한 번에 20건을 준다 */
@@ -77,14 +78,7 @@ export default function KeywordNews({ query }: { query: string }) {
       <ul className={newsStyles.list}>
         {state.items.slice(0, visibleCount).map((item) => (
           <li key={item.link}>
-            <a className={newsStyles.card} href={item.link} target="_blank" rel="noreferrer">
-              <p className={newsStyles.meta}>
-                <span className={newsStyles.source}>{item.source}</span>
-                <span>{item.timeAgo}</span>
-              </p>
-              <p className={newsStyles.title}>{item.title}</p>
-              <p className={newsStyles.description}>{item.description}</p>
-            </a>
+            <NewsCard item={item} />
           </li>
         ))}
       </ul>

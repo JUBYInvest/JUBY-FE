@@ -35,7 +35,7 @@ function isDataShort(error: unknown): boolean {
   )
 }
 
-export type ResultState =
+type ResultState =
   | { kind: 'idle' }
   | { kind: 'loading' }
   | { kind: 'ready'; preset: BacktestPreset; ranking: Ranked[]; missed: CompareMiss }

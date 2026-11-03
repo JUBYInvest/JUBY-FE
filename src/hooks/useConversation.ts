@@ -20,7 +20,7 @@ export interface Question {
 
 export type DetailState = 'idle' | 'loading' | 'error'
 
-export interface Conversation {
+interface Conversation {
   /** 보고 있는 방. 새 대화면 null */
   sessionId: number | null
   messages: ChatMessage[]

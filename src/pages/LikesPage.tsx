@@ -417,7 +417,7 @@ function LikeRow({ stock, baseDate, onUnlike }: { stock: LikeStock; baseDate: st
         <small className={styles.meta}>
           {stock.stockCode}
           {likedAt !== '' && <span>{likedAt} 담음</span>}
-          <span className={styles.metaValue}>거래대금 {formatTradingValue(stock.tradingValue)}</span>
+          <span>거래대금 {formatTradingValue(stock.tradingValue)}</span>
         </small>
       </span>
       <span className={styles.price}>{formatPrice(stock.closePrice)}</span>

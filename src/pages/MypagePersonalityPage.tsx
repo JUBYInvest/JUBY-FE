@@ -168,7 +168,7 @@ function Browse({ mine }: { mine: PersonalityType | null }) {
             </div>
           </dl>
 
-          <div className={styles.weights}>
+          <div>
             <p className={styles.weightsTitle}>점수를 매길 때 보는 비중</p>
             <ul className={styles.weightList}>
               {AXES.map((axis) => {

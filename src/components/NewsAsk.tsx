@@ -5,6 +5,7 @@ import { askStockNews } from '../api/news'
 import { useIsLoggedIn } from '../hooks/useIsLoggedIn'
 import { loginPathFrom } from '../utils/navigation'
 import type { NewsItem } from '../types/news'
+import NewsCard from './NewsCard'
 import newsStyles from './NewsList.module.css'
 import styles from './NewsAsk.module.css'
 
@@ -117,14 +118,7 @@ export default function NewsAsk({ stockName }: { stockName: string }) {
           <ul className={styles.list}>
             {state.items.map((item) => (
               <li key={item.link}>
-                <a className={newsStyles.card} href={item.link} target="_blank" rel="noreferrer">
-                  <p className={newsStyles.meta}>
-                    <span className={newsStyles.source}>{item.source}</span>
-                    <span>{item.timeAgo}</span>
-                  </p>
-                  <p className={newsStyles.title}>{item.title}</p>
-                  <p className={newsStyles.description}>{item.description}</p>
-                </a>
+                <NewsCard item={item} />
               </li>
             ))}
           </ul>

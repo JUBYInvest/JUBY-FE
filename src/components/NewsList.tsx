@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { NEWS_LAST_PAGE, NEWS_PAGE_SIZE, getStockNews } from '../api/news'
 import NewsAsk from './NewsAsk'
+import NewsCard from './NewsCard'
 import Spinner from './Spinner'
 import type { NewsItem, NewsSort } from '../types/news'
 import styles from './NewsList.module.css'
@@ -227,19 +228,7 @@ export default function NewsList({ stockCode, stockName }: Props) {
           {state.items.slice(0, visibleCount).map((item, index) => (
             // 같은 기사가 두 페이지에 걸쳐 올 수 있어 링크만으로는 키가 겹친다
             <li key={`${index}-${item.link}`}>
-              <a
-                className={styles.card}
-                href={item.link}
-                target="_blank"
-                rel="noreferrer"
-              >
-                <p className={styles.meta}>
-                  <span className={styles.source}>{item.source}</span>
-                  <span>{item.timeAgo}</span>
-                </p>
-                <p className={styles.title}>{item.title}</p>
-                <p className={styles.description}>{item.description}</p>
-              </a>
+              <NewsCard item={item} />
             </li>
           ))}
         </ul>

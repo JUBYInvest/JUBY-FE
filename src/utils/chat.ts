@@ -13,7 +13,7 @@ export interface ChatMessageSource {
 }
 
 /** 화면에 그리는 줄 */
-export interface ChatRow {
+interface ChatRow {
   id: number
   author: string
   /** 이름 첫 글자 동그라미. 이모지·합친 글자도 반으로 자르지 않는다 */
