@@ -72,6 +72,7 @@ export default function Header() {
         <MenuLink to="/likes" label="주식 모아보기" />
         <MenuLink to="/backtest" label="주식 백테스트" />
         <MenuLink to="/ai" label="AI 주가분석" />
+        <MenuLink to="/community" label="커뮤니티" />
         <MenuLink to="/guide" label="사용설명서" />
       </nav>
 

@@ -196,9 +196,46 @@
   font-weight: 700;
 }
 
+/*
+ * 100% 막대 하나를 넷으로 나눈다(칸 폭 = 비중, flex-grow). 비중은 점수가 아니라 등락·적합도 색을 쓰지 않는다 —
+ * 먹에서 옅은 회색까지 네 단계(안정성 → 성장성), 칸 사이 2px 흰 틈
+ */
+.weightBar {
+  display: flex;
+  gap: 2px;
+  height: 12px;
+  margin-bottom: var(--space-4);
+}
+
+.weightPart {
+  flex-basis: 0;
+  min-width: 2px;
+}
+
+.weightPart[data-axis='stable'],
+.weightKey[data-axis='stable'] {
+  background: var(--color-rule);
+}
+
+.weightPart[data-axis='profit'],
+.weightKey[data-axis='profit'] {
+  background: var(--color-text-sub);
+}
+
+.weightPart[data-axis='effect'],
+.weightKey[data-axis='effect'] {
+  background: var(--color-disabled-text);
+}
+
+.weightPart[data-axis='growth'],
+.weightKey[data-axis='growth'] {
+  background: var(--color-border-strong);
+}
+
 .weightList {
   display: grid;
-  gap: var(--space-3);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-2) var(--space-6);
   margin: 0;
   padding: 0;
   list-style: none;
@@ -206,26 +243,19 @@
 
 .weight {
   display: grid;
-  grid-template-columns: 56px minmax(0, 1fr) 44px;
+  grid-template-columns: 10px minmax(0, 1fr) auto;
   align-items: center;
-  gap: var(--space-3);
+  gap: var(--space-2);
   font-size: var(--font-md);
+}
+
+.weightKey {
+  width: 10px;
+  height: 10px;
 }
 
 .weightName {
   color: var(--color-text-sub);
-}
-
-/* 비중은 점수가 아니라 등락·적합도 색을 쓰지 않는다. 먹 막대 하나 */
-.weightTrack {
-  height: 8px;
-  background: var(--color-bg-sub);
-}
-
-.weightFill {
-  display: block;
-  height: 100%;
-  background: var(--color-rule);
 }
 
 .weightValue {

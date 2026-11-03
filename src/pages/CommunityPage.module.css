@@ -1,0 +1,326 @@
+/*
+ * 커뮤니티(2026-11-03). 화면 제목의 굵은 먹 선 아래 사용설명서와 같은 세 열 — 종목으로 보기 | 글 | 실시간 연결·이용 안내.
+ * 글 줄은 읽기 좋게 760px까지(16px 한글 45자 안팎), 남는 폭은 두 옆 열과의 사이에 나눠 글이 가운데 선다. 두 옆 열은 읽는 동안 위에 붙어 따라온다.
+ * 세 열의 첫 선이 같은 높이다: 왼쪽 첫 줄 아래 가는 선 = 가운데 제목 줄 먹 선 = 오른쪽 제목 줄 먹 선(줄 높이 46px, judge/lines.mjs·community.mjs B7).
+ * 오른쪽은 제목 줄(먹 선) 하나 아래 작은 제목 둘이다 — 묶음마다 먹 선을 두면 가운데 글 줄의 가는 선과 몇 px 차이로 나란히 섰다(lines.mjs G).
+ * 900~1199px은 두 열(오른쪽 열이 종목 목록 아래), 900px 이하는 한 열(종목은 두 칸씩 → 글 → 안내).
+ */
+.title {
+  composes: pageTitle from '../components/section.module.css';
+  margin: 0;
+}
+
+.layout {
+  /* 종목 한 줄 = 가운데·오른쪽 제목 줄(46px — 44px 탭 + 먹 선 2px). 세 열의 첫 선이 같은 높이다 */
+  --community-row: var(--section-head-height);
+  --community-side: clamp(220px, 16vw, 280px);
+  display: grid;
+  grid-template-columns: var(--community-side) minmax(0, 760px) var(--community-side);
+  grid-template-areas: 'stocks feed side';
+  justify-content: space-between;
+  column-gap: clamp(32px, 3vw, 56px);
+  margin-top: var(--space-6);
+}
+
+.stocks,
+.side {
+  position: sticky;
+  top: var(--space-6);
+  align-self: start;
+}
+
+.stocks {
+  grid-area: stocks;
+}
+
+.feed {
+  grid-area: feed;
+  min-width: 0;
+}
+
+.side {
+  grid-area: side;
+}
+
+/*
+ * 종목으로 보기 — 사용설명서 장 목록·마이페이지 메뉴와 같은 줄(가는 선, 고른 줄은 옅은 초록 + 왼쪽 초록 막대).
+ * 목록을 닫는 맨 아래 선은 두지 않는다 — 종목 수에 따라 자리가 바뀌어 옆 열 글 줄의 가는 선과 2px 차이로 나란히 섰다(judge/lines.mjs G)
+ */
+.stockList {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.stock,
+.stockOn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  width: 100%;
+  min-height: var(--community-row);
+  padding: 0 var(--space-4);
+  border: 0;
+  border-bottom: 1px solid var(--color-border);
+  background: none;
+  font-size: var(--font-md);
+  color: var(--color-text);
+  text-align: left;
+}
+
+.stockList li:last-child > * {
+  border-bottom: 0;
+}
+
+.stock:hover {
+  background: var(--color-bg-hover);
+}
+
+.stockOn {
+  background: var(--color-brand-50);
+  box-shadow: inset 3px 0 0 var(--color-brand-700);
+  font-weight: 700;
+  color: var(--color-brand-800);
+}
+
+/* 종목 이름은 길면 말줄임표(좁은 화면 두 칸) */
+.stockName {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 글 수 */
+.count {
+  font-size: var(--font-sm);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text-sub);
+}
+
+.stockOn .count {
+  color: var(--color-brand-700);
+}
+
+/* 가운데 제목 줄 — 구역 제목(20px) + 오른쪽 정렬 탭, 아래 먹 선 */
+.head {
+  composes: head from '../components/section.module.css';
+}
+
+.headTitle {
+  composes: title from '../components/section.module.css';
+}
+
+/* 정렬 탭(tabs.module.css). 먹 선 머리 안이라 막대는 먹 선 바로 위, 글자는 제목과 바닥선을 맞춘다 */
+.tabs {
+  composes: tabs from '../components/tabs.module.css';
+  --tab-bar-offset: 0;
+  --tabs-align: baseline;
+}
+
+.tab {
+  composes: tab from '../components/tabs.module.css';
+}
+
+.tabActive {
+  composes: tabActive from '../components/tabs.module.css';
+}
+
+/* 글쓰기 줄. 입력칸과 같은 1.5px 테두리 칸 + 주 단추 */
+.composer {
+  display: flex;
+  gap: var(--space-2);
+  padding: var(--space-4) 0;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.input {
+  flex: 1;
+  min-width: 0;
+  min-height: 44px;
+  padding: 0 var(--space-4);
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  font: inherit;
+  /* 16px 아래면 아이폰 사파리가 누르는 순간 화면을 확대한다 */
+  font-size: var(--font-lg);
+  color: var(--color-text);
+}
+
+.input::placeholder {
+  overflow: hidden;
+  color: var(--color-text-sub);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.input:focus-visible {
+  border-color: var(--color-brand-700);
+  outline: none;
+  box-shadow: 0 0 0 3px var(--color-brand-100);
+}
+
+.input:disabled {
+  background: var(--color-bg-sub);
+  cursor: not-allowed;
+}
+
+.send {
+  composes: primary md from '../components/buttons.module.css';
+  flex-shrink: 0;
+  --button-height: 44px;
+}
+
+.login {
+  composes: secondary md from '../components/buttons.module.css';
+  flex-shrink: 0;
+  --button-height: 44px;
+}
+
+/* 보고 있는 동안 들어온 새 글. 목록 맨 위에 한 줄로 — 누르면 위에 세운다 */
+.fresh {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  width: 100%;
+  min-height: 44px;
+  margin-top: var(--space-3);
+  border: 0;
+  border-radius: var(--radius-md);
+  background: var(--color-brand-50);
+  color: var(--color-brand-800);
+  font-size: var(--font-md);
+  font-weight: 700;
+}
+
+.fresh::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.fresh:hover {
+  background: var(--color-brand-100);
+}
+
+.message {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: var(--space-8) 0;
+  font-size: var(--font-base);
+  color: var(--color-text-sub);
+}
+
+/* 오른쪽 — 실시간 연결 · 이용 안내 */
+.sideTitle {
+  composes: head title from '../components/section.module.css';
+}
+
+.sideSection {
+  margin-top: var(--space-5);
+}
+
+.sideSection + .sideSection {
+  margin-top: var(--space-8);
+}
+
+/* 칸 안 작은 제목(16px) — 구역 제목(20px) 아래 단계 */
+.sideHeading {
+  margin: 0;
+  font-size: var(--font-lg);
+  font-weight: 700;
+}
+
+.status,
+.statusOn {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  margin: var(--space-2) 0 0;
+  font-size: var(--font-md);
+  line-height: 1.6;
+  color: var(--color-text-sub);
+}
+
+/* 실제로 붙어 있으면 앞에 초록 점(행동·활성 상태라 브랜드 색) */
+.statusOn::before {
+  content: '';
+  flex: 0 0 auto;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--color-brand-700);
+  transform: translateY(-1px);
+}
+
+.rules {
+  margin: var(--space-2) 0 0;
+  padding-left: 1.2em;
+  font-size: var(--font-md);
+  line-height: 1.6;
+  color: var(--color-text-sub);
+}
+
+.rules li + li {
+  margin-top: var(--space-2);
+}
+
+.srOnly {
+  composes: srOnly from '../components/a11y.module.css';
+}
+
+/* 901~1199px: 두 열. 안내는 종목 목록 아래로 */
+@media (max-width: 1199px) {
+  .layout {
+    grid-template-columns: var(--community-side) minmax(0, 1fr);
+    grid-template-rows: auto 1fr;
+    grid-template-areas:
+      'stocks feed'
+      'side feed';
+  }
+
+  .side {
+    position: static;
+    margin-top: var(--space-8);
+  }
+}
+
+/* 900px 이하: 한 열. 종목은 두 칸씩, 안내는 글 아래 */
+@media (max-width: 900px) {
+  .layout {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: none;
+    grid-template-areas:
+      'stocks'
+      'feed'
+      'side';
+    row-gap: var(--space-6);
+  }
+
+  .stocks {
+    position: static;
+  }
+
+  /* minmax(0, 1fr) — 1fr은 "한화에어로스페이스"보다 좁아지지 않아 320px에서 22px 넘쳤다 */
+  .stockList {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: var(--space-4);
+    border-bottom: 0;
+  }
+
+  .stockList li:last-child > * {
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  .side {
+    margin-top: var(--space-4);
+  }
+}

@@ -1,0 +1,120 @@
+/*
+ * 커뮤니티 글 줄(CommunityPosts.tsx). 상자 없이 가는 선으로 나눈다 — 앱의 다른 목록(뉴스·관심종목)과 같은 결.
+ * 커뮤니티 화면은 글 전체 15px, 홈 오른쪽 칸(compact)은 14px 두 줄까지.
+ */
+.list,
+.listCompact {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.post {
+  display: grid;
+  grid-template-columns: 36px minmax(0, 1fr);
+  gap: var(--space-3);
+  padding: var(--space-5) 0;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.listCompact .post {
+  grid-template-columns: 28px minmax(0, 1fr);
+  gap: var(--space-2) var(--space-3);
+  padding: var(--space-3) 0;
+}
+
+/* 이름 첫 글자 동그라미. 사진이 없는 서비스라 옅은 면에 글자 하나 */
+.avatar {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--color-bg-sub);
+  color: var(--color-text-sub);
+  font-size: var(--font-md);
+  font-weight: 700;
+}
+
+.listCompact .avatar {
+  width: 28px;
+  height: 28px;
+  font-size: var(--font-sm);
+}
+
+.body {
+  min-width: 0;
+}
+
+.meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0 var(--space-2);
+  margin: 0;
+  font-size: var(--font-sm);
+  color: var(--color-text-sub);
+}
+
+.meta strong {
+  font-size: var(--font-md);
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.text {
+  margin: var(--space-1) 0 0;
+  font-size: var(--font-base);
+  line-height: 1.65;
+  /* 서버가 주는 자유 글 — 띄어쓰기 없는 긴 덩어리가 칸을 밀지 않게 */
+  overflow-wrap: anywhere;
+  white-space: pre-line;
+}
+
+.listCompact .text {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  font-size: var(--font-md);
+  line-height: 1.55;
+}
+
+/* 종목 이름. 그 종목 상세로 간다 — 등락색이 아니라 브랜드 초록 글자다 */
+.stock {
+  font-weight: 700;
+  color: var(--color-brand-700);
+}
+
+.stock:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.counts {
+  display: flex;
+  gap: var(--space-4);
+  margin: var(--space-2) 0 0;
+  font-size: var(--font-sm);
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text-sub);
+}
+
+.counts > span {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.counts svg {
+  width: 16px;
+  height: 16px;
+}
+
+.listCompact .counts {
+  margin-top: var(--space-1);
+}
+
+.srOnly {
+  composes: srOnly from './a11y.module.css';
+}

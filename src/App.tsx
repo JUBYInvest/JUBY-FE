@@ -49,6 +49,7 @@ const MypagePersonalityPage = lazy(() =>
 const MypageProfilePage = lazy(() => mypageBundle().then((m) => ({ default: m.MypageProfilePage })))
 const LikesPage = lazy(trackRouteChunk(() => import('./pages/LikesPage')))
 const GuidePage = lazy(trackRouteChunk(() => import('./pages/GuidePage')))
+const CommunityPage = lazy(trackRouteChunk(() => import('./pages/CommunityPage')))
 const BacktestPage = lazy(trackRouteChunk(() => import('./pages/BacktestPage')))
 const PersonalityTestPage = lazy(trackRouteChunk(() => import('./pages/PersonalityTestPage')))
 const PersonalityResultPage = lazy(trackRouteChunk(() => import('./pages/PersonalityResultPage')))
@@ -149,6 +150,7 @@ function Layout() {
               </Route>
 
               {/* 사용설명서. 글이 있는 첫 장이 /guide, 나머지 장은 /guide/<장> */}
+              <Route path="/community" element={<CommunityPage />} />
               <Route path="/guide/:chapterId?" element={<GuidePage />} />
               <Route path="/backtest" element={<BacktestPage />} />
 

@@ -129,7 +129,9 @@
 }
 
 /* 넓은 화면에서도 누르는 넓이는 40px 이상(리디자인 U-2) */
-.sectionLink {
+.sectionLink,
+.sectionLinkOn {
+  position: relative;
   display: flex;
   align-items: center;
   min-height: 40px;
@@ -143,6 +145,22 @@
   color: var(--color-text);
   text-decoration: underline;
   text-underline-offset: 3px;
+}
+
+/* 지금 읽는 꼭지(2026-11-03). 먹 글자 + 왼쪽 바깥 초록 막대(고른 것 = 브랜드 초록) — 글자 자리는 그대로 */
+.sectionLinkOn {
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.sectionLinkOn::before {
+  content: '';
+  position: absolute;
+  top: 10px;
+  bottom: 10px;
+  left: calc(var(--space-3) * -1);
+  width: 2px;
+  background: var(--color-brand-700);
 }
 
 .action {

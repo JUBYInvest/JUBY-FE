@@ -76,7 +76,8 @@ await j.run('C2', async () => {
     const cols = width > 600 ? 3 : 2
     j.report(`C2c-${width}`, r.metrics === 6 && r.firstRow === cols && r.rows === 6 / cols, `지표 ${r.metrics}개 — 첫 줄 ${r.firstRow}칸 · ${r.rows}줄(기대 ${cols}칸 ${6 / cols}줄)`)
     j.report(`C2e-${width}`, r.lefts.length >= 4 && r.lefts.every((d) => Math.abs(d) <= 1), `결과 칸 제목·지표 글자 왼쪽 끝 − 결과 제목 왼쪽 끝 ${[...new Set(r.lefts)].join('·')}px`)
-    if (width === 1440) j.report('C2d', r.guide.length >= 3 && r.guide.every((fs) => fs === 16), `가이드 칸 작은 제목 ${r.guide.join('·')}px(기대 16)`)
+    // 결과가 나온 뒤 오른쪽 날개 도움말(2026-11-03)은 결과 단계 글 두 묶음이다
+    if (width === 1440) j.report('C2d', r.guide.length >= 2 && r.guide.every((fs) => fs === 16), `도움말 칸 작은 제목 ${r.guide.join('·')}px(기대 16)`)
     await t.close()
   }
 })

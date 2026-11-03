@@ -1,5 +1,5 @@
-import type { MouseEvent } from 'react'
-import { Link, Navigate, useParams } from 'react-router-dom'
+import { useEffect, useState, type MouseEvent } from 'react'
+import { Link, Navigate, useLocation, useParams } from 'react-router-dom'
 import GuideArticle from '../components/GuideArticle'
 import { GUIDE_CHAPTERS } from '../content/guide'
 import { useDocumentTitle } from '../hooks/useDocumentTitle'
@@ -39,6 +39,38 @@ function jumpTo(id: string) {
     target.scrollIntoView({ behavior: prefersReducedMotion() ? 'auto' : 'smooth', block: 'start' })
     target.focus({ preventScroll: true })
   }
+}
+
+/**
+ * 지금 읽는 꼭지(2026-11-03). 화면 위 30% 선을 지난 마지막 꼭지 제목이다 — 첫 꼭지 전이면 null.
+ * 스크롤마다 제목 몇 개의 자리만 재고(그리는 때에 한 번), 오른쪽 "이 장에서"가 그 꼭지를 표시한다
+ */
+function useReadingSection(ids: string[]): string | null {
+  const [active, setActive] = useState<string | null>(null)
+  const key = ids.join('|')
+  useEffect(() => {
+    const headings = key === '' ? [] : key.split('|').map((id) => document.getElementById(id))
+    let frame = 0
+    const measure = () => {
+      frame = 0
+      const line = window.innerHeight * 0.3
+      let current: string | null = null
+      for (const heading of headings) if (heading !== null && heading.getBoundingClientRect().top <= line) current = heading.id
+      setActive(current)
+    }
+    const schedule = () => {
+      if (frame === 0) frame = window.requestAnimationFrame(measure)
+    }
+    measure()
+    window.addEventListener('scroll', schedule, { passive: true })
+    window.addEventListener('resize', schedule)
+    return () => {
+      window.cancelAnimationFrame(frame)
+      window.removeEventListener('scroll', schedule)
+      window.removeEventListener('resize', schedule)
+    }
+  }, [key])
+  return active
 }
 
 /** 글이 있는 장 사이에서 앞뒤 장으로 */
@@ -85,6 +117,20 @@ export default function GuidePage() {
   if (chapterId !== undefined && chapter === undefined) return <Navigate to="/guide" replace />
 
   const content = chapter?.document ?? null
+  return <GuideView chapter={chapter} content={content} />
+}
+
+function GuideView({ chapter, content }: { chapter: Chapter | undefined; content: GuideDocument | null }) {
+  const reading = useReadingSection(content?.sections.map((section) => section.id) ?? [])
+  // 다른 화면이 꼭지 주소로 보내면(백테스트 도움말의 "자세히 보기" — /guide/backtest#backtest-1) 그 꼭지에서 시작한다
+  const { hash } = useLocation()
+  useEffect(() => {
+    if (hash === '') return
+    const target = document.getElementById(decodeURIComponent(hash.slice(1)))
+    if (target === null) return
+    target.scrollIntoView({ block: 'start' })
+    target.focus({ preventScroll: true })
+  }, [hash, content])
   return (
     <>
       <h1 className={styles.title}>JUBY 사용설명서</h1>
@@ -142,7 +188,12 @@ export default function GuidePage() {
               <ol className={styles.sections}>
                 {content.sections.map((section) => (
                   <li key={section.id}>
-                    <a href={`#${section.id}`} className={styles.sectionLink} onClick={jumpTo(section.id)}>
+                    <a
+                      href={`#${section.id}`}
+                      className={reading === section.id ? styles.sectionLinkOn : styles.sectionLink}
+                      aria-current={reading === section.id ? 'location' : undefined}
+                      onClick={jumpTo(section.id)}
+                    >
                       {section.title}
                     </a>
                   </li>

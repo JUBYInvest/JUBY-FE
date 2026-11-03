@@ -1,5 +1,8 @@
 /*
  * 사용설명서 본문(GuideArticle.tsx). 오래 읽는 글이라 앱의 다른 글보다 크게(16px, 줄 높이 1.75) 먹 글자로 둔다.
+ * 2026-11-03 다듬기(사용자 "노션 그대로인 디자인을 나머지 창들과 비슷하게 깔끔하고 미려하게, AI 티 나지 않게" — 글은 그대로):
+ * 장 첫 인용은 상자 없는 머리글(18px 보조 글자), 식은 글 폭만 한 옅은 면 한 줄(왼쪽 먹 막대를 걷었다), 꼭지 사이는 여백 64px,
+ * 두 칸 표의 첫 칸은 굵게. 안내·예시·팁 인용만 옅은 면 상자로 남는다(앱의 "묶어 보여야 하는 안내는 옅은 면" 규칙).
  * 제목 위계: 꼭지(## → h3) 20px · 전략·묶음(### → h4) 18px · 지표(#### → h5) 16px 굵게 — 크기와 위 여백으로만 나눈다.
  * 글 사이에는 굵은 먹 선을 두지 않는다(2026-11-03 사용자 — 장 제목·꼭지마다 먹 선이 겹겹이 서서 다른 화면과 결이 달랐다).
  * 먹 선은 앱에서 "구역(목록·표·칸)이 여기서 시작한다"는 표시라 글의 제목에는 맞지 않는다. 가는 선은 표 줄과 4장 사례 사이(---)에만.
@@ -14,6 +17,11 @@
   margin-top: var(--space-6);
 }
 
+/* 장 제목 바로 아래 첫 꼭지는 위 여백을 줄인다(장 제목이 이미 구역을 연다) */
+.body > .section:first-child {
+  margin-top: var(--space-8);
+}
+
 .body p {
   margin: 0 0 var(--space-4);
 }
@@ -23,7 +31,7 @@
 }
 
 .section {
-  margin: var(--space-12) 0 var(--space-4);
+  margin: 64px 0 var(--space-4);
   font-size: var(--font-2xl);
   font-weight: 700;
   line-height: 1.4;
@@ -51,12 +59,16 @@
   margin: var(--space-6) 0 var(--space-2);
 }
 
-/* 식 한 줄(샤프 지수 = 연평균 수익률 ÷ 변동성). 상자 대신 왼쪽 먹 선 */
+/* 식 한 줄(샤프 지수 = 연평균 수익률 ÷ 변동성). 글 폭만 한 옅은 면 — 줄 전체 상자(안내)와 갈린다 */
 .body .formula {
+  width: fit-content;
+  max-width: 100%;
   margin: var(--space-4) 0;
-  padding: 2px 0 2px var(--space-4);
-  border-left: 3px solid var(--color-rule);
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-sub);
   font-weight: 600;
+  font-variant-numeric: tabular-nums;
 }
 
 .body .formula code {
@@ -72,6 +84,18 @@
   border-radius: var(--radius-md);
   background: var(--color-bg-sub);
   font-size: var(--font-base);
+  line-height: 1.7;
+}
+
+/* 장 첫 인용(이 장이 무엇을 다루는지)은 상자 없이 제목 아래 머리글로 — 첫 화면에 회색 상자가 먼저 서면 노션 내보내기처럼 보였다 */
+.body > blockquote:first-child {
+  margin: var(--space-3) 0 var(--space-8);
+  padding: 0;
+  border-radius: 0;
+  background: none;
+  font-size: var(--font-xl);
+  line-height: 1.65;
+  color: var(--color-text-sub);
 }
 
 .body blockquote p {
@@ -159,9 +183,14 @@
   padding-left: 0;
 }
 
-/* 두 칸 표(구분 | 조건, 지표 | 의미)의 첫 칸은 짧은 이름이라 꺾지 않는다 — 휴대폰에서 "🔵 / 매수"로 갈라졌다 */
+/* 두 칸 표(구분 | 조건, 지표 | 의미)의 첫 칸은 짧은 이름이라 꺾지 않는다 — 휴대폰에서 "🔵 / 매수"로 갈라졌다. 이름 칸이라 굵게 */
 .body table:has(th:nth-child(2):last-child) td:first-child {
+  font-weight: 600;
   white-space: nowrap;
+}
+
+.body td {
+  font-variant-numeric: tabular-nums;
 }
 
 .body ol,
@@ -189,6 +218,8 @@
 
 .body li::marker {
   font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text-sub);
 }
 
 .body code {

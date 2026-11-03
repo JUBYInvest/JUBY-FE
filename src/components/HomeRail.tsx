@@ -1,21 +1,21 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { COMMUNITY_PREVIEW_MESSAGES } from '../content/communityPreview'
 import { HOME_GUIDE_INTRO } from '../content/homeGuide'
-import { toChatRows } from '../utils/chat'
+import { useCommunityFeed } from '../hooks/useCommunityFeed'
+import CommunityPosts from './CommunityPosts'
 import GuideSteps from './GuideSteps'
 import styles from './HomeRail.module.css'
 
 /**
- * 홈 오른쪽 열(2026-10-30 재정비). 위는 사용설명서(네 장을 한 줄씩 — 2026-11-03), 아래는 커뮤니티 예시 대화(2026-11-02부터 채팅 모양)다.
- * 16:9에서 홈 오른쪽이 비어 보인다는 말에 사용자가 정한 자리다. 둘 다 서버를 부르지 않는다 —
- * 글은 src/content의 두 파일에만 있다(사용자가 고치기 쉽게).
+ * 홈 오른쪽 열(2026-10-30 재정비). 위는 사용설명서(네 장을 한 줄씩 — 2026-11-03), 아래는 커뮤니티 최신 글(2026-11-03부터 게시판 모양)이다.
+ * 16:9에서 홈 오른쪽이 비어 보인다는 말에 사용자가 정한 자리다. 사용설명서 글은 src/content/homeGuide.ts,
+ * 커뮤니티 글은 서버가 생기기 전까지 src/content/communityPreview.ts의 예시 글이다(src/api/community.ts가 가른다).
  */
 export default function HomeRail() {
   return (
     <aside className={styles.rail} aria-label="사용설명서와 커뮤니티">
       <GuideSection />
-      <CommunityChat />
+      <CommunityPreview />
     </aside>
   )
 }
@@ -41,16 +41,18 @@ function GuideSection() {
 }
 
 /**
- * 커뮤니티 예시 대화(src/content/communityPreview.ts). 2026-11-02 사용자 요청("글 형식이 아니라 채팅 형식")으로 글 목록에서 채팅으로 바꿨다.
- * 커뮤니티 백엔드가 없어 입력칸·보내기는 잠그고 "준비 중"이라고 밝힌다 — 써도 아무 데도 가지 않는 칸을 열어 두지 않는다.
- * 오래된 말이 위, 최신이 아래다. 대화창 안에서만 스크롤하고 처음에는 맨 아래(최신)가 보인다 — 창을 column-reverse로 세워
- * 스크롤 기준이 아래 끝이라 글꼴이 늦게 와 높이가 바뀌어도 아래에 붙어 있다(스크립트로 내리지 않는다). 말 순서(DOM)는 오래된 순 그대로다.
- * 같은 사람이 같은 분에 이어 말하면 이름·시각을 한 번만 보이고, 읽어 주는 쪽에는 이름을 남긴다(줄 짓기는 utils/chat.ts).
- * 화면에서 여백으로 띄운 자리(이름 | 시각, 종목 | 본문)에도 글자 빈칸을 둔다 — 없으면 읽어 주는 쪽·복사한 글이 "SK하이닉스1년"처럼 붙었다.
+ * 커뮤니티 미리보기(2026-11-03 사용자 "토스증권처럼 게시판으로" — 2026-11-02의 채팅창을 글 목록으로 되돌렸다).
+ * 최신 글 다섯 줄을 두 줄씩 보이고 제목 줄 오른쪽 '전체 보기'가 커뮤니티 화면이다. 글·연결은 커뮤니티 화면과 같은 훅(useCommunityFeed)이다.
+ * 보고 있는 동안 웹소켓(지금은 목업)으로 새 글이 오면 바로 끼우지 않고 제목 옆 "새 글 N"으로 알린다 — 누르면 위에 선다.
+ * 오른쪽 열은 홈 격자의 줄을 나눠 쓰므로(subgrid) 줄 수를 다섯으로 묶어 높이가 글 수만큼 늘지 않게 한다
  */
-function CommunityChat() {
-  // 처음 그릴 때의 시각으로 "N분 전"을 시계 시각으로 바꾼다. 다시 그려도 시각이 흔들리지 않게 한 번만 짓는다
-  const [rows] = useState(() => toChatRows(COMMUNITY_PREVIEW_MESSAGES, Date.now()))
+const HOME_POST_COUNT = 5
+
+function CommunityPreview() {
+  const { posts, pending, status, revealPending } = useCommunityFeed()
+  // "N분 전"을 그릴 때 한 번 정한 시각으로 센다 — 다시 그릴 때마다 흔들리지 않게
+  const [now] = useState(() => Date.now())
+  const latest = [...(posts ?? [])].sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt)).slice(0, HOME_POST_COUNT)
 
   return (
     <section className={styles.community} aria-labelledby="home-community-title">
@@ -58,50 +60,22 @@ function CommunityChat() {
         <h2 id="home-community-title" className={styles.title}>
           커뮤니티
         </h2>
-        <span className={styles.sampleTag}>예시</span>
-      </div>
-      <div className={styles.chat}>
-        {/* 스크롤되는 칸이라 키보드로도 들어와 위아래로 움직일 수 있게 tabIndex를 준다 */}
-        <div className={styles.log} role="log" aria-label="커뮤니티 예시 대화" tabIndex={0}>
-          <ol className={styles.messages}>
-            {rows.map((row) => (
-              <li key={row.id} className={`${styles.message} ${row.continued ? styles.continued : ''}`}>
-                <span className={styles.avatar} aria-hidden="true">
-                  {row.continued ? '' : row.initial}
-                </span>
-                <div className={styles.messageBody}>
-                  {row.continued ? (
-                    <span className={styles.srOnly}>{row.author} </span>
-                  ) : (
-                    <p className={styles.messageMeta}>
-                      <strong data-author>{row.author}</strong>{' '}
-                      {row.time !== '' && <time dateTime={row.iso}>{row.time}</time>}
-                    </p>
-                  )}
-                  <p className={styles.bubble} data-bubble>
-                    {row.stock !== null && (
-                      <>
-                        <span className={styles.stockTag}>{row.stock}</span>{' '}
-                      </>
-                    )}
-                    {row.text}
-                  </p>
-                </div>
-              </li>
-            ))}
-          </ol>
-        </div>
-        <div className={styles.composer}>
-          <label className={styles.srOnly} htmlFor="home-community-input">
-            커뮤니티에 보낼 말
-          </label>
-          <input id="home-community-input" className={styles.input} type="text" placeholder="채팅은 준비 중이에요" disabled />
-          <button type="button" className={styles.send} disabled>
-            보내기
+        {status === 'mock' && <span className={styles.sampleTag}>예시</span>}
+        {pending.length > 0 && (
+          <button type="button" className={styles.fresh} onClick={revealPending}>
+            새 글 {pending.length}
           </button>
-        </div>
+        )}
+        <Link to="/community" className={styles.more}>
+          전체 보기
+        </Link>
       </div>
-      <p className={styles.notice}>지금 보이는 대화는 예시예요. 커뮤니티 채팅은 준비 중이에요.</p>
+      {posts === null ? (
+        <div className={styles.loading} aria-hidden="true" />
+      ) : (
+        <CommunityPosts posts={latest} now={pending.length > 0 ? Date.now() : now} compact />
+      )}
+      {status === 'mock' && <p className={styles.notice}>지금 보이는 글은 예시예요. 커뮤니티 서버가 열리면 실제 글로 바뀌어요.</p>}
     </section>
   )
 }

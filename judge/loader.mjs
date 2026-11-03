@@ -3,11 +3,16 @@
 // - 확장자 없는 상대 경로(`./format`)에 `.ts`를 붙인다
 // - `import.meta.env.X`를 `globalThis.__viteEnv.X`로 바꾼다(Vite 전용 문법)
 // - `*.module.css`·이미지는 빈 모듈로 둔다
-import { existsSync } from 'node:fs'
+// - `파일?raw`(사용설명서 글 — Vite의 글자 그대로 불러오기)는 그 파일 글자를 default로 내보내는 모듈로 바꾼다
+import { existsSync, readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 
 export async function resolve(specifier, context, nextResolve) {
   if (/\.(module\.css|css|svg|png)$/.test(specifier)) return { url: 'data:text/javascript,export default {}', shortCircuit: true }
+  if (specifier.endsWith('?raw') && context.parentURL?.startsWith('file:')) {
+    const text = readFileSync(fileURLToPath(new URL(specifier.slice(0, -4), context.parentURL)), 'utf8')
+    return { url: `data:text/javascript,export default ${encodeURIComponent(JSON.stringify(text))}`, shortCircuit: true }
+  }
   if ((specifier.startsWith('./') || specifier.startsWith('../')) && !/\.[a-z]+$/.test(specifier) && context.parentURL?.startsWith('file:')) {
     const base = fileURLToPath(new URL(specifier, context.parentURL))
     for (const ext of ['.ts', '.tsx', '/index.ts']) {

@@ -88,28 +88,61 @@ describe('utils/date', async () => {
 })
 
 /* ── utils/format ───────────────────────────────────────────────────── */
-describe('utils/chat — 홈 커뮤니티 말 줄', async () => {
-  test('오래된 말이 위, 같은 사람이 같은 분에 이어 말할 때만 묶는다, 첫 글자는 이모지도 온전히', async () => {
-    const { toChatRows } = await src('utils/chat.ts')
-    const rows = toChatRows([
-      { id: 3, author: '가', stock: null, text: 'c', minutesAgo: 2 },
-      { id: 1, author: '가', stock: null, text: 'a', minutesAgo: 30 },
-      { id: 2, author: '가', stock: '삼성전자', text: 'b', minutesAgo: 30 },
-      { id: 4, author: '😀개미', stock: null, text: 'd', minutesAgo: 1 },
-    ], THU_11)
-    assert.deepEqual(rows.map((r) => r.id), [1, 2, 3, 4])
-    assert.deepEqual(rows.map((r) => r.continued), [false, true, false, false])
-    assert.deepEqual(rows.map((r) => r.time), ['오전 10:30', '오전 10:30', '오전 10:58', '오전 10:59'])
-    assert.equal(rows[3].initial, '😀')
-    assert.equal(rows[1].stock, '삼성전자')
-    assert.equal(rows[0].iso, '2026-10-29T01:30:00.000Z')
+describe('api/community — 웹소켓으로 오는 값 거르기(2026-11-03 커뮤니티 게시판)', async () => {
+  test('글 하나: 모양이 맞으면 화면 모양으로, 틀리면 null(던지지 않는다)', async () => {
+    const { toCommunityPost } = await src('api/community.ts')
+    const post = toCommunityPost({ postId: 7, author: '가', content: '글', createdAt: '2026-10-29T02:00:00Z', stockCode: '005930', stockName: '삼성전자', likeCount: -3, commentCount: '2' })
+    assert.deepEqual(post, { postId: 7, author: '가', stockCode: '005930', stockName: '삼성전자', content: '글', createdAt: '2026-10-29T02:00:00.000Z', likeCount: 0, commentCount: 2 })
+    assert.equal(toCommunityPost({ postId: 7, author: '가', content: '글', createdAt: '어제' }), null)
+    assert.equal(toCommunityPost({ author: '가', content: '글', createdAt: '2026-10-29T02:00:00Z' }), null)
+    assert.equal(toCommunityPost(null), null)
+    assert.equal(toCommunityPost({ postId: 1, author: '가', content: '글', createdAt: '2026-10-29T02:00:00Z', stockCode: '' }).stockCode, null)
   })
-  test('시각을 지을 수 없는 말도 던지지 않고 시각만 비운다', async () => {
-    const { toChatRows } = await src('utils/chat.ts')
-    const rows = toChatRows([{ id: 1, author: '가', stock: null, text: 'a', minutesAgo: Number.NaN }], THU_11)
-    assert.equal(rows.length, 1)
-    assert.equal(rows[0].time, '')
-    assert.equal(rows[0].iso, '')
+  test('일: 새 글·공감 수·지운 글만, 모르는 type·빠진 값은 버린다', async () => {
+    const { toCommunityEvent } = await src('api/community.ts')
+    const created = toCommunityEvent({ type: 'POST_CREATED', post: { postId: 1, author: '가', content: '글', createdAt: '2026-10-29T02:00:00Z' } })
+    assert.equal(created.type, 'POST_CREATED')
+    assert.equal(created.post.postId, 1)
+    assert.deepEqual(toCommunityEvent({ type: 'POST_UPDATED', postId: '3', likeCount: 5, commentCount: 1 }), { type: 'POST_UPDATED', postId: 3, likeCount: 5, commentCount: 1 })
+    assert.deepEqual(toCommunityEvent({ type: 'POST_DELETED', postId: 3 }), { type: 'POST_DELETED', postId: 3 })
+    assert.equal(toCommunityEvent({ type: 'POST_UPDATED', postId: 3 }), null)
+    assert.equal(toCommunityEvent({ type: 'POST_CREATED', post: { postId: 1 } }), null)
+    assert.equal(toCommunityEvent({ type: 'HELLO', postId: 1 }), null)
+    assert.equal(toCommunityEvent('글'), null)
+  })
+  test('서버 주소가 없으면 처음 목록은 예시 글(지금 시각 기준)', async () => {
+    const { loadCommunityPosts } = await src('api/community.ts')
+    const posts = await loadCommunityPosts(THU_11)
+    assert.ok(posts.length >= 5)
+    assert.ok(posts.every((post) => Date.parse(post.createdAt) <= THU_11 && typeof post.content === 'string'))
+  })
+})
+
+describe('utils/guideExcerpt — 백테스트 도움말이 사용설명서 3장에서 떼어 오는 글', async () => {
+  const g = await src('utils/guideExcerpt.ts')
+  test('다섯 전략 모두 아이디어·특징 줄과 1절 주소', async () => {
+    const { INVEST_TYPES } = await src('utils/backtest.ts')
+    for (const { strategyName } of INVEST_TYPES) {
+      const excerpt = g.strategyExcerpt(strategyName)
+      assert.ok(excerpt.idea?.startsWith('**아이디어**'), strategyName)
+      assert.ok(excerpt.trait?.startsWith('**특징**'), strategyName)
+      assert.equal(excerpt.anchor, 'backtest-1')
+    }
+    // "돌파 전략"이 "볼린저 밴드 돌파 전략"에 걸리지 않는다
+    assert.match(g.strategyExcerpt('돌파 전략').idea, /신고가/)
+  })
+  test('결과 확인 순서 다섯 줄(3절)·자주 묻는 질문(4절)', () => {
+    const order = g.resultSteps()
+    assert.equal(order.items.length, 5)
+    assert.equal(order.anchor, 'backtest-3')
+    const faq = g.faqAnswer('데이터가 부족')
+    assert.match(faq.question, /^Q\. /)
+    assert.match(faq.answer, /워밍업/)
+    assert.equal(faq.anchor, 'backtest-4')
+    assert.equal(g.faqAnswer('없는 질문'), null)
+  })
+  test('splitBold', () => {
+    assert.deepEqual(g.splitBold('a **b** c'), [{ text: 'a ', bold: false }, { text: 'b', bold: true }, { text: ' c', bold: false }])
   })
 })
 

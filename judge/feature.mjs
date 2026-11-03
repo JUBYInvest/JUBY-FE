@@ -2,6 +2,7 @@
 // S-1·S-3·S-4·L-2는 그 뒤 바뀐 것(M-8 한 판·휴장일·관심종목 뉴스)에 맞춰 2026-10-31에 기대값을 고쳤다.
 // S-2는 2026-11-02 뉴스를 6건씩 펼치게 되어(S-5) 첫 화면 뉴스 5건 → 6건(펼친 것이 다 보인다).
 // H-1·H-4는 커뮤니티가 채팅이 되어(2026-11-02) 글 5개 대신 대화창·입력칸, 말마다 "예시 글" 대신 칸의 "예시" 표시를 본다.
+// 2026-11-03 커뮤니티가 다시 게시판이 되어 H-1은 첫 화면의 글 줄(세 줄 이상), H-4는 "지금 보이는 글은 예시" 안내를 본다. L-1은 메뉴에 '커뮤니티'가 더해졌다(AI와 사용설명서 사이).
 // H-6·L-5(2026-11-02 사용자 "첫번째 박스는 과하게 좌측에, 세번째 박스는 과하게 우측에 붙어있어"): 세로 선으로 나눈 칸은 첫 칸·끝 칸도 안 여백이 같다.
 // H-7(같은 날, 그 캡처에서 찾음): 1년 그래프의 끝점·선이 그래프 판 밖으로 잘리지 않는다(가짜 한화에어로스페이스는 끝값이 1년 최저다).
 // L-6·L-7·B-1(같은 날 사용자): 주식 모아보기 배치(지도 왼쪽 전체 | 목록·뉴스 오른쪽 위아래)와 뉴스 둘씩 짝짓기, 지수 띠의 예시 값 표시는 글자로만.
@@ -62,11 +63,10 @@ const evenInsets = (cells) => cells.length > 1 && cells.every(([l]) => l >= 12 &
     themes: await inView(page, '[class*="_cards_"] > a'),
     rows: await inView(page, '[class*="_body_"] > li'),
     steps: await inView(page, '[class*="_steps_"] li'),
-    // 커뮤니티는 2026-11-02부터 채팅이다(글 5개 → 대화창 + 입력칸). 말 하나하나는 community.mjs가 본다
-    chat: await inView(page, '[aria-labelledby="home-community-title"] [role="log"]'),
-    composer: await inView(page, '#home-community-input'),
+    // 커뮤니티는 2026-11-03부터 게시판의 최신 글 다섯 줄이다. 글 하나하나는 community.mjs가 본다
+    posts: await inView(page, '[aria-labelledby="home-community-title"] li'),
   }
-  report('H-1', h1.search === 1 && h1.themes === 3 && h1.rows >= 6 && h1.steps === 4 && h1.chat === 1 && h1.composer === 1, `1920×1080 첫 화면 — 검색 ${h1.search}, 테마 ${h1.themes}, 시세표 ${h1.rows}행, 사용설명서 ${h1.steps}단계, 커뮤니티 대화창 ${h1.chat}·입력칸 ${h1.composer}`)
+  report('H-1', h1.search === 1 && h1.themes === 3 && h1.rows >= 6 && h1.steps === 4 && h1.posts >= 3, `1920×1080 첫 화면 — 검색 ${h1.search}, 테마 ${h1.themes}, 시세표 ${h1.rows}행, 사용설명서 ${h1.steps}단계, 커뮤니티 글 ${h1.posts}줄`)
   const h2 = await page.evaluate(() => {
     const cards = [...document.querySelectorAll('[class*="_cards_"] > a')]
     const boxed = cards.filter((c) => { const cs = getComputedStyle(c); return cs.boxShadow !== 'none' || ['Top', 'Right', 'Bottom'].every((s) => parseFloat(cs[`border${s}Width`]) > 0) })
@@ -80,7 +80,7 @@ const evenInsets = (cells) => cells.length > 1 && cells.every(([l]) => l >= 12 &
   report('H-3', ranks.length >= 13 && ranks.slice(0, 3).join(',') === '1,2,3' && /^\+2\.10%$/.test(firstRate?.trim() ?? ''), `순번 ${ranks.length}개(${ranks.slice(0, 3)}), 등락률 정렬 뒤 첫 줄 ${firstRate?.trim()}`)
   // 채팅이 된 뒤(2026-11-02)로는 말마다가 아니라 칸 제목 옆 "예시"와 칸 아래 안내 한 줄로 밝힌다
   const community = page.locator('section[aria-labelledby="home-community-title"]')
-  const samples = (await community.getByText('예시', { exact: true }).count()) + (await community.getByText(/지금 보이는 대화는 예시/).count())
+  const samples = (await community.getByText('예시', { exact: true }).count()) + (await community.getByText(/지금 보이는 글은 예시/).count())
   const files = []
   const walk = (d) => { for (const f of readdirSync(d)) { const p = join(d, f); if (statSync(p).isDirectory()) walk(p); else if (/\.(ts|tsx)$/.test(f)) files.push(p) } }
   walk(join(REPO, 'src'))
@@ -191,7 +191,7 @@ for (const [width, height, least] of [[1920, 1080, 8], [1440, 900, 8], [390, 844
   const { context, page, raw } = await open('/likes')
   const live = () => raw.filter((l) => !l.startsWith('BLOCKED'))
   const nav = await page.$$eval('nav[aria-label="서비스"] a', (as) => as.map((a) => a.textContent.trim()))
-  report('L-1', JSON.stringify(nav) === JSON.stringify(['홈', '주식 모아보기', '주식 백테스트', 'AI 주가분석', '사용설명서']), `머리글 메뉴 ${JSON.stringify(nav)}`)
+  report('L-1', JSON.stringify(nav) === JSON.stringify(['홈', '주식 모아보기', '주식 백테스트', 'AI 주가분석', '커뮤니티', '사용설명서']), `머리글 메뉴 ${JSON.stringify(nav)}`)
   const m = await page.evaluate(() => ({ h1: document.querySelector('h1')?.textContent, stats: document.querySelectorAll('[class*="_stats_"] > div').length, tiles: document.querySelectorAll('[data-market]').length, rows: document.querySelectorAll('[class*="_row_"]').length, handoff: document.querySelectorAll('[class*="_go_"] a').length }))
   const before = live()
   await page.getByRole('button', { name: '삼성전자 관심종목 해제' }).click()

@@ -75,7 +75,8 @@ await j.run('U1', async () => {
         tables: article.querySelectorAll('table').length,
         images: article.querySelectorAll('img').length,
         quotes: article.querySelectorAll('blockquote').length,
-        formulas: [...article.querySelectorAll('p')].filter((p) => getComputedStyle(p).borderLeftWidth === '3px').length,
+        // 식 한 줄(2026-11-03 다듬기 — 왼쪽 먹 막대를 걷고 글 폭만 한 옅은 면이 됐다. 모양 대신 클래스로 센다)
+        formulas: [...article.querySelectorAll('p[class*="_formula_"]')].length,
         pres: article.querySelectorAll('pre').length,
         rules: article.querySelectorAll('hr').length,
         text: article.innerText.replace(/\s+/g, ' '),

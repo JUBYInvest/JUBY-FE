@@ -228,7 +228,8 @@ async function buttonStyles(page) {
       const transparent = window.__alpha(bg) === 0
       const isButton = el.tagName === 'BUTTON' || el.getAttribute('role') === 'button' || !transparent || border
       if (!isButton) continue
-      const on = el.matches('[aria-selected="true"], [aria-pressed="true"], [aria-current="page"]')
+      // 지금 단계(aria-current="step" — 백테스트 진행 단계 줄, 2026-11-03)도 고른 칸이다
+      const on = el.matches('[aria-selected="true"], [aria-pressed="true"], [aria-current="page"], [aria-current="step"]')
       let kind = null
       // 소셜 로그인 단추는 각 회사 지침의 색이라 3종에서 뺀다(카카오 노랑·네이버 초록). 결과 보고서 예외 목록에 적는다
       if (/_(kakao|naver)_/.test(el.className)) kind = 'brand-exception'

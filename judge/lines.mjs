@@ -94,9 +94,11 @@ await j.run('A7', () => pairs('A7', '/guide', '사용설명서: 장 목록 첫 �
   const bottom = ${BOTTOM}
   return [['장 목록 첫 줄', bottom(document.querySelector('nav[aria-label="사용설명서 장"] li a, nav[aria-label="사용설명서 장"] li span'))], ['이 장에서', bottom(document.getElementById('guide-side-title'))]]`), { widths: [1920, 1600, 1440, 1280] }))
 
-await j.run('A4', () => pairs('A4', '/backtest', '백테스트: 화면 제목 먹 선 = 가이드 제목 먹 선', new Function(`
+// A4 백테스트(2026-11-03 날개 도움말로 바꿈 — 그 전엔 화면 제목 먹 선 = 오른쪽 가이드 제목 먹 선이었다. 이제 화면 제목이 세 열 위를 다 덮는다):
+// 세 열(1200px~)에서 왼쪽 진행 단계 첫 줄의 가는 선과 오른쪽 '도움말' 제목 줄의 먹 선이 같은 높이다. 1199px 이하는 단계 줄이 없다
+await j.run('A4', () => pairs('A4', '/backtest', '백테스트: 진행 단계 첫 줄 선 = 도움말 먹 선', new Function(`
   const bottom = ${BOTTOM}
-  return [['주식 백테스트 이용하기', bottom(document.querySelector('main h1'))], ['가이드', bottom(document.querySelector('main aside h2'))]]`)))
+  return [['진행 단계 첫 줄', bottom(document.querySelector('nav[aria-label="백테스트 단계"] li a'))], ['도움말', bottom(document.getElementById('backtest-help-title').parentElement)]]`), { widths: [1920, 1600, 1440, 1280] }))
 
 await j.run('A5', () => pairs('A5', '/mypage', '마이페이지 한눈에 보기: 왼쪽 메뉴 아래 선 = 첫 두 칸의 먹 선', new Function(`
   const bottom = ${BOTTOM}
@@ -111,14 +113,15 @@ await j.run('A5', () => pairs('A5', '/mypage', '마이페이지 한눈에 보기
  */
 /**
  * 넓은 화면에서 두 열 이상이고 옆 열에 선이 있는 화면 — 견준 선이 0쌍이면 화면이 안 그려진 것이라 실패로 본다.
- * 사용설명서는 넣지 않는다 — 본문 글에 가로선을 두지 않아(표 칸 선은 뺀다) 옆 열과 견줄 쌍이 없다. 장 목록 첫 줄 선과 "이 장에서" 먹 선은 A7이 잰다
+ * 사용설명서는 넣지 않는다 — 본문 글에 가로선을 두지 않아(표 칸 선은 뺀다) 옆 열과 견줄 쌍이 없다. 장 목록 첫 줄 선과 "이 장에서" 먹 선은 A7이 잰다.
+ * 커뮤니티(2026-11-03)도 같다 — 1920px에서 세 열 사이가 160px을 넘고 왼쪽 종목 줄은 단추라 견줄 쌍이 없을 수 있다. 세 열 첫 선은 community.mjs B7이 잰다(어긋남은 아래에서 그대로 센다)
  */
 const TWO_COLUMNS = new Set(['home', 'home-out', 'stock', 'backtest', 'mypage', 'mypage-personality', 'mypage-profile'])
 const SCREENS = [
   ['home', '/', true], ['home-out', '/', false], ['stock', '/stocks/005930', true], ['likes', '/likes', true],
   ['backtest', '/backtest', true], ['ai', '/ai', true], ['guide', '/guide', true], ['mypage', '/mypage', true],
   ['mypage-personality', '/mypage/personality', true], ['mypage-profile', '/mypage/profile', true],
-  ['personality-test', '/personality-test', true], ['login', '/login', false],
+  ['personality-test', '/personality-test', true], ['login', '/login', false], ['community', '/community', true],
 ]
 await j.run('G', async () => {
   for (const [name, path, loggedIn] of SCREENS) {

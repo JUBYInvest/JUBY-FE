@@ -5,8 +5,9 @@ import { ApiError } from '../api/client'
 import { byTradingValue, searchStocks } from '../api/search'
 import { getStockList } from '../api/stock'
 import { STOCK_LIST } from '../api/stockList'
-import BacktestGuide from '../components/backtest/BacktestGuide'
+import BacktestHelp, { type BacktestStep } from '../components/backtest/BacktestHelp'
 import BacktestResult from '../components/backtest/BacktestResult'
+import BacktestSteps from '../components/backtest/BacktestSteps'
 import SectionBoundary from '../components/SectionBoundary'
 import Spinner from '../components/Spinner'
 import { COMPARE_PERIOD, useBacktestRun } from '../hooks/useBacktestRun'
@@ -16,6 +17,7 @@ import { useDocumentTitle } from '../hooks/useDocumentTitle'
 import { useBacktestHandoff } from '../hooks/useStockHandoff'
 import type { StockInfo } from '../types/stock'
 import type { BacktestPeriod } from '../types/backtest'
+import { prefersReducedMotion } from '../utils/motion'
 import { loginPathFrom } from '../utils/navigation'
 import { isPersonalityType } from '../utils/personality'
 import { INVEST_TYPES, PERIODS, findByPersonality, findInvestType, periodLabel, supportedPeriods } from '../utils/backtest'
@@ -110,6 +112,8 @@ export default function BacktestPage() {
   /** 실행·결과·거두기(hooks/useBacktestRun). 같은 조합은 한 번만 받고, 늦게 온 결과는 버린다 */
   const { result, run, clear } = useBacktestRun()
   const resultRef = useRef<HTMLDivElement>(null)
+  /** 지금 하는 단계 — 왼쪽 단계 줄과 오른쪽 도움말이 따른다. 칸에 들어가면(포커스) 그 단계, 결과가 나오면 결과 */
+  const [step, setStep] = useState<BacktestStep>(handoff !== null ? 'strategy' : 'stock')
 
   // 서버 목록·기간·내 성향을 한 번에 받는다. 셋 다 실패해도 화면은 로컬 값으로 뜬다
   useEffect(() => {
@@ -279,6 +283,7 @@ export default function BacktestPage() {
    * 서버 목록에 없는 기간도 놓아 준다. 로컬 표만 보면 선택지에서 사라진 기간이 고른 값으로 남는다.
    */
   function changeStrategy(next: number | null) {
+    setStep('strategy')
     setInvestType(next)
     if (next !== null && period !== null) {
       if (!availablePeriods(next, serverPeriods).includes(period)) {
@@ -300,6 +305,7 @@ export default function BacktestPage() {
    */
   useEffect(() => {
     if (result.kind !== 'ready' || resultRef.current === null) return
+    setStep('result')
 
     const prefersReduced = window.matchMedia(
       '(prefers-reduced-motion: reduce)',
@@ -311,10 +317,37 @@ export default function BacktestPage() {
     })
   }, [result.kind])
 
+  const chosenStrategy = investType === null ? null : findInvestType(investType)
+  const steps = [
+    { key: 'stock' as const, label: '종목', value: stock?.stockName ?? null },
+    { key: 'strategy' as const, label: '전략', value: chosenStrategy?.strategyName ?? null },
+    { key: 'period' as const, label: '기간', value: period === null ? null : periodLabel(period) },
+    {
+      key: 'result' as const,
+      label: '결과',
+      value: result.kind === 'ready' ? `적합도 ${result.preset.result.finalScore.toFixed(1)}` : result.kind === 'loading' ? '계산 중' : null,
+    },
+  ]
+
+  /** 왼쪽 단계 줄에서 고르면 그 칸으로 옮긴다(결과는 결과 자리로) */
+  function pickStep(next: BacktestStep) {
+    setStep(next)
+    if (next === 'result') {
+      resultRef.current?.scrollIntoView({ behavior: prefersReducedMotion() ? 'auto' : 'smooth', block: 'start' })
+      resultRef.current?.focus({ preventScroll: true })
+      return
+    }
+    document.getElementById(`backtest-${next}`)?.focus()
+  }
+
   return (
-    <div className={styles.layout}>
+    <>
+      <h1 className={styles.title}>주식 백테스트 이용하기</h1>
+
+      <div className={styles.layout}>
+      <BacktestSteps steps={steps} active={step} onPick={pickStep} />
+
       <div className={styles.content}>
-        <h1 className={styles.title}>주식 백테스트 이용하기</h1>
 
         {/*
           성향은 고르는 칸이 아니라 '이미 정해진 나의 정보'다.
@@ -386,7 +419,7 @@ export default function BacktestPage() {
 
         <section className={styles.form}>
           {/* 종목 선택 --------------------------------------------------- */}
-          <div className={styles.field}>
+          <div className={styles.field} onFocus={() => setStep('stock')}>
             <label className={styles.label} htmlFor="backtest-stock">
               <span className={styles.step}>1</span>
               종목 선택
@@ -437,7 +470,7 @@ export default function BacktestPage() {
           </div>
 
           {/* 투자전략 선택 ------------------------------------------------ */}
-          <div className={styles.field}>
+          <div className={styles.field} onFocus={() => setStep('strategy')}>
             <label className={styles.label} htmlFor="backtest-strategy">
               <span className={styles.step}>2</span>
               투자전략 선택
@@ -491,7 +524,7 @@ export default function BacktestPage() {
           </div>
 
           {/* 투자기간 선택 ------------------------------------------------ */}
-          <div className={styles.field}>
+          <div className={styles.field} onFocus={() => setStep('period')}>
             <label className={styles.label} htmlFor="backtest-period">
               <span className={styles.step}>3</span>
               투자기간 선택
@@ -571,7 +604,7 @@ export default function BacktestPage() {
           </div>
         </section>
 
-        <div ref={resultRef}>
+        <div ref={resultRef} id="backtest-result" tabIndex={-1}>
           {result.kind === 'loading' && (
             <p className={styles.loadingBox}>
               <Spinner size={20} /> 백테스트 결과를 불러오는 중…
@@ -619,11 +652,8 @@ export default function BacktestPage() {
         </div>
       </div>
 
-      <BacktestGuide
-        investType={investType}
-        savedPersonality={savedPersonality}
-        onSelect={changeStrategy}
-      />
-    </div>
+      <BacktestHelp step={step} investType={investType} savedPersonality={savedPersonality} onSelect={changeStrategy} />
+      </div>
+    </>
   )
 }

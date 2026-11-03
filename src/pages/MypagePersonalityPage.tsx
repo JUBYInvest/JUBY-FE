@@ -168,21 +168,31 @@ function Browse({ mine }: { mine: PersonalityType | null }) {
             </div>
           </dl>
 
+          {/*
+            비중은 넷을 더해 100%다(백엔드 ScoreCalculator.calculateTotalScore의 성향별 가중치와 같은 표 — utils/backtest INVEST_TYPES).
+            그래서 막대 넷을 따로 두지 않고 100% 막대 하나를 넷으로 나눈다(2026-11-03 사용자 "그래프가 25%가 아닌 거처럼 나오는데" —
+            따로 둔 막대는 25%가 칸의 4분의 1이라도 무엇의 25%인지 안 읽혔다). 위험중립형은 네 칸이 같고, 안정형은 안정성 칸이 가장 넓다
+          */}
           <div>
             <p className={styles.weightsTitle}>점수를 매길 때 보는 비중</p>
+            <div className={styles.weightBar} aria-hidden="true">
+              {AXES.map((axis) => (
+                <span
+                  key={axis}
+                  className={styles.weightPart}
+                  data-axis={axis}
+                  style={{ flexGrow: strategy.weights[axis] }}
+                />
+              ))}
+            </div>
             <ul className={styles.weightList}>
-              {AXES.map((axis) => {
-                const percent = Math.round(strategy.weights[axis] * 100)
-                return (
-                  <li key={axis} className={styles.weight}>
-                    <span className={styles.weightName}>{AXIS_LABEL[axis]}</span>
-                    <span className={styles.weightTrack} aria-hidden="true">
-                      <span className={styles.weightFill} style={{ width: `${percent}%` }} />
-                    </span>
-                    <span className={styles.weightValue}>{percent}%</span>
-                  </li>
-                )
-              })}
+              {AXES.map((axis) => (
+                <li key={axis} className={styles.weight}>
+                  <span className={styles.weightKey} data-axis={axis} aria-hidden="true" />
+                  <span className={styles.weightName}>{AXIS_LABEL[axis]}</span>
+                  <span className={styles.weightValue}>{Math.round(strategy.weights[axis] * 100)}%</span>
+                </li>
+              ))}
             </ul>
           </div>
         </div>
