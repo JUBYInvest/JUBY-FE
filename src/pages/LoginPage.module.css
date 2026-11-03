@@ -158,10 +158,14 @@
   color: var(--color-text-sub);
 }
 
-/* 가운데 칸 = 단추 줄 폭. 양옆 칸이 남는 폭을 나눠 갖는다 */
+/*
+ * 세 칸은 같은 폭이다. 2026-11-02엔 가운데 칸을 단추 줄 폭(400px)에 맞추고 양옆이 남는 폭을 나눠 가져, 줄이 1200px보다 좁은 화면(1024px)에서
+ * 281 · 400 · 281px로 2·3번 글 시작점이 고르지 않았다(2026-11-03 지시서 N-4 — 그 의도는 버린다). 줄이 1200px이면 세 칸이 400px라 칸 사이 선이
+ * 여전히 단추 양 끝과 한 줄이다(judge/login.mjs L3, 1920px)
+ */
 .steps {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) min(100%, var(--login-column)) minmax(0, 1fr);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   margin: 0;
   padding: 0;
   list-style: none;
