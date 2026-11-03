@@ -233,8 +233,12 @@
     margin-top: var(--space-4);
   }
 
-  .sideTitle,
-  .sections {
+  /*
+   * 제목은 구역 제목 줄(section.module.css head, display:flex)을 가져다 쓴다 — 같은 무게(.sideTitle)로 display를 덮으면 그 모듈을 다시 들여오는
+   * 화면(커뮤니티)에 다녀온 뒤 제목과 먹 선이 되살아났다(2026-11-03 코드 점검 D1, judge/repro.mjs S8). 한 단계 더 구체적인 선택자로 숨긴다
+   */
+  .side .sideTitle,
+  .side .sections {
     display: none;
   }
 

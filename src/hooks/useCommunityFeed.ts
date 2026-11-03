@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import {
   connectCommunity,
+  initialCommunityStatus,
   loadCommunityPosts,
   type CommunityConnection,
   type CommunityEvent,
@@ -24,12 +25,13 @@ const withoutDuplicates = (list: CommunityPost[]) => list.filter((post, index) =
 /**
  * 커뮤니티 글 목록 + 웹소켓(src/api/community.ts). 홈 오른쪽 칸과 커뮤니티 화면이 같이 쓴다.
  * 화면을 떠나면 연결을 닫고, 닫힌 뒤 온 일은 버린다.
- * `seed`는 홈에서 눌러 온 글이다 — 처음 목록에 없으면(홈에서 세운 새 글) 목록에 넣는다. 처음 그릴 때의 값만 쓴다
+ * `seed`는 홈에서 눌러 온 글이다 — 처음 목록에 없으면(홈에서 세운 새 글) 목록에 넣는다. 부르는 쪽은 한 번 읽어 둔 값(useCommunityHandoff)을 넘긴다 —
+ * 렌더마다 새 객체를 넘기면 그때마다 다시 연결한다
  */
 export function useCommunityFeed(seed: CommunityPost | null = null): Feed {
   const [posts, setPosts] = useState<CommunityPost[] | null>(null)
   const [pending, setPending] = useState<CommunityPost[]>([])
-  const [status, setStatus] = useState<CommunityStatus>('connecting')
+  const [status, setStatus] = useState<CommunityStatus>(initialCommunityStatus)
   const connectionRef = useRef<CommunityConnection | null>(null)
 
   useEffect(() => {

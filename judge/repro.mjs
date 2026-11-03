@@ -217,8 +217,8 @@ await run('E', async () => {
  */
 await run('S', async () => {
   const menu = (page, nav, label) => page.locator(`nav[aria-label="${nav}"] a[data-label="${label}"]`).click()
-  async function roundTrip(id, { path, width = 390, height = 844, measure, away, back = 'goBack', label, expect = null }) {
-    const t = await open({ width, height })
+  async function roundTrip(id, { path, width = 390, height = 844, measure, away, back = 'goBack', label, expect = null, loggedIn = true }) {
+    const t = await open({ width, height, loggedIn })
     await t.goto(path, 1800)
     await t.page.evaluate(() => document.fonts.ready)
     const first = await t.page.evaluate(measure)
@@ -247,10 +247,92 @@ await run('S', async () => {
     // 상세 바로 가기 단추는 설명 한 줄(화면에서 숨김)을 안에 품어 글자가 "이 종목 백테스트…"로 이어진다
     measure: () => { const a = [...document.querySelectorAll('main a')].find((x) => x.textContent?.trim().startsWith('이 종목 백테스트')); if (!a) return null; const c = getComputedStyle(a); return [Math.round(a.getBoundingClientRect().height), c.paddingLeft, c.fontSize] },
   })
+  const toCommunity = (page) => menu(page, '서비스', '커뮤니티')
+  // S8 사용설명서 "이 장에서" 제목은 900px 이하에서 숨는다 — 구역 제목 줄(section head, display:flex)을 가져다 쓰고 미디어 쿼리에서 display:none으로 덮어,
+  // 같은 공용 모듈을 다시 들여오는 커뮤니티에 다녀오면 제목과 먹 선이 되살아났다(2026-11-03 코드 점검 D1)
+  await roundTrip('S8', {
+    path: '/guide', away: [toCommunity], label: '휴대폰 사용설명서 "이 장에서" 제목(숨김)', expect: 'none',
+    measure: () => { const h = [...document.querySelectorAll('main h2')].find((x) => x.textContent?.trim() === '이 장에서'); return h ? getComputedStyle(h).display : 'no-element' },
+  })
+  // S9 AI 예시 질문 칩 글자 굵기 — secondary 단추를 가져다 쓰고 같은 규칙에서 font-weight를 다시 적어 다른 화면에 다녀오면 굵기가 바뀌었다(코드 점검 D6)
+  await roundTrip('S9', {
+    path: '/ai', width: 1440, height: 900, away: [toBacktest], label: 'AI 예시 질문 칩 글자 굵기(비로그인 빈 화면)', loggedIn: false,
+    measure: () => { const b = document.querySelector('[class*="_exampleChip_"]'); return b ? getComputedStyle(b).fontWeight : null },
+  })
   await roundTrip('S7', {
     path: '/likes', width: 1440, height: 900, away: [toAi], label: '주식 모아보기 담은 종목 줄의 작은 단추 글자',
     measure: () => { const a = [...document.querySelectorAll('main a')].find((x) => x.textContent?.trim() === '이 종목 백테스트'); return a ? getComputedStyle(a).fontSize : null },
   })
+})
+
+/* ── R. 코드 점검(2026-11-03 사용자 "리팩토링을 진행해서 문제있는 부분을 확인해줘")으로 찾은 결함 ─────────────────── */
+await run('R', async () => {
+  const startSteps = (page) => page.evaluate(() => [...document.querySelectorAll('main ol li')].filter((li) => /로그인|투자성향 테스트|관심종목 하나 담기|첫 백테스트/.test(li.textContent ?? ''))
+    .map((li) => ({ text: li.textContent.replace(/\s+/g, ' ').trim(), controls: [...li.querySelectorAll('a, button')].map((c) => c.textContent.trim()) })))
+  // R1 홈 "처음 시작하기" — 성향을 못 받았으면(500) 검사를 권하지 않는다(다시 검사하면 멀쩡한 성향을 덮어쓴다, CLAUDE.md "성향 없음은 실패가 아니다"). 다시 시도를 준다
+  let t = await open({ personality: 'error' })
+  await t.goto('/', 1800)
+  let steps = await startSteps(t.page)
+  const second = steps.find((s) => s.text.includes('투자성향 테스트'))
+  report('R1', second !== undefined && !second.controls.includes('테스트하기') && second.controls.includes('다시 시도') && /불러오지 못했어요/.test(second.text),
+    `성향 500 → 2단계 "${second?.text}" 단추·링크 ${JSON.stringify(second?.controls)}`)
+  await t.close()
+
+  // R2 홈 시세표를 못 받았으면(500) 관심종목을 담았는지 모른다 — "하트를 눌러 담아요·담으러 가기"를 띄우지 않는다(담은 회원에게도 떴다)
+  t = await open()
+  await t.context.route((url) => url.pathname === '/api/stocks', (route) => route.fulfill({ status: 500, contentType: 'application/json', body: JSON.stringify({ isSuccess: false, code: 'COMMON500', message: 'x', result: null }) }))
+  await t.goto('/', 1800)
+  steps = await startSteps(t.page)
+  const third = steps.find((s) => s.text.includes('관심종목 하나 담기'))
+  report('R2', third !== undefined && !third.controls.includes('담으러 가기') && !/하트를 눌러 담아요/.test(third.text), `시세표 500 → 3단계 "${third?.text}" ${JSON.stringify(third?.controls)}`)
+  await t.close()
+
+  // R3 사용설명서 주소의 깨진 꼭지(#%)가 화면 전체를 오류 화면으로 만들지 않는다(decodeURIComponent가 던졌다)
+  t = await open({ loggedIn: false })
+  await t.goto('/guide/backtest#%', 1500)
+  const title = await t.page.locator('main h1').first().textContent().catch(() => null)
+  report('R3', title !== null && !/표시하지 못했어요/.test(title), `/guide/backtest#% → 화면 제목 "${title}"`)
+  await t.close()
+
+  // R4 투자성향 테스트 진행 막대에 이름이 있다(이름 없는 progressbar)
+  t = await open()
+  await t.goto('/personality-test', 1500)
+  const bar = await t.page.evaluate(() => { const b = document.querySelector('main [role="progressbar"]'); return b ? { label: b.getAttribute('aria-label') ?? b.getAttribute('aria-labelledby'), text: b.getAttribute('aria-valuetext') } : null })
+  report('R4', bar !== null && !!bar.label && !!bar.text, `진행 막대 이름 ${JSON.stringify(bar)}`)
+  await t.close()
+
+  // R5 좁은 화면 계정 메뉴('마이페이지')의 지금 화면 막대가 글자 폭과 같다 — 오른쪽 안 여백만 0으로 두고 막대는 오른쪽에서 10px 들어가 있었다
+  t = await open({ width: 390, height: 844 })
+  await t.goto('/mypage', 1500)
+  const acc = await t.page.evaluate(() => {
+    const a = document.querySelector('nav[aria-label="계정"] a[aria-current="page"]'); if (!a) return null
+    const cs = getComputedStyle(a), bs = getComputedStyle(a, '::before'), w = a.getBoundingClientRect().width
+    return { text: Math.round(w - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight)), bar: Math.round(w - parseFloat(bs.left) - parseFloat(bs.right)) }
+  })
+  report('R5', acc !== null && Math.abs(acc.text - acc.bar) <= 1, `390 '마이페이지' 글자 폭 ${acc?.text}px / 막대 폭 ${acc?.bar}px`)
+  await t.close()
+
+  // R6 커뮤니티가 목업일 때 첫 그림에 "연결하는 중…"·로그인 단추가 잠깐 서지 않는다(처음 상태가 connecting이었다)
+  t = await open({ loggedIn: false })
+  await t.context.addInitScript(() => {
+    window.__sawConnecting = false
+    new MutationObserver(() => { if (document.body?.textContent?.includes('연결하는 중')) window.__sawConnecting = true }).observe(document, { subtree: true, childList: true, characterData: true })
+  })
+  await t.goto('/community', 1500)
+  const saw = await t.page.evaluate(() => window.__sawConnecting)
+  report('R6', saw === false, `목업 커뮤니티 첫 그림에 "연결하는 중" ${saw ? '보임' : '안 보임'}`)
+  await t.close()
+
+  // R7 홈 시세표 응답이 늦게 와도 지금 로그인 상태의 하트만 칠한다 — 로그인 응답이 로그아웃 뒤 응답보다 늦게 오면 앞 회원의 하트가 비로그인 화면에 칠해졌다(isStale 없음)
+  t = await open()
+  let stockCalls = 0
+  await t.context.route((url) => url.pathname === '/api/stocks', async (route) => { stockCalls += 1; await sleep(stockCalls === 1 ? 2500 : 100); return route.fallback() })
+  await t.goto('/', 400)
+  await t.page.evaluate(() => { localStorage.removeItem('accessToken'); window.dispatchEvent(new StorageEvent('storage', { key: 'accessToken', newValue: null })) })
+  await sleep(3200)
+  const pressed = await t.page.locator('button[aria-pressed="true"][aria-label*="관심종목"]').count()
+  report('R7', pressed === 0 && stockCalls >= 2, `로그인 응답(늦게)·로그아웃 응답(먼저) 뒤 켜진 하트 ${pressed}개, 시세표 요청 ${stockCalls}건`)
+  await t.close()
 })
 
 await j.finish()

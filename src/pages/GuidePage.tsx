@@ -127,7 +127,14 @@ function GuideView({ chapter, content }: { chapter: Chapter | undefined; content
   const { hash } = useLocation()
   useEffect(() => {
     if (hash === '') return
-    const target = document.getElementById(decodeURIComponent(hash.slice(1)))
+    // 꼭지 id는 ASCII("backtest-1")다. 깨진 주소(#%)를 풀다 던지면 사용설명서 전체가 오류 화면이 됐다(코드 점검 D4, judge/repro.mjs R3)
+    let id = hash.slice(1)
+    try {
+      id = decodeURIComponent(id)
+    } catch {
+      return
+    }
+    const target = document.getElementById(id)
     if (target === null) return
     target.scrollIntoView({ block: 'start' })
     target.focus({ preventScroll: true })

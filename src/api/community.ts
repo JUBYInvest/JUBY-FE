@@ -47,6 +47,9 @@ interface Handlers {
 }
 
 const SOCKET_URL: string = import.meta.env.VITE_COMMUNITY_WS_URL ?? ''
+
+/** 처음 그릴 때의 연결 상태. 서버 주소가 없으면 목업이다 — "연결하는 중"으로 시작하면 목업인데도 첫 그림에 그 글과 로그인 단추가 섰다(코드 점검 D8) */
+export const initialCommunityStatus = (): CommunityStatus => (SOCKET_URL === '' ? 'mock' : 'connecting')
 /** 구독·보내기 주소(스프링 STOMP 관례 — 서버가 다르게 정하면 여기만 바꾼다) */
 const TOPIC = '/topic/community'
 const SEND_TO = '/app/community/posts'

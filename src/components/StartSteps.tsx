@@ -8,8 +8,11 @@ export interface StartStep {
   done: boolean
   /** 한 줄 아래 글 — 마친 단계는 그 값(위험중립형·2개), 남은 단계는 무엇을 하는지. 아직 모르면 null */
   note: string | null
-  /** 남은 단계의 바로 가기. '#…'이면 같은 화면 안 그 자리로 옮긴다. 아직 모르거나 마쳤으면 null */
-  action: { label: string; to: string; state?: unknown } | null
+  /**
+   * 남은 단계의 바로 가기. '#…'이면 같은 화면 안 그 자리로 옮긴다. `onClick`이면 같은 자리에서 다시 하는 단추(못 받은 값 다시 받기).
+   * 아직 모르거나 마쳤으면 null
+   */
+  action: { label: string; to: string; state?: unknown } | { label: string; onClick: () => void } | null
 }
 
 /** 같은 화면 안 자리로 — 주소는 바꾸지 않는다(해시가 붙으면 라우터가 새 기록으로 본다) */
@@ -46,7 +49,11 @@ export default function StartSteps({ steps, className }: { steps: StartStep[]; c
               {step.note !== null && <small>{step.note}</small>}
             </span>
             {step.action !== null &&
-              (step.action.to.startsWith('#') ? (
+              ('onClick' in step.action ? (
+                <button type="button" className={styles.action} onClick={step.action.onClick}>
+                  {step.action.label}
+                </button>
+              ) : step.action.to.startsWith('#') ? (
                 <a href={step.action.to} className={styles.action} onClick={jumpWithin(step.action.to.slice(1))}>
                   {step.action.label}
                 </a>

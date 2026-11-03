@@ -39,7 +39,7 @@ export default function HomeRail({ likedCount }: { likedCount: number | null }) 
 function StartOrGuide({ likedCount }: { likedCount: number | null }) {
   const loggedIn = useIsLoggedIn()
   const finishedBefore = loggedIn && isStartFinished()
-  const { personality } = useMyPersonality(loggedIn && !finishedBefore)
+  const { personality, retry: retryPersonality } = useMyPersonality(loggedIn && !finishedBefore)
   const recent = loggedIn ? readRecentBacktests() : []
   const provider = loggedIn ? SOCIAL_PROVIDERS.find((item) => item.type === readLastLoginProvider()) : undefined
   const myStrategy = personality.kind === 'found' && isPersonalityType(personality.name) ? findByPersonality(personality.name) : null
@@ -54,9 +54,21 @@ function StartOrGuide({ likedCount }: { likedCount: number | null }) {
     {
       title: '투자성향 테스트',
       done: personality.kind === 'found',
+      // 못 받았으면(500) 검사를 권하지 않는다 — 다시 검사하면 멀쩡한 성향을 덮어쓴다(CLAUDE.md "성향 없음은 실패가 아니다", 코드 점검 D2)
       note:
-        personality.kind === 'found' ? personality.name : personality.kind === 'loading' ? null : '10문항으로 내 성향 찾기',
-      action: personality.kind === 'found' || personality.kind === 'loading' ? null : { label: '테스트하기', to: '/personality-test' },
+        personality.kind === 'found'
+          ? personality.name
+          : personality.kind === 'loading'
+            ? null
+            : personality.kind === 'error'
+              ? '성향을 불러오지 못했어요'
+              : '10문항으로 내 성향 찾기',
+      action:
+        personality.kind === 'found' || personality.kind === 'loading'
+          ? null
+          : personality.kind === 'error'
+            ? { label: '다시 시도', onClick: retryPersonality }
+            : { label: '테스트하기', to: '/personality-test' },
     },
     {
       title: '관심종목 하나 담기',

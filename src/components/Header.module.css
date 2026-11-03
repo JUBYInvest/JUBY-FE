@@ -216,4 +216,9 @@
   .account a {
     padding-right: 0;
   }
+
+  /* 오른쪽 안 여백이 0이라 막대도 오른쪽 끝까지 — 10px 들어가 있어 글자보다 짧고 왼쪽으로 쏠렸다(코드 점검 D7, judge/repro.mjs R5) */
+  .account a[aria-current='page']::before {
+    right: 0;
+  }
 }

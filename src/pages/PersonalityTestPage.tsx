@@ -145,6 +145,8 @@ export default function PersonalityTestPage() {
         <div
           className={styles.progressTrack}
           role="progressbar"
+          aria-label="검사 진행"
+          aria-valuetext={`${total}문항 중 ${currentIndex + 1}번째`}
           aria-valuemin={1}
           aria-valuemax={total}
           aria-valuenow={currentIndex + 1}

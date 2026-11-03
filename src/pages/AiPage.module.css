@@ -259,5 +259,4 @@
 
 .exampleChip {
   composes: secondary md from '../components/buttons.module.css';
-  font-weight: 500;
 }

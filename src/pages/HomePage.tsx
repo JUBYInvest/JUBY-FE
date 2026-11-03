@@ -153,9 +153,15 @@ export default function HomePage() {
 
   const load = useCallback(() => {
     setList({ kind: 'loading' })
+    /*
+     * 로그인 상태가 바뀌면 다시 받는다. 앞 요청이 늦게 오면 버린다 — 로그인 때 보낸 응답이 로그아웃 뒤 응답보다 늦게 오면 앞 회원의 하트가
+     * 비로그인 화면에 칠해졌다(코드 점검, judge/repro.mjs R7)
+     */
+    let isStale = false
 
     getStockList()
       .then(({ baseDate, stocks }) => {
+        if (isStale) return
         setList({ kind: 'ready', baseDate, stocks })
         // 비로그인이면 서버가 isLiked를 비워 주지만, 기대지 않고 여기서도 비운다
         setFavoriteCodes(
@@ -163,9 +169,13 @@ export default function HomePage() {
         )
       })
       .catch((error: unknown) => {
+        if (isStale) return
         console.warn('종목 목록 조회 실패', error)
         setList({ kind: 'error' })
       })
+    return () => {
+      isStale = true
+    }
   }, [loggedIn])
 
   // 로그인·로그아웃하면 load가 새로 만들어져 다시 받는다 — 하트(isLiked)가 그 회원의 것이어야 한다
@@ -409,8 +419,8 @@ export default function HomePage() {
           같아야 한다. 시세표 뒤에 두던 때는 그 순서로 가려면 시세표 행(링크·하트)을 다 지나야 했다. 넓은 화면의 자리는 격자 영역이 정한다
         */}
         <div className={styles.rail}>
-          {/* 처음 시작하기 진행표가 관심종목을 담았는지 본다 — 시세표를 받기 전엔 모른다(null) */}
-          <HomeRail likedCount={list.kind === 'loading' ? null : favoriteCodes.size} />
+          {/* 처음 시작하기 진행표가 관심종목을 담았는지 본다 — 시세표를 받기 전·못 받았을 땐 모른다(null. 못 받았을 때 0으로 넘겨 담은 회원에게도 "담으러 가기"가 떴다) */}
+          <HomeRail likedCount={list.kind === 'ready' ? favoriteCodes.size : null} />
         </div>
 
         <section className={styles.list}>
