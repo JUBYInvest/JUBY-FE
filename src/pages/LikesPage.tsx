@@ -4,6 +4,7 @@ import { getLikeStocks, unlikeStock } from '../api/member'
 import { useDocumentTitle } from '../hooks/useDocumentTitle'
 import { useIsLoggedIn } from '../hooks/useIsLoggedIn'
 import KeywordNews from '../components/KeywordNews'
+import HeartIcon from '../components/HeartIcon'
 import { toStockHandoff } from '../hooks/useStockHandoff'
 import { toKoreanDate } from '../utils/date'
 import {
@@ -16,7 +17,7 @@ import {
 } from '../utils/format'
 import { loginPathFrom } from '../utils/navigation'
 import { preloadStockChartPage } from '../utils/preload'
-import { toPreviewState } from '../utils/stockPreview'
+import { toQuotePreviewState } from '../utils/stockPreview'
 import { sortBy } from '../utils/sort'
 import { squarify } from '../utils/treemap'
 import type { LikeStock } from '../types/member'
@@ -353,13 +354,7 @@ function HeatMap({ stocks, baseDate }: { stocks: LikeStock[]; baseDate: string }
         <Link
           key={item.stockCode}
           to={`/stocks/${item.stockCode}`}
-          state={toPreviewState({
-            stockCode: item.stockCode,
-            stockName: item.stockName,
-            closePrice: item.closePrice ?? undefined,
-            fluctuate: item.fluctuate ?? undefined,
-            baseDate,
-          })}
+          state={toQuotePreviewState(item, baseDate)}
           // 칸 색은 등락 뜻이다(판정이 등락 색 오용으로 세지 않게 표시한다)
           data-market=""
           className={`${styles.tile} ${styles[heatLevel(item.fluctuate)]} ${width < 128 || height < 92 ? styles.tileSmall : ''}`}
@@ -391,25 +386,12 @@ function LikeRow({ stock, baseDate, onUnlike }: { stock: LikeStock; baseDate: st
         aria-pressed="true"
         aria-label={`${stock.stockName} 관심종목 해제`}
       >
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-          <path
-            d="M12 20.3 4.1 12.4a4.9 4.9 0 0 1 6.9-6.9l1 1 1-1a4.9 4.9 0 0 1 6.9 6.9z"
-            stroke="currentColor"
-            strokeWidth="1.8"
-            strokeLinejoin="round"
-          />
-        </svg>
+        <HeartIcon filled />
       </button>
       <span className={styles.who}>
         <Link
           to={`/stocks/${stock.stockCode}`}
-          state={toPreviewState({
-            stockCode: stock.stockCode,
-            stockName: stock.stockName,
-            closePrice: stock.closePrice ?? undefined,
-            fluctuate: stock.fluctuate ?? undefined,
-            baseDate,
-          })}
+          state={toQuotePreviewState(stock, baseDate)}
           className={styles.name}
         >
           {stock.stockName}

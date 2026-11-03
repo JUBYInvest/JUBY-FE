@@ -1,8 +1,9 @@
 import { Link } from 'react-router-dom'
 import type { MouseEvent } from 'react'
+import HeartIcon from './HeartIcon'
 import type { SortDirection, SortKey, SortState, Stock } from '../types/stock'
 import { formatChangeRate, formatPrice, formatTradingValue, rateTone } from '../utils/format'
-import { toPreviewState } from '../utils/stockPreview'
+import { toQuotePreviewState } from '../utils/stockPreview'
 import styles from './StockTable.module.css'
 
 interface Props {
@@ -112,19 +113,7 @@ export default function StockTable({
                 aria-pressed={isFavorite}
                 aria-label={`${stock.stockName} 관심종목 ${isFavorite ? '해제' : '추가'}`}
               >
-                <svg
-                  width="18"
-                  height="18"
-                  viewBox="0 0 24 24"
-                  fill={isFavorite ? 'currentColor' : 'none'}
-                >
-                  <path
-                    d="M12 20.3 4.1 12.4a4.9 4.9 0 0 1 6.9-6.9l1 1 1-1a4.9 4.9 0 0 1 6.9 6.9z"
-                    stroke="currentColor"
-                    strokeWidth="1.8"
-                    strokeLinejoin="round"
-                  />
-                </svg>
+                <HeartIcon filled={isFavorite} />
               </button>
 
               {/*
@@ -136,13 +125,7 @@ export default function StockTable({
               <span className={styles.name}>
                 <Link
                   to={`/stocks/${stock.stockCode}`}
-                  state={toPreviewState({
-                    stockCode: stock.stockCode,
-                    stockName: stock.stockName,
-                    closePrice: stock.closePrice ?? undefined,
-                    fluctuate: stock.fluctuate ?? undefined,
-                    baseDate,
-                  })}
+                  state={toQuotePreviewState(stock, baseDate)}
                   className={styles.nameLink}
                 >
                   {stock.stockName}

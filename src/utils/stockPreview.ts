@@ -11,6 +11,23 @@ export function toPreviewState(preview: StockPreview): { preview: StockPreview }
 }
 
 /**
+ * 시세 한 줄(종가·등락률이 비어 올 수 있다)을 그 기준일과 함께 싣는다. 홈 시세표·주식 모아보기(지도·목록)·마이페이지 관심종목이 같이 쓴다 —
+ * 네 곳에 같은 다섯 칸을 따로 적고 있었다(2026-11-03). 빈 값은 싣지 않는다(상세는 날짜 없는 가격을 쓰지 않는다 — readPreview)
+ */
+export function toQuotePreviewState(
+  stock: { stockCode: string; stockName: string; closePrice: number | null; fluctuate: number | null },
+  baseDate: string,
+): { preview: StockPreview } {
+  return toPreviewState({
+    stockCode: stock.stockCode,
+    stockName: stock.stockName,
+    closePrice: stock.closePrice ?? undefined,
+    fluctuate: stock.fluctuate ?? undefined,
+    baseDate,
+  })
+}
+
+/**
  * 상세 화면이 `location.state`에서 꺼낸다. 없거나 쓸 수 없으면 null.
  *
  * state는 주소 기록에 남아 새로고침·뒤로가기에도 살아 있고 모양을 보장할 수 없어서,

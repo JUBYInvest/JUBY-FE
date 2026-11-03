@@ -13,7 +13,7 @@ import { formatChangeRate, formatPrice, isFiniteNumber, isFlatRate, rateTone } f
 import { isPersonalityType } from '../utils/personality'
 import { readRecentBacktests } from '../utils/recentBacktests'
 import { socialLabel } from '../utils/social'
-import { toPreviewState } from '../utils/stockPreview'
+import { toQuotePreviewState } from '../utils/stockPreview'
 import type { ChatSession } from '../types/ai'
 import type { LikeStock, LikeStockList, MemberInfo, PersonalityInfo } from '../types/member'
 import styles from './MypageHomePage.module.css'
@@ -254,13 +254,7 @@ function LikesPart({ state, onRetry }: { state: Load<LikeStockList>; onRetry: ()
               {/* 이름·기준일 종가를 실어 상세가 응답 전에 그 자리를 채운다(홈 시세표와 같다) */}
               <Link
                 to={`/stocks/${stock.stockCode}`}
-                state={toPreviewState({
-                  stockCode: stock.stockCode,
-                  stockName: stock.stockName,
-                  closePrice: stock.closePrice ?? undefined,
-                  fluctuate: stock.fluctuate ?? undefined,
-                  baseDate,
-                })}
+                state={toQuotePreviewState(stock, baseDate)}
                 className={styles.row}
               >
                 <span className={styles.rowMain}>{stock.stockName}</span>

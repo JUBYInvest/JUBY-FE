@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { toStockHandoff } from '../hooks/useStockHandoff'
 import type { LikeView } from '../hooks/useLikeToggle'
 import type { StockInfo } from '../types/stock'
+import HeartIcon from './HeartIcon'
 import styles from '../pages/StockChartPage.module.css'
 
 /*
@@ -23,14 +24,7 @@ export function LikeToggle({ like, onToggle }: { like: LikeView; onToggle: () =>
       aria-pressed={liked}
       aria-label={liked ? '관심종목 해제' : '관심종목 추가'}
     >
-      <svg width="18" height="18" viewBox="0 0 24 24" fill={liked ? 'currentColor' : 'none'} aria-hidden="true">
-        <path
-          d="M12 20.3 4.1 12.4a4.9 4.9 0 0 1 6.9-6.9l1 1 1-1a4.9 4.9 0 0 1 6.9 6.9z"
-          stroke="currentColor"
-          strokeWidth="1.8"
-          strokeLinejoin="round"
-        />
-      </svg>
+      <HeartIcon filled={liked} />
       {/* 보이는 글은 이름("관심종목 추가/해제")에 들어 있다 */}
       관심종목
     </button>

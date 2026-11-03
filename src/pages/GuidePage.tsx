@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
 import { getGuideSections } from '../api/guide'
-import { HOME_GUIDE_INTRO, HOME_GUIDE_STEPS } from '../content/homeGuide'
+import GuideSteps from '../components/GuideSteps'
+import { HOME_GUIDE_INTRO } from '../content/homeGuide'
 import { useDocumentTitle } from '../hooks/useDocumentTitle'
 import type { GuideSection } from '../types/guide'
 import styles from './GuidePage.module.css'
@@ -58,32 +58,7 @@ export default function GuidePage() {
           <h2 id="guide-steps-title" className={styles.stepsTitle}>
             {HOME_GUIDE_INTRO}
           </h2>
-          <ol className={styles.stepList}>
-            {HOME_GUIDE_STEPS.map((step, index) => {
-              const body = (
-                <>
-                  <span className={styles.stepNumber} aria-hidden="true">
-                    {index + 1}
-                  </span>
-                  <span className={styles.stepText}>
-                    <strong>{step.title}</strong>
-                    <small>{step.description}</small>
-                  </span>
-                </>
-              )
-              return (
-                <li key={step.title}>
-                  {step.to === undefined ? (
-                    <div className={styles.step}>{body}</div>
-                  ) : (
-                    <Link to={step.to} className={`${styles.step} ${styles.stepLink}`}>
-                      {body}
-                    </Link>
-                  )}
-                </li>
-              )
-            })}
-          </ol>
+          <GuideSteps className={styles.stepList} />
         </aside>
       </div>
     </>

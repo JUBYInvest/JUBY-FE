@@ -53,62 +53,15 @@
   color: var(--color-text-sub);
 }
 
+/* 단계 목록(GuideSteps — 줄 모양은 그 모듈). 넓은 화면은 오른쪽 열 줄 높이를 채우고, 줄마다 단계가 늘어난다 */
 .steps {
   display: grid;
   flex: 1 0 auto;
   margin: var(--space-1) 0 0;
-  padding: 0;
-  list-style: none;
 }
 
 .steps li {
   display: grid;
-  border-bottom: 1px solid var(--color-border);
-}
-
-.step {
-  display: grid;
-  grid-template-columns: 28px minmax(0, 1fr) auto;
-  align-items: center;
-  gap: var(--space-3);
-  min-height: 64px;
-  padding: var(--space-3) 0;
-}
-
-.stepLink:hover strong {
-  text-decoration: underline;
-  text-underline-offset: 3px;
-}
-
-/* 차례 번호. 정말 차례가 있는 글이라 번호를 단다 */
-.stepNumber {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  border-radius: var(--radius-pill);
-  background: var(--color-brand-100);
-  color: var(--color-brand-800);
-  font-size: var(--font-sm);
-  font-weight: 700;
-}
-
-.stepText strong {
-  display: block;
-  font-size: var(--font-base);
-}
-
-.stepText small {
-  display: block;
-  margin-top: 2px;
-  font-size: var(--font-sm);
-  color: var(--color-text-sub);
-}
-
-.chevron {
-  font-size: var(--font-xl);
-  color: var(--color-text-sub);
 }
 
 /* 커뮤니티 — 채팅(2026-11-02). 스크롤되는 대화창이라 가는 테두리 하나로 경계를 둔다(AI 대화창과 같은 규칙) */
