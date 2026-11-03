@@ -2,24 +2,29 @@
 // 장 목록은 src/content/guide/index.ts, 기대값은 각 장의 .md에서 짓는다 — 글을 바꾸거나 장을 더해도 판정을 고치지 않는다.
 //  U1 원문 그대로(장마다): 장 제목·꼭지·소제목·표·그림·인용·식·예시 상자·가는 선 개수가 글과 같고, 글의 모든 줄(꾸밈을 걷은 글자)이 화면에 있다
 //  U2 그림: 모두 받아 그려지고(무손실 WebP), 자리를 미리 잡고(width·height), 그림을 설명하는 대체 글이 있다
-//  U3 차례: 장 순서, 글이 없는 장은 "준비 중"이고 링크가 아니다, 지금 장은 aria-current와 그 장의 꼭지
+//  U3 장 목록(왼쪽): 장 순서, 글이 없는 장은 "준비 중"이고 링크가 아니다, 지금 장은 aria-current. "이 장에서"(오른쪽)는 그 장의 꼭지
 //  U4 꼭지로 옮기기: 그 제목이 화면 위에 서고 포커스를 받는다, 주소·기록은 그대로. 움직임 줄이기면 곧바로, 아니면 부드럽게
-//  U5 차례가 읽는 동안 위에 붙어 따라온다(넓은 화면). 좁은 화면은 본문 앞에 장 이름만
+//  U5 장 목록·"이 장에서"가 읽는 동안 위에 붙어 따라온다(넓은 화면). 좁은 화면은 장 목록이 본문 앞, 꼭지는 빼고 단추는 본문 뒤
+//  U9 배치(2026-11-03 사용자 "가운데 허전함"): 1200px~ 세 열 — 장 목록은 화면 제목 왼쪽 끝, "이 장에서"는 오른쪽 끝, 본문(760px까지)은
+//     두 열 사이 가운데(양쪽 사이가 같고 200px 안). 1101~1199px은 "이 장에서"가 장 목록 아래. 본문 글 안에 굵은 먹 선이 없다
+//  U10 "이 장에서" 단추: 장마다 그 기능 화면으로(index.ts action), 좁은 화면에서도 보인다
 //  U6 주소: 첫 장이 /guide, 나머지는 /guide/<장>, 없는 장은 /guide로, 머리글 '사용설명서'가 지금 메뉴
-//  U7 가로 넘침 없음(320~1920, 장마다), 휴대폰 두 칸 표의 첫 칸은 한 줄, 제목 단계를 건너뛰지 않는다(장마다), 넓은 화면 차례 꼭지 40px 이상
+//  U7 가로 넘침 없음(320~1920, 장마다), 휴대폰 두 칸 표의 첫 칸은 한 줄, 제목 단계를 건너뛰지 않는다(장마다), 넓은 화면 장 목록·꼭지 링크 40px 이상
 //  U8 장 끝의 이전 장·다음 장: 첫 장은 다음만, 끝 장은 이전만, 누르면 그 장 맨 위
 // node guide.mjs <BASE> [--only U1,U2] [--headed]
 import { readFileSync } from 'node:fs'
 import { cli, judge, noOverflow, REPO, sleep } from './lib.mjs'
 
 const j = await judge(cli())
-const TOC = 'nav[aria-labelledby="guide-toc-title"]'
+const NAV = 'nav[aria-label="사용설명서 장"]'
+const SIDE = 'aside[aria-labelledby="guide-side-title"]'
 const strip = (s) => s.replace(/!?\[([^\]]*)\]\([^)]*\)/g, '$1').replace(/\*\*(.+?)\*\*/g, '$1').replace(/\*(.+?)\*/g, '$1').replace(/`([^`]*)`/g, '$1').replace(/\s+/g, ' ').trim()
 
 /** 장 목록(index.ts)과 글에서 지은 기대값 */
 const index = readFileSync(`${REPO}src/content/guide/index.ts`, 'utf8')
 const files = Object.fromEntries([...index.matchAll(/import (\w+) from '\.\/([^']+)\?raw'/g)].map((m) => [m[1], m[2]]))
-const chapters = [...index.matchAll(/\{ id: '([^']+)', name: '([^']+)', markdown: (\w+) \}/g)].map((m, i) => ({ id: m[1], name: m[2], number: i + 1, file: m[3] === 'null' ? null : files[m[3]] }))
+const chapters = [...index.matchAll(/\{ id: '([^']+)', name: '([^']+)', markdown: (\w+), action: \{ to: '([^']+)', label: '([^']+)' \} \}/g)]
+  .map((m, i) => ({ id: m[1], name: m[2], number: i + 1, file: m[3] === 'null' ? null : files[m[3]], action: { to: m[4], label: m[5] } }))
 const ready = chapters.filter((c) => c.file !== null).map((c) => ({ ...c, ...expect(readFileSync(`${REPO}src/content/guide/${c.file}`, 'utf8')) }))
 const first = ready[0]
 const pathOf = (c) => (c === first ? '/guide' : `/guide/${c.id}`)
@@ -115,17 +120,21 @@ await j.run('U2', async () => {
 
 await j.run('U3', async () => {
   const t = await openGuide()
-  const toc = await t.page.evaluate((sel) => {
-    const nav = document.querySelector(sel)
-    if (nav === null) return null
-    return [...nav.querySelectorAll(':scope > ol > li')].map((li) => {
-      const head = li.firstElementChild
-      return { text: head.textContent.replace(/\s+/g, ' ').trim(), link: head.tagName === 'A', href: head.getAttribute('href'), current: head.getAttribute('aria-current'),
-        sections: [...li.querySelectorAll(':scope ol a')].map((a) => ({ text: a.textContent.trim(), href: a.getAttribute('href') })) }
-    })
-  }, TOC)
-  if (toc === null) j.report('U3', false, '차례가 없다')
+  const got = await t.page.evaluate(([navSel, sideSel]) => {
+    const nav = document.querySelector(navSel)
+    const side = document.querySelector(sideSel)
+    if (nav === null || side === null) return null
+    return {
+      toc: [...nav.querySelectorAll(':scope > ol > li')].map((li) => {
+        const head = li.firstElementChild
+        return { text: head.textContent.replace(/\s+/g, ' ').trim(), link: head.tagName === 'A', href: head.getAttribute('href'), current: head.getAttribute('aria-current') }
+      }),
+      sections: [...side.querySelectorAll('ol a')].map((a) => ({ text: a.textContent.trim(), href: a.getAttribute('href') })),
+    }
+  }, [NAV, SIDE])
+  if (got === null) j.report('U3', false, '장 목록이나 "이 장에서"가 없다')
   else {
+    const toc = got.toc.map((c, i) => ({ ...c, sections: i === chapters.findIndex((x) => x.id === first.id) ? got.sections : [] }))
     const names = toc.map((c) => c.text)
     const want = chapters.map((c) => `${c.number} ${c.name}${c.file === null ? ' 준비 중' : ''}`)
     const links = chapters.map((c) => (c.file === null ? null : pathOf(ready.find((r) => r.id === c.id))))
@@ -134,7 +143,7 @@ await j.run('U3', async () => {
       && toc.filter((c) => c.current === 'page').length === 1 && toc[at].current === 'page'
       && JSON.stringify(toc[at].sections.map((s) => s.text)) === JSON.stringify(first.sections) && toc[at].sections.every((s, i) => s.href === `#${first.id}-${i + 1}`)
       && toc.every((c, i) => i === at || c.sections.length === 0)
-    j.report('U3', ok, `차례 ${JSON.stringify(names)}, 링크 ${JSON.stringify(toc.map((c) => c.href))}, 지금 장(${first.number}장) 꼭지 ${JSON.stringify(toc[at]?.sections.map((s) => s.text))}`)
+    j.report('U3', ok, `장 목록 ${JSON.stringify(names)}, 링크 ${JSON.stringify(toc.map((c) => c.href))}, "이 장에서"(${first.number}장) 꼭지 ${JSON.stringify(toc[at]?.sections.map((s) => s.text))}`)
   }
   await t.close()
 })
@@ -149,7 +158,7 @@ await j.run('U4', async () => {
   }, id)
   const t = await openGuide()
   const before = await t.page.evaluate(() => ({ url: location.pathname + location.search + location.hash, len: history.length }))
-  await t.page.locator(`${TOC} a`, { hasText: target }).click()
+  await t.page.locator(`${SIDE} a`, { hasText: target }).click()
   await sleep(60)
   const early = await measure(t.page)
   await sleep(1200)
@@ -162,7 +171,7 @@ await j.run('U4', async () => {
   const r = await j.open({ width: 1440, height: 900 })
   await r.page.emulateMedia({ reducedMotion: 'reduce' })
   await r.goto('/guide', 1500)
-  await r.page.locator(`${TOC} a`, { hasText: target }).click()
+  await r.page.locator(`${SIDE} a`, { hasText: target }).click()
   await sleep(60)
   const instant = await measure(r.page)
   j.report('U4c', instant !== null && instant.top >= 0 && instant.top <= 48, `움직임 줄이기 설정에서는 곧바로 선다 — 60ms 뒤 ${instant?.top}px`)
@@ -175,22 +184,29 @@ await j.run('U5', async () => {
   const t = await openGuide({}, pathOf(longest))
   await t.page.evaluate(() => window.scrollTo(0, 4000))
   await sleep(300)
-  const wide = await t.page.evaluate((sel) => { const r = document.querySelector(sel)?.getBoundingClientRect(); return r ? { y: Math.round(scrollY), top: Math.round(r.top), bottom: Math.round(r.bottom) } : null }, TOC)
-  j.report('U5a', wide !== null && wide.y >= 3000 && wide.top >= 0 && wide.top <= 40 && wide.bottom < 900 - 44, `넓은 화면(${longest.number}장): 내려도 차례가 위에 붙어 다 보인다 — ${JSON.stringify(wide)}`)
+  const wide = await t.page.evaluate((sels) => sels.map((sel) => { const r = document.querySelector(sel)?.getBoundingClientRect(); return r ? { top: Math.round(r.top), bottom: Math.round(r.bottom) } : null }).concat([{ y: Math.round(scrollY) }]), [NAV, SIDE])
+  const stuck = (r) => r !== null && r.top >= 0 && r.top <= 40 && r.bottom < 900 - 44
+  j.report('U5a', wide[2].y >= 3000 && stuck(wide[0]) && stuck(wide[1]), `넓은 화면(${longest.number}장): 내려도 장 목록·"이 장에서"가 위에 붙어 다 보인다 — ${JSON.stringify(wide)}`)
   await t.close()
 
   const m = await openGuide({ width: 390, height: 844 }, pathOf(longest))
-  const narrow = await m.page.evaluate((sel) => {
-    const nav = document.querySelector(sel)
+  const narrow = await m.page.evaluate(([navSel, sideSel]) => {
+    const nav = document.querySelector(navSel)
+    const side = document.querySelector(sideSel)
     const article = document.querySelector('main article')
-    if (nav === null || article === null) return null
-    const sectionsShown = [...nav.querySelectorAll('ol ol')].some((ol) => ol.offsetParent !== null)
+    if (nav === null || side === null || article === null) return null
+    const action = [...side.querySelectorAll('a')].find((a) => !a.closest('ol'))
+    const result = {
+      navBefore: nav.getBoundingClientRect().bottom <= article.getBoundingClientRect().top + 1,
+      sectionsShown: [...side.querySelectorAll('ol, h2')].some((el) => el.offsetParent !== null),
+      actionAfter: action !== undefined && action.offsetParent !== null && action.getBoundingClientRect().top >= article.getBoundingClientRect().bottom - 1,
+    }
     window.scrollTo(0, 2000)
-    return { before: nav.getBoundingClientRect().bottom <= article.getBoundingClientRect().top + 1, sectionsShown }
-  }, TOC)
+    return result
+  }, [NAV, SIDE])
   await sleep(200)
-  const scrolled = await m.page.evaluate((sel) => Math.round(document.querySelector(sel)?.getBoundingClientRect().bottom ?? 0), TOC)
-  j.report('U5b', narrow !== null && narrow.before && !narrow.sectionsShown && scrolled < 0, `좁은 화면: 차례(장 이름만)가 본문 앞이고 따라오지 않는다 — ${JSON.stringify(narrow)}, 2000px 내린 뒤 차례 아래 끝 ${scrolled}`)
+  const scrolled = await m.page.evaluate((sel) => Math.round(document.querySelector(sel)?.getBoundingClientRect().bottom ?? 0), NAV)
+  j.report('U5b', narrow !== null && narrow.navBefore && !narrow.sectionsShown && narrow.actionAfter && scrolled < 0, `좁은 화면: 장 목록이 본문 앞이고 따라오지 않는다, 꼭지는 빼고 단추는 본문 뒤 — ${JSON.stringify(narrow)}, 2000px 내린 뒤 장 목록 아래 끝 ${scrolled}`)
   await m.close()
 })
 
@@ -202,7 +218,7 @@ await j.run('U6', async () => {
       await t.goto(path, 1200)
       const got = await t.page.evaluate((sel) => ({ path: location.pathname, title: document.getElementById('guide-chapter-title')?.textContent.trim(),
         current: document.querySelector(`${sel} a[aria-current="page"]`)?.textContent.replace(/\s+/g, ' ').trim(),
-        menu: document.querySelector('header nav a[aria-current="page"]')?.dataset.label, doc: document.title }), TOC)
+        menu: document.querySelector('header nav a[aria-current="page"]')?.dataset.label, doc: document.title }), NAV)
       seen.push({ want: c, asked: path, ...got })
     }
   }
@@ -241,8 +257,8 @@ await j.run('U7', async () => {
         const levels = await t.page.evaluate(() => [...document.querySelectorAll('main h1, main h2, main h3, main h4, main h5, main h6')].map((h) => Number(h.tagName[1])))
         if (levels[0] !== 1 || levels.filter((l) => l === 1).length !== 1 || levels.some((level, i) => i > 0 && level > levels[i - 1] + 1)) skips.push(`${c.number}장 ${levels.join('')}`)
         if (c === first) {
-          const short = await t.page.evaluate((sel) => [...document.querySelectorAll(`${sel} a`)].filter((a) => a.getBoundingClientRect().height < 40).map((a) => `${a.textContent.trim().slice(0, 12)} ${Math.round(a.getBoundingClientRect().height)}px`), TOC)
-          j.report('U7d', short.length === 0, `넓은 화면 차례 링크가 모두 40px 이상 — 모자란 것 ${JSON.stringify(short)}`)
+          const short = await t.page.evaluate((sels) => sels.flatMap((sel) => [...document.querySelectorAll(`${sel} a`)]).filter((a) => a.getBoundingClientRect().height < 40).map((a) => `${a.textContent.trim().slice(0, 12)} ${Math.round(a.getBoundingClientRect().height)}px`), [NAV, SIDE])
+          j.report('U7d', short.length === 0, `넓은 화면 장 목록·"이 장에서" 링크가 모두 40px 이상 — 모자란 것 ${JSON.stringify(short)}`)
         }
       }
       await t.close()
@@ -269,6 +285,61 @@ await j.run('U8', async () => {
   const atLast = await pager(t.page)
   j.report('U8c', JSON.stringify(atLast) === JSON.stringify([`prev ${pathOf(ready[ready.length - 2])}`]), `끝 장은 이전 장만 — ${JSON.stringify(atLast)}`)
   await t.close()
+})
+
+await j.run('U9', async () => {
+  const bad = []
+  const seen = []
+  for (const width of [1280, 1440, 1800, 1920]) {
+    const t = await openGuide({ width, height: 900 })
+    const g = await t.page.evaluate(([navSel, sideSel]) => {
+      const box = (el) => el?.getBoundingClientRect() ?? null
+      const h1 = box(document.querySelector('main h1')), nav = box(document.querySelector(navSel)), side = box(document.querySelector(sideSel)), article = box(document.querySelector('main article'))
+      if ([h1, nav, side, article].includes(null)) return null
+      return { h1: [h1.left, h1.right], nav: [nav.left, nav.right, nav.top], side: [side.left, side.right, side.top], article: [article.left, article.right, article.top], width: article.width }
+    }, [NAV, SIDE])
+    if (g === null) { bad.push(`${width}: 세 열을 못 찾음`); await t.close(); continue }
+    const gapL = g.article[0] - g.nav[1], gapR = g.side[0] - g.article[1]
+    seen.push(`${width}: 사이 ${Math.round(gapL)}·${Math.round(gapR)}, 본문 ${Math.round(g.width)}`)
+    if (Math.abs(g.nav[0] - g.h1[0]) > 1 || Math.abs(g.side[1] - g.h1[1]) > 1) bad.push(`${width}: 양 끝이 화면 제목과 다름 ${JSON.stringify(g)}`)
+    if (Math.abs(g.nav[2] - g.article[2]) > 1 || Math.abs(g.side[2] - g.article[2]) > 1) bad.push(`${width}: 세 열 위 끝이 다름`)
+    if (Math.abs(gapL - gapR) > 2 || gapL > 200 || g.width > 760.5) bad.push(`${width}: 본문이 가운데가 아니거나 사이가 넓다 — ${Math.round(gapL)}·${Math.round(gapR)}, 본문 ${Math.round(g.width)}`)
+    await t.close()
+  }
+  j.report('U9a', bad.length === 0, `세 열(1280~1920): 장 목록·"이 장에서"가 화면 제목 양 끝, 본문이 가운데 — ${seen.join(' / ')}${bad.length ? '\n    ' + bad.join('\n    ') : ''}`)
+
+  const mid = await openGuide({ width: 1100, height: 900 })
+  const two = await mid.page.evaluate(([navSel, sideSel]) => {
+    const nav = document.querySelector(navSel).getBoundingClientRect(), side = document.querySelector(sideSel).getBoundingClientRect(), article = document.querySelector('main article').getBoundingClientRect()
+    return { sideBelowNav: side.top >= nav.bottom, sameColumn: Math.abs(side.left - nav.left) < 1, articleRight: article.left > nav.right }
+  }, [NAV, SIDE])
+  j.report('U9b', two.sideBelowNav && two.sameColumn && two.articleRight, `1100px 두 열: "이 장에서"가 장 목록 아래, 본문은 오른쪽 — ${JSON.stringify(two)}`)
+  await mid.close()
+
+  const rules = []
+  for (const c of ready) {
+    const t = await openGuide({}, pathOf(c))
+    const thick = await t.page.evaluate(() => [...document.querySelectorAll('main article *')].filter((el) => ['Top', 'Bottom'].some((side) => parseFloat(getComputedStyle(el)[`border${side}Width`]) >= 2)).map((el) => el.tagName.toLowerCase() + ' ' + el.textContent.trim().slice(0, 12)))
+    if (thick.length > 0) rules.push(`${c.number}장 ${JSON.stringify(thick.slice(0, 4))}`)
+    await t.close()
+  }
+  j.report('U9c', rules.length === 0, `본문 글 안에 굵은 먹 선이 없다(장 제목·꼭지 모두)${rules.length ? ' — ' + rules.join(' / ') : ''}`)
+})
+
+await j.run('U10', async () => {
+  const bad = []
+  for (const c of ready) {
+    for (const width of [1440, 390]) {
+      const t = await openGuide({ width, height: 900 }, pathOf(c))
+      const a = await t.page.evaluate((sel) => {
+        const link = [...document.querySelectorAll(`${sel} a`)].find((el) => !el.closest('ol'))
+        return link === undefined ? null : { href: link.getAttribute('href'), text: link.textContent.trim(), shown: link.offsetParent !== null, h: Math.round(link.getBoundingClientRect().height) }
+      }, SIDE)
+      if (a === null || a.href !== c.action.to || a.text !== c.action.label || !a.shown || a.h < 40) bad.push(`${c.number}장 ${width}: ${JSON.stringify(a)}`)
+      await t.close()
+    }
+  }
+  j.report('U10', bad.length === 0, `장마다 "이 장에서" 단추가 그 기능 화면으로(${ready.map((c) => `${c.action.label} → ${c.action.to}`).join(', ')}), 넓은·좁은 화면 모두 보인다${bad.length ? '\n    ' + bad.join('\n    ') : ''}`)
 })
 
 await j.finish()

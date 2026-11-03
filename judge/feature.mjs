@@ -174,15 +174,15 @@ for (const [width, height, least] of [[1920, 1080, 8], [1440, 900, 8], [390, 844
 
 /* ── 아래 지수 띠 ── */
 {
-  // B-1 예시 값 표시는 기준 시각("10월 29일 11:00 기준")처럼 띠 위 글자로만 적는다 — 둥근 바탕 표시는 "AI가 만든 화면" 같았다(2026-11-02 사용자)
+  // B-1 예시 값 표시(2026-11-03부터 "(목업본)" — 사용자)는 기준 시각("10월 29일 11:00 기준")처럼 띠 위 글자로만 적는다 — 둥근 바탕 표시는 "AI가 만든 화면" 같았다(2026-11-02 사용자)
   const { context, page } = await open('/', { width: 1440, height: 900 })
   const s = await page.evaluate(() => {
-    const el = [...document.querySelectorAll('aside[aria-label="국내 지수"] p')].find((p) => /예시 값/.test(p.textContent))
+    const el = [...document.querySelectorAll('aside[aria-label="국내 지수"] p')].find((p) => /목업본/.test(p.textContent))
     if (!el) return null
     const cs = getComputedStyle(el)
     return { text: el.textContent.trim(), bg: cs.backgroundColor, radius: cs.borderTopLeftRadius, padding: cs.paddingLeft, weight: cs.fontWeight }
   })
-  report('B-1', s !== null && s.bg === 'rgba(0, 0, 0, 0)' && s.radius === '0px' && s.padding === '0px', `예시 값 표시 ${JSON.stringify(s)}`)
+  report('B-1', s !== null && s.bg === 'rgba(0, 0, 0, 0)' && s.radius === '0px' && s.padding === '0px', `"(목업본)" 표시 ${JSON.stringify(s)}`)
   await context.close()
 }
 

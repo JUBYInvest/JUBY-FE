@@ -1,6 +1,6 @@
 // 나란한 열의 가로선 판정(2026-11-02 사용자 "묘하게 선의 위치가 맞지 않는 것들을 찾아서 다 정리해줘" — 홈 '현재 주가 보기'와
 // '커뮤니티'의 굵은 먹 선이 3px 어긋난 캡처). 두 열이 나란한 폭(1101px 이상)에서 본다. /api는 전부 가짜(mock.mjs).
-// 2026-11-03 A7 사용설명서(장 제목 | 차례). 같은 날(11-02) 검토로 더했다: A6 홈의 다른 상태(비로그인·순위 탭·대표 종목과 시세표 실패), G는 두 열 화면에서 견준 선이 0쌍이면 실패(안 그려진 화면이 통과하던 빈틈).
+// 2026-11-03 A7 사용설명서(장 목록 | 본문 | 이 장에서). 같은 날(11-02) 검토로 더했다: A6 홈의 다른 상태(비로그인·순위 탭·대표 종목과 시세표 실패), G는 두 열 화면에서 견준 선이 0쌍이면 실패(안 그려진 화면이 통과하던 빈틈).
 // 1100.5px 같은 소수점 폭(화면 배율)은 크롬·WebKit이 iframe 폭까지 정수로 반올림해 여기서는 못 잰다 — 홈은 넓은 화면 규칙을 HomePage 한 곳에서 가른다.
 // node lines.mjs <BASE> [--only A1,G] [--headed]
 import { cli, judge, sleep } from './lib.mjs'
@@ -88,10 +88,11 @@ await j.run('A6', async () => {
   } })
 })
 
-// A7 사용설명서(2026-11-03): 왼쪽 장 제목 줄과 오른쪽 차례 제목 줄이 같은 높이에서 먹 선으로 끝난다
-await j.run('A7', () => pairs('A7', '/guide', '사용설명서: 장 제목 먹 선 = 차례 먹 선', new Function(`
+// A7 사용설명서(2026-11-03): 세 열(1200px~)에서 왼쪽 장 목록 첫 줄의 가는 선과 오른쪽 "이 장에서" 제목 줄의 먹 선이 같은 높이다.
+// 1101~1199px은 "이 장에서"가 장 목록 아래로 내려가 견주지 않는다
+await j.run('A7', () => pairs('A7', '/guide', '사용설명서: 장 목록 첫 줄 선 = "이 장에서" 먹 선', new Function(`
   const bottom = ${BOTTOM}
-  return [['장 제목', bottom(document.getElementById('guide-chapter-title'))], ['차례', bottom(document.getElementById('guide-toc-title'))]]`)))
+  return [['장 목록 첫 줄', bottom(document.querySelector('nav[aria-label="사용설명서 장"] li a, nav[aria-label="사용설명서 장"] li span'))], ['이 장에서', bottom(document.getElementById('guide-side-title'))]]`), { widths: [1920, 1600, 1440, 1280] }))
 
 await j.run('A4', () => pairs('A4', '/backtest', '백테스트: 화면 제목 먹 선 = 가이드 제목 먹 선', new Function(`
   const bottom = ${BOTTOM}
@@ -110,7 +111,7 @@ await j.run('A5', () => pairs('A5', '/mypage', '마이페이지 한눈에 보기
  */
 /**
  * 넓은 화면에서 두 열 이상이고 옆 열에 선이 있는 화면 — 견준 선이 0쌍이면 화면이 안 그려진 것이라 실패로 본다.
- * 사용설명서는 넣지 않는다 — 본문이 760px까지라 차례 열과 223~500px 떨어져 "옆 열"(160px 안)이 아니다. 두 열의 먹 선은 A7이 잰다
+ * 사용설명서는 넣지 않는다 — 본문 글에 가로선을 두지 않아(표 칸 선은 뺀다) 옆 열과 견줄 쌍이 없다. 장 목록 첫 줄 선과 "이 장에서" 먹 선은 A7이 잰다
  */
 const TWO_COLUMNS = new Set(['home', 'home-out', 'stock', 'backtest', 'mypage', 'mypage-personality', 'mypage-profile'])
 const SCREENS = [

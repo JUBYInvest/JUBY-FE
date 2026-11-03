@@ -70,9 +70,8 @@ export default function MarketIndexBar() {
           ))}
         </ul>
         {data.isSample ? (
-          <p className={styles.sample}>
-            예시 값<span className={styles.wideOnly}> · 실제 지수 아님</span>
-          </p>
+          // 백엔드 지수 API가 나오기 전의 예시 값이라는 표시(2026-11-03 사용자 — "예시 값 · 실제 지수 아님"에서 바꿨다)
+          <p className={styles.sample}>(목업본)</p>
         ) : (
           asOf !== '' && <p className={styles.asOf}>{asOf} 기준</p>
         )}

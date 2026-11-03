@@ -19,13 +19,15 @@ interface GuideChapterSource {
   /** 차례에 서는 장 이름 */
   name: string
   markdown: string | null
+  /** 오른쪽 "이 장에서"의 단추 — 읽던 기능을 바로 열어 본다. 이름은 홈 "처음이라면" 단계·상세 단추와 같은 말을 쓴다 */
+  action: { to: string; label: string }
 }
 
 export const GUIDE_CHAPTERS: GuideChapterSource[] = [
-  { id: 'juby', name: 'JUBY 소개', markdown: juby },
-  { id: 'personality', name: '투자성향', markdown: personality },
-  { id: 'backtest', name: '주식 백테스트', markdown: backtest },
-  { id: 'ai', name: 'AI 투자 챗봇', markdown: ai },
+  { id: 'juby', name: 'JUBY 소개', markdown: juby, action: { to: '/', label: '홈에서 종목 찾기' } },
+  { id: 'personality', name: '투자성향', markdown: personality, action: { to: '/personality-test', label: '투자성향 테스트 하기' } },
+  { id: 'backtest', name: '주식 백테스트', markdown: backtest, action: { to: '/backtest', label: '주식 백테스트 해 보기' } },
+  { id: 'ai', name: 'AI 투자 챗봇', markdown: ai, action: { to: '/ai', label: 'AI에게 물어보기' } },
 ]
 
 export const GUIDE_IMAGE_SIZES: Record<string, { width: number; height: number }> = {

@@ -28,8 +28,7 @@ function onlyChildTag(node: TreeNode | undefined): string | null {
 function makeComponents(sections: GuideSectionLink[]): Components {
   return {
     /*
-     * 제목은 한 단계씩 내린다 — 화면 제목(h1)·장 제목(h2)이 위에 있다. "## 꼭지"는 앱의 구역처럼 제목 줄 + 굵은 먹 선으로 열고,
-     * 차례가 옮겨 오는 자리라 id를 달고,
+     * 제목은 한 단계씩 내린다 — 화면 제목(h1)·장 제목(h2)이 위에 있다. "## 꼭지"는 오른쪽 "이 장에서"가 옮겨 오는 자리라 id를 달고,
      * 차례로 옮긴 뒤 포커스를 받는다(tabIndex -1, 키보드로 이어 읽는 자리가 그 꼭지가 된다)
      */
     h1: ({ node, children }) => <SectionHeading node={node} sections={sections}>{children}</SectionHeading>,
@@ -75,11 +74,9 @@ function SectionHeading({ node, sections, children }: { node: TreeNode | undefin
   const text = plainText(textOf(node))
   const id = sections.find((section) => section.title === text)?.id
   return (
-    <div className={styles.sectionHead}>
-      <h3 id={id} tabIndex={id === undefined ? undefined : -1} className={styles.section}>
-        {children}
-      </h3>
-    </div>
+    <h3 id={id} tabIndex={id === undefined ? undefined : -1} className={styles.section}>
+      {children}
+    </h3>
   )
 }
 

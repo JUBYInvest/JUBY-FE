@@ -1,6 +1,9 @@
 /*
- * 사용설명서(2026-11-03). 화면 제목의 굵은 먹 선 아래 왼쪽 장 본문 | 오른쪽 차례. 두 열 모두 구역 제목 줄(46px + 먹 선)로 시작해
- * 먹 선이 같은 높이다(judge/lines.mjs A6). 본문 글줄은 읽기 좋게 760px까지만 편다(16px 한글 45자 안팎)
+ * 사용설명서(2026-11-03). 화면 제목의 굵은 먹 선 아래 세 열 — 장 목록 | 본문 | 이 장에서.
+ * 본문 글줄은 읽기 좋게 760px까지만 편다(16px 한글 45자 안팎). 넓으면 남는 폭을 두 옆 열과의 사이에 똑같이 나눠 본문이 가운데 선다.
+ * 두 옆 열은 읽는 동안 위에 붙어 따라온다 — 격자 칸 맨 위에 세우고(align-self: start) 칸 안에서 붙는다.
+ * 선은 길잡이에만: 장 목록 줄 사이 가는 선(마이페이지 메뉴와 같은 모양), "이 장에서" 제목 줄 먹 선(높이를 메뉴 한 줄 44px에 맞춰
+ * 왼쪽 첫 줄 선과 같은 높이 — judge/lines.mjs A7), 장 넘기기 위 가는 선. 본문 글 사이에는 굵은 선을 두지 않는다(GuideArticle.module.css)
  */
 .title {
   composes: pageTitle from '../components/section.module.css';
@@ -8,21 +11,100 @@
 }
 
 .layout {
+  --guide-row: 44px;
+  --guide-side: clamp(220px, 16vw, 280px);
   display: grid;
-  grid-template-columns: minmax(0, 1fr) clamp(320px, 24vw, 420px);
-  grid-template-areas: 'article toc';
-  gap: clamp(32px, 3vw, 56px);
+  grid-template-columns: var(--guide-side) minmax(0, 760px) var(--guide-side);
+  grid-template-areas:
+    'chapters article side'
+    'chapters pager side';
+  justify-content: space-between;
+  column-gap: clamp(32px, 3vw, 56px);
   margin-top: var(--space-6);
+}
+
+.chapters,
+.side {
+  position: sticky;
+  top: var(--space-6);
+  align-self: start;
+}
+
+.chapters {
+  grid-area: chapters;
 }
 
 .article {
   grid-area: article;
   min-width: 0;
-  max-width: 760px;
 }
 
+.side {
+  grid-area: side;
+  --section-head-height: var(--guide-row);
+}
+
+/* 장 목록 — 마이페이지 왼쪽 메뉴와 같은 줄(44px, 가는 선, 고른 줄은 옅은 초록 + 왼쪽 초록 막대) */
+.chapterList {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.chapter,
+.chapterOn,
+.chapterSoon {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: var(--guide-row);
+  padding: 0 var(--space-4);
+  border-bottom: 1px solid var(--color-border);
+  font-size: var(--font-md);
+  color: var(--color-text);
+}
+
+.chapterList li:last-child > * {
+  border-bottom: 0;
+}
+
+.chapter:hover {
+  background: var(--color-bg-hover);
+}
+
+.chapterOn {
+  background: var(--color-brand-50);
+  box-shadow: inset 3px 0 0 var(--color-brand-700);
+  font-weight: 700;
+  color: var(--color-brand-800);
+}
+
+.chapterSoon {
+  color: var(--color-text-sub);
+}
+
+.number {
+  min-width: 1ch;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  color: var(--color-text-sub);
+}
+
+.chapterOn .number {
+  color: var(--color-brand-700);
+}
+
+.soon {
+  margin-left: auto;
+  font-size: var(--font-sm);
+}
+
+/* 장 제목 — 선 없이 크게. 높이를 메뉴 한 줄에 맞춰 세 열의 첫 줄 글자가 한 눈높이에 선다 */
 .chapterTitle {
-  composes: head from '../components/section.module.css';
+  display: flex;
+  align-items: center;
+  min-height: var(--guide-row);
   margin: 0;
   font-size: var(--font-3xl);
   font-weight: 700;
@@ -35,73 +117,14 @@
   color: var(--color-text-sub);
 }
 
-/* 차례 — 읽는 동안 화면 위에 붙어 따라온다(격자 칸 맨 위에 세워야 붙는다) */
-.toc {
-  grid-area: toc;
-  position: sticky;
-  top: var(--space-6);
-  align-self: start;
-}
-
-.tocTitle {
+/* 이 장에서 — 꼭지로 옮기기 + 이 장의 기능 바로 열기 */
+.sideTitle {
   composes: head title from '../components/section.module.css';
 }
 
-.chapters {
+.sections {
   margin: var(--space-2) 0 0;
   padding: 0;
-  list-style: none;
-}
-
-.chapter,
-.chapterOn,
-.chapterSoon {
-  display: grid;
-  grid-template-columns: 28px minmax(0, 1fr) auto;
-  align-items: center;
-  gap: var(--space-3);
-  min-height: 44px;
-  font-size: var(--font-base);
-  font-weight: 600;
-  color: var(--color-text-sub);
-}
-
-.chapter:hover {
-  color: var(--color-text);
-}
-
-.chapterOn {
-  color: var(--color-text);
-  font-weight: 700;
-}
-
-.number {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  border-radius: var(--radius-pill);
-  background: var(--color-bg-sub);
-  font-size: var(--font-sm);
-  font-weight: 700;
-}
-
-/* 지금 장 — 고른 것이라 브랜드 초록 */
-.chapterOn .number {
-  background: var(--color-brand-700);
-  color: var(--color-text-on-brand);
-}
-
-.soon {
-  font-size: var(--font-sm);
-  font-weight: 500;
-}
-
-/* 지금 장의 꼭지. 장 이름 글자 끝(번호 28px + 사이 12px)에 맞춘다 */
-.sections {
-  margin: 0 0 var(--space-2);
-  padding: 0 0 0 40px;
   list-style: none;
 }
 
@@ -122,14 +145,21 @@
   text-underline-offset: 3px;
 }
 
-/* 장 끝의 이전 장 · 다음 장. 좁은 화면은 차례가 본문 맨 앞이라, 끝까지 읽고 다음 장으로 가는 길이 여기뿐이다 */
+.action {
+  composes: secondary md from '../components/buttons.module.css';
+  width: 100%;
+  margin-top: var(--space-5);
+}
+
+/* 장 끝의 이전 장 · 다음 장. 좁은 화면은 장 목록이 본문 맨 앞이라, 끝까지 읽고 다음 장으로 가는 길이 여기다 */
 .pager {
+  grid-area: pager;
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: var(--space-4);
   margin-top: var(--space-12);
   padding-top: var(--space-4);
-  border-top: 2px solid var(--color-rule);
+  border-top: 1px solid var(--color-border);
 }
 
 .pagerLink {
@@ -159,20 +189,65 @@
   text-align: right;
 }
 
+/* 901~1199px: 두 열. "이 장에서"는 장 목록 아래로 가서 따라온다(장 목록은 그 칸에 머문다) */
+@media (max-width: 1199px) {
+  .layout {
+    grid-template-columns: var(--guide-side) minmax(0, 1fr);
+    grid-template-rows: auto 1fr auto;
+    grid-template-areas:
+      'chapters article'
+      'side article'
+      'side pager';
+  }
+
+  .side {
+    margin-top: var(--space-8);
+  }
+}
+
+/* 900px 이하: 한 열. 장 목록은 두 칸씩 접고, 꼭지 목록은 뺀다(본문이 한 화면 아래로 밀린다) — 단추는 본문 끝에 */
 @media (max-width: 900px) {
   .layout {
     grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: none;
     grid-template-areas:
-      'toc'
-      'article';
+      'chapters'
+      'article'
+      'side'
+      'pager';
+    row-gap: var(--space-6);
   }
 
-  .toc {
+  .chapters,
+  .side {
     position: static;
   }
 
-  /* 좁은 화면은 차례가 본문 앞이라 장 이름만 — 꼭지까지 펴면 본문이 한 화면 아래로 밀린다 */
+  .chapterList {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    column-gap: var(--space-4);
+    border-bottom: 0;
+  }
+
+  .chapterList li:last-child > * {
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  .side {
+    margin-top: var(--space-4);
+  }
+
+  .sideTitle,
   .sections {
     display: none;
+  }
+
+  .action {
+    margin-top: 0;
+  }
+
+  .pager {
+    margin-top: 0;
   }
 }

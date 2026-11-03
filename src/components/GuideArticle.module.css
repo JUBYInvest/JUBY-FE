@@ -1,7 +1,8 @@
 /*
  * 사용설명서 본문(GuideArticle.tsx). 오래 읽는 글이라 앱의 다른 글보다 크게(16px, 줄 높이 1.75) 먹 글자로 둔다.
- * 제목 위계: 꼭지(## → h3) 앱의 구역 제목 줄(46px·20px + 굵은 먹 선) · 전략·묶음(### → h4) 18px · 지표(#### → h5) 16px 굵게.
- * 꼭지 먹 선 말고는 가로선을 두지 않는다(표 칸 선은 칸 몫) — 옆 차례 열은 머리 먹 선 하나뿐이라 어긋날 선이 없다(judge/lines.mjs G).
+ * 제목 위계: 꼭지(## → h3) 20px · 전략·묶음(### → h4) 18px · 지표(#### → h5) 16px 굵게 — 크기와 위 여백으로만 나눈다.
+ * 글 사이에는 굵은 먹 선을 두지 않는다(2026-11-03 사용자 — 장 제목·꼭지마다 먹 선이 겹겹이 서서 다른 화면과 결이 달랐다).
+ * 먹 선은 앱에서 "구역(목록·표·칸)이 여기서 시작한다"는 표시라 글의 제목에는 맞지 않는다. 가는 선은 표 줄과 4장 사례 사이(---)에만.
  */
 .body {
   font-size: var(--font-lg);
@@ -21,14 +22,13 @@
   font-weight: 700;
 }
 
-.sectionHead {
-  composes: head from './section.module.css';
-  margin: var(--space-12) 0 var(--space-4);
-}
-
 .section {
-  composes: title from './section.module.css';
-  /* 차례로 옮겨 오면 화면 맨 위에 딱 붙지 않게 */
+  margin: var(--space-12) 0 var(--space-4);
+  font-size: var(--font-2xl);
+  font-weight: 700;
+  line-height: 1.4;
+  letter-spacing: -0.02em;
+  /* "이 장에서"로 옮겨 오면 화면 맨 위에 딱 붙지 않게 */
   scroll-margin-top: var(--space-6);
 }
 
@@ -109,15 +109,11 @@
   font-size: inherit;
 }
 
-/* 사례 사이 가는 선(4장). 꼭지 제목 줄 바로 앞의 선은 그 줄의 먹 선과 겹쳐 두 겹이 되니 숨긴다 */
+/* 사례 사이 가는 선(4장) */
 .body hr {
   margin: var(--space-10) 0;
   border: 0;
   border-top: 1px solid var(--color-border);
-}
-
-.body hr:has(+ .sectionHead) {
-  display: none;
 }
 
 .figure {

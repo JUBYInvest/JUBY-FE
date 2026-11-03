@@ -3,15 +3,15 @@
 //   SAMPLE_BASE: 커밋할 빌드(USE_SAMPLE = true)  API_BASE: 같은 소스에서 USE_SAMPLE만 false로 바꾼 임시 빌드
 //
 // 기대값(판정 전에 적는다)
-//  S1 예시 빌드: 홈·상세·백테스트·AI·사용설명서·로그인·없는 주소·마이페이지(로그인) 8화면 모두 띠가 있고 코스피·코스닥 두 줄 + "예시 값"
+//  S1 예시 빌드: 홈·상세·백테스트·AI·사용설명서·로그인·없는 주소·마이페이지(로그인) 8화면 모두 띠가 있고 코스피·코스닥 두 줄 + "(목업본)"(2026-11-03까지 "예시 값 · 실제 지수 아님")
 //  S2 예시 빌드: /api/stocks/indices 요청 0건, localStorage marketIndices 없음
 //  S3 가로 넘침 없음: 320·375·390·768·1024·1440·1920 (홈, 상세)
 //  S4 맨 아래까지 내리면 본문 마지막 요소 아래 끝 ≤ 띠 위 끝(가리지 않음). 내용이 짧은 화면(없는 주소)도 띠가 화면 맨 아래
 //  S5 띠 높이 1440: 44px, 375: 40px. 띠 글자 왼쪽 끝 = 머리글 로고 왼쪽 끝(1440·1920)
 //  S6 띠 글자 대비 전부 ≥ 4.5:1
 //  S7 겹침: 상세 차트가 띠 밑을 지날 때 띠가 위, 모달이 열리면 모달(막)이 띠 위
-//  S8 375에서 두 줄과 "예시 값"이 띠 안에서 잘리지 않음(목록 넘침 없음)
-//  A1 API 빌드(숫자): 코스피 "2,612.43" "+12.31" "+0.47%" 빨강(up), 코스닥 "745.10" "-3.20" "-0.43%" 파랑(down), "10월 29일 11:00 기준", "예시 값" 없음
+//  S8 375에서 두 줄과 "(목업본)"이 띠 안에서 잘리지 않음(목록 넘침 없음)
+//  A1 API 빌드(숫자): 코스피 "2,612.43" "+12.31" "+0.47%" 빨강(up), 코스닥 "745.10" "-3.20" "-0.43%" 파랑(down), "10월 29일 11:00 기준", "(목업본)" 없음
 //  A2 API 빌드(문자열 숫자): A1과 같은 글자
 //  A3 보합·빈 대비: 코스피 "0.00" "0.00%" 색 없음(flat), 코스닥은 대비 자리 없이 이름·지수만
 //  A4 틀린 줄 섞임: 이름 빈 줄·null·지수 "abc" 줄은 빠지고 코스피200 한 줄만
@@ -86,13 +86,13 @@ async function itemInfo(page) {
     await page.goto(SAMPLE + path)
     const ok = await page.locator(`${BAR} li`).nth(1).waitFor({ timeout: 6000 }).then(() => true, () => false)
     const text = ok ? await barText(page) : ''
-    if (!(ok && /코스피 5,937\.66/.test(text) && /코스닥 1,152\.34/.test(text) && /예시 값/.test(text))) fails.push(`${path}: "${text}"`)
+    if (!(ok && /코스피 5,937\.66/.test(text) && /코스닥 1,152\.34/.test(text) && /\(목업본\)/.test(text))) fails.push(`${path}: "${text}"`)
     await page.waitForTimeout(800)
     indexReqs += count(log, IDX)
     cacheKeys += await page.evaluate(() => (localStorage.getItem('marketIndices') === null ? 0 : 1))
     await context.close()
   }
-  report('S1', fails.length === 0, fails.length === 0 ? `8화면 모두 띠 + 두 줄 + "예시 값"` : fails.join(' | '))
+  report('S1', fails.length === 0, fails.length === 0 ? `8화면 모두 띠 + 두 줄 + "(목업본)"` : fails.join(' | '))
   report('S2', indexReqs === 0 && cacheKeys === 0, `지수 요청 ${indexReqs}건, marketIndices 담긴 화면 ${cacheKeys}`)
 }
 
@@ -254,12 +254,12 @@ async function itemInfo(page) {
   const r = await page.evaluate((sel) => {
     const bar = document.querySelector(sel)
     const list = bar.querySelector('ul')
-    const chip = [...bar.querySelectorAll('p')].find((p) => /예시 값/.test(p.textContent))
+    const chip = [...bar.querySelectorAll('p')].find((p) => /목업본/.test(p.textContent))
     const br = bar.getBoundingClientRect(), cr = chip.getBoundingClientRect()
     return { listOver: list.scrollWidth - list.clientWidth, chipInside: cr.right <= br.right && cr.width > 0, text: bar.innerText.replace(/\s+/g, ' ') }
   }, BAR)
   await context.close()
-  report('S8', r.listOver === 0 && r.chipInside, `375: 목록 넘침 ${r.listOver}px, "예시 값" 띠 안 ${r.chipInside} — "${r.text}"`)
+  report('S8', r.listOver === 0 && r.chipInside, `375: 목록 넘침 ${r.listOver}px, "(목업본)" 띠 안 ${r.chipInside} — "${r.text}"`)
 }
 
 // ---------- API 빌드 ----------
@@ -275,7 +275,7 @@ async function itemInfo(page) {
   const want = (r) => r.items.length === 2 &&
     r.items[0].text === '코스피 2,612.43 +12.31 +0.47%' && r.items[0].tone === 'up' &&
     r.items[1].text === '코스닥 745.10 -3.20 -0.43%' && r.items[1].tone === 'down' &&
-    /10월 29일 11:00 기준/.test(r.text) && !/예시/.test(r.text) && r.reqs === 1
+    /10월 29일 11:00 기준/.test(r.text) && !/예시|목업본/.test(r.text) && r.reqs === 1
   // 괄호는 CSS(::before/::after)라 innerText에 안 들어간다. 눈에 보이는 건 "+12.31 (+0.47%)"
   report('A1', want(res.ok), `${JSON.stringify(res.ok.items)} · "${res.ok.text}" · 요청 ${res.ok.reqs}`)
   report('A2', want(res.strings), `${JSON.stringify(res.strings.items)} · 요청 ${res.strings.reqs}`)
