@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom'
 import remarkGfm from 'remark-gfm'
 import { GUIDE_IMAGE_SIZES } from '../content/guide'
 import type { GuideSectionLink } from '../utils/guideMarkdown'
-import { plainText } from '../utils/guideMarkdown'
+import { plainText, remarkLooseStrong } from '../utils/guideMarkdown'
 import { safeLink } from '../utils/link'
 import styles from './GuideArticle.module.css'
 
@@ -83,7 +83,7 @@ function SectionHeading({ node, sections, children }: { node: TreeNode | undefin
   )
 }
 
-const REMARK_PLUGINS = [remarkGfm]
+const REMARK_PLUGINS = [remarkGfm, remarkLooseStrong]
 
 interface Props {
   body: string

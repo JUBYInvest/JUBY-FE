@@ -82,6 +82,44 @@
   margin-top: var(--space-2);
 }
 
+/* 인용 안의 머리말(4장 "답변 예시") — 면 안에서는 위 여백을 두지 않는다 */
+.body blockquote .lead {
+  margin: 0 0 var(--space-2);
+}
+
+/* 예시 화면(2장 예시 문항). 노션처럼 고정폭 글꼴로 둬야 화살표 줄이 맞는다. 좁으면 상자 안에서만 옆으로 민다 */
+.body pre {
+  margin: var(--space-5) 0;
+  padding: var(--space-4) var(--space-5);
+  overflow-x: auto;
+  border-radius: var(--radius-md);
+  background: var(--color-bg-sub);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: var(--font-md);
+  line-height: 1.7;
+  white-space: pre;
+  overflow-wrap: normal;
+  word-break: normal;
+}
+
+.body pre code {
+  padding: 0;
+  background: none;
+  font-family: inherit;
+  font-size: inherit;
+}
+
+/* 사례 사이 가는 선(4장). 꼭지 제목 줄 바로 앞의 선은 그 줄의 먹 선과 겹쳐 두 겹이 되니 숨긴다 */
+.body hr {
+  margin: var(--space-10) 0;
+  border: 0;
+  border-top: 1px solid var(--color-border);
+}
+
+.body hr:has(+ .sectionHead) {
+  display: none;
+}
+
 .figure {
   margin: var(--space-6) 0;
 }
@@ -138,6 +176,19 @@
 
 .body li + li {
   margin-top: var(--space-2);
+}
+
+/* 단계마다 굵은 한 줄 + 설명 문단인 목록(1장 서비스 시작하기) */
+.body li > p {
+  margin: 0 0 var(--space-2);
+}
+
+.body li > .lead {
+  margin: 0 0 var(--space-1);
+}
+
+.body li > ul {
+  margin: var(--space-1) 0 0;
 }
 
 .body li::marker {

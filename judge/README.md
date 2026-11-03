@@ -31,6 +31,7 @@ node community.mjs http://localhost:4198              # 홈 커뮤니티 채팅(
 node lines.mjs http://localhost:4198                  # 나란한 열의 선(11-02): 홈·백테스트·마이페이지 다섯 쌍 + 홈의 다른 상태가 같은 높이, 두 열 화면 전부 옆 열 선 어긋남 0
 node motion.mjs http://localhost:4198                 # 화면 전환(11-03): 메뉴 막대 미끄러짐·본문 떠오름(같은 때·곡선)·뒤로 가기·움직임 줄이기·줄이 다른 메뉴·묶음 받는 동안 띠 아래 줄
 node login.mjs http://localhost:4198                  # 로그인 화면(11-02): 글자 든 단추 셋·가운데 한 줄·떠나는 주소·최근 사용(적기·지우기)·실패 안내·좁은 폭·다른 화면에 다녀온 뒤·고대비
+node guide.mjs http://localhost:4198                  # 사용설명서(11-03): 글 파일과 같은 글·그림 다섯 장(WebP·자리·대체 글)·네 장 차례·꼭지로 옮기기·따라오는 차례·주소·넘침
 ```
 
 `--only A,B`로 묶음을 고르고, `flow`·`repro`·`ai`는 `--headed`로 창을 보며 돌린다. 끝줄이 `N PASS / M FAIL`이고 FAIL이 있으면 종료 코드 1이다.

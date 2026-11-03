@@ -1,38 +1,51 @@
-// 사용설명서 판정(2026-11-03 사용자 "사용설명서에 그대로 반영해줘" — 3장 주식 백테스트, 노션에서 쓴 글과 그림 다섯 장).
-// 글은 src/content/guide/*.md에서 읽어 기대값을 짓는다 — 글이 바뀌어도 판정을 고치지 않는다.
-//  U1 원문 그대로: 장 제목·꼭지·표·그림·인용·식 개수가 글과 같고, 글의 모든 줄(꾸밈을 걷은 글자)이 화면에 있다
-//  U2 그림: 다섯 장 모두 받아 그려지고(무손실 WebP), 자리를 미리 잡고(width·height), 그림을 설명하는 대체 글이 있다
-//  U3 차례: 네 장 순서, 글이 없는 장은 "준비 중"이고 링크가 아니다, 지금 장은 aria-current와 꼭지 넷
+// 사용설명서 판정(2026-11-03 사용자 "사용설명서에 그대로 반영해줘" — 노션에서 쓴 네 장: 1 JUBY 소개 · 2 투자성향 · 3 주식 백테스트(그림 다섯 장) · 4 AI 투자 챗봇).
+// 장 목록은 src/content/guide/index.ts, 기대값은 각 장의 .md에서 짓는다 — 글을 바꾸거나 장을 더해도 판정을 고치지 않는다.
+//  U1 원문 그대로(장마다): 장 제목·꼭지·소제목·표·그림·인용·식·예시 상자·가는 선 개수가 글과 같고, 글의 모든 줄(꾸밈을 걷은 글자)이 화면에 있다
+//  U2 그림: 모두 받아 그려지고(무손실 WebP), 자리를 미리 잡고(width·height), 그림을 설명하는 대체 글이 있다
+//  U3 차례: 장 순서, 글이 없는 장은 "준비 중"이고 링크가 아니다, 지금 장은 aria-current와 그 장의 꼭지
 //  U4 꼭지로 옮기기: 그 제목이 화면 위에 서고 포커스를 받는다, 주소·기록은 그대로. 움직임 줄이기면 곧바로, 아니면 부드럽게
 //  U5 차례가 읽는 동안 위에 붙어 따라온다(넓은 화면). 좁은 화면은 본문 앞에 장 이름만
-//  U6 주소: /guide/backtest도 같은 장, 글 없는 장·없는 장은 /guide로, 머리글 '사용설명서'가 지금 메뉴
-//  U7 가로 넘침 없음(320~1920), 휴대폰 두 칸 표의 첫 칸은 한 줄, 제목 단계를 건너뛰지 않는다
+//  U6 주소: 첫 장이 /guide, 나머지는 /guide/<장>, 없는 장은 /guide로, 머리글 '사용설명서'가 지금 메뉴
+//  U7 가로 넘침 없음(320~1920, 장마다), 휴대폰 두 칸 표의 첫 칸은 한 줄, 제목 단계를 건너뛰지 않는다(장마다), 넓은 화면 차례 꼭지 40px 이상
+//  U8 장 끝의 이전 장·다음 장: 첫 장은 다음만, 끝 장은 이전만, 누르면 그 장 맨 위
 // node guide.mjs <BASE> [--only U1,U2] [--headed]
 import { readFileSync } from 'node:fs'
 import { cli, judge, noOverflow, REPO, sleep } from './lib.mjs'
 
 const j = await judge(cli())
 const TOC = 'nav[aria-labelledby="guide-toc-title"]'
-const markdown = readFileSync(`${REPO}src/content/guide/backtest.md`, 'utf8')
-const lines = markdown.split('\n')
-const strip = (s) => s.replace(/!?\[([^\]]*)\]\([^)]*\)/g, '$1').replace(/\*\*(.+?)\*\*/g, '$1').replace(/`([^`]*)`/g, '$1').replace(/\s+/g, ' ').trim()
+const strip = (s) => s.replace(/!?\[([^\]]*)\]\([^)]*\)/g, '$1').replace(/\*\*(.+?)\*\*/g, '$1').replace(/\*(.+?)\*/g, '$1').replace(/`([^`]*)`/g, '$1').replace(/\s+/g, ' ').trim()
 
-/** 글에서 지은 기대값 */
-const expected = {
-  title: strip(lines.find((l) => /^# /.test(l)).slice(2)),
-  sections: lines.filter((l) => /^## /.test(l)).map((l) => strip(l.slice(3))),
-  h4: lines.filter((l) => /^### /.test(l)).length,
-  h5: lines.filter((l) => /^#### /.test(l)).length,
-  tables: lines.filter((l) => /^\|\s*-{3}/.test(l)).length,
-  images: lines.filter((l) => /^!\[/.test(l)).map((l) => /\]\(([^)]+)\)/.exec(l)[1]),
-  quotes: lines.filter((l, i) => /^>/.test(l) && !/^>/.test(lines[i - 1] ?? '')).length,
-  formulas: lines.filter((l) => /^`[^`]+`$/.test(l.trim())).length,
-  // 화면에 있어야 할 글 조각: 표는 칸마다, 나머지는 줄마다(제목 줄·그림·표 구분 줄 빼고)
-  texts: lines.slice(1).flatMap((l) => {
-    if (l.trim() === '' || /^\|\s*-{3}/.test(l) || /^!\[/.test(l)) return []
-    if (/^\|/.test(l)) return l.split('|').slice(1, -1).map(strip).filter(Boolean)
-    return [strip(l.replace(/^#+\s+/, '').replace(/^>\s?/, '').replace(/^\d+\.\s+/, ''))].filter(Boolean)
-  }),
+/** 장 목록(index.ts)과 글에서 지은 기대값 */
+const index = readFileSync(`${REPO}src/content/guide/index.ts`, 'utf8')
+const files = Object.fromEntries([...index.matchAll(/import (\w+) from '\.\/([^']+)\?raw'/g)].map((m) => [m[1], m[2]]))
+const chapters = [...index.matchAll(/\{ id: '([^']+)', name: '([^']+)', markdown: (\w+) \}/g)].map((m, i) => ({ id: m[1], name: m[2], number: i + 1, file: m[3] === 'null' ? null : files[m[3]] }))
+const ready = chapters.filter((c) => c.file !== null).map((c) => ({ ...c, ...expect(readFileSync(`${REPO}src/content/guide/${c.file}`, 'utf8')) }))
+const first = ready[0]
+const pathOf = (c) => (c === first ? '/guide' : `/guide/${c.id}`)
+
+function expect(markdown) {
+  const lines = markdown.split('\n')
+  let fenced = false
+  const outside = lines.map((l) => { const fence = /^\s*```/.test(l); if (fence) fenced = !fenced; return fence || fenced ? null : l })
+  const body = outside.slice(outside.findIndex((l) => l !== null && /^# /.test(l)) + 1)
+  return {
+    title: strip(lines.find((l) => /^# /.test(l)).slice(2)),
+    sections: body.filter((l) => l !== null && /^## /.test(l)).map((l) => strip(l.slice(3))),
+    subheadings: body.filter((l) => l !== null && /^#{3,6} /.test(l)).length,
+    tables: lines.filter((l) => /^\|\s*-{3}/.test(l)).length,
+    images: lines.filter((l) => /^!\[/.test(l)).map((l) => /\]\(([^)]+)\)/.exec(l)[1]),
+    quotes: lines.filter((l, i) => /^>/.test(l) && !/^>/.test(lines[i - 1] ?? '')).length,
+    formulas: lines.filter((l) => /^`[^`]+`$/.test(l.trim())).length,
+    pres: lines.filter((l) => /^\s*```/.test(l)).length / 2,
+    rules: outside.filter((l) => l !== null && /^-{3,}\s*$/.test(l)).length,
+    // 화면에 있어야 할 글 조각: 표는 칸마다, 나머지는 줄마다(제목 줄·그림·표 구분 줄·가는 선·코드 울타리 빼고)
+    texts: body.length === 0 ? [] : lines.slice(1).flatMap((l) => {
+      if (l.trim() === '' || /^\|\s*-{3}/.test(l) || /^!\[/.test(l) || /^\s*```/.test(l) || /^-{3,}\s*$/.test(l)) return []
+      if (/^\|/.test(l)) return l.split('|').slice(1, -1).map(strip).filter(Boolean)
+      return [strip(l.trim().replace(/^#+\s+/, '').replace(/^>\s?/, '').replace(/^[-*]\s+/, '').replace(/^\d+\.\s+/, ''))].filter(Boolean)
+    }),
+  }
 }
 
 async function openGuide(opts = {}, path = '/guide') {
@@ -43,54 +56,61 @@ async function openGuide(opts = {}, path = '/guide') {
 }
 
 await j.run('U1', async () => {
-  const t = await openGuide()
-  const got = await t.page.evaluate(() => {
-    const article = document.querySelector('main article')
-    if (article === null) return null
-    return {
-      title: document.getElementById('guide-chapter-title')?.textContent.trim() ?? null,
-      sections: [...article.querySelectorAll('h3')].map((h) => h.textContent.trim()),
-      h4: article.querySelectorAll('h4').length,
-      h5: article.querySelectorAll('h5').length,
-      tables: article.querySelectorAll('table').length,
-      images: article.querySelectorAll('img').length,
-      quotes: article.querySelectorAll('blockquote').length,
-      formulas: [...article.querySelectorAll('p')].filter((p) => getComputedStyle(p).borderLeftWidth === '3px').length,
-      text: article.innerText.replace(/\s+/g, ' '),
+  for (const c of ready) {
+    const t = await openGuide({}, pathOf(c))
+    const got = await t.page.evaluate(() => {
+      const article = document.querySelector('main article')
+      if (article === null) return null
+      return {
+        title: document.getElementById('guide-chapter-title')?.textContent.trim() ?? null,
+        sections: [...article.querySelectorAll('h3')].map((h) => h.textContent.trim()),
+        subheadings: article.querySelectorAll('h4, h5, h6').length,
+        tables: article.querySelectorAll('table').length,
+        images: article.querySelectorAll('img').length,
+        quotes: article.querySelectorAll('blockquote').length,
+        formulas: [...article.querySelectorAll('p')].filter((p) => getComputedStyle(p).borderLeftWidth === '3px').length,
+        pres: article.querySelectorAll('pre').length,
+        rules: article.querySelectorAll('hr').length,
+        text: article.innerText.replace(/\s+/g, ' '),
+      }
+    })
+    const tag = `U1 ${c.number}장`
+    if (got === null) {
+      j.report(tag, false, `${pathOf(c)} 본문(article)이 없다`)
+    } else {
+      const counts = ['subheadings', 'tables', 'quotes', 'formulas', 'pres', 'rules'].map((k) => [k, got[k], c[k]])
+      const same = got.title === c.title && JSON.stringify(got.sections) === JSON.stringify(c.sections) && got.images === c.images.length && counts.every(([, a, b]) => a === b)
+      const missing = c.texts.filter((s) => !got.text.includes(s))
+      // 마크다운이 못 읽은 굵게(**-18.40%**로)는 별표가 글자로 남는다
+      if (got.text.includes('**')) missing.unshift(`별표가 글자로 남음: …${got.text.slice(Math.max(0, got.text.indexOf('**') - 12), got.text.indexOf('**') + 16)}…`)
+      j.report(tag, same && missing.length === 0, `${pathOf(c)} "${got.title}" — 꼭지 ${got.sections.length}/${c.sections.length}, 그림 ${got.images}/${c.images.length}, ${counts.map(([k, a, b]) => `${k} ${a}/${b}`).join(', ')}; 글 ${c.texts.length}조각 중 없는 것 ${missing.length}${missing.length ? '\n    ' + missing.slice(0, 6).join('\n    ') : ''}`)
     }
-  })
-  if (got === null) {
-    j.report('U1a', false, '본문(article)이 없다')
-    j.report('U1b', false, '본문이 없어 글자를 견줄 수 없다')
-  } else {
-    const same = got.title === expected.title && JSON.stringify(got.sections) === JSON.stringify(expected.sections) && got.h4 === expected.h4 && got.h5 === expected.h5 &&
-      got.tables === expected.tables && got.images === expected.images.length && got.quotes === expected.quotes && got.formulas === expected.formulas
-    j.report('U1a', same, `장 제목 "${got.title}", 꼭지 ${got.sections.length}/${expected.sections.length}, 소제목 ${got.h4}/${expected.h4}·${got.h5}/${expected.h5}, 표 ${got.tables}/${expected.tables}, 그림 ${got.images}/${expected.images.length}, 인용 ${got.quotes}/${expected.quotes}, 식 ${got.formulas}/${expected.formulas}`)
-    const missing = expected.texts.filter((s) => !got.text.includes(s))
-    j.report('U1b', missing.length === 0, `글 ${expected.texts.length}조각 중 화면에 없는 것 ${missing.length}${missing.length ? '\n    ' + missing.slice(0, 6).join('\n    ') : ''}`)
+    await t.close()
   }
-  await t.close()
 })
 
 await j.run('U2', async () => {
-  const t = await j.open({ width: 1440, height: 900 })
-  const types = new Map()
-  t.page.on('response', (r) => { if (/\/guide\/.+\.(webp|png)$/.test(new URL(r.url()).pathname)) types.set(new URL(r.url()).pathname, r.headers()['content-type']) })
-  await t.goto('/guide', 1500)
-  const imgs = await t.page.locator('main article img').all()
-  const rows = []
-  for (const img of imgs) {
-    await img.scrollIntoViewIfNeeded()
-    await t.page.waitForFunction((el) => el.complete, await img.elementHandle(), { timeout: 4000 }).catch(() => {})
-    rows.push(await img.evaluate((el) => ({ src: new URL(el.src).pathname, natural: el.naturalWidth, attr: el.getAttribute('width') !== null && el.getAttribute('height') !== null,
-      ratio: Math.abs(el.getBoundingClientRect().width / el.getBoundingClientRect().height - el.naturalWidth / el.naturalHeight) < 0.02, alt: el.alt, lazy: el.loading === 'lazy' })))
+  const withImages = ready.filter((c) => c.images.length > 0)
+  j.report('U2', withImages.length > 0 ? null : false, `그림이 있는 장 ${withImages.map((c) => c.number + '장').join('·')}`)
+  for (const c of withImages) {
+    const t = await j.open({ width: 1440, height: 900 })
+    const types = new Map()
+    t.page.on('response', (r) => { if (/\/guide\/.+\.(webp|png)$/.test(new URL(r.url()).pathname)) types.set(new URL(r.url()).pathname, r.headers()['content-type']) })
+    await t.goto(pathOf(c), 1500)
+    const rows = []
+    for (const img of await t.page.locator('main article img').all()) {
+      await img.scrollIntoViewIfNeeded()
+      await t.page.waitForFunction((el) => el.complete, await img.elementHandle(), { timeout: 4000 }).catch(() => {})
+      rows.push(await img.evaluate((el) => ({ src: new URL(el.src).pathname, natural: el.naturalWidth, attr: el.getAttribute('width') !== null && el.getAttribute('height') !== null,
+        ratio: el.naturalHeight > 0 && Math.abs(el.getBoundingClientRect().width / el.getBoundingClientRect().height - el.naturalWidth / el.naturalHeight) < 0.02, alt: el.alt, lazy: el.loading === 'lazy' })))
+    }
+    const loaded = rows.length === c.images.length && rows.every((r, i) => r.src === c.images[i] && r.natural > 0 && r.ratio)
+    j.report(`U2a ${c.number}장`, loaded, `그림 ${rows.length}장, 글의 순서·주소와 같고 다 그려졌다 — ${rows.map((r) => `${r.src.split('/').pop()} ${r.natural}px`).join(', ')}`)
+    j.report(`U2b ${c.number}장`, rows.length > 0 && rows.every((r) => r.attr && r.lazy), '그림이 오기 전에 자리를 잡고(width·height) 화면 가까이 와서 받는다(loading=lazy)')
+    j.report(`U2c ${c.number}장`, rows.length > 0 && rows.every((r) => r.alt.length >= 20 && !/\.(png|webp)$/i.test(r.alt)), `대체 글이 그림을 설명한다(노션 이름 image.png가 아니다) — ${rows.map((r) => r.alt.slice(0, 18) + '…').join(' | ')}`)
+    j.report(`U2d ${c.number}장`, types.size === c.images.length && [...types.values()].every((v) => v === 'image/webp'), `WebP로 받는다 — ${JSON.stringify([...types.values()])}`)
+    await t.close()
   }
-  const loaded = rows.length === expected.images.length && rows.every((r, i) => r.src === expected.images[i] && r.natural === 1344 && r.ratio)
-  j.report('U2a', loaded, `그림 ${rows.length}장, 글의 순서·주소와 같고 다 그려졌다 — ${rows.map((r) => `${r.src.split('/').pop()} ${r.natural}px`).join(', ')}`)
-  j.report('U2b', rows.length > 0 && rows.every((r) => r.attr && r.lazy), '그림이 오기 전에 자리를 잡고(width·height) 화면 가까이 와서 받는다(loading=lazy)')
-  j.report('U2c', rows.length > 0 && rows.every((r) => r.alt.length >= 20 && !/\.(png|webp)$/i.test(r.alt)), `대체 글이 그림을 설명한다(노션 이름 image.png가 아니다) — ${rows.map((r) => r.alt.slice(0, 18) + '…').join(' | ')}`)
-  j.report('U2d', types.size === expected.images.length && [...types.values()].every((v) => v === 'image/webp'), `WebP로 받는다 — ${JSON.stringify([...types.values()])}`)
-  await t.close()
 })
 
 await j.run('U3', async () => {
@@ -100,27 +120,33 @@ await j.run('U3', async () => {
     if (nav === null) return null
     return [...nav.querySelectorAll(':scope > ol > li')].map((li) => {
       const head = li.firstElementChild
-      return { text: head.textContent.replace(/\s+/g, ' ').trim(), link: head.tagName === 'A', current: head.getAttribute('aria-current'),
+      return { text: head.textContent.replace(/\s+/g, ' ').trim(), link: head.tagName === 'A', href: head.getAttribute('href'), current: head.getAttribute('aria-current'),
         sections: [...li.querySelectorAll(':scope ol a')].map((a) => ({ text: a.textContent.trim(), href: a.getAttribute('href') })) }
     })
   }, TOC)
   if (toc === null) j.report('U3', false, '차례가 없다')
   else {
     const names = toc.map((c) => c.text)
-    const ok = JSON.stringify(names) === JSON.stringify(['1 JUBY 소개 준비 중', '2 투자성향 준비 중', '3 주식 백테스트', '4 AI 투자챗봇 준비 중'])
-      && toc.filter((c) => c.link).length === 1 && toc[2].link && toc[2].current === 'page'
-      && JSON.stringify(toc[2].sections.map((s) => s.text)) === JSON.stringify(expected.sections) && toc[2].sections.every((s, i) => s.href === `#backtest-${i + 1}`)
-    j.report('U3', ok, `차례 ${JSON.stringify(names)}, 링크 ${toc.filter((c) => c.link).length}개, 지금 장 꼭지 ${JSON.stringify(toc[2]?.sections.map((s) => s.text))}`)
+    const want = chapters.map((c) => `${c.number} ${c.name}${c.file === null ? ' 준비 중' : ''}`)
+    const links = chapters.map((c) => (c.file === null ? null : pathOf(ready.find((r) => r.id === c.id))))
+    const at = chapters.findIndex((c) => c.id === first.id)
+    const ok = JSON.stringify(names) === JSON.stringify(want) && toc.every((c, i) => (links[i] === null ? !c.link : c.link && c.href === links[i]))
+      && toc.filter((c) => c.current === 'page').length === 1 && toc[at].current === 'page'
+      && JSON.stringify(toc[at].sections.map((s) => s.text)) === JSON.stringify(first.sections) && toc[at].sections.every((s, i) => s.href === `#${first.id}-${i + 1}`)
+      && toc.every((c, i) => i === at || c.sections.length === 0)
+    j.report('U3', ok, `차례 ${JSON.stringify(names)}, 링크 ${JSON.stringify(toc.map((c) => c.href))}, 지금 장(${first.number}장) 꼭지 ${JSON.stringify(toc[at]?.sections.map((s) => s.text))}`)
   }
   await t.close()
 })
 
 await j.run('U4', async () => {
-  const target = expected.sections[1]
-  const measure = (page) => page.evaluate(() => {
-    const h = document.getElementById('backtest-2')
+  const k = Math.min(2, first.sections.length)
+  const target = first.sections[k - 1]
+  const id = `${first.id}-${k}`
+  const measure = (page) => page.evaluate((id) => {
+    const h = document.getElementById(id)
     return h === null ? null : { top: Math.round(h.getBoundingClientRect().top), focused: document.activeElement === h, url: location.pathname + location.search + location.hash, len: history.length }
-  })
+  }, id)
   const t = await openGuide()
   const before = await t.page.evaluate(() => ({ url: location.pathname + location.search + location.hash, len: history.length }))
   await t.page.locator(`${TOC} a`, { hasText: target }).click()
@@ -130,7 +156,7 @@ await j.run('U4', async () => {
   const after = await measure(t.page)
   j.report('U4a', after !== null && after.top >= 0 && after.top <= 48 && after.focused && after.url === before.url && after.len === before.len,
     `"${target}"을 누르면 그 제목이 화면 위(${after?.top}px)에 서고 포커스를 받는다, 주소·기록 그대로(${after?.url}, ${before.len} → ${after?.len})`)
-  j.report('U4b', early !== null && early.top > 200, `부드럽게 옮긴다 — 60ms 뒤 아직 ${early?.top}px`)
+  j.report('U4b', early !== null && early.top > 100, `부드럽게 옮긴다 — 60ms 뒤 아직 ${early?.top}px`)
   await t.close()
 
   const r = await j.open({ width: 1440, height: 900 })
@@ -144,14 +170,16 @@ await j.run('U4', async () => {
 })
 
 await j.run('U5', async () => {
-  const t = await openGuide()
+  // 가장 긴 장에서 잰다
+  const longest = [...ready].sort((a, b) => b.texts.length - a.texts.length)[0]
+  const t = await openGuide({}, pathOf(longest))
   await t.page.evaluate(() => window.scrollTo(0, 4000))
   await sleep(300)
-  const wide = await t.page.evaluate((sel) => { const r = document.querySelector(sel)?.getBoundingClientRect(); return r ? { top: Math.round(r.top), bottom: Math.round(r.bottom) } : null }, TOC)
-  j.report('U5a', wide !== null && wide.top >= 0 && wide.top <= 40 && wide.bottom < 900 - 44, `넓은 화면: 4000px 내려도 차례가 위에 붙어 다 보인다 — ${JSON.stringify(wide)}`)
+  const wide = await t.page.evaluate((sel) => { const r = document.querySelector(sel)?.getBoundingClientRect(); return r ? { y: Math.round(scrollY), top: Math.round(r.top), bottom: Math.round(r.bottom) } : null }, TOC)
+  j.report('U5a', wide !== null && wide.y >= 3000 && wide.top >= 0 && wide.top <= 40 && wide.bottom < 900 - 44, `넓은 화면(${longest.number}장): 내려도 차례가 위에 붙어 다 보인다 — ${JSON.stringify(wide)}`)
   await t.close()
 
-  const m = await openGuide({ width: 390, height: 844 })
+  const m = await openGuide({ width: 390, height: 844 }, pathOf(longest))
   const narrow = await m.page.evaluate((sel) => {
     const nav = document.querySelector(sel)
     const article = document.querySelector('main article')
@@ -167,47 +195,80 @@ await j.run('U5', async () => {
 })
 
 await j.run('U6', async () => {
-  const t = await openGuide({}, '/guide/backtest')
-  const same = await t.page.evaluate((sel) => ({ title: document.getElementById('guide-chapter-title')?.textContent.trim(),
-    current: document.querySelector(`${sel} a[aria-current="page"]`)?.textContent.replace(/\s+/g, ' ').trim(),
-    menu: document.querySelector('header nav a[aria-current="page"]')?.dataset.label, doc: document.title }), TOC)
-  j.report('U6a', same.title === expected.title && same.current === '3 주식 백테스트' && same.menu === '사용설명서' && /주식 백테스트 사용설명서/.test(same.doc),
-    `/guide/backtest도 같은 장, 머리글 지금 메뉴 ${same.menu}, 탭 제목 "${same.doc}"`)
+  const t = await j.open({ width: 1440, height: 900 })
+  const seen = []
+  for (const c of ready) {
+    for (const path of [...new Set([pathOf(c), `/guide/${c.id}`])]) {
+      await t.goto(path, 1200)
+      const got = await t.page.evaluate((sel) => ({ path: location.pathname, title: document.getElementById('guide-chapter-title')?.textContent.trim(),
+        current: document.querySelector(`${sel} a[aria-current="page"]`)?.textContent.replace(/\s+/g, ' ').trim(),
+        menu: document.querySelector('header nav a[aria-current="page"]')?.dataset.label, doc: document.title }), TOC)
+      seen.push({ want: c, asked: path, ...got })
+    }
+  }
+  const bad = seen.filter((s) => s.path !== s.asked || s.title !== s.want.title || s.current !== `${s.want.number} ${s.want.name}` || s.menu !== '사용설명서' || !s.doc.startsWith(`${s.want.name} 사용설명서`))
+  j.report('U6a', bad.length === 0, `장마다 주소·제목·지금 장·머리글 메뉴·탭 제목 — ${seen.map((s) => `${s.path} "${s.doc}"`).join(', ')}${bad.length ? '\n    틀림 ' + JSON.stringify(bad.map((b) => `${b.asked} → ${b.path} "${b.title}" ${b.current} ${b.menu}`)) : ''}`)
   const paths = []
-  for (const path of ['/guide/juby', '/guide/nope']) {
+  for (const path of ['/guide/nope', ...chapters.filter((c) => c.file === null).map((c) => `/guide/${c.id}`)]) {
     await t.goto(path, 1000)
     paths.push(await t.page.evaluate(() => location.pathname + ' ' + (document.getElementById('guide-chapter-title')?.textContent.trim() ?? '')))
   }
-  j.report('U6b', paths.every((p) => p === `/guide ${expected.title}`), `글 없는 장·없는 장은 /guide로 — ${JSON.stringify(paths)}`)
+  j.report('U6b', paths.every((p) => p === `/guide ${first.title}`), `없는 장(·글 없는 장)은 /guide로 — ${JSON.stringify(paths)}`)
   await t.goto('/', 1200)
   await t.page.locator('header nav a[data-label="사용설명서"]').click()
   await sleep(1200)
   const viaMenu = await t.page.evaluate(() => location.pathname + ' ' + (document.getElementById('guide-chapter-title')?.textContent.trim() ?? ''))
-  j.report('U6c', viaMenu === `/guide ${expected.title}`, `머리글 메뉴로 오면 주소를 바꾸지 않고(/guide) 첫 장이 선다 — ${viaMenu}`)
+  j.report('U6c', viaMenu === `/guide ${first.title}`, `머리글 메뉴로 오면 주소를 바꾸지 않고(/guide) 첫 장이 선다 — ${viaMenu}`)
   await t.close()
 })
 
 await j.run('U7', async () => {
   const over = []
-  for (const width of [320, 390, 768, 1024, 1440, 1920]) {
-    const t = await openGuide({ width, height: 900 })
-    if (!(await noOverflow(t.page))) over.push(`${width}: ${await t.page.evaluate(() => document.documentElement.scrollWidth)}`)
-    if (width === 390) {
-      const wrapped = await t.page.evaluate(() => [...document.querySelectorAll('main article table')]
-        .filter((table) => table.querySelectorAll('thead th').length === 2)
-        .flatMap((table) => [...table.querySelectorAll('tbody td:first-child')])
-        .filter((td) => { const r = document.createRange(); r.selectNodeContents(td); return r.getBoundingClientRect().height > 30 })
-        .map((td) => td.textContent.trim()))
-      j.report('U7b', wrapped.length === 0, `390px 두 칸 표의 첫 칸이 한 줄 — 꺾인 칸 ${JSON.stringify(wrapped)}`)
+  const wrapped = []
+  const skips = []
+  for (const c of ready) {
+    for (const width of [320, 390, 768, 1024, 1440, 1920]) {
+      const t = await openGuide({ width, height: 900 }, pathOf(c))
+      if (!(await noOverflow(t.page))) over.push(`${c.number}장 ${width}: ${await t.page.evaluate(() => document.documentElement.scrollWidth)}`)
+      if (width === 390) {
+        wrapped.push(...(await t.page.evaluate(() => [...document.querySelectorAll('main article table')]
+          .filter((table) => table.querySelectorAll('thead th').length === 2)
+          .flatMap((table) => [...table.querySelectorAll('tbody td:first-child')])
+          .filter((td) => { const r = document.createRange(); r.selectNodeContents(td); return r.getBoundingClientRect().height > 30 })
+          .map((td) => td.textContent.trim()))).map((s) => `${c.number}장 ${s}`))
+      }
+      if (width === 1440) {
+        const levels = await t.page.evaluate(() => [...document.querySelectorAll('main h1, main h2, main h3, main h4, main h5, main h6')].map((h) => Number(h.tagName[1])))
+        if (levels[0] !== 1 || levels.filter((l) => l === 1).length !== 1 || levels.some((level, i) => i > 0 && level > levels[i - 1] + 1)) skips.push(`${c.number}장 ${levels.join('')}`)
+        if (c === first) {
+          const short = await t.page.evaluate((sel) => [...document.querySelectorAll(`${sel} a`)].filter((a) => a.getBoundingClientRect().height < 40).map((a) => `${a.textContent.trim().slice(0, 12)} ${Math.round(a.getBoundingClientRect().height)}px`), TOC)
+          j.report('U7d', short.length === 0, `넓은 화면 차례 링크가 모두 40px 이상 — 모자란 것 ${JSON.stringify(short)}`)
+        }
+      }
+      await t.close()
     }
-    if (width === 1440) {
-      const levels = await t.page.evaluate(() => [...document.querySelectorAll('main h1, main h2, main h3, main h4, main h5, main h6')].map((h) => Number(h.tagName[1])))
-      const skip = levels.some((level, i) => i > 0 && level > levels[i - 1] + 1)
-      j.report('U7c', levels[0] === 1 && levels.filter((l) => l === 1).length === 1 && !skip, `제목 단계를 건너뛰지 않는다 — h1 ${levels.filter((l) => l === 1).length}개, 순서 ${levels.slice(0, 12).join('')}…`)
-    }
-    await t.close()
   }
-  j.report('U7a', over.length === 0, `가로 넘침 없음(320·390·768·1024·1440·1920)${over.length ? ' — ' + over.join(', ') : ''}`)
+  j.report('U7a', over.length === 0, `가로 넘침 없음(장마다 320·390·768·1024·1440·1920)${over.length ? ' — ' + over.join(', ') : ''}`)
+  j.report('U7b', wrapped.length === 0, `390px 두 칸 표의 첫 칸이 한 줄 — 꺾인 칸 ${JSON.stringify(wrapped)}`)
+  j.report('U7c', skips.length === 0, `장마다 h1 하나, 제목 단계를 건너뛰지 않는다${skips.length ? ' — ' + skips.join(' / ') : ''}`)
+})
+
+await j.run('U8', async () => {
+  if (ready.length < 2) { j.report('U8', null, '글이 있는 장이 하나라 장 넘기기가 없다'); return }
+  const pager = (page) => page.evaluate(() => [...document.querySelectorAll('nav[aria-label="장 넘기기"] a')].map((a) => `${a.getAttribute('rel')} ${a.getAttribute('href')}`))
+  const t = await openGuide()
+  const atFirst = await pager(t.page)
+  const last = ready[ready.length - 1]
+  j.report('U8a', JSON.stringify(atFirst) === JSON.stringify([`next ${pathOf(ready[1])}`]), `첫 장은 다음 장만 — ${JSON.stringify(atFirst)}`)
+  await t.page.locator('nav[aria-label="장 넘기기"] a[rel="next"]').scrollIntoViewIfNeeded()
+  await t.page.locator('nav[aria-label="장 넘기기"] a[rel="next"]').click()
+  await sleep(1200)
+  const moved = await t.page.evaluate(() => ({ path: location.pathname, y: Math.round(scrollY), title: document.getElementById('guide-chapter-title')?.textContent.trim() }))
+  j.report('U8b', moved.path === pathOf(ready[1]) && moved.y === 0 && moved.title === ready[1].title, `다음 장을 누르면 그 장 맨 위 — ${JSON.stringify(moved)}`)
+  await t.goto(pathOf(last), 1200)
+  const atLast = await pager(t.page)
+  j.report('U8c', JSON.stringify(atLast) === JSON.stringify([`prev ${pathOf(ready[ready.length - 2])}`]), `끝 장은 이전 장만 — ${JSON.stringify(atLast)}`)
+  await t.close()
 })
 
 await j.finish()

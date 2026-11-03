@@ -351,6 +351,30 @@ describe('utils/guideMarkdown', async () => {
     assert.deepEqual(doc.sections, [{ id: 'ai-1', title: '진짜 꼭지' }])
     assert.deepEqual(g.readGuideDocument('x', '#해시태그\n##붙은 줄').sections, [])
   })
+  test('제목 단계를 건너뛰지 않게 다시 매긴다 — "## 꼭지" 아래 바로 "####"는 "###", 형제는 같은 단계, 코드 안은 그대로', () => {
+    const doc = g.readGuideDocument('juby', '# 제목\n\n## 1.1 주비 소개\n\n#### 주비란?\n\n#### 또 하나\n\n## 1.2 시작\n\n### 종목\n\n#### 더 깊이\n\n```\n#### 코드\n```\n')
+    assert.deepEqual(doc.body.split('\n').filter((l) => l.startsWith('#')), ['## 1.1 주비 소개', '### 주비란?', '### 또 하나', '## 1.2 시작', '### 종목', '#### 더 깊이', '#### 코드'])
+    assert.deepEqual(doc.sections.map((s) => s.id), ['juby-1', 'juby-2'])
+    // 본문의 "# "는 꼭지로 센다
+    assert.deepEqual(g.readGuideDocument('x', '# 제목\n# 둘째 큰 제목\n## 그 아래').body.split('\n'), ['## 둘째 큰 제목', '### 그 아래'])
+  })
+  test('remarkLooseStrong — 글자로 남은 **…**만 굵게, 빈칸으로 시작·끝나는 것과 다른 노드는 그대로', () => {
+    const tree = { type: 'root', children: [{ type: 'paragraph', children: [
+      { type: 'text', value: '최대낙폭이 **-18.40%**로, 변동성 **큰** 편 2 ** 3 ** 4' },
+      { type: 'strong', children: [{ type: 'text', value: '이미 굵게' }] },
+      { type: 'inlineCode', value: 'a**b**c' },
+    ] }] }
+    g.remarkLooseStrong()(tree)
+    assert.deepEqual(tree.children[0].children, [
+      { type: 'text', value: '최대낙폭이 ' },
+      { type: 'strong', children: [{ type: 'text', value: '-18.40%' }] },
+      { type: 'text', value: '로, 변동성 ' },
+      { type: 'strong', children: [{ type: 'text', value: '큰' }] },
+      { type: 'text', value: ' 편 2 ** 3 ** 4' },
+      { type: 'strong', children: [{ type: 'text', value: '이미 굵게' }] },
+      { type: 'inlineCode', value: 'a**b**c' },
+    ])
+  })
   test('plainText — 꾸밈을 걷고 빈칸을 하나로', () => {
     assert.equal(g.plainText('**MDD**  (최대 낙폭) `식` [링크](/guide) *기울임*'), 'MDD (최대 낙폭) 식 링크 기울임')
   })

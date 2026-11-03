@@ -105,8 +105,11 @@
   list-style: none;
 }
 
+/* 넓은 화면에서도 누르는 넓이는 40px 이상(리디자인 U-2) */
 .sectionLink {
-  display: block;
+  display: flex;
+  align-items: center;
+  min-height: 40px;
   padding: 6px 0;
   font-size: var(--font-md);
   line-height: 1.5;
@@ -117,6 +120,43 @@
   color: var(--color-text);
   text-decoration: underline;
   text-underline-offset: 3px;
+}
+
+/* 장 끝의 이전 장 · 다음 장. 좁은 화면은 차례가 본문 맨 앞이라, 끝까지 읽고 다음 장으로 가는 길이 여기뿐이다 */
+.pager {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-4);
+  margin-top: var(--space-12);
+  padding-top: var(--space-4);
+  border-top: 2px solid var(--color-rule);
+}
+
+.pagerLink {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 56px;
+  font-size: var(--font-lg);
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.pagerLink small {
+  font-size: var(--font-sm);
+  font-weight: 500;
+  color: var(--color-text-sub);
+}
+
+.pagerLink:hover span {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.pagerNext {
+  grid-column: 2;
+  align-items: flex-end;
+  text-align: right;
 }
 
 @media (max-width: 900px) {

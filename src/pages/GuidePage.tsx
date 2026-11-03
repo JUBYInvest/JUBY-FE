@@ -38,6 +38,35 @@ function jumpTo(id: string) {
   }
 }
 
+/** 글이 있는 장 사이에서 앞뒤 장으로 */
+function Pager({ chapter }: { chapter: Chapter }) {
+  const ready = CHAPTERS.filter((item) => item.document !== null)
+  const index = ready.indexOf(chapter)
+  const previous = ready[index - 1]
+  const next = ready[index + 1]
+  if (previous === undefined && next === undefined) return null
+  return (
+    <nav className={styles.pager} aria-label="장 넘기기">
+      {previous !== undefined && (
+        <Link to={pathOf(previous)} rel="prev" className={styles.pagerLink}>
+          <small>이전 장</small>{' '}
+          <span>
+            {previous.number}. {previous.name}
+          </span>
+        </Link>
+      )}
+      {next !== undefined && (
+        <Link to={pathOf(next)} rel="next" className={`${styles.pagerLink} ${styles.pagerNext}`}>
+          <small>다음 장</small>{' '}
+          <span>
+            {next.number}. {next.name}
+          </span>
+        </Link>
+      )}
+    </nav>
+  )
+}
+
 /**
  * 사용설명서(2026-11-03 — 사용자가 노션에 쓴 글을 장마다 옮긴다, src/content/guide). 왼쪽은 장 본문, 오른쪽은 차례(네 장 + 지금 장의 꼭지).
  * 차례는 읽는 동안 화면 위에 붙어 따라온다. 좁은 화면은 차례(장 이름만)를 본문 앞에 둔다.
@@ -110,6 +139,7 @@ export default function GuidePage() {
           ) : (
             <GuideArticle body={content.body} sections={content.sections} />
           )}
+          {chapter !== undefined && <Pager chapter={chapter} />}
         </article>
       </div>
     </>

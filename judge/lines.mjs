@@ -108,8 +108,11 @@ await j.run('A5', () => pairs('A5', '/mypage', '마이페이지 한눈에 보기
  * 굵은 먹 선(2px)끼리 24px 안에서 어긋난 것이 없어야 한다. 단추·링크·입력칸·표 칸의 테두리와 단추·링크 안의 선(고른 전략 카드의
  * 매수·매도 줄)은 그 단추의 일부라 뺀다. 검색창·대화창처럼 단추가 아닌 상자의 테두리는 센다
  */
-/** 넓은 화면에서 두 열 이상이고 옆 열에 선이 있는 화면 — 견준 선이 0쌍이면 화면이 안 그려진 것이라 실패로 본다(사용설명서는 2026-11-03부터 장 제목 | 차례 두 열) */
-const TWO_COLUMNS = new Set(['home', 'home-out', 'stock', 'backtest', 'guide', 'mypage', 'mypage-personality', 'mypage-profile'])
+/**
+ * 넓은 화면에서 두 열 이상이고 옆 열에 선이 있는 화면 — 견준 선이 0쌍이면 화면이 안 그려진 것이라 실패로 본다.
+ * 사용설명서는 넣지 않는다 — 본문이 760px까지라 차례 열과 223~500px 떨어져 "옆 열"(160px 안)이 아니다. 두 열의 먹 선은 A7이 잰다
+ */
+const TWO_COLUMNS = new Set(['home', 'home-out', 'stock', 'backtest', 'mypage', 'mypage-personality', 'mypage-profile'])
 const SCREENS = [
   ['home', '/', true], ['home-out', '/', false], ['stock', '/stocks/005930', true], ['likes', '/likes', true],
   ['backtest', '/backtest', true], ['ai', '/ai', true], ['guide', '/guide', true], ['mypage', '/mypage', true],
