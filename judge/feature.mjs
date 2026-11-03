@@ -85,7 +85,7 @@ const evenInsets = (cells) => cells.length > 1 && cells.every(([l]) => l >= 12 &
   const walk = (d) => { for (const f of readdirSync(d)) { const p = join(d, f); if (statSync(p).isDirectory()) walk(p); else if (/\.(ts|tsx)$/.test(f)) files.push(p) } }
   walk(join(REPO, 'src'))
   const holders = (needle) => files.filter((f) => readFileSync(f, 'utf8').includes(needle)).map((f) => f.replace(REPO + '/', ''))
-  const postFiles = holders('주린이공부중'), stepFiles = holders('10문항으로 나에게 맞는 전략을')
+  const postFiles = holders('주린이공부중'), stepFiles = holders('10문항 테스트와 성향별 추천 전략')
   report('H-4', samples === 2 && postFiles.join() === 'src/content/communityPreview.ts' && stepFiles.join() === 'src/content/homeGuide.ts', `"예시" 표시(칸 제목·안내) ${samples}, 대화가 있는 파일 — 커뮤니티 ${JSON.stringify(postFiles)}, 사용설명서 단계 ${JSON.stringify(stepFiles)}`)
   const width = await page.evaluate(() => { const m = document.querySelector('main'); const cs = getComputedStyle(m); return m.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight) })
   report('H-5', Math.round(width) === 1680, `1920 본문 폭 ${Math.round(width)}px(좌우 빈자리 각 ${Math.round((1920 - width) / 2)}px)`)

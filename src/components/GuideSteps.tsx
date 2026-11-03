@@ -12,8 +12,8 @@ interface Props {
 }
 
 /**
- * "처음이라면 이 순서로" 단계(src/content/homeGuide.ts). 홈 오른쪽 열(HomeRail)이 쓴다 — 사용설명서 화면도 쓰다가
- * 그 화면에 장 차례가 들어오며 걷었다(2026-11-03). 정말 차례가 있는 글이라 번호를 단다
+ * 홈 오른쪽 위 사용설명서 단계(src/content/homeGuide.ts — 2026-11-03부터 네 장을 한 줄씩 줄인 것). 홈 오른쪽 열(HomeRail)이 쓴다 —
+ * 사용설명서 화면도 쓰다가 그 화면에 장 차례가 들어오며 걷었다(2026-11-03). 정말 차례가 있는 글(장 번호)이라 번호를 단다
  */
 export default function GuideSteps({ className, here, chevron = false }: Props) {
   const stepClass = chevron ? `${styles.step} ${styles.withChevron}` : styles.step

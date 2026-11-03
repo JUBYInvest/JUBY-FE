@@ -7,13 +7,13 @@ import GuideSteps from './GuideSteps'
 import styles from './HomeRail.module.css'
 
 /**
- * 홈 오른쪽 열(2026-10-30 재정비). 위는 처음 쓰는 순서(사용설명서), 아래는 커뮤니티 예시 대화(2026-11-02부터 채팅 모양)다.
+ * 홈 오른쪽 열(2026-10-30 재정비). 위는 사용설명서(네 장을 한 줄씩 — 2026-11-03), 아래는 커뮤니티 예시 대화(2026-11-02부터 채팅 모양)다.
  * 16:9에서 홈 오른쪽이 비어 보인다는 말에 사용자가 정한 자리다. 둘 다 서버를 부르지 않는다 —
  * 글은 src/content의 두 파일에만 있다(사용자가 고치기 쉽게).
  */
 export default function HomeRail() {
   return (
-    <aside className={styles.rail} aria-label="처음 쓰는 순서와 커뮤니티">
+    <aside className={styles.rail} aria-label="사용설명서와 커뮤니티">
       <GuideSection />
       <CommunityChat />
     </aside>

@@ -11,6 +11,8 @@
 //  U6 주소: 첫 장이 /guide, 나머지는 /guide/<장>, 없는 장은 /guide로, 머리글 '사용설명서'가 지금 메뉴
 //  U7 가로 넘침 없음(320~1920, 장마다), 휴대폰 두 칸 표의 첫 칸은 한 줄, 제목 단계를 건너뛰지 않는다(장마다), 넓은 화면 장 목록·꼭지 링크 40px 이상
 //  U8 장 끝의 이전 장·다음 장: 첫 장은 다음만, 끝 장은 이전만, 누르면 그 장 맨 위
+//  U11 홈 오른쪽 위 사용설명서 칸(2026-11-03 사용자 "간단하게 정리해서 반영해줘"): 장 순서·이름 그대로 한 줄씩, 누르면 그 장이 열린다.
+//      설명 줄은 넓은 화면에서 한 줄이다(늘면 홈 대표 종목 줄이 따라 늘어 lines A2가 어긋난다)
 // node guide.mjs <BASE> [--only U1,U2] [--headed]
 import { readFileSync } from 'node:fs'
 import { cli, judge, noOverflow, REPO, sleep } from './lib.mjs'
@@ -340,6 +342,46 @@ await j.run('U10', async () => {
     }
   }
   j.report('U10', bad.length === 0, `장마다 "이 장에서" 단추가 그 기능 화면으로(${ready.map((c) => `${c.action.label} → ${c.action.to}`).join(', ')}), 넓은·좁은 화면 모두 보인다${bad.length ? '\n    ' + bad.join('\n    ') : ''}`)
+})
+
+await j.run('U11', async () => {
+  const HOME = 'section[aria-labelledby="home-guide-title"]'
+  const bad = []
+  for (const width of [1920, 1440, 1101]) {
+    const t = await j.open({ width, height: 1000 })
+    await t.goto('/', 1500)
+    await t.page.evaluate(() => document.fonts.ready)
+    // 줄 수는 글자 상자들의 서로 다른 윗변 수다(줄 높이가 normal이면 높이로 나눌 수 없다)
+    const rows = await t.page.evaluate((sel) => [...document.querySelectorAll(`${sel} ol > li`)].map((li) => {
+      const small = li.querySelector('small')
+      const range = document.createRange()
+      if (small !== null) range.selectNodeContents(small)
+      const tops = small === null ? [] : [...new Set([...range.getClientRects()].map((r) => Math.round(r.top)))]
+      return { href: li.querySelector('a')?.getAttribute('href') ?? null, title: li.querySelector('strong')?.textContent.trim() ?? '', lines: tops.length }
+    }), HOME)
+    const want = ready.map((c) => ({ href: pathOf(c), title: c.name, lines: 1 }))
+    if (JSON.stringify(rows) !== JSON.stringify(want)) bad.push(`${width}: ${JSON.stringify(rows)}`)
+    await t.close()
+  }
+  j.report('U11a', bad.length === 0, `홈 사용설명서 칸이 장 순서·이름 그대로(${ready.map((c) => `${c.number} ${c.name} → ${pathOf(c)}`).join(', ')}), 설명은 한 줄${bad.length ? '\n    ' + bad.join('\n    ') : ''}`)
+
+  const opened = []
+  for (const c of ready) {
+    const t = await j.open({ width: 1440, height: 900 })
+    await t.goto('/', 1500)
+    const link = t.page.locator(`${HOME} ol a`).filter({ hasText: c.name })
+    if ((await link.count()) !== 1) {
+      opened.push({ want: c, path: '(링크 없음)', current: '' })
+      await t.close()
+      continue
+    }
+    await link.click()
+    await t.page.waitForSelector(`${NAV} [aria-current="page"]`, { timeout: 5000 }).catch(() => null)
+    opened.push({ want: c, path: new URL(t.page.url()).pathname, current: (await t.page.locator(`${NAV} [aria-current="page"]`).textContent().catch(() => ''))?.replace(/\s+/g, ' ').trim() })
+    await t.close()
+  }
+  const wrong = opened.filter((o) => o.path !== pathOf(o.want) || o.current !== `${o.want.number} ${o.want.name}`)
+  j.report('U11b', wrong.length === 0, `홈에서 장을 누르면 그 장이 열린다${wrong.length ? ' — ' + JSON.stringify(wrong.map((o) => ({ want: o.want.name, path: o.path, current: o.current }))) : ''}`)
 })
 
 await j.finish()
