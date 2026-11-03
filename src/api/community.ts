@@ -93,7 +93,10 @@ export function toCommunityPost(raw: unknown): CommunityPost | null {
   }
 }
 
-/** 웹소켓 메시지 본문 하나를 일로. 틀리면 null */
+/**
+ * 웹소켓 메시지 본문 하나를 일로. 틀리면 null.
+ * @public 이 파일 밖에서는 판정(judge/unit.test.mjs)만 부른다 — 오는 값 거르기를 함수 단위로 잰다
+ */
 export function toCommunityEvent(raw: unknown): CommunityEvent | null {
   if (typeof raw !== 'object' || raw === null) return null
   const value = raw as Record<string, unknown>

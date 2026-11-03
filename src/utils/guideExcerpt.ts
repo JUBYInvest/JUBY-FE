@@ -23,7 +23,7 @@ function block(heading: RegExp, depth: number): string[] {
   return LINES.slice(start + 1, stop === -1 ? undefined : stop)
 }
 
-export interface StrategyExcerpt {
+interface StrategyExcerpt {
   /** "**아이디어** — …" 줄 */
   idea: string | null
   /** "**특징** — …" 줄 */

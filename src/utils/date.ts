@@ -127,17 +127,6 @@ export function toKoreanDateTime(ms: number): string {
   return `${kst.getUTCMonth() + 1}월 ${kst.getUTCDate()}일 ${hours}:${minutes}`
 }
 
-/**
- * 한국 시각으로 "오전 9:56"·"오후 12:05"(채팅 말의 시각, 홈 커뮤니티). 자정은 "오전 12:00"이다.
- * 다른 시각 표시와 같이 한국 시간으로 적는다. 시각이 아니면 ""
- */
-export function toKoreanClock(ms: number): string {
-  const kst = kstClock(ms)
-  if (kst === null) return ''
-  const hours = kst.getUTCHours()
-  const minutes = String(kst.getUTCMinutes()).padStart(2, '0')
-  return `${hours < 12 ? '오전' : '오후'} ${hours % 12 === 0 ? 12 : hours % 12}:${minutes}`
-}
 
 /** `<time dateTime>`에 넣는 ISO 시각("2026-10-29T02:00:00.000Z"). 시각이 아니면 "" — toISOString은 던져서 그리던 화면을 멈춘다 */
 export function toIsoTime(ms: number): string {

@@ -2,7 +2,7 @@ import { isPlainClick } from '../../utils/navigation'
 import type { BacktestStep } from './BacktestHelp'
 import styles from '../../pages/BacktestPage.module.css'
 
-export interface StepItem {
+interface StepItem {
   key: BacktestStep
   label: string
   /** 고른 값. 고르지 않았으면 null(줄에는 "미완성") */

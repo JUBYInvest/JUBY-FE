@@ -59,16 +59,7 @@ describe('utils/date', async () => {
     assert.equal(d.shiftYmd('20261031', -150), '20260603')
     assert.equal(d.shiftYmd('bad', 1), '')
   })
-  test('toKoreanClock — 한국 시각 오전·오후 h:mm', () => {
-    assert.equal(d.toKoreanClock(THU_11), '오전 11:00')
-    assert.equal(d.toKoreanClock(THU_11 - 64 * 60_000), '오전 9:56')
-    assert.equal(d.toKoreanClock(kst(2026, 10, 29, 12, 5)), '오후 12:05')
-    assert.equal(d.toKoreanClock(kst(2026, 10, 29, 23, 59)), '오후 11:59')
-    assert.equal(d.toKoreanClock(kst(2026, 10, 30, 0, 0)), '오전 12:00')
-    assert.equal(d.toKoreanClock(Number.NaN), '')
-  })
-  test('Date가 담지 못하는 값(1e16)도 던지지 않고 "" — toKoreanClock·toKoreanDateTime·toIsoTime', () => {
-    assert.equal(d.toKoreanClock(1e16), '')
+  test('Date가 담지 못하는 값(1e16)도 던지지 않고 "" — toKoreanDateTime·toIsoTime', () => {
     assert.equal(d.toKoreanDateTime(1e16), '')
     assert.equal(d.toIsoTime(THU_11), '2026-10-29T02:00:00.000Z')
     assert.equal(d.toIsoTime(Number.NaN), '')
