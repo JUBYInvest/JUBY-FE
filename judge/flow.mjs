@@ -125,6 +125,40 @@ await run('I', async () => {
   report('I4b', s === '장 시작 전 9:00 개장', `목 08:30: "${s}"`)
   await t.close()
 
+  // I12 장 진행 막대(2026-11-03 사용자가 시안 비교 4번을 고름): 상태 글은 그대로 두고 그 뒤에 9:00~15:30 막대와 남은 시간.
+  // 목 11:00 → 지난 몫 31%·"4시간 30분 남음", 08:30 → 0·"30분 뒤 개장", 16:00·토요일 → 막대 없음. 900px 이하는 띠 위 끝 가는 줄(지난 몫만큼)
+  const session = (page) => page.evaluate(() => {
+    const bar = document.querySelector('aside[aria-label="국내 지수"]')
+    const track = bar?.querySelector('[role="progressbar"]')
+    const edge = bar?.querySelector('[class*="_edge_"]')
+    const shown = (el) => el !== null && el !== undefined && getComputedStyle(el).display !== 'none'
+    return {
+      now: track ? track.getAttribute('aria-valuenow') : null,
+      text: track ? track.getAttribute('aria-valuetext') : null,
+      trackShown: shown(track?.parentElement),
+      edge: shown(edge) ? Math.round((edge.getBoundingClientRect().width / bar.getBoundingClientRect().width) * 100) : null,
+    }
+  })
+  const sessions = []
+  for (const [at, label, want] of [
+    [kst(2026, 10, 29, 11), '목 11:00', { now: '31', text: '4시간 30분 남음' }],
+    [kst(2026, 10, 29, 8, 30), '목 08:30', { now: '0', text: '30분 뒤 개장' }],
+    [kst(2026, 10, 29, 16), '목 16:00', { now: null, text: null }],
+    [kst(2026, 10, 31, 12), '토 12:00', { now: null, text: null }],
+  ]) {
+    t = await open({ at })
+    await t.goto('/')
+    const got = await session(t.page)
+    sessions.push(`${label} ${got.now ?? '없음'}${got.text ? ` "${got.text}"` : ''}`)
+    if (got.now !== want.now || got.text !== want.text || (want.now !== null && !got.trackShown)) sessions.push('← 틀림')
+    await t.close()
+  }
+  t = await open({ width: 800 })
+  await t.goto('/')
+  const narrow = await session(t.page)
+  await t.close()
+  report('I12', !sessions.includes('← 틀림') && !narrow.trackShown && narrow.edge === 31, `장 진행 막대 — ${sessions.join(' · ')} / 800px 막대 ${narrow.trackShown ? '보임' : '숨김'}·띠 위 끝 줄 ${narrow.edge}%`)
+
   t = await open({ loggedIn: false })
   await t.goto('/')
   s = await status(t.page)

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { INDEX_REFRESH_MS, isMarketHours, loadMarketIndices, readCachedIndices } from '../api/market'
-import { loadMarketCalendar, marketStatus } from '../api/marketCalendar'
+import { loadMarketCalendar, marketStatus, sessionClock } from '../api/marketCalendar'
 import { toKoreanDateTime, toKoreanDateWithDay } from '../utils/date'
 import { formatChangeRate, formatPoint, formatPointChange, rateTone } from '../utils/format'
 import type { MarketIndex, MarketIndices, MarketStatus } from '../types/market'
@@ -16,6 +16,8 @@ import styles from './MarketIndexBar.module.css'
  * 맨 앞에 장 상태(장 시작 전·장 중·장 마감·오늘 휴장)와 다음 개장일을 적는다(2026-10-31). 초보자는 지금 가격이 움직이는 때인지,
  * 오늘 본 값이 언제 바뀌는지를 모른다. 휴장일은 로그인했을 때 증권사 휴장일 조회로 받아 둔다(api/marketCalendar.ts).
  * 모르면(비로그인 평일) 장 상태를 적지 않는다. 600px 이하는 자리가 없어 적지 않는다(지수가 먼저다).
+ * 장 중·장 시작 전이면 상태 뒤에 오늘 장이 얼마나 지났는지 막대와 남은 시간을 둔다(2026-11-03 사용자가 시안 비교 4번을 고름 — "장 중 15:30 마감"이
+ * 글자뿐이라 지금이 장 초반인지 막바지인지 몰랐다). 900px 이하는 막대 자리가 없어 띠 위 끝의 가는 줄로 보인다.
  */
 export default function MarketIndexBar() {
   const [data, setData] = useState<MarketIndices | null>(readCachedIndices)
@@ -59,10 +61,18 @@ export default function MarketIndexBar() {
 
   const asOf = toKoreanDateTime(data.receivedAt)
   const status = marketStatus(now)
+  const session = sessionClock(status, now)
   return (
     <aside className={styles.bar} aria-label="국내 지수">
+      {/* 좁은 화면의 장 진행 — 띠 위 끝 가는 줄(장 중만). 글은 아래 막대가 읽어 준다 */}
+      {session?.until === 'close' && <span className={styles.edge} style={{ width: `${session.ratio * 100}%` }} aria-hidden="true" />}
       <div className={styles.inner}>
-        {status !== null && <StatusText status={status} />}
+        {status !== null && (
+          <div className={styles.statusGroup}>
+            <StatusText status={status} />
+            {session !== null && <SessionTrack session={session} />}
+          </div>
+        )}
         <p className={styles.label}>국내 지수</p>
         <ul className={styles.list}>
           {data.indices.map((index) => (
@@ -102,6 +112,36 @@ function StatusText({ status }: { status: MarketStatus }) {
       <strong className={styles.phase}>{PHASE_LABEL[status.phase]}</strong>
       {next !== '' && <span className={styles.next}>{next}</span>}
     </p>
+  )
+}
+
+/** "4시간 30분"·"45분"·"2시간" */
+function duration(minutes: number): string {
+  const hours = Math.floor(minutes / 60)
+  const rest = minutes % 60
+  if (hours === 0) return `${rest}분`
+  return rest === 0 ? `${hours}시간` : `${hours}시간 ${rest}분`
+}
+
+/** 오늘 장 진행 막대 + 남은 시간(장 중 "4시간 30분 남음", 장 시작 전 "30분 뒤 개장") */
+function SessionTrack({ session }: { session: NonNullable<ReturnType<typeof sessionClock>> }) {
+  const left = session.until === 'close' ? `${duration(session.minutesLeft)} 남음` : `${duration(session.minutesLeft)} 뒤 개장`
+  const percent = Math.round(session.ratio * 100)
+  return (
+    <span className={styles.session}>
+      <span
+        className={styles.track}
+        role="progressbar"
+        aria-label="오늘 장 진행"
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-valuenow={percent}
+        aria-valuetext={left}
+      >
+        <span className={styles.fill} style={{ width: `${session.ratio * 100}%` }} />
+      </span>
+      <span className={styles.left}>{left}</span>
+    </span>
   )
 }
 

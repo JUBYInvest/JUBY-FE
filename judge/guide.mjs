@@ -12,6 +12,9 @@
 //  U7 가로 넘침 없음(320~1920, 장마다), 휴대폰 두 칸 표의 첫 칸은 한 줄, 제목 단계를 건너뛰지 않는다(장마다), 넓은 화면 장 목록·꼭지 링크 40px 이상
 //  U8 장 끝의 이전 장·다음 장: 첫 장은 다음만, 끝 장은 이전만, 누르면 그 장 맨 위
 //  U11 홈 오른쪽 위 사용설명서 칸(2026-11-03 사용자 "간단하게 정리해서 반영해줘"): 장 순서·이름 그대로 한 줄씩, 누르면 그 장이 열린다.
+//      같은 날 그 자리에 "처음 시작하기"(U12)가 먼저 서게 되어, 네 단계를 다 마친 회원(최근 본 백테스트를 심는다)으로 본다.
+//  U12 처음 시작하기(2026-11-03 사용자가 시안 비교 1번을 고름): 비로그인 0/4(로그인하기·테스트하기·담으러 가기·해 보기), 로그인 3/4(성향 위험중립형·관심종목 1개를 마침,
+//      남은 백테스트는 내 전략을 실어 /backtest로), 넷 다 마치면 사용설명서 칸으로 돌아가고 그 계정은 다음에도 곧바로 사용설명서다. '담으러 가기'는 같은 화면의 시세표 제목으로 옮긴다
 //      설명 줄은 넓은 화면에서 한 줄이다(늘면 홈 대표 종목 줄이 따라 늘어 lines A2가 어긋난다)
 // node guide.mjs <BASE> [--only U1,U2] [--headed]
 import { readFileSync } from 'node:fs'
@@ -345,11 +348,14 @@ await j.run('U10', async () => {
   j.report('U10', bad.length === 0, `장마다 "이 장에서" 단추가 그 기능 화면으로(${ready.map((c) => `${c.action.label} → ${c.action.to}`).join(', ')}), 넓은·좁은 화면 모두 보인다${bad.length ? '\n    ' + bad.join('\n    ') : ''}`)
 })
 
+// 네 단계를 다 마친 회원 — 최근 본 백테스트 한 줄(회원 1). 관심종목·성향은 가짜 API가 준다(삼성전자 하트, 위험중립형)
+const RECENT = { recentBacktests: JSON.stringify({ owner: '1', rows: [{ stockCode: '005930', stockName: '삼성전자', investType: 3, period: 'ONE_YEAR', finalScore: 64, viewedAt: 1761696000000 }] }) }
+
 await j.run('U11', async () => {
   const HOME = 'section[aria-labelledby="home-guide-title"]'
   const bad = []
   for (const width of [1920, 1440, 1101]) {
-    const t = await j.open({ width, height: 1000 })
+    const t = await j.open({ width, height: 1000, seed: RECENT })
     await t.goto('/', 1500)
     await t.page.evaluate(() => document.fonts.ready)
     // 줄 수는 글자 상자들의 서로 다른 윗변 수다(줄 높이가 normal이면 높이로 나눌 수 없다)
@@ -368,7 +374,7 @@ await j.run('U11', async () => {
 
   const opened = []
   for (const c of ready) {
-    const t = await j.open({ width: 1440, height: 900 })
+    const t = await j.open({ width: 1440, height: 900, seed: RECENT })
     await t.goto('/', 1500)
     const link = t.page.locator(`${HOME} ol a`).filter({ hasText: c.name })
     if ((await link.count()) !== 1) {
@@ -383,6 +389,60 @@ await j.run('U11', async () => {
   }
   const wrong = opened.filter((o) => o.path !== pathOf(o.want) || o.current !== `${o.want.number} ${o.want.name}`)
   j.report('U11b', wrong.length === 0, `홈에서 장을 누르면 그 장이 열린다${wrong.length ? ' — ' + JSON.stringify(wrong.map((o) => ({ want: o.want.name, path: o.path, current: o.current }))) : ''}`)
+})
+
+await j.run('U12', async () => {
+  const HOME = 'section[aria-labelledby="home-guide-title"]'
+  const read = (page) => page.evaluate((sel) => {
+    const section = document.querySelector(sel)
+    return {
+      title: section.querySelector('h2').textContent.trim(),
+      count: section.querySelector('[role="progressbar"]')?.getAttribute('aria-valuenow') ?? null,
+      rows: [...section.querySelectorAll('ol > li')].map((li) => ({
+        title: li.querySelector('strong')?.childNodes[0]?.textContent.trim() ?? '',
+        note: li.querySelector('small')?.textContent.trim() ?? '',
+        action: li.querySelector('a')?.textContent.trim() ?? null,
+        href: li.querySelector('a')?.getAttribute('href') ?? null,
+      })),
+    }
+  }, HOME)
+
+  let t = await j.open({ width: 1440, loggedIn: false })
+  await t.goto('/', 1500)
+  const out = await read(t.page)
+  j.report('U12a', out.title === '처음 시작하기' && out.count === '0' && JSON.stringify(out.rows.map((r) => r.action)) === JSON.stringify(['로그인하기', '테스트하기', '담으러 가기', '해 보기']),
+    `비로그인 "${out.title}" ${out.count}/4 — ${out.rows.map((r) => `${r.title}(${r.action})`).join(' · ')}`)
+  // '담으러 가기'는 같은 화면의 시세표 제목으로 옮긴다(주소는 그대로)
+  await t.page.locator(HOME).getByRole('link', { name: '담으러 가기' }).click()
+  await sleep(300)
+  const jumped = await t.page.evaluate(() => ({ focus: document.activeElement?.id ?? '', top: Math.round(document.getElementById('home-stocks-title').getBoundingClientRect().top), path: location.pathname + location.hash }))
+  j.report('U12b', jumped.focus === 'home-stocks-title' && jumped.top >= -2 && jumped.top < 200 && jumped.path === '/', `담으러 가기 → 포커스 ${jumped.focus}, 화면 위에서 ${jumped.top}px, 주소 ${jumped.path}`)
+  await t.close()
+
+  t = await j.open({ width: 1440 })
+  await t.goto('/', 1800)
+  const mid = await read(t.page)
+  const last = mid.rows[3]
+  j.report('U12c', mid.count === '3' && mid.rows[1].note === '위험중립형' && /^1개/.test(mid.rows[2].note) && last.action === '해 보기' && last.href === '/backtest',
+    `로그인 ${mid.count}/4 — ${mid.rows.map((r) => `${r.title}: ${r.note}${r.action ? ` [${r.action}]` : ''}`).join(' · ')}`)
+  // 해 보기 → 백테스트에 내 전략(위험중립형 → 이동평균 교차 전략)이 골라져 있다
+  await t.page.locator(HOME).getByRole('link', { name: '해 보기' }).click()
+  await t.page.waitForSelector('#backtest-strategy', { timeout: 6000 }).catch(() => null)
+  await sleep(500)
+  const picked = await t.page.locator('#backtest-strategy').inputValue().catch(() => '')
+  j.report('U12d', picked === '3', `해 보기 → /backtest 전략 칸 ${picked}(기대 3, 이동평균 교차)`)
+  await t.close()
+
+  // 넷 다 마치면 사용설명서 칸 — 그 계정은 다음에 와도(성향을 받기 전에도) 곧바로 사용설명서다
+  t = await j.open({ width: 1440, seed: RECENT, personalityDelay: 3000 })
+  await t.goto('/', 800)
+  const first = (await read(t.page)).title
+  await sleep(2800)
+  const finished = (await read(t.page)).title
+  await t.goto('/', 300)
+  const again = (await read(t.page)).title
+  j.report('U12e', finished === '사용설명서' && again === '사용설명서' && first === '처음 시작하기', `다 마침: 성향 받기 전 "${first}" → 받은 뒤 "${finished}", 다시 오면 곧바로 "${again}"`)
+  await t.close()
 })
 
 await j.finish()

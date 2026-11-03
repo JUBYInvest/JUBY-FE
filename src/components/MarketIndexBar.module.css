@@ -26,15 +26,74 @@
   white-space: nowrap;
 }
 
-/* 장 상태(장 중·장 마감·오늘 휴장)와 다음 개장일. 지수와는 세로 선으로 가른다 */
-.status {
+/* 장 상태 묶음(상태 글 + 장 진행 막대). 지수와는 세로 선으로 가른다 */
+.statusGroup {
   display: flex;
   flex-shrink: 0;
+  align-items: center;
+  gap: var(--space-4);
+  padding-right: var(--space-6);
+  border-right: 1px solid var(--color-brand-800);
+}
+
+/* 장 상태(장 중·장 마감·오늘 휴장)와 다음 개장일 */
+.status {
+  display: flex;
   align-items: baseline;
   gap: var(--space-2);
   margin: 0;
-  padding-right: var(--space-6);
-  border-right: 1px solid var(--color-brand-800);
+}
+
+/*
+ * 오늘 장 진행(9:00~15:30). 진한 초록 띠 위라 바탕은 흰 25%, 지난 몫은 연초록(--color-brand-300), 끝에 흰 점.
+ * 1분마다 다시 그린다(띠의 시계와 같다)
+ */
+.session {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.track {
+  position: relative;
+  width: 120px;
+  height: 4px;
+  border-radius: var(--radius-pill);
+  background: color-mix(in srgb, var(--color-text-on-brand) 25%, transparent);
+}
+
+.fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  border-radius: var(--radius-pill);
+  background: var(--color-brand-300);
+}
+
+.fill::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  right: -4px;
+  width: 8px;
+  height: 8px;
+  margin-top: -4px;
+  border-radius: 50%;
+  background: var(--color-text-on-brand);
+}
+
+.left {
+  color: var(--color-brand-100);
+  font-variant-numeric: tabular-nums;
+}
+
+/* 좁은 화면(900px 이하)의 장 진행 — 띠 위 끝 가는 줄. 넓은 화면에서는 막대가 있어 숨긴다 */
+.edge {
+  display: none;
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 2px;
+  background: var(--color-brand-300);
 }
 
 .phase {
@@ -142,16 +201,27 @@
   color: var(--color-brand-100);
 }
 
-/* 장 상태는 폭이 줄면 다음 개장일부터 뺀다. 상태 낱말(장 중·장 마감·오늘 휴장)만 남긴다 */
+/* 장 상태는 폭이 줄면 다음 개장일·남은 시간부터 뺀다. 상태 낱말(장 중·장 마감·오늘 휴장)과 막대만 남긴다 */
 @media (max-width: 1100px) {
-  .next {
+  .next,
+  .left {
     display: none;
+  }
+
+  .track {
+    width: 72px;
   }
 }
 
+/* 900px 이하는 막대 대신 띠 위 끝 가는 줄 */
 @media (max-width: 900px) {
-  .label {
+  .label,
+  .session {
     display: none;
+  }
+
+  .edge {
+    display: block;
   }
 }
 
@@ -194,7 +264,7 @@
    */
   .change,
   .asOf,
-  .status {
+  .statusGroup {
     display: none;
   }
 

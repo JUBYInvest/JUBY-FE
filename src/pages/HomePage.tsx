@@ -399,12 +399,15 @@ export default function HomePage() {
           같아야 한다. 시세표 뒤에 두던 때는 그 순서로 가려면 시세표 행(링크·하트)을 다 지나야 했다. 넓은 화면의 자리는 격자 영역이 정한다
         */}
         <div className={styles.rail}>
-          <HomeRail />
+          {/* 처음 시작하기 진행표가 관심종목을 담았는지 본다 — 시세표를 받기 전엔 모른다(null) */}
+          <HomeRail likedCount={list.kind === 'loading' ? null : favoriteCodes.size} />
         </div>
 
         <section className={styles.list}>
           <div className={styles.sectionHead}>
-            <h2 className={styles.heading}>현재 주가 보기</h2>
+            <h2 id="home-stocks-title" className={styles.heading} tabIndex={-1}>
+              현재 주가 보기
+            </h2>
             {/*
               16시 배치 전에는 전 거래일 종가가 뜬다. 언제 것인지 밝혀둔다.
               기준일이 비어 오면 줄째 숨긴다 — 시세표는 그대로 보여준다

@@ -1,5 +1,6 @@
 {
  "home": [
+  "GET /api/members/me/personality",
   "GET /api/stocks/leading-stocks",
   "GET /api/stocks",
   "GET /api/market/holiday?basedate=20261029",

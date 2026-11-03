@@ -88,6 +88,18 @@ export function marketStatus(now: number = Date.now()): MarketStatus | null {
   return { phase: 'closed', nextOpen: nextOpenDay(ymd, calendar) }
 }
 
+/**
+ * 오늘 정규장(9:00~15:30, 한국 시각)이 얼마나 지났는지 — 지수 띠의 장 진행 막대(2026-11-03 사용자가 시안 비교에서 고름).
+ * 장 중이면 지난 몫(0~1)과 마감까지 남은 분, 장 시작 전이면 0과 개장까지 남은 분. 그 밖(마감·휴장·모름)은 null — 막대를 두지 않는다
+ */
+export function sessionClock(status: MarketStatus | null, now: number = Date.now()): { ratio: number; minutesLeft: number; until: 'close' | 'open' } | null {
+  if (status === null || (status.phase !== 'open' && status.phase !== 'beforeOpen')) return null
+  const { minutes } = kstNow(now)
+  if (status.phase === 'beforeOpen') return { ratio: 0, minutesLeft: Math.max(0, OPEN_MINUTES - minutes), until: 'open' }
+  const ratio = (minutes - OPEN_MINUTES) / (CLOSE_MINUTES - OPEN_MINUTES)
+  return { ratio: Math.min(1, Math.max(0, ratio)), minutesLeft: Math.max(0, CLOSE_MINUTES - minutes), until: 'close' }
+}
+
 /** 오늘 장이 열리지 않는 날로 확실한가(주말, 또는 받아 둔 휴장일). 모르면 false */
 export function isDayOffToday(now: number = Date.now()): boolean {
   return isOpenDay(kstNow(now).ymd, readCalendar()) === false
