@@ -14,11 +14,16 @@ interface HelpProps {
   onSelect: (investType: number) => void
 }
 
-/** "**굵게**"가 섞인 사용설명서 한 줄 */
+/** "**굵게**"가 섞인 사용설명서 글 조각 */
+function BoldText({ line }: { line: string }) {
+  return splitBold(line).map((part, index) => (part.bold ? <b key={index}>{part.text}</b> : <span key={index}>{part.text}</span>))
+}
+
+/** 사용설명서 한 줄(문단) */
 function GuideLine({ line }: { line: string }) {
   return (
     <p className={styles.guideBody}>
-      {splitBold(line).map((part, index) => (part.bold ? <b key={index}>{part.text}</b> : <span key={index}>{part.text}</span>))}
+      <BoldText line={line} />
     </p>
   )
 }
@@ -123,7 +128,7 @@ function ResultHelp() {
           <ol className={styles.helpSteps}>
             {order.items.map((item) => (
               <li key={item}>
-                {splitBold(item).map((part, index) => (part.bold ? <b key={index}>{part.text}</b> : <span key={index}>{part.text}</span>))}
+                <BoldText line={item} />
               </li>
             ))}
           </ol>

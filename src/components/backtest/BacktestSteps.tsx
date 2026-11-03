@@ -1,3 +1,4 @@
+import { isPlainClick } from '../../utils/navigation'
 import type { BacktestStep } from './BacktestHelp'
 import styles from '../../pages/BacktestPage.module.css'
 
@@ -33,7 +34,7 @@ export default function BacktestSteps({ steps, active, onPick }: Props) {
               className={step.key === active ? styles.railStepOn : styles.railStep}
               aria-current={step.key === active ? 'step' : undefined}
               onClick={(event) => {
-                if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return
+                if (!isPlainClick(event)) return
                 event.preventDefault()
                 onPick(step.key)
               }}

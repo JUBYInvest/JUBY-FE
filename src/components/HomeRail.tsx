@@ -1,4 +1,3 @@
-import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { HOME_GUIDE_INTRO } from '../content/homeGuide'
 import { useCommunityFeed } from '../hooks/useCommunityFeed'
@@ -50,8 +49,8 @@ const HOME_POST_COUNT = 5
 
 function CommunityPreview() {
   const { posts, pending, status, revealPending } = useCommunityFeed()
-  // "N분 전"을 그릴 때 한 번 정한 시각으로 센다 — 다시 그릴 때마다 흔들리지 않게
-  const [now] = useState(() => Date.now())
+  // "N분 전"은 목록이 바뀌어 다시 그릴 때마다 지금 시각으로 센다(커뮤니티 화면과 같다) — 새 글을 세운 뒤 앞 글이 옛 시각에 멈춰 있지 않게
+  const now = Date.now()
   const latest = [...(posts ?? [])].sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt)).slice(0, HOME_POST_COUNT)
 
   return (
@@ -73,7 +72,7 @@ function CommunityPreview() {
       {posts === null ? (
         <div className={styles.loading} aria-hidden="true" />
       ) : (
-        <CommunityPosts posts={latest} now={pending.length > 0 ? Date.now() : now} compact />
+        <CommunityPosts posts={latest} now={now} compact />
       )}
       {status === 'mock' && <p className={styles.notice}>지금 보이는 글은 예시예요. 커뮤니티 서버가 열리면 실제 글로 바뀌어요.</p>}
     </section>

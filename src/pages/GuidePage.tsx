@@ -5,6 +5,7 @@ import { GUIDE_CHAPTERS } from '../content/guide'
 import { useDocumentTitle } from '../hooks/useDocumentTitle'
 import { readGuideDocument, type GuideDocument } from '../utils/guideMarkdown'
 import { prefersReducedMotion } from '../utils/motion'
+import { isPlainClick } from '../utils/navigation'
 import styles from './GuidePage.module.css'
 
 interface Chapter {
@@ -32,7 +33,7 @@ const pathOf = (chapter: Chapter) => (chapter === FIRST_READY ? '/guide' : `/gui
 /** 꼭지로 옮긴다. 주소는 바꾸지 않는다(새 기록이 생기면 뒤로 가기가 꼭지마다 걸린다). 새 탭으로 열기는 브라우저에 맡긴다 */
 function jumpTo(id: string) {
   return (event: MouseEvent<HTMLAnchorElement>) => {
-    if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return
+    if (!isPlainClick(event)) return
     const target = document.getElementById(id)
     if (target === null) return
     event.preventDefault()

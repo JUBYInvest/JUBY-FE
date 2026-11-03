@@ -13,6 +13,7 @@
 .layout {
   /* 종목 한 줄 = 가운데·오른쪽 제목 줄(46px — 44px 탭 + 먹 선 2px). 세 열의 첫 선이 같은 높이다 */
   --community-row: var(--section-head-height);
+  --side-row: var(--community-row);
   --community-side: clamp(220px, 16vw, 280px);
   display: grid;
   grid-template-columns: var(--community-side) minmax(0, 760px) var(--community-side);
@@ -43,45 +44,25 @@
 }
 
 /*
- * 종목으로 보기 — 사용설명서 장 목록·마이페이지 메뉴와 같은 줄(가는 선, 고른 줄은 옅은 초록 + 왼쪽 초록 막대).
+ * 종목으로 보기 — 옆 열 줄 목록(sideList.module.css, 사용설명서 장 목록과 같은 모양). 글 수는 줄 오른쪽 끝.
  * 목록을 닫는 맨 아래 선은 두지 않는다 — 종목 수에 따라 자리가 바뀌어 옆 열 글 줄의 가는 선과 2px 차이로 나란히 섰다(judge/lines.mjs G)
  */
 .stockList {
-  margin: 0;
-  padding: 0;
-  list-style: none;
+  composes: list from '../components/sideList.module.css';
 }
 
-.stock,
-.stockOn {
-  display: flex;
-  align-items: center;
+.stock {
+  composes: item from '../components/sideList.module.css';
   justify-content: space-between;
-  gap: var(--space-3);
-  width: 100%;
-  min-height: var(--community-row);
-  padding: 0 var(--space-4);
-  border: 0;
-  border-bottom: 1px solid var(--color-border);
-  background: none;
-  font-size: var(--font-md);
-  color: var(--color-text);
-  text-align: left;
+}
+
+.stockOn {
+  composes: itemOn from '../components/sideList.module.css';
+  justify-content: space-between;
 }
 
 .stockList li:last-child > * {
   border-bottom: 0;
-}
-
-.stock:hover {
-  background: var(--color-bg-hover);
-}
-
-.stockOn {
-  background: var(--color-brand-50);
-  box-shadow: inset 3px 0 0 var(--color-brand-700);
-  font-weight: 700;
-  color: var(--color-brand-800);
 }
 
 /* 종목 이름은 길면 말줄임표(좁은 화면 두 칸) */

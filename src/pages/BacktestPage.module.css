@@ -8,6 +8,7 @@
 .layout {
   /* 단계 한 줄 = 도움말 제목 줄(46px — 44px 링크 + 먹 선 2px). 그래서 두 날개의 첫 선이 같은 높이다 */
   --bt-row: var(--section-head-height);
+  --side-row: var(--bt-row);
   display: grid;
   grid-template-columns: clamp(200px, 14vw, 260px) minmax(0, 760px) clamp(300px, 21vw, 380px);
   grid-template-areas: 'steps content help';
@@ -30,7 +31,7 @@
 
 /* ── 왼쪽 날개: 진행 단계 ──────────────────────────────────────────── */
 
-/* 사용설명서 장 목록·커뮤니티 종목 목록과 같은 줄(44px, 가는 선, 지금 단계는 옅은 초록 + 왼쪽 초록 막대). 읽는 동안 위에 붙어 따라온다 */
+/* 옆 열 줄 목록(sideList.module.css — 사용설명서 장 목록·커뮤니티 종목 목록과 같은 줄, 지금 단계는 옅은 초록 + 왼쪽 초록 막대). 읽는 동안 위에 붙어 따라온다 */
 .rail {
   grid-area: steps;
   position: sticky;
@@ -38,48 +39,24 @@
 }
 
 .railList {
-  margin: 0;
-  padding: 0;
-  list-style: none;
+  composes: list from '../components/sideList.module.css';
   border-bottom: 1px solid var(--color-border);
 }
 
-.railStep,
+.railStep {
+  composes: item from '../components/sideList.module.css';
+}
+
 .railStepOn {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-  min-height: var(--bt-row);
-  padding: 0 var(--space-4);
-  border-bottom: 1px solid var(--color-border);
-  font-size: var(--font-md);
-  color: var(--color-text);
+  composes: itemOn from '../components/sideList.module.css';
 }
 
 .railList li:last-child > * {
   border-bottom: 0;
 }
 
-.railStep:hover {
-  background: var(--color-bg-hover);
-}
-
-.railStepOn {
-  background: var(--color-brand-50);
-  box-shadow: inset 3px 0 0 var(--color-brand-700);
-  font-weight: 700;
-  color: var(--color-brand-800);
-}
-
 .railNo {
-  min-width: 1ch;
-  font-variant-numeric: tabular-nums;
-  font-weight: 600;
-  color: var(--color-text-sub);
-}
-
-.railStepOn .railNo {
-  color: var(--color-brand-700);
+  composes: number from '../components/sideList.module.css';
 }
 
 .railLabel {

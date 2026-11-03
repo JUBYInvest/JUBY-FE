@@ -55,3 +55,11 @@ export function loginPathFrom(path: string): string {
   const next = toReturnPath(path)
   return next === null || next === '/' ? '/login' : `/login?next=${encodeURIComponent(next)}`
 }
+
+/**
+ * 링크를 그냥 누른 것인가(왼쪽 단추, 보조 키 없음). 같은 화면 안에서 옮기는 링크(사용설명서 "이 장에서"·백테스트 진행 단계)가
+ * 이때만 기본 이동을 막고 직접 옮긴다 — 새 탭·새 창으로 열기는 브라우저에 맡긴다
+ */
+export function isPlainClick(event: { button: number; metaKey: boolean; ctrlKey: boolean; shiftKey: boolean; altKey: boolean }): boolean {
+  return event.button === 0 && !event.metaKey && !event.ctrlKey && !event.shiftKey && !event.altKey
+}

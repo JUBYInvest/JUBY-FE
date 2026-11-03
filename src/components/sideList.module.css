@@ -1,0 +1,54 @@
+/*
+ * 옆 열 줄 목록(2026-11-03 리팩토링 — 사용설명서 장 목록·커뮤니티 종목으로 보기·백테스트 진행 단계가 같은 줄을 따로 적고 있었다).
+ * 한 줄 높이 `--side-row`(기본 44px — 세 열 화면은 가운데·오른쪽 제목 줄 높이를 넣어 첫 선을 맞춘다), 줄 사이 가는 선,
+ * 고른 줄은 옅은 초록 + 왼쪽 초록 막대 + 굵게(마이페이지 메뉴와 같은 모양 — 그 메뉴는 900px 이하에서 가로 탭이 되어 따로 둔다).
+ * 링크·단추·글 어느 요소에 붙여도 같은 모양이다(단추 기본 모양을 여기서 걷는다). 앞 번호는 `number`.
+ * 화면 CSS는 composes로 가져다 쓰고 같은 속성을 덮지 않는다(미디어 쿼리 안도) — 글자색은 `--side-color`로 받는다.
+ * 목록을 닫는 선·마지막 줄 선·좁은 화면 두 칸은 화면이 ul·li 쪽에 정한다(이 파일보다 구체적인 선택자라 순서와 상관없다).
+ */
+.list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.item,
+.itemOn {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  width: 100%;
+  min-height: var(--side-row, 44px);
+  padding: 0 var(--space-4);
+  border: 0;
+  border-bottom: 1px solid var(--color-border);
+  background: none;
+  font: inherit;
+  font-size: var(--font-md);
+  color: var(--side-color, var(--color-text));
+  text-align: left;
+}
+
+a.item:hover,
+button.item:hover {
+  background: var(--color-bg-hover);
+}
+
+.itemOn {
+  background: var(--color-brand-50);
+  box-shadow: inset 3px 0 0 var(--color-brand-700);
+  font-weight: 700;
+  color: var(--color-brand-800);
+}
+
+/* 줄 앞 번호(장 번호·단계 번호) */
+.number {
+  min-width: 1ch;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  color: var(--color-text-sub);
+}
+
+.itemOn .number {
+  color: var(--color-brand-700);
+}

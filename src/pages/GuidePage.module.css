@@ -12,6 +12,7 @@
 
 .layout {
   --guide-row: 44px;
+  --side-row: var(--guide-row);
   --guide-side: clamp(220px, 16vw, 280px);
   display: grid;
   grid-template-columns: var(--guide-side) minmax(0, 760px) var(--guide-side);
@@ -44,55 +45,31 @@
   --section-head-height: var(--guide-row);
 }
 
-/* 장 목록 — 마이페이지 왼쪽 메뉴와 같은 줄(44px, 가는 선, 고른 줄은 옅은 초록 + 왼쪽 초록 막대) */
+/* 장 목록 — 옆 열 줄 목록(sideList.module.css, 마이페이지 왼쪽 메뉴와 같은 모양). 목록 맨 아래만 닫는 선 */
 .chapterList {
-  margin: 0;
-  padding: 0;
-  list-style: none;
+  composes: list from '../components/sideList.module.css';
   border-bottom: 1px solid var(--color-border);
 }
 
-.chapter,
-.chapterOn,
+.chapter {
+  composes: item from '../components/sideList.module.css';
+}
+
+.chapterOn {
+  composes: itemOn from '../components/sideList.module.css';
+}
+
 .chapterSoon {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-  min-height: var(--guide-row);
-  padding: 0 var(--space-4);
-  border-bottom: 1px solid var(--color-border);
-  font-size: var(--font-md);
-  color: var(--color-text);
+  composes: item from '../components/sideList.module.css';
+  --side-color: var(--color-text-sub);
 }
 
 .chapterList li:last-child > * {
   border-bottom: 0;
 }
 
-.chapter:hover {
-  background: var(--color-bg-hover);
-}
-
-.chapterOn {
-  background: var(--color-brand-50);
-  box-shadow: inset 3px 0 0 var(--color-brand-700);
-  font-weight: 700;
-  color: var(--color-brand-800);
-}
-
-.chapterSoon {
-  color: var(--color-text-sub);
-}
-
 .number {
-  min-width: 1ch;
-  font-variant-numeric: tabular-nums;
-  font-weight: 600;
-  color: var(--color-text-sub);
-}
-
-.chapterOn .number {
-  color: var(--color-brand-700);
+  composes: number from '../components/sideList.module.css';
 }
 
 .soon {

@@ -955,6 +955,9 @@ effect를 두 번 돌려, 두 번째가 이미 꺼낸 자리를 못 찾고 홈�
     단추 안 "불러오는 중…", 로그인 중)는 `components/Spinner`(열린 고리, 글자색을 따른다 — 초록 단추 안에서는 흰색)를 글 옆에 둔다. 옆 글이 이미 말하면
     `aria-hidden`, 혼자면 `label`을 줘 `role="status"`다. 화면 묶음을 받는 동안은 머리글 띠 아래 끝의 흐르는 줄이다(위 "엔트리와 라우팅").
     움직임을 줄인 설정에서는 돌거나 흐르지 않는다.
+  - **옆 열 줄 목록은 `components/sideList.module.css`**(2026-11-03 리팩토링 — 사용설명서 장 목록·커뮤니티 종목으로 보기·백테스트 진행 단계가 같은 줄을 따로 적었다):
+    `list`·`item`·`itemOn`·`number`를 composes로, 줄 높이는 `--side-row`, 글자색은 `--side-color`로 받는다. 마이페이지 메뉴는 900px 이하에서 가로 탭이 되어 따로 둔다.
+    같은 화면 안에서 옮기는 링크의 "그냥 누름" 판정은 `utils/navigation isPlainClick` 하나다.
   - **두 곳 이상에 같은 것을 그리면 부품 하나로 둔다**(2026-11-03 정리): 뉴스 기사 카드 `NewsCard`(상세 뉴스·물어서 찾기·관심종목 뉴스),
     번호 단계 목록 `GuideSteps`(홈 오른쪽 위 사용설명서 칸 — 목록 자리는 화면이 className으로. 2026-11-03까지 사용설명서 화면도 썼다), 관심종목 하트 `HeartIcon`(홈 시세표·상세·주식 모아보기).
     확인 상자 안 제목·글·실패 안내·단추 줄은 `Modal.module.css`의 `title`·`text`·`error`·`buttons`, 없는 주소 화면 틀은 오류 화면(`ErrorBoundary.module.css`),
