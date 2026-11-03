@@ -94,7 +94,6 @@
 @media (max-width: 900px) {
   .title {
     margin-bottom: var(--space-5);
-    font-size: var(--font-3xl);
   }
 
   /* 사이드바를 옆에 두면 카드 폭이 남지 않는다. 위아래로 쌓는다 */
@@ -169,10 +168,6 @@
 }
 
 @media (max-width: 600px) {
-  .title {
-    font-size: var(--font-3xl);
-  }
-
   .content {
     min-height: 0;
   }

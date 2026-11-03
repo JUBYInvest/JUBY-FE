@@ -108,7 +108,6 @@
 
 .more:hover {
   background: var(--color-bg-hover);
-  color: var(--color-text);
 }
 
 .lead {

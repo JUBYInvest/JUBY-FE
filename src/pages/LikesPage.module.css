@@ -349,7 +349,6 @@
 
 .goLink {
   composes: secondary md from '../components/buttons.module.css';
-  font-size: var(--font-sm);
 }
 
 .up {

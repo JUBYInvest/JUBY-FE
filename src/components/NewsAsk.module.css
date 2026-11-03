@@ -39,10 +39,10 @@
   box-shadow: 0 0 0 3px var(--color-brand-100);
 }
 
+/* 한 줄(.row, flex)이라 입력칸 높이(44px)로 늘어난다. 높이를 다시 적지 않는다(buttons.module.css) */
 .submit {
   composes: primary md from './buttons.module.css';
   flex: none;
-  min-height: 44px;
 }
 
 .status {

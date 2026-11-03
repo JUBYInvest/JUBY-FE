@@ -196,7 +196,6 @@
 @media (max-width: 900px) {
   .title {
     margin-bottom: var(--space-5);
-    font-size: var(--font-3xl);
   }
 
   /*
@@ -211,10 +210,6 @@
 @media (max-width: 600px) {
   .input {
     min-height: 44px;
-  }
-
-  .title {
-    font-size: var(--font-3xl);
   }
 
   .watermark {

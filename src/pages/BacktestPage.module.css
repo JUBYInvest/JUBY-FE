@@ -596,12 +596,6 @@
   color: var(--color-text-sub);
 }
 
-.sample {
-  margin: 8px 0 0;
-  font-size: var(--font-sm);
-  color: var(--color-text-sub);
-}
-
 /* ── 오른쪽 가이드 ─────────────────────────────────────────────────── */
 
 /*
@@ -813,10 +807,6 @@
 /* ── 좁은 화면 ─────────────────────────────────────────────────────── */
 
 @media (max-width: 900px) {
-  .title {
-    font-size: var(--font-3xl);
-  }
-
   .layout {
     grid-template-columns: minmax(0, 1fr);
     margin-top: 28px;
@@ -845,10 +835,6 @@
 }
 
 @media (max-width: 600px) {
-  .title {
-    font-size: var(--font-3xl);
-  }
-
   .myBanner {
     flex-direction: column;
     align-items: stretch;

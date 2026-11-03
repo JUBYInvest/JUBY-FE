@@ -1,5 +1,5 @@
 // 결함 재현 판정 — 코드 검토에서 찾은 것들. 고치기 전 빌드에서 FAIL, 고친 뒤 PASS여야 한다(CLAUDE.md "버그 수정" 순서).
-//   node repro.mjs <BASE> [--only B,C,D,E]
+//   node repro.mjs <BASE> [--only B,C,D,E,S]
 import { cli, hexToRgb, judge, sleep, tokenFor, THU_11 } from './lib.mjs'
 
 const j = await judge(cli())
@@ -208,6 +208,49 @@ await run('E', async () => {
   const same = await recentRows(t)
   report('E2', same === 1, `같은 회원이 다시 로그인하면 최근 본 백테스트 ${same}줄`)
   await t.close()
+})
+
+/* ── S. 공용 CSS를 다시 덮는 규칙(2026-11-03 리팩토링 검토) ────────────────────────
+ * 공용 모듈(buttons·section)은 그걸 쓰는 화면 묶음마다 한 벌씩 들어온다. 화면 CSS가 가져온 값을 같은 속성으로 다시 적으면
+ * 처음엔 화면 규칙이 이기지만, 다른 화면 묶음이 들어와 공용 모듈 한 벌이 뒤에 붙으면 공용 값이 이긴다 — 같은 화면이
+ * 다녀온 뒤 다르게 보인다(2026-11-02 로그인 단추 L10과 같은 까닭). 처음 연 때와 다른 화면에 다녀온 뒤를 견준다.
+ */
+await run('S', async () => {
+  const menu = (page, nav, label) => page.locator(`nav[aria-label="${nav}"] a[data-label="${label}"]`).click()
+  async function roundTrip(id, { path, width = 390, height = 844, measure, away, back = 'goBack', label, expect = null }) {
+    const t = await open({ width, height })
+    await t.goto(path, 1800)
+    await t.page.evaluate(() => document.fonts.ready)
+    const first = await t.page.evaluate(measure)
+    for (const step of away) { await step(t.page); await sleep(1500) }
+    if (back === 'goBack') for (let i = 0; i < away.length; i += 1) { await t.page.goBack(); await sleep(700) }
+    else { await back(t.page); await sleep(1500) }
+    const after = await t.page.evaluate(measure)
+    const same = first !== null && JSON.stringify(first) === JSON.stringify(after)
+    const meant = expect === null || JSON.stringify(first) === JSON.stringify(expect)
+    report(id, same && meant, `${label} — 처음 ${JSON.stringify(first)} / 다른 화면에 다녀온 뒤 ${JSON.stringify(after)}${expect === null ? '' : ` (화면 CSS가 정한 값 ${JSON.stringify(expect)})`}`)
+    await t.close()
+  }
+  const titleSize = () => { const h = document.querySelector('main h1'); return h ? getComputedStyle(h).fontSize : null }
+  const toAi = (page) => menu(page, '서비스', 'AI 주가분석')
+  const toBacktest = (page) => menu(page, '서비스', '주식 백테스트')
+  await roundTrip('S1', { path: '/ai', measure: titleSize, away: [toBacktest], label: '휴대폰 AI 주가분석 화면 제목 글자', expect: '24px' })
+  await roundTrip('S2', { path: '/backtest', measure: titleSize, away: [toAi], label: '휴대폰 백테스트 화면 제목 글자', expect: '24px' })
+  await roundTrip('S3', { path: '/guide', measure: titleSize, away: [toAi], label: '휴대폰 사용설명서 화면 제목 글자', expect: '24px' })
+  await roundTrip('S4', { path: '/mypage', measure: titleSize, away: [toAi], label: '휴대폰 마이페이지 화면 제목 글자', expect: '24px' })
+  await roundTrip('S5', {
+    path: '/', away: [toBacktest], label: '휴대폰 홈 검색 단추(글자·높이·안 여백)',
+    measure: () => { const b = document.querySelector('form button[type="submit"]'); if (!b) return null; const c = getComputedStyle(b); return [c.fontSize, Math.round(b.getBoundingClientRect().height), c.paddingLeft] },
+  })
+  await roundTrip('S6', {
+    path: '/stocks/005930', away: [toAi], label: '휴대폰 종목 상세 바로 가기 단추(높이·안 여백)',
+    // 상세 바로 가기 단추는 설명 한 줄(화면에서 숨김)을 안에 품어 글자가 "이 종목 백테스트…"로 이어진다
+    measure: () => { const a = [...document.querySelectorAll('main a')].find((x) => x.textContent?.trim().startsWith('이 종목 백테스트')); if (!a) return null; const c = getComputedStyle(a); return [Math.round(a.getBoundingClientRect().height), c.paddingLeft, c.fontSize] },
+  })
+  await roundTrip('S7', {
+    path: '/likes', width: 1440, height: 900, away: [toAi], label: '주식 모아보기 담은 종목 줄의 작은 단추 글자',
+    measure: () => { const a = [...document.querySelectorAll('main a')].find((x) => x.textContent?.trim() === '이 종목 백테스트'); return a ? getComputedStyle(a).fontSize : null },
+  })
 })
 
 await j.finish()

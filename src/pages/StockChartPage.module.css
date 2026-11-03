@@ -386,10 +386,11 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  /* 단추 높이는 단추 모듈에 변수로 준다 — 높이를 다시 적으면 다른 화면에 다녀온 뒤 진다(buttons.module.css) */
   .actionRow,
   .actionRowPrimary,
   .actionRowDisabled {
-    min-height: 48px;
+    --button-height: 48px;
     white-space: normal;
   }
 }
@@ -676,8 +677,7 @@
   .actionRow,
   .actionRowPrimary,
   .actionRowDisabled {
-    padding: 0 var(--space-2);
-    font-size: var(--font-md);
+    --button-padding-x: var(--space-2);
   }
 
   .periodTabs {
