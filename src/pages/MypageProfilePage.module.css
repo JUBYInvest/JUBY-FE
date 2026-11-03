@@ -147,30 +147,21 @@
   border-radius: var(--radius-lg);
 }
 
+/* 탈퇴 확인·내 정보 수정 상자 안(Modal.module.css — AI 대화 지우기 확인과 같은 모양) */
 .modalTitle {
-  margin: 0;
-  font-size: var(--font-xl);
-  font-weight: 700;
+  composes: title from '../components/Modal.module.css';
 }
 
 .modalText {
-  margin: 10px 0 0;
-  font-size: var(--font-md);
-  line-height: 1.6;
-  color: var(--color-text-sub);
+  composes: text from '../components/Modal.module.css';
 }
 
 .modalError {
-  margin: 14px 0 0;
-  font-size: var(--font-sm);
-  color: var(--color-text);
+  composes: error from '../components/Modal.module.css';
 }
 
 .modalButtons {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin-top: 24px;
+  composes: buttons from '../components/Modal.module.css';
 }
 
 /* 되돌릴 수 없는 동작의 확정 단추. 빨강은 상승으로 읽혀 쓰지 않는다 */

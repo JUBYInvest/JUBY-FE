@@ -171,33 +171,21 @@
   text-decoration: underline;
 }
 
-/* 지우기 확인 상자. 마이페이지 탈퇴 확인과 같은 모양이다 */
+/* 지우기 확인 상자. 마이페이지 탈퇴 확인과 같은 모양이다(Modal.module.css) */
 .modalTitle {
-  margin: 0;
-  font-size: var(--font-xl);
-  font-weight: 700;
+  composes: title from './Modal.module.css';
 }
 
-/* 제목은 서버가 주는 자유 글이다. 띄어쓰기 없는 긴 제목이 상자를 밀어내지 않게 아무 데서나 끊는다 */
 .modalText {
-  margin: 10px 0 0;
-  font-size: var(--font-md);
-  line-height: 1.6;
-  color: var(--color-text-sub);
-  overflow-wrap: anywhere;
+  composes: text from './Modal.module.css';
 }
 
 .modalError {
-  margin: 14px 0 0;
-  font-size: var(--font-sm);
-  color: var(--color-text);
+  composes: error from './Modal.module.css';
 }
 
 .modalButtons {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin-top: 24px;
+  composes: buttons from './Modal.module.css';
 }
 
 /* 확인 상자의 확정 단추(지우기). 빨강은 상승으로 읽혀 쓰지 않는다 — 되돌릴 수 없다는 건 상자 글이 알린다 */

@@ -30,3 +30,35 @@
   background: var(--color-surface);
   text-align: center;
 }
+
+/*
+ * 상자 안의 제목·글·실패 안내·단추 줄. 확인 상자(AI 대화 지우기·회원 탈퇴)와 내 정보 수정이 같은 모양이다 —
+ * 두 화면 CSS에 같은 네 규칙이 따로 있었다(2026-11-03). 부르는 쪽이 `composes: title from './Modal.module.css'`로 가져다 쓴다
+ */
+.title {
+  margin: 0;
+  font-size: var(--font-xl);
+  font-weight: 700;
+}
+
+/* 대화 제목처럼 서버가 주는 자유 글이 들어간다. 띄어쓰기 없는 긴 글이 상자를 밀어내지 않게 아무 데서나 끊는다 */
+.text {
+  margin: 10px 0 0;
+  font-size: var(--font-md);
+  line-height: 1.6;
+  color: var(--color-text-sub);
+  overflow-wrap: anywhere;
+}
+
+.error {
+  margin: 14px 0 0;
+  font-size: var(--font-sm);
+  color: var(--color-text);
+}
+
+.buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 24px;
+}
