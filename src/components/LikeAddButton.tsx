@@ -48,7 +48,7 @@ export default function LikeAddButton({ stock }: { stock: StockInfo }) {
       <p className={styles.done} role="status">
         {status === 'added' ? '관심종목에 담았어요.' : '이미 관심종목에 있어요.'}
         <Link to="/likes" className={styles.doneLink}>
-          주식 모아보기에서 보기
+          관심종목에서 보기
         </Link>
       </p>
     )

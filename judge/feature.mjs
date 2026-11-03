@@ -191,7 +191,7 @@ for (const [width, height, least] of [[1920, 1080, 8], [1440, 900, 8], [390, 844
   const { context, page, raw } = await open('/likes')
   const live = () => raw.filter((l) => !l.startsWith('BLOCKED'))
   const nav = await page.$$eval('nav[aria-label="서비스"] a', (as) => as.map((a) => a.textContent.trim()))
-  report('L-1', JSON.stringify(nav) === JSON.stringify(['홈', '주식 모아보기', '주식 백테스트', 'AI 주가분석', '커뮤니티', '사용설명서']), `머리글 메뉴 ${JSON.stringify(nav)}`)
+  report('L-1', JSON.stringify(nav) === JSON.stringify(['홈', '관심종목', '주식 백테스트', 'AI 주가분석', '커뮤니티', '사용설명서']), `머리글 메뉴 ${JSON.stringify(nav)}`)
   const m = await page.evaluate(() => ({ h1: document.querySelector('h1')?.textContent, stats: document.querySelectorAll('[class*="_stats_"] > div').length, tiles: document.querySelectorAll('[data-market]').length, rows: document.querySelectorAll('[class*="_row_"]').length, handoff: document.querySelectorAll('[class*="_go_"] a').length }))
   const before = live()
   await page.getByRole('button', { name: '삼성전자 관심종목 해제' }).click()

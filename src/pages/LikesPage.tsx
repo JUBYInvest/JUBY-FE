@@ -43,7 +43,7 @@ const ORDERS: { key: ListOrder; label: string }[] = [
  * 비로그인은 요청 없이 로그인 안내다.
  */
 export default function LikesPage() {
-  useDocumentTitle('주식 모아보기')
+  useDocumentTitle('관심종목')
   const loggedIn = useIsLoggedIn()
   const { pathname } = useLocation()
 
@@ -52,7 +52,7 @@ export default function LikesPage() {
       <section className={styles.page}>
         <header className={styles.head}>
           <div>
-            <p className={styles.eyebrow}>주식 모아보기</p>
+            <p className={styles.eyebrow}>관심종목</p>
             <h1 className={styles.title}>관심종목을 한 번에 모아 봐요</h1>
           </div>
         </header>
@@ -151,7 +151,7 @@ function LikesBoard() {
     <section className={styles.page}>
       <header className={styles.head}>
         <div>
-          <p className={styles.eyebrow}>주식 모아보기</p>
+          <p className={styles.eyebrow}>관심종목</p>
           <h1 className={styles.title}>{summarize(stocks.length, ups.length, downs.length)}</h1>
         </div>
         {baseDate !== '' && <p className={styles.base}>{baseDate} 종가 기준</p>}

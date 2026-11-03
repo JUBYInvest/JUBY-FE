@@ -46,7 +46,7 @@ export default function MypageHomePage() {
           <PersonalityPart state={personality} onRetry={retryPersonality} />
         </Section>
 
-        <Section title="관심종목" more={{ to: '/likes', label: '주식 모아보기' }}>
+        <Section title="관심종목" more={{ to: '/likes', label: '전체 보기' }}>
           <LikesPart state={likes} onRetry={retryLikes} />
         </Section>
 

@@ -35,7 +35,7 @@ export const COMMUNITY_PREVIEW_POSTS: CommunityPreviewPost[] = [
   { id: 7, author: '반도체관심', stock: HANWHA, text: '차트 아래 거래량 막대는 어떻게 읽나요? 빨간 막대와 파란 막대가 섞여 있어요.', minutesAgo: 4, likes: 3, comments: 1 },
   { id: 8, author: '느긋한거북', stock: BIO, text: 'AI 주가분석에 "왜 내렸어?"라고 물어보니 최근 뉴스를 묶어서 설명해 주네요. 출처 링크가 같이 나오는 게 좋았어요.', minutesAgo: 95, likes: 9, comments: 5 },
   { id: 9, author: '차트독학', stock: SAMSUNG, text: '같은 종목도 전략을 바꾸면 적합도가 꽤 달라지네요. 기간도 3개월이랑 1년이 다르게 나와요.', minutesAgo: 130, likes: 18, comments: 7 },
-  { id: 10, author: '처음이에요', stock: null, text: '관심종목 하트 눌러 두면 주식 모아보기에서 한꺼번에 볼 수 있어요. 오늘 처음 알았네요.', minutesAgo: 180, likes: 6, comments: 0 },
+  { id: 10, author: '처음이에요', stock: null, text: '관심종목 하트 눌러 두면 관심종목 화면에서 한꺼번에 볼 수 있어요. 오늘 처음 알았네요.', minutesAgo: 180, likes: 6, comments: 0 },
 ]
 
 /**
@@ -44,6 +44,6 @@ export const COMMUNITY_PREVIEW_POSTS: CommunityPreviewPost[] = [
  */
 export const COMMUNITY_PREVIEW_LIVE: CommunityPreviewPost[] = [
   { id: 101, author: '느긋한거북', stock: null, text: '사용설명서에 AI 챗봇 질문 사례가 정리돼 있어서 따라 해 보는 중이에요.', minutesAgo: 0, likes: 0, comments: 0 },
-  { id: 102, author: '월급쟁이투자', stock: HYNIX, text: '주식 모아보기 지도에서 칸 크기가 거래대금이라는 걸 이제 알았어요.', minutesAgo: 0, likes: 0, comments: 0 },
+  { id: 102, author: '월급쟁이투자', stock: HYNIX, text: '관심종목 지도에서 칸 크기가 거래대금이라는 걸 이제 알았어요.', minutesAgo: 0, likes: 0, comments: 0 },
   { id: 103, author: '주린이공부중', stock: null, text: '안정추구형은 볼린저 밴드 전략이 기본이네요. 다른 성향 전략도 비교해 보려고요.', minutesAgo: 0, likes: 0, comments: 0 },
 ]
