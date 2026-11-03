@@ -59,7 +59,7 @@
   width: 120px;
   height: 4px;
   border-radius: var(--radius-pill);
-  background: color-mix(in srgb, var(--color-text-on-brand) 25%, transparent);
+  background: var(--color-on-brand-track);
 }
 
 .fill {

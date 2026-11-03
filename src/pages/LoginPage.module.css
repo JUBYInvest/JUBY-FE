@@ -22,14 +22,13 @@
   width: min(100%, var(--login-column));
 }
 
+/*
+ * 화면 제목 규격(section.module.css pageTitle)을 가져다 쓴다. 같은 값을 복사해 두고 600px에서만 줄여, 601~900px에서 로그인 제목만 28px이었다
+ * (다른 화면은 24px — 2026-11-03 코드 점검)
+ */
 .title {
+  composes: pageTitle from '../components/section.module.css';
   margin: 0;
-  padding-bottom: var(--space-3);
-  border-bottom: 2px solid var(--color-rule);
-  font-size: var(--font-4xl);
-  font-weight: 700;
-  line-height: 1.25;
-  letter-spacing: -0.02em;
 }
 
 .lead {
@@ -242,9 +241,5 @@
 @media (max-width: 600px) {
   .page {
     padding-top: var(--space-2);
-  }
-
-  .title {
-    font-size: var(--font-3xl);
   }
 }

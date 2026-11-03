@@ -63,6 +63,8 @@
   /* 보조 글자. 흰 바탕 5.6:1, 페이지 바탕 5.2:1, --color-bg-sub 4.9:1 */
   --color-text-sub: #5f6b66;
   --color-text-on-brand: #ffffff;
+  /* 진한 초록 띠 위의 옅은 흰 줄(지수 띠 장 진행 막대의 바탕 — 흰 글자의 25%) */
+  --color-on-brand-track: rgba(255, 255, 255, 0.25);
 
   /* 진한 채움 단추와 고른 칸 */
   --color-primary: #111827;
