@@ -23,6 +23,9 @@
 //  B14 글 줄 → 글 상세: 제목(화면 제목)·본문 전부·종목 상세 링크·등락률·사진(목록은 미리보기 한 장, 상세는 사진마다 이름)·댓글 자리, "커뮤니티로 돌아가기", 없는 글
 //  B15 등락률: 글 머리 종목 옆 값·색이 GET /api/stocks의 그 종목 값과 같다, 기준일은 목록 위에 한 번. B15b 종목 카드 아래 줄의 등락률도 같은 값·색
 //  B17 휴대폰(375 손가락): 세 화면 넘침 없음, 글쓰기 단추가 지수 띠 위, 화면 끝 카드를 누르면 다 보이게 밀림, 누르는 동안 줄이 화면 끝까지 물듦, 글 상세 종목 줄 전체가 링크, 글쓰기 단추 줄이 지수 띠 위에 붙음
+//  B18 당겨서 새로고침(375 손가락, 목업): 끌어내리면 본문이 따라오고 표시가 선다 → 놓으면 다음 예시 새 글이 맨 위에 "새 글 1개", 덜 당김·카드 줄 옆 밀기·내려 읽은 뒤는 아님,
+//      다 받으면 "새 글이 없어요", 이 화면에서만 브라우저 자체 당겨서 새로고침을 끈다
+//  B19 종목이 많을 때 카드 줄(--ws, 가짜 서버가 30종목 글 40개): 손가락 밀기·끝까지·끝에서 더 밀기·세로 밀기·끝 카드 누르기, 마우스 뒤 단추 끝까지, 키보드 Tab
 //  B16 실제 연결(--ws <웹소켓 주소를 넣고 묶은 빌드>, 가짜 WebSocket): 로그인하면 칸이 열린다 → 종목 고르기·제목·내용 → 올리기가 SEND에 제목·내용·종목을 싣고,
 //      서버가 되돌려 준 내 글(POST_CREATED)의 글 상세로 간다. 비로그인은 칸이 잠기고 로그인 안내
 // node community.mjs <BASE> [--only B1,B2] [--headed] [--ws <BASE2>]
@@ -521,6 +524,204 @@ await j.run('B16', async () => {
   const out = await o.page.evaluate(() => ({ locked: document.querySelector('main fieldset')?.disabled, login: document.querySelector('main a[href^="/login"]')?.textContent }))
   j.report('B16c', out.locked === true && out.login === '로그인하기', `비로그인: 칸 잠김 ${out.locked}, 안내 링크 "${out.login}"`)
   await o.close()
+})
+
+// B18 당겨서 새로고침(2026-11-04 사용자 "글을 위쪽 방향으로 잡아당겼을 때 새로고침이 되어 새 글이 나오는 것", 375 손가락, 목업):
+// 맨 위에서 끌어내리면 본문이 따라 내려오고 표시가 서며 페이지는 스크롤되지 않는다 → 놓으면 도는 고리 → 다음 예시 새 글이 맨 위에 서고 "새 글 1개" → 제자리.
+// 덜 당기면 그냥 돌아간다, 카드 줄을 옆으로 밀거나 글을 내려 읽은 뒤에는 당김이 아니다, 예시 새 글을 다 받으면 "새 글이 없어요".
+// 이 화면에 있는 동안 브라우저 자체 당겨서 새로고침(페이지 전체를 다시 읽는다)을 끄고, 떠나면 되돌린다
+await j.run('B18', async () => {
+  const t = await j.open({ width: 375, height: 812, touch: true })
+  await t.goto('/community', 1500)
+  const cdp = await t.context.newCDPSession(t.page)
+  const touch = (type, x, y) => cdp.send('Input.dispatchTouchEvent', { type, touchPoints: type === 'touchEnd' ? [] : [{ x, y }] })
+  /** 손가락을 (x, y)에서 dy만큼 끌어내리다 멈춘 순간을 재고 뗀다 */
+  const drag = async (x, y, dx, dy, during = null) => {
+    await touch('touchStart', x, y)
+    for (let i = 1; i <= 12; i++) { await touch('touchMove', x + (dx * i) / 12, y + (dy * i) / 12); await sleep(16) }
+    const mid = during === null ? null : await during()
+    await touch('touchEnd')
+    return mid
+  }
+  const state = () => t.page.evaluate(() => {
+    const area = document.querySelector('main [data-pull]')
+    const body = area?.children[1]
+    const mark = area?.children[0]
+    return { phase: area?.dataset.pull, pull: area?.style.getPropertyValue('--pull'), transform: body ? getComputedStyle(body).transform : null,
+      mark: mark ? Math.round(mark.getBoundingClientRect().height) : -1, markText: mark?.textContent.trim() ?? '', scrollY: Math.round(scrollY),
+      status: document.querySelector('main p[role="status"]')?.textContent.trim() ?? '' }
+  })
+  const overscroll = await t.page.evaluate(() => getComputedStyle(document.documentElement).overscrollBehaviorY)
+  const before = await postTitles(t.page, FEED)
+
+  // 덜 당김(손가락 60px → 당김 26px) — 새로고침하지 않는다
+  await drag(187, 300, 0, 60)
+  await sleep(600)
+  const short = { titles: await postTitles(t.page, FEED), ...(await state()) }
+
+  // 다 당김(손가락 220px)
+  const mid = await drag(187, 300, 0, 220, state)
+  await sleep(250)
+  const spinning = await state()
+  await sleep(700)
+  const done = await state()
+  await sleep(1400)
+  const after = { titles: await postTitles(t.page, FEED), ...(await state()) }
+  j.report('B18a', overscroll === 'contain' && mid.phase === 'ready' && mid.mark >= 64 && /translate|matrix/.test(mid.transform) && mid.scrollY === 0
+    && short.phase === 'idle' && JSON.stringify(short.titles) === JSON.stringify(before)
+    && spinning.phase === 'refreshing' && done.phase === 'done' && done.markText === '새 글 1개' && done.status === '새 글 1개'
+    && after.phase === 'idle' && after.transform === 'none' && after.titles[0] === LIVE[0].title && after.titles.length === before.length + 1,
+    `브라우저 당겨서 새로고침 끔 ${overscroll}, 덜 당김 → ${short.phase}·글 그대로 ${JSON.stringify(short.titles) === JSON.stringify(before)}, 다 당긴 순간 ${mid.phase} 표시 ${mid.mark}px·본문 내려옴 ${mid.transform !== 'none'}·페이지 y ${mid.scrollY}, `
+    + `놓으면 ${spinning.phase} → ${done.phase} "${done.markText}"(읽어 주기 "${done.status}") → ${after.phase}, 맨 위 "${after.titles[0]}"(글 ${before.length}→${after.titles.length})`)
+
+  // 카드 줄을 옆으로 밀면 당김이 아니다
+  const strip = await t.page.locator(`${STRIP} ul`).boundingBox()
+  const sideways = await drag(300, strip.y + strip.height / 2, -200, 30, state)
+  await sleep(400)
+  const stripLeft = await t.page.locator(`${STRIP} ul`).evaluate((el) => el.scrollLeft)
+  // 글을 내려 읽은 뒤에는 끌어내려도 당김이 아니다(페이지가 위로 올라갈 뿐)
+  await t.page.evaluate(() => window.scrollTo(0, 400))
+  await sleep(300)
+  const scrolledMid = await drag(187, 300, 0, 220, state)
+  await sleep(400)
+  const scrolled = await state()
+  await t.page.evaluate(() => window.scrollTo(0, 0))
+  await sleep(300)
+  // 남은 예시 새 글을 다 받은 뒤에는 "새 글이 없어요"
+  for (let i = 1; i < LIVE.length; i++) { await drag(187, 300, 0, 220); await sleep(2400) }
+  const emptyDone = await (async () => { await drag(187, 300, 0, 220); await sleep(1000); return state() })()
+  await sleep(1500)
+  const finalTitles = await postTitles(t.page, FEED)
+  j.report('B18b', sideways.phase === 'idle' && stripLeft > 0 && scrolledMid.phase === 'idle' && scrolled.phase === 'idle'
+    && emptyDone.markText === '새 글이 없어요' && finalTitles.length === before.length + LIVE.length && LIVE.every((post) => finalTitles.includes(post.title)),
+    `카드 줄 옆으로 밀기 → ${sideways.phase}(줄 ${Math.round(stripLeft)}px 밀림), 내려 읽은 뒤 끌어내림 → ${scrolledMid.phase}, 예시 새 글 ${LIVE.length}개를 다 받은 뒤 "${emptyDone.markText}", 글 ${finalTitles.length}개`)
+
+  // 떠나면 브라우저 기본으로 돌아간다
+  await t.page.getByRole('link', { name: '홈', exact: true }).first().click().catch(() => {})
+  await t.goto('/', 1000)
+  const restored = await t.page.evaluate(() => getComputedStyle(document.documentElement).overscrollBehaviorY)
+  j.report('B18c', restored === 'auto', `커뮤니티를 떠나면 브라우저 당겨서 새로고침 되돌림 ${restored}`)
+  await cdp.detach()
+  await t.close()
+})
+
+// B19 종목이 많아지면(2026-11-04 사용자 "커뮤니티 종목이 다양해지면 좌우 스크롤도 정상적으로 되는지"): 가짜 서버가 30종목 글 40개를 밀어 준다(--ws 빌드).
+// 휴대폰 — 카드 한 줄·페이지 넘침 없음, 손가락으로 밀면 줄만 밀리고(페이지는 옆·위아래로 안 움직임) 끝까지 밀면 마지막 카드가 다 보이고 끝에서 더 밀어도 브라우저 뒤로 가기로 번지지 않음,
+// 줄 위에서 위아래로 밀면 페이지가 내려감, 끝 카드를 누르면 그 종목 글만 나오고 줄은 제자리. 마우스 — 뒤 단추를 끝까지 누르면 마지막 카드가 다 보이고 뒤 단추가 사라짐. 키보드 — Tab으로 끝 카드까지 따라감
+const STOCK_SOURCE = readFileSync(new URL('../src/api/stockList.ts', import.meta.url), 'utf8')
+const MANY = [...STOCK_SOURCE.matchAll(/\{ stockCode: '(\d{6})', stockName: '([^']+)' \}/g)].slice(0, 30).map(([, code, name]) => ({ code, name }))
+const FAKE_FEED = (posts) => {
+  class FakeSocket {
+    constructor(url) { this.url = url; this.readyState = 0; setTimeout(() => { this.readyState = 1; this.onopen?.() }, 30) }
+    reply(body) { setTimeout(() => this.onmessage?.({ data: body }), 60) }
+    send(data) {
+      const command = data.split('\n')[0]
+      if (command === 'CONNECT') this.reply('CONNECTED\nversion:1.2\n\n\0')
+      if (command === 'SUBSCRIBE') this.reply(posts.map((post) => `MESSAGE\ndestination:/topic/community\n\n${JSON.stringify({ type: 'POST_CREATED', post })}\0`).join(''))
+    }
+    close() { this.readyState = 3 }
+  }
+  window.WebSocket = FakeSocket
+}
+const manyPosts = () => {
+  const now = Date.now()
+  return Array.from({ length: 40 }, (_, i) => {
+    const stock = MANY[i % MANY.length]
+    return { postId: 5000 + i, author: `글쓴이${i}`, stockCode: stock.code, stockName: stock.name, title: `${stock.name} 이야기 ${i}`, content: '본문',
+      imageUrls: [], createdAt: new Date(now - i * 60_000).toISOString(), likeCount: i % 7, commentCount: 0 }
+  })
+}
+
+await j.run('B19', async () => {
+  if (WS_BASE === null || WS_BASE === undefined) { j.report('B19', null, '웹소켓 빌드 없음 — --ws <BASE2>를 주면 종목 30개 카드 줄을 잰다'); return }
+  const posts = manyPosts()
+  const openMany = async (opts) => {
+    const t = await j.open(opts)
+    await t.context.addInitScript(FAKE_FEED, posts)
+    await t.page.goto(`${WS_BASE}/community`, { waitUntil: 'domcontentloaded' })
+    await sleep(1200)
+    await t.page.getByRole('button', { name: /^새 글 \d+개 보기$/ }).click()
+    await sleep(400)
+    return t
+  }
+  const strip = (page) => page.evaluate((sel) => {
+    const list = document.querySelector(`${sel} ul`)
+    const cards = [...list.querySelectorAll('li button')]
+    const last = cards.at(-1).getBoundingClientRect()
+    const box = list.getBoundingClientRect()
+    return { cards: cards.length, rows: new Set(cards.map((c) => Math.round(c.getBoundingClientRect().top))).size, left: Math.round(list.scrollLeft), max: list.scrollWidth - list.clientWidth,
+      lastLeft: Math.round(last.left), lastRight: Math.round(last.right), boxLeft: Math.round(box.left), boxRight: Math.round(box.right), pageX: scrollX, pageY: Math.round(scrollY),
+      over: document.documentElement.scrollWidth - innerWidth, overscroll: getComputedStyle(list).overscrollBehaviorX,
+      next: document.querySelectorAll(`${sel} > button`).length }
+  }, STRIP)
+
+  // 휴대폰: 손가락으로 민다(개발 도구 규약의 터치 스크롤 몸짓)
+  const t = await openMany({ width: 375, height: 812, touch: true })
+  const cdp = await t.context.newCDPSession(t.page)
+  const listBox = await t.page.locator(`${STRIP} ul`).boundingBox()
+  const swipe = (dx, dy = 0) => cdp.send('Input.synthesizeScrollGesture', { x: Math.round(listBox.x + listBox.width / 2), y: Math.round(listBox.y + listBox.height / 2), xDistance: dx, yDistance: dy, gestureSourceType: 'touch', speed: 1600 })
+  const start = await strip(t.page)
+  await swipe(-240)
+  await sleep(500)
+  const once = await strip(t.page)
+  for (let i = 0; i < 25 && (await strip(t.page)).left < start.max - 1; i++) { await swipe(-320); await sleep(250) }
+  await sleep(400)
+  const end = await strip(t.page)
+  await swipe(-200) // 끝에서 더 민다 — 주소가 그대로여야 한다(뒤로 가기로 번지지 않음)
+  await sleep(600)
+  const pathAfter = new URL(t.page.url()).pathname
+  j.report('B19a', start.cards === MANY.length + 1 && start.rows === 1 && start.over <= 0 && start.max > 1000 && once.left > 100 && once.pageX === 0 && once.pageY === start.pageY
+    && Math.abs(end.left - end.max) <= 1 && end.lastRight <= 375 && end.lastLeft >= 0 && pathAfter === '/community' && end.overscroll === 'contain',
+    `카드 ${start.cards}장 ${start.rows}줄, 페이지 넘침 ${start.over}px, 줄 길이 ${start.max}px 더 — 한 번 밀면 ${once.left}px(페이지 x ${once.pageX}·y ${start.pageY}→${once.pageY}), 끝까지 ${end.left}/${end.max}px 마지막 카드 ${end.lastLeft}~${end.lastRight}px, 끝에서 더 밀어도 ${pathAfter}, 넘침 번짐 막음 ${end.overscroll}`)
+  // 줄 위에서 위아래로 밀면 페이지가 내려간다(줄이 세로 몸짓을 붙잡지 않는다)
+  await swipe(0, -300)
+  await sleep(600)
+  const vertical = await strip(t.page)
+  await t.page.evaluate(() => window.scrollTo(0, 0))
+  await sleep(300)
+  // 끝 카드(화면 안)를 누른다 — 그 종목 글만, 줄은 제자리
+  const lastBox = await t.page.locator(`${STRIP} li button`).last().boundingBox()
+  await t.page.touchscreen.tap(lastBox.x + lastBox.width / 2, lastBox.y + lastBox.height / 2)
+  await sleep(600)
+  const picked = await strip(t.page)
+  const lastStock = MANY.at(-1)
+  const titles = await postTitles(t.page, FEED)
+  const pressed = await t.page.locator(`${STRIP} li button`).last().getAttribute('aria-pressed')
+  j.report('B19b', vertical.pageY > end.pageY + 100 && vertical.left === end.left && pressed === 'true' && titles.length > 0 && titles.every((title) => title.startsWith(lastStock.name))
+    && Math.abs(picked.left - end.left) <= 1,
+    `줄 위 세로로 밀면 페이지 ${end.pageY}→${vertical.pageY}px(줄은 ${vertical.left}px 그대로), 끝 카드 ${lastStock.name} 누름 ${pressed} → 글 ${titles.length}개 모두 그 종목, 줄 ${end.left}→${picked.left}px`)
+  await t.close()
+
+  // 마우스: 뒤 단추를 사라질 때까지 누른다
+  const m = await openMany({ width: 1440, height: 900 })
+  let clicks = 0
+  while (clicks < 20 && (await m.page.locator(`${STRIP} > button`).count()) > 0) {
+    const buttons = m.page.locator(`${STRIP} > button`)
+    const nextButton = buttons.last()
+    const box = await nextButton.boundingBox()
+    const stripBox = await m.page.locator(STRIP).boundingBox()
+    if (box.x < stripBox.x + stripBox.width / 2) break // 남은 것이 앞 단추뿐
+    await nextButton.click()
+    clicks += 1
+    await sleep(500)
+  }
+  const mouseEnd = await strip(m.page)
+  // 키보드: 첫 카드에서 Tab으로 끝 카드까지
+  await m.page.evaluate(() => window.scrollTo(0, 0))
+  await m.page.locator(`${STRIP} li button`).first().focus()
+  await m.page.locator(`${STRIP} ul`).evaluate((el) => { el.scrollLeft = 0 })
+  await sleep(200)
+  for (let i = 0; i < MANY.length; i++) await m.page.keyboard.press('Tab')
+  await sleep(500)
+  const focus = await m.page.evaluate((sel) => {
+    const cards = [...document.querySelectorAll(`${sel} li button`)]
+    const box = document.querySelector(`${sel} ul`).getBoundingClientRect()
+    const r = document.activeElement.getBoundingClientRect()
+    return { index: cards.indexOf(document.activeElement), inside: r.left >= box.left - 1 && r.right <= box.right + 1 }
+  }, STRIP)
+  j.report('B19c', clicks >= 2 && Math.abs(mouseEnd.left - mouseEnd.max) <= 1 && mouseEnd.lastRight <= mouseEnd.boxRight + 1 && focus.index === MANY.length && focus.inside,
+    `마우스 뒤 단추 ${clicks}번 → ${mouseEnd.left}/${mouseEnd.max}px, 마지막 카드 오른쪽 ${mouseEnd.lastRight} ≤ 줄 ${mouseEnd.boxRight}, 키보드 Tab ${MANY.length}번 → ${focus.index}번째 카드 포커스·줄 안 ${focus.inside}`)
+  await m.close()
 })
 
 // B17 휴대폰(375 손가락, 2026-11-04 사용자 "모바일 버전에서도 대응되는지 확인하고… 유려하게"): 세 화면 넘침 없음,

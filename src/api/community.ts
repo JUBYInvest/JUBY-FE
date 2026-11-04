@@ -54,6 +54,11 @@ export interface CommunityConnection {
   canSend: () => boolean
   /** 새 글을 보낸다. 서버가 POST_CREATED로 되돌려 줄 때 목록에 선다. 못 보내면 false */
   sendPost: (draft: CommunityDraft) => boolean
+  /**
+   * 당겨서 새로고침(useCommunityFeed refresh)이 지금 받아 가는 새 글. 목업은 다음 예시 새 글을 바로 내준다(그다음 글까지의 간격은 다시 센다).
+   * 실제 연결은 서버가 밀어 주므로 빈 목록이다 — 처음 목록은 useCommunityFeed가 다시 받는다
+   */
+  pullNow: () => CommunityPost[]
   close: () => void
 }
 
@@ -161,14 +166,30 @@ const MOCK_LIVE_DELAY_MS = { first: 40_000, between: 70_000 }
 function connectMock({ onEvent, onStatus }: Handlers): CommunityConnection {
   onStatus('mock')
   let index = 0
-  let timer = window.setTimeout(function next() {
+  let timer = 0
+  /** 다음 예시 새 글(다 흘렸으면 null). 그다음 글은 이때부터 다시 센다 */
+  const take = (): CommunityPost | null => {
+    window.clearTimeout(timer)
     const post = COMMUNITY_PREVIEW_LIVE[index]
-    if (post === undefined) return
+    if (post === undefined) return null
     index += 1
-    onEvent({ type: 'POST_CREATED', post: fromPreview(post, Date.now()) })
     timer = window.setTimeout(next, MOCK_LIVE_DELAY_MS.between)
-  }, MOCK_LIVE_DELAY_MS.first)
-  return { canSend: () => false, sendPost: () => false, close: () => window.clearTimeout(timer) }
+    return fromPreview(post, Date.now())
+  }
+  function next() {
+    const post = take()
+    if (post !== null) onEvent({ type: 'POST_CREATED', post })
+  }
+  timer = window.setTimeout(next, MOCK_LIVE_DELAY_MS.first)
+  return {
+    canSend: () => false,
+    sendPost: () => false,
+    pullNow: () => {
+      const post = take()
+      return post === null ? [] : [post]
+    },
+    close: () => window.clearTimeout(timer),
+  }
 }
 
 /* ── STOMP 1.2(웹소켓 위). 쓰는 프레임은 CONNECT·SUBSCRIBE·SEND·DISCONNECT를 보내고 CONNECTED·MESSAGE·ERROR를 받는 것뿐이다 ── */
@@ -238,6 +259,7 @@ function connectStomp(url: string, { onEvent, onStatus }: Handlers): CommunityCo
 
   return {
     canSend: () => ready,
+    pullNow: () => [],
     sendPost: ({ title, content, stockCode }) => {
       if (!ready || socket === null) return false
       socket.send(frame('SEND', { destination: SEND_TO, 'content-type': 'application/json' }, JSON.stringify({ title, content, stockCode })))

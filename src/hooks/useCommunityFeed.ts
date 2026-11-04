@@ -19,6 +19,11 @@ interface Feed {
   revealPending: () => void
   /** 글을 서버로 보낸다(실제 연결이 열렸을 때만). 서버가 POST_CREATED로 되돌려 주면 새 글로 들어온다. 못 보내면 false */
   sendPost: (draft: CommunityDraft) => boolean
+  /**
+   * 당겨서 새로고침(커뮤니티 목록). 쌓인 새 글 + 지금 받아 오는 새 글(목업은 다음 예시 글) + 다시 받은 처음 목록에서 목록에 없던 글을 위에 세운다.
+   * 위에 선 글을 돌려준다(없으면 빈 목록 — "새 글이 없어요")
+   */
+  refresh: () => Promise<CommunityPost[]>
 }
 
 const withoutDuplicates = (list: CommunityPost[]) => list.filter((post, index) => list.findIndex((other) => other.postId === post.postId) === index)
@@ -82,5 +87,22 @@ export function useCommunityFeed(seed: CommunityPost | null = null): Feed {
 
   const sendPost = (draft: CommunityDraft) => connectionRef.current?.sendPost(draft) ?? false
 
-  return { posts, pending: fresh, status, revealPending, sendPost }
+  // 새로고침은 기다린 뒤(처음 목록을 다시 받는다) 그때의 목록·쌓인 새 글과 견준다 — 부를 때 잡힌 값은 낡았다
+  const latestRef = useRef<{ posts: CommunityPost[] | null; pending: CommunityPost[] }>({ posts: null, pending: [] })
+  useEffect(() => {
+    latestRef.current = { posts, pending: fresh }
+  })
+
+  const refresh = async () => {
+    const pulled = connectionRef.current?.pullNow() ?? []
+    const loaded = await loadCommunityPosts()
+    const { posts: shown, pending: waiting } = latestRef.current
+    const known = new Set((shown ?? []).map((post) => post.postId))
+    const incoming = withoutDuplicates([...pulled, ...waiting, ...loaded]).filter((post) => !known.has(post.postId))
+    setPosts((list) => withoutDuplicates([...incoming, ...(list ?? [])]))
+    setPending([])
+    return incoming
+  }
+
+  return { posts, pending: fresh, status, revealPending, sendPost, refresh }
 }

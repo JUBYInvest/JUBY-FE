@@ -9,6 +9,7 @@ import SearchBar from '../components/SearchBar'
 import Spinner from '../components/Spinner'
 import { useCommunityFeed } from '../hooks/useCommunityFeed'
 import { useDocumentTitle } from '../hooks/useDocumentTitle'
+import { usePullToRefresh } from '../hooks/usePullToRefresh'
 import { toStockHandoff } from '../hooks/useStockHandoff'
 import { useStockQuotes, type StockQuote } from '../hooks/useStockQuotes'
 import { sharedYmd, toKoreanDate } from '../utils/date'
@@ -29,6 +30,14 @@ interface StockChoice {
   code: string
   name: string
   count: number
+}
+
+/** 당겨서 새로고침이 끝난 뒤 잠깐 보이는 한 줄. 종목을 고른 채면 그 종목 새 글을 센다(다른 종목 새 글은 전체에 섰다) */
+function pullMessage(incoming: CommunityPost[], picked: StockChoice | null): string {
+  if (incoming.length === 0) return '새 글이 없어요'
+  if (picked === null) return `새 글 ${incoming.length}개`
+  const mine = incoming.filter((post) => post.stockCode === picked.code).length
+  return mine > 0 ? `${picked.name} 새 글 ${mine}개` : `전체에 새 글 ${incoming.length}개`
 }
 
 const byLatest = (a: CommunityPost, b: CommunityPost) => Date.parse(b.createdAt) - Date.parse(a.createdAt)
@@ -55,11 +64,13 @@ function stocksOf(posts: CommunityPost[]): StockChoice[] {
  * 오른쪽 아래 떠 있는 "글쓰기"는 글쓰기 화면(`/community/write`)으로 간다. 글 머리 종목 옆에 그날 등락률(GET /api/stocks — DB, 홈 시세표와 같은 값).
  * 넓은 화면(901px~)은 두 열 — 글 | 오른쪽 연결·이용 안내(글 상세와 같은 틀).
  * 글은 웹소켓으로 받는다(src/api/community.ts). 서버가 없는 지금은 예시 글이고, 보고 있는 동안 예시 새 글이 띄엄띄엄 들어온다 —
- * 바로 끼우지 않고 "새 글 N개 보기"로 모았다가 누르면 위에 세운다(읽던 글이 밀리지 않게)
+ * 바로 끼우지 않고 "새 글 N개 보기"로 모았다가 누르면 위에 세운다(읽던 글이 밀리지 않게).
+ * 손가락 화면은 맨 위에서 끌어내려도 새 글을 받는다(당겨서 새로고침, 같은 날 사용자 "글을 위쪽 방향으로 잡아당겼을 때 새로고침이 되어 새 글이 나오는 것" —
+ * 쌓인 새 글 + 지금 받아 오는 새 글을 위에 세운다, 목업은 다음 예시 새 글을 바로 받는다. hooks/usePullToRefresh)
  */
 export default function CommunityPage() {
   useDocumentTitle('커뮤니티')
-  const { posts, pending, status, revealPending } = useCommunityFeed()
+  const { posts, pending, status, revealPending, refresh } = useCommunityFeed()
   const quotes = useStockQuotes()
   const stripRef = useRef<HTMLElement>(null)
   const searchToggleRef = useRef<HTMLButtonElement>(null)
@@ -72,6 +83,12 @@ export default function CommunityPage() {
   const [searchOpen, setSearchOpen] = useState(false)
   /** 사람이 탭·카드·검색으로 목록을 바꾼 횟수. 바뀐 목록만 잠깐 떠오른다(처음 그릴 때는 걸지 않는다) */
   const [feedTurn, setFeedTurn] = useState(0)
+  const pullRef = useRef<HTMLDivElement>(null)
+  const pull = usePullToRefresh(pullRef, async () => {
+    const incoming = await refresh()
+    if (incoming.length > 0) setFeedTurn((turn) => turn + 1)
+    return incoming
+  })
   // "N분 전"은 목록이 바뀔 때마다 새로 센다 — 새 글을 세웠는데 앞 글이 "방금"에 멈춰 있지 않게
   const now = Date.now()
 
@@ -127,85 +144,98 @@ export default function CommunityPage() {
     card?.scrollIntoView({ block: 'nearest', inline: 'nearest' })
   }, [stockCode, searchOpen])
 
+  const pulled = pull.result === null ? '' : pullMessage(pull.result, picked)
+
   return (
     <>
-      <div className={styles.titleRow}>
-        <h1 className={styles.title}>커뮤니티</h1>
-        <button
-          ref={searchToggleRef}
-          type="button"
-          className={styles.searchToggle}
-          aria-expanded={searchOpen}
-          aria-controls={searchOpen ? 'community-search' : undefined}
-          onClick={() => setSearchOpen((open) => !open)}
-        >
-          <SearchIcon />
-          종목 검색
-        </button>
-      </div>
-
-      {searchOpen && (
-        <div id="community-search" className={styles.search}>
-          <SearchBar
-            stocks={searchable}
-            onPick={pickSearched}
-            onDismiss={closeSearch}
-            autoFocus
-            placeholder="종목명이나 종목코드로 찾기 (예: 삼성전자)"
-          />
+      <div ref={pullRef} className={styles.pull}>
+        {/* 당겨서 새로고침 표시 — 끌어내린 만큼 벌어진 자리 가운데. 화살표(다 당기면 위를 본다) → 도는 고리 → 받은 결과 한 줄 */}
+        <div className={styles.pullMark} aria-hidden="true">
+          {pull.phase === 'refreshing' ? <Spinner size={20} /> : pulled !== '' ? <span className={styles.pullText}>{pulled}</span> : <PullIcon />}
         </div>
-      )}
-
-      <div className={layout.layout}>
-        <section className={layout.main} aria-labelledby="community-feed-title">
-          {/* 고른 종목은 아래 카드 줄이 보인다. 읽어 주는 쪽에는 구역 이름으로 알린다 */}
-          <h2 id="community-feed-title" className={styles.srOnly}>
-            {picked === null ? '전체 글' : `${picked.name} 이야기`}
-          </h2>
-          <div className={styles.head}>
-            <div className={styles.tabs} role="group" aria-label="정렬">
-              {ORDERS.map((item) => (
-                <button
-                  key={item.key}
-                  type="button"
-                  className={order === item.key ? styles.tabActive : styles.tab}
-                  aria-pressed={order === item.key}
-                  onClick={() => pickOrder(item.key)}
-                >
-                  {item.label}
-                </button>
-              ))}
-            </div>
-            <span className={styles.orderNote}>{orderNote}</span>
+        <div className={styles.pullBody}>
+          <div className={styles.titleRow}>
+            <h1 className={styles.title}>커뮤니티</h1>
+            <button
+              ref={searchToggleRef}
+              type="button"
+              className={styles.searchToggle}
+              aria-expanded={searchOpen}
+              aria-controls={searchOpen ? 'community-search' : undefined}
+              onClick={() => setSearchOpen((open) => !open)}
+            >
+              <SearchIcon />
+              종목 검색
+            </button>
           </div>
 
-          <StockStrip ref={stripRef} stocks={stocks} total={all.length} quotes={quotes} pickedCode={picked?.code ?? null} onPick={pickStock} />
-
-          {quoteDate !== null && <p className={styles.asOf}>등락률은 {toKoreanDate(quoteDate)} 종가 기준이에요</p>}
-
-          {pending.length > 0 && (
-            <button type="button" className={styles.fresh} onClick={revealPending}>
-              새 글 {pending.length}개 보기
-            </button>
-          )}
-
-          {posts === null ? (
-            <p className={styles.message}>
-              <Spinner size={16} /> 글을 불러오는 중…
-            </p>
-          ) : shown.length === 0 ? (
-            <p className={styles.message}>{picked === null ? '아직 올라온 글이 없어요.' : `${picked.name} 이야기는 아직 없어요.`}</p>
-          ) : (
-            // 바뀐 목록은 새로 그려 잠깐 떠오르게 한다 — 카드를 누른 손가락 아래가 아니라 그 아래 글이 바뀌어, 바뀐 것을 눈이 따라가게(움직임 줄이기면 없다)
-            <div key={feedTurn} className={feedTurn > 0 ? styles.feedTurn : undefined}>
-              <CommunityPosts posts={shown} now={now} quotes={quotes} />
+          {searchOpen && (
+            <div id="community-search" className={styles.search}>
+              <SearchBar
+                stocks={searchable}
+                onPick={pickSearched}
+                onDismiss={closeSearch}
+                autoFocus
+                placeholder="종목명이나 종목코드로 찾기 (예: 삼성전자)"
+              />
             </div>
           )}
-          <div className={styles.feedEnd} />
-        </section>
 
-        <CommunitySide status={status} className={layout.side} />
+          <div className={layout.layout}>
+            <section className={layout.main} aria-labelledby="community-feed-title">
+              {/* 고른 종목은 아래 카드 줄이 보인다. 읽어 주는 쪽에는 구역 이름으로 알린다 */}
+              <h2 id="community-feed-title" className={styles.srOnly}>
+                {picked === null ? '전체 글' : `${picked.name} 이야기`}
+              </h2>
+              <div className={styles.head}>
+                <div className={styles.tabs} role="group" aria-label="정렬">
+                  {ORDERS.map((item) => (
+                    <button
+                      key={item.key}
+                      type="button"
+                      className={order === item.key ? styles.tabActive : styles.tab}
+                      aria-pressed={order === item.key}
+                      onClick={() => pickOrder(item.key)}
+                    >
+                      {item.label}
+                    </button>
+                  ))}
+                </div>
+                <span className={styles.orderNote}>{orderNote}</span>
+              </div>
+
+              <StockStrip ref={stripRef} stocks={stocks} total={all.length} quotes={quotes} pickedCode={picked?.code ?? null} onPick={pickStock} />
+
+              {quoteDate !== null && <p className={styles.asOf}>등락률은 {toKoreanDate(quoteDate)} 종가 기준이에요</p>}
+
+              {pending.length > 0 && (
+                <button type="button" className={styles.fresh} onClick={revealPending}>
+                  새 글 {pending.length}개 보기
+                </button>
+              )}
+
+              {posts === null ? (
+                <p className={styles.message}>
+                  <Spinner size={16} /> 글을 불러오는 중…
+                </p>
+              ) : shown.length === 0 ? (
+                <p className={styles.message}>{picked === null ? '아직 올라온 글이 없어요.' : `${picked.name} 이야기는 아직 없어요.`}</p>
+              ) : (
+                // 바뀐 목록은 새로 그려 잠깐 떠오르게 한다 — 카드를 누른 손가락 아래가 아니라 그 아래 글이 바뀌어, 바뀐 것을 눈이 따라가게(움직임 줄이기면 없다)
+                <div key={feedTurn} className={feedTurn > 0 ? styles.feedTurn : undefined}>
+                  <CommunityPosts posts={shown} now={now} quotes={quotes} />
+                </div>
+              )}
+              <div className={styles.feedEnd} />
+            </section>
+
+            <CommunitySide status={status} className={layout.side} />
+          </div>
+        </div>
       </div>
+      <p className={styles.srOnly} role="status">
+        {pull.phase === 'done' ? pulled : ''}
+      </p>
 
       {/* 고른 종목이 있으면 그 종목 이야기로 쓴다(글쓰기 화면이 종목을 채운다) */}
       <Link to="/community/write" state={picked === null ? undefined : toStockHandoff({ stockCode: picked.code, stockName: picked.name })} className={styles.write}>
@@ -338,6 +368,15 @@ function AllIcon() {
   return (
     <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true">
       <path d="M5 7h14M5 12h14M5 17h9" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
+    </svg>
+  )
+}
+
+/** 당겨서 새로고침 화살표 — 아래를 본다. 놓으면 받을 만큼 당기면 위로 뒤집힌다(CSS) */
+function PullIcon() {
+  return (
+    <svg className={styles.pullArrow} width="20" height="20" viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M12 4v15m-6-6 6 6 6-6" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   )
 }

@@ -5,6 +5,69 @@
  * 글쓰기는 오른쪽 아래에 떠 있는 "글쓰기" 단추 → /community/write(11-03까지는 글 위 한 줄 입력칸).
  * 두 열의 첫 선이 같은 높이다: 가운데 탭 줄 먹 선 = 오른쪽 제목 줄 먹 선(줄 높이 46px, judge/community.mjs B7).
  */
+/*
+ * 당겨서 새로고침(hooks/usePullToRefresh — 손가락 화면, 맨 위에서 끌어내린다). 훅이 이 칸에 당김 거리 --pull·문턱까지 몫 --pull-progress와 단계 data-pull을 싣는다.
+ * 본문이 --pull만큼 내려오고 벌어진 자리 가운데에 표시가 선다. 가만히 있을 때(idle)는 본문에 transform을 두지 않는다 — 두면 옆 열 sticky·떠 있는 층의 기준이 바뀐다.
+ * 손가락을 따라가는 동안은 transition 없이, 놓은 뒤 제자리·받는 자리로는 화면 전환과 같은 곡선으로(움직임 줄이기면 곧바로)
+ */
+.pull {
+  --pull: 0px;
+  --pull-progress: 0;
+  position: relative;
+}
+
+.pullMark {
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: 0;
+  display: grid;
+  place-items: center;
+  height: var(--pull);
+  overflow: hidden;
+  color: var(--color-text-sub);
+  opacity: var(--pull-progress);
+  pointer-events: none;
+}
+
+.pull:is([data-pull='ready'], [data-pull='refreshing'], [data-pull='done']) .pullMark {
+  color: var(--color-text);
+  opacity: 1;
+}
+
+/* 덜 당겼으면 아래(더 당기라), 놓으면 받을 만큼 당겼으면 위로 뒤집힌다 — 당긴 만큼 조금씩 돌리면 중간에 옆을 가리켰다 */
+.pull[data-pull='ready'] .pullArrow {
+  transform: rotate(180deg);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .pullArrow {
+    transition: transform 0.18s cubic-bezier(0.2, 0, 0, 1);
+  }
+}
+
+.pullText {
+  font-size: var(--font-md);
+  font-weight: 600;
+}
+
+.pull:is([data-pull='pulling'], [data-pull='ready'], [data-pull='refreshing'], [data-pull='done'], [data-pull='settling']) .pullBody {
+  transform: translateY(var(--pull));
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .pullBody,
+  .pullMark {
+    transition:
+      transform 0.28s cubic-bezier(0.2, 0, 0, 1),
+      height 0.28s cubic-bezier(0.2, 0, 0, 1);
+  }
+
+  .pull:is([data-pull='pulling'], [data-pull='ready']) :is(.pullBody, .pullMark) {
+    transition: none;
+  }
+}
+
 .titleRow {
   position: relative;
 }
@@ -106,6 +169,8 @@
   margin: 0;
   padding: var(--space-1) 2px;
   overflow-x: auto;
+  /* 끝까지 민 뒤 더 미는 몸짓이 페이지로 번지지 않게 — 맥 트랙패드는 그게 "뒤로 가기"가 된다(종목 30개로 잰 B19a) */
+  overscroll-behavior-x: contain;
   list-style: none;
   scroll-padding-inline: var(--space-2);
   scrollbar-width: none;
