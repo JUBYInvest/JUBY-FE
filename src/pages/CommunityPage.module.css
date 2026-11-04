@@ -1,9 +1,9 @@
 /*
  * 커뮤니티 목록(2026-11-03, 2026-11-04 종목 카드 줄·최신/인기 탭·글 상세·글쓰기). 두 열 틀(글 | 실시간 연결·이용 안내)은 글 상세와 같이 쓴다 —
  * components/communityLayout.module.css, 오른쪽 열은 components/CommunitySide.
- * 글 열은 위에서부터 큰 탭(최신 · 인기) 제목 줄 → 옆으로 미는 종목 카드 줄 → (등락률 기준일) → 글 줄이다(토스증권 앱 커뮤니티를 참고).
+ * 글 열은 위에서부터 큰 탭(최신 · 인기) 줄(가는 선) → 옆으로 미는 종목 카드 줄 → (등락률 기준일) → 글 줄이다(토스증권 앱 커뮤니티를 참고).
  * 글쓰기는 오른쪽 아래에 떠 있는 "글쓰기" 단추 → /community/write(11-03까지는 글 위 한 줄 입력칸).
- * 두 열의 첫 선이 같은 높이다: 가운데 탭 줄 먹 선 = 오른쪽 제목 줄 먹 선(줄 높이 46px, judge/community.mjs B7).
+ * 두 열의 첫 선이 같은 높이다: 가운데 탭 줄 가는 선 = 오른쪽 제목 줄 먹 선(줄 높이 46px, 선 아래 끝이 같다 — judge/community.mjs B7).
  */
 /*
  * 당겨서 새로고침(hooks/usePullToRefresh — 손가락 화면, 맨 위에서 끌어내린다). 훅이 이 칸에 당김 거리 --pull·문턱까지 몫 --pull-progress와 단계 data-pull을 싣는다.
@@ -30,7 +30,7 @@
   pointer-events: none;
 }
 
-.pull:is([data-pull='ready'], [data-pull='refreshing'], [data-pull='done']) .pullMark {
+.pull:is([data-pull='ready'], [data-pull='refreshing'], [data-pull='closing']) .pullMark {
   color: var(--color-text);
   opacity: 1;
 }
@@ -46,25 +46,16 @@
   }
 }
 
-.pullText {
-  font-size: var(--font-md);
-  font-weight: 600;
-}
-
-.pull:is([data-pull='pulling'], [data-pull='ready'], [data-pull='refreshing'], [data-pull='done'], [data-pull='settling']) .pullBody {
+.pull:is([data-pull='pulling'], [data-pull='ready'], [data-pull='refreshing'], [data-pull='closing'], [data-pull='settling']) .pullBody {
   transform: translateY(var(--pull));
 }
 
+/* 놓은 뒤(받는 자리로·제자리로)만 미끄러진다 — 손가락을 따라가는 동안과 가만히로 바뀌는 순간은 곧바로(가만히에 transition이 남으면 transform이 0.28초 더 붙어 있다) */
 @media (prefers-reduced-motion: no-preference) {
-  .pullBody,
-  .pullMark {
+  .pull:is([data-pull='refreshing'], [data-pull='closing'], [data-pull='settling']) :is(.pullBody, .pullMark) {
     transition:
       transform 0.28s cubic-bezier(0.2, 0, 0, 1),
       height 0.28s cubic-bezier(0.2, 0, 0, 1);
-  }
-
-  .pull:is([data-pull='pulling'], [data-pull='ready']) :is(.pullBody, .pullMark) {
-    transition: none;
   }
 }
 
@@ -118,15 +109,26 @@
   margin-top: var(--space-4);
 }
 
-/* 글 열 제목 줄 — 큰 밑줄 탭(최신 · 인기) + 오른쪽 "무엇 순", 아래 먹 선(구역 제목 줄과 같은 46px) */
+/*
+ * 글 열 머리 — 큰 밑줄 탭(최신 · 인기) + 오른쪽 "무엇 순", 아래 **가는 선**. 굵은 먹 선을 쓰지 않는다 — 바로 위 화면 제목의 먹 선이 이미 이 화면을 열고,
+ * 탭은 그 아래 단계다(2026-11-04 사용자 "검은색 가로줄이 두 개인데 안 어울린다… 위계를 나누던가" — 휴대폰에서 먹 선 둘이 140px 사이로 겹쳐 섰다).
+ * 줄 모양은 구역 제목 줄(section head)과 같은 46px·바닥선 맞춤이지만 선만 다르다 — composes로 가져와 선을 덮어쓰지 않고(공용 모듈 규칙) 여기 적는다.
+ * 넓은 화면에서 이 선의 아래 끝이 오른쪽 "이용 안내" 먹 선의 아래 끝과 같다 — 사용설명서 장 목록 첫 줄 가는 선 = "이 장에서" 먹 선과 같은 짝
+ */
 .head {
-  composes: head from '../components/section.module.css';
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  align-content: center;
+  gap: var(--space-1) var(--space-3);
+  min-height: var(--section-head-height);
+  border-bottom: 1px solid var(--color-border);
 }
 
-/* 탭(tabs.module.css). 제목 대신 서는 탭이라 왼쪽부터, 글자를 키운다. 먹 선 머리 안이라 막대는 먹 선 바로 위 */
+/* 탭(tabs.module.css). 제목 대신 서는 탭이라 왼쪽부터, 글자를 키운다. 가는 선 위라 고른 탭의 막대가 선을 덮는다(-1px) */
 .tabs {
   composes: tabs from '../components/tabs.module.css';
-  --tab-bar-offset: 0;
+  --tab-bar-offset: -1px;
   --tabs-align: baseline;
   --tabs-margin-left: 0;
   --tab-gap: var(--space-6);

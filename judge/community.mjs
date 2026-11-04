@@ -10,7 +10,7 @@
 //  B5 실시간(목업): 보고 있는 동안 새 글이 오면 끼우지 않고 "새 글 N개 보기"로 모은다 — 누르면 맨 위에 선다. 홈도 제목 줄에 "새 글 N"
 //  B6 글쓰기(2026-11-04 떠 있는 "글쓰기" → /community/write): 종목 카드를 고른 채 누르면 그 종목 이야기로, 서버가 없는 목업에서는 칸이 다 잠겨 있고
 //     그렇다고 밝힌다(써도 갈 곳이 없다), 제목·내용 칸·사진 자리·취소 → 목록
-//  B7 두 열의 첫 선(1440·1024): 가운데 탭 줄 먹 선 = 오른쪽 제목 줄 먹 선(1px 안). 11-03까지는 왼쪽 종목 열까지 세 열이었다
+//  B7 두 열의 첫 선(1440·1024): 가운데 탭 줄 가는 선(1px — 11-04부터, 굵은 먹 선은 화면 제목 하나) = 오른쪽 제목 줄 먹 선(아래 끝 1px 안). 11-03까지는 왼쪽 종목 열까지 세 열이었다
 //  B8 좁은 화면(390·320): 가로 넘침 없음, 종목 카드는 한 줄로 서고 옆으로 민다(줄이 화면보다 넓다), 첫 카드는 글과 같은 줄에서 시작
 //  B11 종목 검색(2026-11-04 "검색 버튼을 통해 종목을 선택"): 제목 줄 "종목 검색" → 검색 칸(포커스) → 글이 있는 종목을 고르면 그 종목 글만·카드 눌림·
 //      카드에 포커스, 글이 없는 종목(검색 가짜 응답)을 고르면 "글 0" 카드가 전체 다음에 서고 "<종목> 이야기는 아직 없어요", Esc로 닫으면 단추로 포커스
@@ -23,8 +23,8 @@
 //  B14 글 줄 → 글 상세: 제목(화면 제목)·본문 전부·종목 상세 링크·등락률·사진(목록은 미리보기 한 장, 상세는 사진마다 이름)·댓글 자리, "커뮤니티로 돌아가기", 없는 글
 //  B15 등락률: 글 머리 종목 옆 값·색이 GET /api/stocks의 그 종목 값과 같다, 기준일은 목록 위에 한 번. B15b 종목 카드 아래 줄의 등락률도 같은 값·색
 //  B17 휴대폰(375 손가락): 세 화면 넘침 없음, 글쓰기 단추가 지수 띠 위, 화면 끝 카드를 누르면 다 보이게 밀림, 누르는 동안 줄이 화면 끝까지 물듦, 글 상세 종목 줄 전체가 링크, 글쓰기 단추 줄이 지수 띠 위에 붙음
-//  B18 당겨서 새로고침(375 손가락, 목업): 끌어내리면 본문이 따라오고 표시가 선다 → 놓으면 다음 예시 새 글이 맨 위에 "새 글 1개", 덜 당김·카드 줄 옆 밀기·내려 읽은 뒤는 아님,
-//      다 받으면 "새 글이 없어요", 이 화면에서만 브라우저 자체 당겨서 새로고침을 끈다
+//  B18 당겨서 새로고침(375 손가락, 목업): 끌어내리면 본문이 따라오고 표시가 선다 → 놓으면 도는 고리만 보이고 곧바로 닫히며 다음 예시 새 글이 맨 위(화면 알림 글 없음 —
+//      읽어 주는 쪽에만), 덜 당김·카드 줄 옆 밀기·내려 읽은 뒤는 아님, 이 화면에서만 브라우저 자체 당겨서 새로고침을 끈다
 //  B19 종목이 많을 때 카드 줄(--ws, 가짜 서버가 30종목 글 40개): 손가락 밀기·끝까지·끝에서 더 밀기·세로 밀기·끝 카드 누르기, 마우스 뒤 단추 끝까지, 키보드 Tab
 //  B16 실제 연결(--ws <웹소켓 주소를 넣고 묶은 빌드>, 가짜 WebSocket): 로그인하면 칸이 열린다 → 종목 고르기·제목·내용 → 올리기가 SEND에 제목·내용·종목을 싣고,
 //      서버가 되돌려 준 내 글(POST_CREATED)의 글 상세로 간다. 비로그인은 칸이 잠기고 로그인 안내
@@ -198,7 +198,8 @@ await j.run('B7', async () => {
       const sideHead = document.getElementById('community-side-title')
       return [bottom(feedHead), bottom(sideHead), Math.round(getComputedStyle(feedHead).borderBottomWidth.replace('px', ''))]
     }, FEED)
-    j.report(`B7-${width}`, Math.abs(lines[0] - lines[1]) <= 1 && lines[2] === 2, `첫 선 아래 끝 가운데 탭 줄·오른쪽 제목 줄 ${lines[0]}·${lines[1]}px, 탭 줄 선 ${lines[2]}px`)
+    // 탭 줄은 화면 제목 아래 단계라 가는 선(1px)이다 — 굵은 먹 선은 화면 제목 하나(2026-11-04 사용자 "검은색 가로줄이 두 개… 위계를 나누던가")
+    j.report(`B7-${width}`, Math.abs(lines[0] - lines[1]) <= 1 && lines[2] === 1, `첫 선 아래 끝 가운데 탭 줄·오른쪽 제목 줄 ${lines[0]}·${lines[1]}px, 탭 줄 선 ${lines[2]}px(가는 선)`)
     await t.close()
   }
 })
@@ -527,8 +528,9 @@ await j.run('B16', async () => {
 })
 
 // B18 당겨서 새로고침(2026-11-04 사용자 "글을 위쪽 방향으로 잡아당겼을 때 새로고침이 되어 새 글이 나오는 것", 375 손가락, 목업):
-// 맨 위에서 끌어내리면 본문이 따라 내려오고 표시가 서며 페이지는 스크롤되지 않는다 → 놓으면 도는 고리 → 다음 예시 새 글이 맨 위에 서고 "새 글 1개" → 제자리.
-// 덜 당기면 그냥 돌아간다, 카드 줄을 옆으로 밀거나 글을 내려 읽은 뒤에는 당김이 아니다, 예시 새 글을 다 받으면 "새 글이 없어요".
+// 맨 위에서 끌어내리면 본문이 따라 내려오고 표시가 서며 페이지는 스크롤되지 않는다 → 놓으면 도는 고리만 → 곧바로 제자리, 다음 예시 새 글이 맨 위에 선다.
+// 화면에 "새 글 N개"·"새 글이 없어요" 같은 알림 글을 띄우지 않는다(같은 날 사용자 "이런 거 보내지 말고 로딩창만 떴다가 바로 내려오도록") — 읽어 주는 쪽에만 알린다.
+// 덜 당기면 그냥 돌아간다(고리 없이), 카드 줄을 옆으로 밀거나 글을 내려 읽은 뒤에는 당김이 아니다.
 // 이 화면에 있는 동안 브라우저 자체 당겨서 새로고침(페이지 전체를 다시 읽는다)을 끄고, 떠나면 되돌린다
 await j.run('B18', async () => {
   const t = await j.open({ width: 375, height: 812, touch: true })
@@ -554,25 +556,33 @@ await j.run('B18', async () => {
   const overscroll = await t.page.evaluate(() => getComputedStyle(document.documentElement).overscrollBehaviorY)
   const before = await postTitles(t.page, FEED)
 
-  // 덜 당김(손가락 60px → 당김 26px) — 새로고침하지 않는다
+  // 덜 당김(손가락 60px → 당김 26px) — 새로고침하지 않는다, 돌아가는 동안 고리도 없다
   await drag(187, 300, 0, 60)
+  await sleep(60)
+  const shortSpinner = await t.page.evaluate(() => document.querySelector('main [data-pull]')?.children[0].querySelector('[class*="spinner"]') !== null)
   await sleep(600)
   const short = { titles: await postTitles(t.page, FEED), ...(await state()) }
 
-  // 다 당김(손가락 220px)
+  // 다 당김(손가락 220px) — 놓은 뒤 50ms마다 단계와 표시 글자를 적는다
   const mid = await drag(187, 300, 0, 220, state)
-  await sleep(250)
-  const spinning = await state()
-  await sleep(700)
-  const done = await state()
-  await sleep(1400)
+  const released = Date.now()
+  const trail = []
+  while (Date.now() - released < 2500) {
+    const now = await state()
+    trail.push({ ms: Date.now() - released, phase: now.phase, text: now.markText, spinner: await t.page.evaluate(() => document.querySelector('main [data-pull]')?.children[0].querySelector('[class*="spinner"]') !== null) })
+    if (now.phase === 'idle') break
+    await sleep(50)
+  }
   const after = { titles: await postTitles(t.page, FEED), ...(await state()) }
+  const idleAt = trail.find((step) => step.phase === 'idle')?.ms ?? -1
+  const spun = trail.some((step) => step.phase === 'refreshing' && step.spinner)
+  const texts = [...new Set(trail.map((step) => step.text).filter(Boolean))]
   j.report('B18a', overscroll === 'contain' && mid.phase === 'ready' && mid.mark >= 64 && /translate|matrix/.test(mid.transform) && mid.scrollY === 0
-    && short.phase === 'idle' && JSON.stringify(short.titles) === JSON.stringify(before)
-    && spinning.phase === 'refreshing' && done.phase === 'done' && done.markText === '새 글 1개' && done.status === '새 글 1개'
-    && after.phase === 'idle' && after.transform === 'none' && after.titles[0] === LIVE[0].title && after.titles.length === before.length + 1,
-    `브라우저 당겨서 새로고침 끔 ${overscroll}, 덜 당김 → ${short.phase}·글 그대로 ${JSON.stringify(short.titles) === JSON.stringify(before)}, 다 당긴 순간 ${mid.phase} 표시 ${mid.mark}px·본문 내려옴 ${mid.transform !== 'none'}·페이지 y ${mid.scrollY}, `
-    + `놓으면 ${spinning.phase} → ${done.phase} "${done.markText}"(읽어 주기 "${done.status}") → ${after.phase}, 맨 위 "${after.titles[0]}"(글 ${before.length}→${after.titles.length})`)
+    && short.phase === 'idle' && JSON.stringify(short.titles) === JSON.stringify(before) && !shortSpinner
+    && spun && texts.length === 0 && idleAt > 0 && idleAt <= 1300 && after.transform === 'none' && after.status === '새 글 1개를 위에 올렸어요'
+    && after.titles[0] === LIVE[0].title && after.titles.length === before.length + 1,
+    `브라우저 당겨서 새로고침 끔 ${overscroll}, 덜 당김 → ${short.phase}·글 그대로 ${JSON.stringify(short.titles) === JSON.stringify(before)}·돌아가는 동안 고리 ${shortSpinner}, 다 당긴 순간 ${mid.phase} 표시 ${mid.mark}px·본문 내려옴 ${mid.transform !== 'none'}·페이지 y ${mid.scrollY}, `
+    + `놓으면 도는 고리 ${spun}·화면 알림 글 ${texts.length ? JSON.stringify(texts) : '없음'} → ${idleAt}ms에 제자리(본문 transform ${after.transform}), 맨 위 "${after.titles[0]}"(글 ${before.length}→${after.titles.length}), 읽어 주기 "${after.status}"`)
 
   // 카드 줄을 옆으로 밀면 당김이 아니다
   const strip = await t.page.locator(`${STRIP} ul`).boundingBox()
@@ -587,14 +597,18 @@ await j.run('B18', async () => {
   const scrolled = await state()
   await t.page.evaluate(() => window.scrollTo(0, 0))
   await sleep(300)
-  // 남은 예시 새 글을 다 받은 뒤에는 "새 글이 없어요"
-  for (let i = 1; i < LIVE.length; i++) { await drag(187, 300, 0, 220); await sleep(2400) }
-  const emptyDone = await (async () => { await drag(187, 300, 0, 220); await sleep(1000); return state() })()
-  await sleep(1500)
+  // 남은 예시 새 글을 다 받은 뒤 — 화면에는 아무 글도 없이 닫히고, 읽어 주는 쪽에만 "새 글이 없어요"
+  for (let i = 1; i < LIVE.length; i++) { await drag(187, 300, 0, 220); await sleep(1600) }
+  await drag(187, 300, 0, 220)
+  await sleep(700)
+  const emptyMid = await state()
+  await sleep(900)
+  const emptyDone = await state()
   const finalTitles = await postTitles(t.page, FEED)
   j.report('B18b', sideways.phase === 'idle' && stripLeft > 0 && scrolledMid.phase === 'idle' && scrolled.phase === 'idle'
-    && emptyDone.markText === '새 글이 없어요' && finalTitles.length === before.length + LIVE.length && LIVE.every((post) => finalTitles.includes(post.title)),
-    `카드 줄 옆으로 밀기 → ${sideways.phase}(줄 ${Math.round(stripLeft)}px 밀림), 내려 읽은 뒤 끌어내림 → ${scrolledMid.phase}, 예시 새 글 ${LIVE.length}개를 다 받은 뒤 "${emptyDone.markText}", 글 ${finalTitles.length}개`)
+    && emptyMid.markText === '' && emptyDone.phase === 'idle' && emptyDone.status === '새 글이 없어요'
+    && finalTitles.length === before.length + LIVE.length && LIVE.every((post) => finalTitles.includes(post.title)),
+    `카드 줄 옆으로 밀기 → ${sideways.phase}(줄 ${Math.round(stripLeft)}px 밀림), 내려 읽은 뒤 끌어내림 → ${scrolledMid.phase}, 예시 새 글 ${LIVE.length}개를 다 받은 뒤 화면 글 "${emptyMid.markText}" → ${emptyDone.phase}(읽어 주기 "${emptyDone.status}"), 글 ${finalTitles.length}개`)
 
   // 떠나면 브라우저 기본으로 돌아간다
   await t.page.getByRole('link', { name: '홈', exact: true }).first().click().catch(() => {})

@@ -32,12 +32,9 @@ interface StockChoice {
   count: number
 }
 
-/** 당겨서 새로고침이 끝난 뒤 잠깐 보이는 한 줄. 종목을 고른 채면 그 종목 새 글을 센다(다른 종목 새 글은 전체에 섰다) */
-function pullMessage(incoming: CommunityPost[], picked: StockChoice | null): string {
-  if (incoming.length === 0) return '새 글이 없어요'
-  if (picked === null) return `새 글 ${incoming.length}개`
-  const mine = incoming.filter((post) => post.stockCode === picked.code).length
-  return mine > 0 ? `${picked.name} 새 글 ${mine}개` : `전체에 새 글 ${incoming.length}개`
+/** 당겨서 새로고침이 받은 것 — 화면에는 띄우지 않고(새 글은 목록 맨 위에 선다) 읽어 주는 쪽에만 알린다 */
+function pullMessage(incoming: CommunityPost[]): string {
+  return incoming.length === 0 ? '새 글이 없어요' : `새 글 ${incoming.length}개를 위에 올렸어요`
 }
 
 const byLatest = (a: CommunityPost, b: CommunityPost) => Date.parse(b.createdAt) - Date.parse(a.createdAt)
@@ -144,14 +141,14 @@ export default function CommunityPage() {
     card?.scrollIntoView({ block: 'nearest', inline: 'nearest' })
   }, [stockCode, searchOpen])
 
-  const pulled = pull.result === null ? '' : pullMessage(pull.result, picked)
+  const pulled = pull.result === null ? '' : pullMessage(pull.result)
 
   return (
     <>
       <div ref={pullRef} className={styles.pull}>
-        {/* 당겨서 새로고침 표시 — 끌어내린 만큼 벌어진 자리 가운데. 화살표(다 당기면 위를 본다) → 도는 고리 → 받은 결과 한 줄 */}
+        {/* 당겨서 새로고침 표시 — 끌어내린 만큼 벌어진 자리 가운데. 화살표(다 당기면 위를 본다) → 도는 고리 → 곧바로 닫힌다 */}
         <div className={styles.pullMark} aria-hidden="true">
-          {pull.phase === 'refreshing' ? <Spinner size={20} /> : pulled !== '' ? <span className={styles.pullText}>{pulled}</span> : <PullIcon />}
+          {pull.phase === 'refreshing' || pull.phase === 'closing' ? <Spinner size={20} /> : <PullIcon />}
         </div>
         <div className={styles.pullBody}>
           <div className={styles.titleRow}>
@@ -234,7 +231,7 @@ export default function CommunityPage() {
         </div>
       </div>
       <p className={styles.srOnly} role="status">
-        {pull.phase === 'done' ? pulled : ''}
+        {pulled}
       </p>
 
       {/* 고른 종목이 있으면 그 종목 이야기로 쓴다(글쓰기 화면이 종목을 채운다) */}
