@@ -1,6 +1,7 @@
 /*
  * 커뮤니티 글쓰기(2026-11-04). 한 가지 일만 하는 화면이라 가운데 한 줄(680px)에 화면 제목 + 먹 선을 왼쪽 맞춤으로 둔다(로그인·투자성향 테스트와 같은 틀).
  * 칸은 입력칸 규격(1.5px 테두리, 글자 16px — 아래면 아이폰 사파리가 누르는 순간 확대한다). 목업·비로그인이면 칸이 잠기고 까닭을 맨 위 옅은 면에 적는다.
+ * 칸 이름 줄 오른쪽에 몇 자 썼는지, 취소 | 올리기는 화면 아래(지수 띠 위)에 붙어 따라온다(같은 날 다듬기 — 휴대폰에서 올리기가 맨 아래 밖에 있었다).
  */
 .page {
   max-width: 680px;
@@ -51,6 +52,14 @@
   display: grid;
   gap: var(--space-2);
   min-width: 0;
+}
+
+/* 칸 이름 | 몇 자 */
+.labelRow {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
 }
 
 .label {
@@ -105,9 +114,8 @@
   cursor: not-allowed;
 }
 
-/* 몇 자 썼는지 — 칸 오른쪽 아래 */
+/* 몇 자 썼는지 — 칸 이름 줄 오른쪽 */
 .counter {
-  justify-self: end;
   font-size: var(--font-sm);
   font-variant-numeric: tabular-nums;
   color: var(--color-text-sub);
@@ -185,13 +193,21 @@
   font-size: var(--font-md);
 }
 
+/*
+ * 취소 | 올리기 — 화면 아래 지수 띠(44px, 600px 이하 40px, 아이폰은 아래 홈 막대 자리만큼 더) 바로 위에 붙는다. 붙어 있는 동안 글 칸이 밑으로 지나가므로 흰 바탕을 깐다.
+ * 화면 끝까지 내려오면 제자리(내용 아래)로 돌아간다
+ */
 .actions {
+  position: sticky;
+  z-index: 2;
+  bottom: calc(44px + env(safe-area-inset-bottom));
   display: flex;
   justify-content: flex-end;
   gap: var(--space-2);
   margin-top: var(--space-8);
-  padding-top: var(--space-5);
+  padding: var(--space-4) 0;
   border-top: 1px solid var(--color-border);
+  background: var(--color-surface);
 }
 
 .cancel {
@@ -210,6 +226,11 @@
 @media (max-width: 600px) {
   .textAction {
     min-height: 44px;
+  }
+
+  .actions {
+    bottom: calc(40px + env(safe-area-inset-bottom));
+    padding: var(--space-3) 0;
   }
 
   .actions > * {

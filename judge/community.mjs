@@ -21,7 +21,8 @@
 //  B10 홈 글 줄을 누르면 그 글 상세로 간다(2026-11-03 사용자 "홈화면에서 커뮤니티의 글을 클릭하면 커뮤니티로", 11-04부터 목록 표시 대신 글 상세) —
 //      줄 어디를 눌러도(별명 자리·휴대폰에서 종목 이름 자리) /community/{postId}, 새로고침해도 그 글, 홈에서 세운 새 글(목업)도 찾아간다
 //  B14 글 줄 → 글 상세: 제목(화면 제목)·본문 전부·종목 상세 링크·등락률·사진(목록은 미리보기 한 장, 상세는 사진마다 이름)·댓글 자리, "커뮤니티로 돌아가기", 없는 글
-//  B15 등락률: 글 머리 종목 옆 값·색이 GET /api/stocks의 그 종목 값과 같다, 기준일은 목록 위에 한 번
+//  B15 등락률: 글 머리 종목 옆 값·색이 GET /api/stocks의 그 종목 값과 같다, 기준일은 목록 위에 한 번. B15b 종목 카드 아래 줄의 등락률도 같은 값·색
+//  B17 휴대폰(375 손가락): 세 화면 넘침 없음, 글쓰기 단추가 지수 띠 위, 화면 끝 카드를 누르면 다 보이게 밀림, 누르는 동안 줄이 화면 끝까지 물듦, 글 상세 종목 줄 전체가 링크, 글쓰기 단추 줄이 지수 띠 위에 붙음
 //  B16 실제 연결(--ws <웹소켓 주소를 넣고 묶은 빌드>, 가짜 WebSocket): 로그인하면 칸이 열린다 → 종목 고르기·제목·내용 → 올리기가 SEND에 제목·내용·종목을 싣고,
 //      서버가 되돌려 준 내 글(POST_CREATED)의 글 상세로 간다. 비로그인은 칸이 잠기고 로그인 안내
 // node community.mjs <BASE> [--only B1,B2] [--headed] [--ws <BASE2>]
@@ -50,8 +51,16 @@ const POPULAR = [...POSTS].sort((a, b) => b.likes - a.likes || a.minutesAgo - b.
 const postTitles = (page, scope) => page.$$eval(`${scope} ol > li`, (lis) => lis.map((li) => li.querySelector('h3')?.textContent.trim() ?? ''))
 /** 지금 시각의 등락률 글(앱 formatChangeRate와 같은 규칙) */
 const rateText = (rate) => (Number(rate.toFixed(2)) === 0 ? '0.00%' : `${rate > 0 ? '+' : ''}${rate.toFixed(2)}%`)
-/** 종목 카드의 글(첫 글자 동그라미는 aria-hidden이라 뺀다) — "삼성전자 글 2" */
-const cardTexts = (page) => page.$$eval(`${STRIP} li button`, (buttons) => buttons.map((b) => [...b.children].filter((c) => c.getAttribute('aria-hidden') !== 'true').map((c) => c.textContent.trim()).join(' ')))
+/** 종목 카드의 이름 · 글 수(첫 글자 동그라미는 aria-hidden이라 뺀다) — "삼성전자 글 2". 아래 줄의 등락률은 cardRates가 따로 본다 */
+const cardTexts = (page) => page.$$eval(`${STRIP} li button`, (buttons) => buttons.map((b) => {
+  const [name, foot] = [...b.children].filter((c) => c.getAttribute('aria-hidden') !== 'true')
+  return `${name?.textContent.trim()} ${foot?.firstElementChild?.textContent.trim()}`
+}))
+/** 종목 카드 아래 줄 오른쪽 등락률 — 카드마다 { code, text, color }(없으면 text 없음) */
+const cardRates = (page) => page.$$eval(`${STRIP} li button`, (buttons) => buttons.map((b) => {
+  const rate = b.lastElementChild?.children[1]
+  return rate === undefined ? { code: b.dataset.code } : { code: b.dataset.code, text: rate.textContent.trim(), color: getComputedStyle(rate).color }
+}))
 const titleOf = (post) => post.title
 
 await j.run('B1', async () => {
@@ -437,6 +446,15 @@ await j.run('B15', async () => {
   })
   const asOf = await t.page.locator(FEED).getByText(/^등락률은 .+ 종가 기준이에요$/).count()
   j.report('B15', bad.length === 0 && asOf === 1, `글 머리 등락률 ${LATEST.filter((p) => p.stock).length}개 중 어긋남 ${bad.length}${bad.length ? ' · ' + bad.slice(0, 3).join(' | ') : ''}, 기준일 한 번 ${asOf}`)
+  // 종목 카드 아래 줄 오른쪽에도 같은 값·색(2026-11-04 다듬기). 전체 카드는 등락률이 없다
+  const cards = await cardRates(t.page)
+  const cardBad = cards.filter((card) => {
+    if (card.code === 'all') return card.text !== undefined
+    const rate = byCode.get(card.code)
+    const color = Number(rate.toFixed(2)) === 0 ? colors.sub : rate > 0 ? colors.up : colors.down
+    return card.text !== rateText(rate) || card.color !== color
+  })
+  j.report('B15b', cards.length > 1 && cardBad.length === 0, `종목 카드 ${cards.length}장 등락률·색 어긋남 ${cardBad.length}${cardBad.length ? ' · ' + JSON.stringify(cardBad.slice(0, 2)) : ''}, 예 ${cards.slice(1, 3).map((c) => c.text).join(' · ')}`)
   await t.close()
 })
 
@@ -503,6 +521,65 @@ await j.run('B16', async () => {
   const out = await o.page.evaluate(() => ({ locked: document.querySelector('main fieldset')?.disabled, login: document.querySelector('main a[href^="/login"]')?.textContent }))
   j.report('B16c', out.locked === true && out.login === '로그인하기', `비로그인: 칸 잠김 ${out.locked}, 안내 링크 "${out.login}"`)
   await o.close()
+})
+
+// B17 휴대폰(375 손가락, 2026-11-04 사용자 "모바일 버전에서도 대응되는지 확인하고… 유려하게"): 세 화면 넘침 없음,
+// 떠 있는 글쓰기가 지수 띠를 덮지 않음, 반쯤 보이는 카드를 누르면 줄이 밀려 다 보임, 누르는 동안 글 줄·종목 줄이 화면 끝까지 옅게 물들고 동그라미는 흰색,
+// 글 상세 종목 줄은 › 자리를 눌러도 종목 상세, 글쓰기의 취소·올리기는 첫 화면에서도 지수 띠 바로 위에 보인다
+await j.run('B17', async () => {
+  const t = await j.open({ width: 375, height: 812, touch: true })
+  const band = () => t.page.evaluate(() => Math.round(document.querySelector('aside[aria-label="국내 지수"]')?.getBoundingClientRect().top ?? -1))
+  const over = () => t.page.evaluate(() => document.documentElement.scrollWidth - innerWidth)
+  await t.goto('/community', 1500)
+  const listOver = await over()
+  const write = await t.page.getByRole('link', { name: '글쓰기' }).boundingBox()
+  const bandTop = await band()
+  // 화면 끝에 걸친 카드(오른쪽이 화면 밖)의 보이는 자리를 손가락으로 누른다 — locator.tap()은 누르기 전에 스스로 카드를 화면 안으로 밀어 잴 수 없다
+  const half = await t.page.$$eval(`${STRIP} li button`, (buttons) => buttons.findIndex((b) => b.getBoundingClientRect().right > innerWidth))
+  const halfBox = await t.page.locator(`${STRIP} li button`).nth(half).boundingBox()
+  await t.page.touchscreen.tap(halfBox.x + 24, halfBox.y + halfBox.height / 2)
+  await sleep(700)
+  const shown = await t.page.locator(`${STRIP} li button`).nth(half).boundingBox()
+  j.report('B17a', listOver === 0 && bandTop > 0 && write.y + write.height <= bandTop - 8 && half > 0 && shown.x >= 0 && shown.x + shown.width <= 375,
+    `목록 넘침 ${listOver}px, 글쓰기 아래 끝 ${Math.round(write.y + write.height)} · 지수 띠 ${bandTop}, 화면 끝 카드(${half}번째) 누름 → ${Math.round(shown.x)}~${Math.round(shown.x + shown.width)}px`)
+
+  // 누르는 동안(헤드리스 크롬은 손가락 누름에 :active를 걸지 않아 개발 도구 규약으로 건다)
+  const cdp = await t.context.newCDPSession(t.page)
+  await cdp.send('DOM.enable'); await cdp.send('CSS.enable')
+  const pressed = async (linkSel, rowSel, badgeSel) => {
+    const { root } = await cdp.send('DOM.getDocument', { depth: -1 })
+    const { nodeId } = await cdp.send('DOM.querySelector', { nodeId: root.nodeId, selector: linkSel })
+    await cdp.send('CSS.forcePseudoState', { nodeId, forcedPseudoClasses: ['active'] })
+    await sleep(100)
+    const got = await t.page.evaluate(([rowSel, badgeSel]) => {
+      const row = document.querySelector(rowSel)
+      const probe = (token) => { const el = document.createElement('span'); el.style.color = `var(${token})`; document.body.append(el); const c = getComputedStyle(el).color; el.remove(); return c }
+      return { bg: getComputedStyle(row).backgroundColor, shadow: getComputedStyle(row).boxShadow, badge: getComputedStyle(row.querySelector(badgeSel)).backgroundColor, sub: probe('--color-bg-sub'), white: probe('--color-surface') }
+    }, [rowSel, badgeSel])
+    await cdp.send('CSS.forcePseudoState', { nodeId, forcedPseudoClasses: [] })
+    return got.bg === got.sub && /-16px 0px 0px/.test(got.shadow) && /16px 0px 0px/.test(got.shadow) && got.badge === got.white
+  }
+  const rowPressed = await pressed(`${FEED} ol > li:first-child h3 a`, `${FEED} ol > li:first-child`, 'span[aria-hidden="true"]')
+
+  await t.goto(`/community/${LATEST.find((post) => post.stock).id}`, 1500)
+  const detailOver = await over()
+  const stockPressed = await pressed('main article a[href^="/stocks/"]', 'main article > div:first-child', 'span[aria-hidden="true"]')
+  await cdp.detach()
+  // 종목 줄 오른쪽 끝(› 자리)을 누른다 — 이름 글자가 아닌 곳
+  const stockRow = await t.page.locator('main article > div:first-child').boundingBox()
+  await t.page.touchscreen.tap(stockRow.x + stockRow.width - 12, stockRow.y + stockRow.height / 2)
+  await sleep(1200)
+  const stockPath = new URL(t.page.url()).pathname
+  j.report('B17b', rowPressed && stockPressed && detailOver === 0 && stockPath === `/stocks/${LATEST.find((post) => post.stock).stock.code}`,
+    `누르는 동안 글 줄 물듦 ${rowPressed}·종목 줄 물듦 ${stockPressed}(화면 끝까지, 동그라미 흰색), 글 상세 넘침 ${detailOver}px, › 자리 누름 → ${stockPath}`)
+
+  await t.goto('/community/write', 1200)
+  const writeOver = await over()
+  const actions = await t.page.getByRole('link', { name: '취소' }).evaluate((el) => { const box = el.parentElement.getBoundingClientRect(); return { top: Math.round(box.top), bottom: Math.round(box.bottom) } })
+  const writeBand = await band()
+  j.report('B17c', writeOver === 0 && actions.top > 0 && actions.bottom <= writeBand + 1 && writeBand - actions.bottom <= 1,
+    `글쓰기 넘침 ${writeOver}px, 첫 화면 취소·올리기 줄 ${actions.top}~${actions.bottom}px · 지수 띠 ${writeBand}px(바로 위에 붙음)`)
+  await t.close()
 })
 
 await j.finish()

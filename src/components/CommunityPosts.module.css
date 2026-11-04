@@ -58,21 +58,6 @@
   font-weight: 700;
 }
 
-/* 글 상세의 종목 이름 — 그 종목 상세로 간다. 등락색이 아니라 브랜드 초록 글자다. 누르는 높이 40px(좁은 화면 44px)을 여백으로 넓힌다 */
-.stockLink {
-  display: inline-flex;
-  align-items: center;
-  min-height: 40px;
-  margin: calc((40px - 1.5em) / -2) 0;
-  font-weight: 700;
-  color: var(--color-brand-700);
-}
-
-.stockLink:hover {
-  text-decoration: underline;
-  text-underline-offset: 3px;
-}
-
 /* 등락 글자색(공용 모듈로 모으지 않는다 — CLAUDE.md "공용 모듈 셋") */
 .up {
   color: var(--color-up-text);
@@ -253,6 +238,33 @@
   border-radius: var(--radius-sm);
 }
 
+/*
+ * 손가락 화면: 누르는 동안 줄이 옅게 물든다 — 줄 전체가 링크라 눌린 곳이 어디인지 답한다(브라우저 기본 회색 상자는 링크 글자만 덮어 지운다).
+ * 900px 이하는 글 열이 화면 끝까지라 물든 면도 화면 끝까지 — 본문 좌우 여백만큼 같은 색 그림자로 내민다
+ */
+@media (hover: none) {
+  .postLink {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .post:has(.postLink:active) {
+    background: var(--color-bg-sub);
+  }
+
+  /* 첫 글자 동그라미가 같은 면에 묻히지 않게 흰 동그라미로(고른 종목 카드와 같은 뒤집기) */
+  .post:has(.postLink:active) :is(.stockBadge, .avatar) {
+    background: var(--color-surface);
+  }
+}
+
+@media (hover: none) and (max-width: 900px) {
+  .post:has(.postLink:active) {
+    box-shadow:
+      calc(var(--page-gutter) * -1) 0 0 var(--color-bg-sub),
+      var(--page-gutter) 0 0 var(--color-bg-sub);
+  }
+}
+
 .counts {
   display: flex;
   gap: var(--space-4);
@@ -286,10 +298,5 @@
   .thumb {
     width: 72px;
     height: 72px;
-  }
-
-  .stockLink {
-    min-height: 44px;
-    margin: calc((44px - 1.5em) / -2) 0;
   }
 }

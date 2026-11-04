@@ -1,6 +1,6 @@
 /*
  * 커뮤니티 글 상세(2026-11-04). "‹ 커뮤니티로 돌아가기"(종목 상세의 "홈으로 돌아가기"와 같은 모양) → 글 제목이 화면 제목(28px + 먹 선) →
- * 목록과 같은 두 열 틀(components/communityLayout.module.css): 종목 줄 · 쓴 사람 · 본문 · 사진 · 공감·댓글 수 · 댓글 구역 | 이용 안내.
+ * 목록과 같은 두 열 틀(components/communityLayout.module.css): 종목 이동 줄(가는 선) · 쓴 사람 · 본문 · 사진 · 공감·댓글 수 · 댓글 구역 | 이용 안내.
  * 본문은 760px에서 끊는다(15~16px 한글 45~50자).
  */
 .back {
@@ -59,21 +59,119 @@
   text-underline-offset: 3px;
 }
 
-/* 종목 줄(CommunityPosts PostStock) + 언제 값인지 */
+/*
+ * 글의 종목 — 첫 글자 동그라미 | 이름 · 등락률 / 기준일 | ›. 가는 선으로 쓴 사람 줄과 가른다. 이름 링크의 ::after가 줄을 덮는다(누르는 높이 60px 넘게).
+ * 마우스는 이름 밑줄과 › 진하게, 손가락은 누르는 동안 옅은 면(글 줄과 같은 답 — 900px 이하는 화면 끝까지)
+ */
 .stock {
-  display: flex;
-  flex-wrap: wrap;
+  position: relative;
+  display: grid;
+  grid-template-columns: 36px minmax(0, 1fr) auto;
   align-items: center;
-  gap: 0 var(--space-3);
-  margin-bottom: var(--space-3);
+  column-gap: var(--space-3);
+  /* 본문과 같은 폭에서 끊는다 — 넓은 화면에서 ›가 이름에서 1000px 넘게 떨어졌다 */
+  max-width: 760px;
+  padding: var(--space-3) 0;
+  border-bottom: 1px solid var(--color-border);
 }
 
-.stock > p {
-  margin-bottom: 0;
+.stockBadge {
+  display: grid;
+  grid-row: 1 / span 2;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--color-bg-sub);
+  color: var(--color-text-sub);
+  font-size: var(--font-md);
+  font-weight: 700;
+}
+
+.stockMain {
+  grid-column: 2;
+  margin: 0;
+  font-size: var(--font-lg);
+  font-variant-numeric: tabular-nums;
+}
+
+.stockLink {
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.stockLink::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+}
+
+.stock:hover .stockLink {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.stockLink:focus-visible {
+  outline: none;
+}
+
+.stockLink:focus-visible::after {
+  outline: 2px solid var(--color-brand-700);
+  outline-offset: -2px;
+  border-radius: var(--radius-sm);
+}
+
+/* 등락 글자색(공용 모듈로 모으지 않는다 — CLAUDE.md "공용 모듈 셋") */
+.up {
+  color: var(--color-up-text);
+  font-weight: 600;
+}
+
+.down {
+  color: var(--color-down-text);
+  font-weight: 600;
+}
+
+.flat {
+  color: var(--color-text-sub);
+  font-weight: 600;
 }
 
 .asOf {
   composes: note from '../components/section.module.css';
+  grid-column: 2;
+}
+
+.chevron {
+  grid-column: 3;
+  grid-row: 1 / span 2;
+  color: var(--color-text-sub);
+}
+
+.stock:hover .chevron {
+  color: var(--color-text);
+}
+
+@media (hover: none) {
+  .stockLink {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .stock:has(.stockLink:active) {
+    background: var(--color-bg-sub);
+  }
+
+  .stock:has(.stockLink:active) .stockBadge {
+    background: var(--color-surface);
+  }
+}
+
+@media (hover: none) and (max-width: 900px) {
+  .stock:has(.stockLink:active) {
+    box-shadow:
+      calc(var(--page-gutter) * -1) 0 0 var(--color-bg-sub),
+      var(--page-gutter) 0 0 var(--color-bg-sub);
+  }
 }
 
 .author {
@@ -90,6 +188,11 @@
   font-size: var(--font-md);
   font-weight: 700;
   color: var(--color-text);
+}
+
+/* 종목 줄 아래 — 종목이 없는 글은 먹 선 아래 바로 쓴 사람 */
+.stock + .author {
+  margin-top: var(--space-5);
 }
 
 .avatar {

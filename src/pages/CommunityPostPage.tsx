@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { loadCommunityPost, type CommunityPost } from '../api/community'
-import { PostCounts, PostStock } from '../components/CommunityPosts'
+import { PostCounts } from '../components/CommunityPosts'
 import CommunitySide from '../components/CommunitySide'
 import layout from '../components/communityLayout.module.css'
 import Spinner from '../components/Spinner'
@@ -10,6 +10,8 @@ import { useDocumentTitle } from '../hooks/useDocumentTitle'
 import { useCommunityHandoff } from '../hooks/useStockHandoff'
 import { useStockQuotes } from '../hooks/useStockQuotes'
 import { timeAgo, toKoreanDate } from '../utils/date'
+import { formatChangeRate, rateTone } from '../utils/format'
+import { toPreviewState } from '../utils/stockPreview'
 import styles from './CommunityPostPage.module.css'
 
 /** 주소 기록에서 따로 받아 온 글(목록에 없을 때). 그 사이 다른 글로 옮겼으면 버린다 */
@@ -23,7 +25,9 @@ interface Loaded {
  * 목록과 같은 두 열 틀(글 | 이용 안내) 위에 글 제목이 화면 제목으로 선다. 글은 ① 눌러 온 글(목록·홈·글쓰기가 싣는다 — 보고 있는 동안 들어온 새 글은
  * 처음 목록에 없다) ② 처음 목록 ③ 주소로 바로 열었고 목록에 없으면 글 하나 받기(`loadCommunityPost` — 지금은 예시 글에서 찾는다) 순으로 찾는다.
  * 같은 웹소켓을 들어 공감·댓글 수가 바뀌면 따라가고, 보는 사이 지워지면 "지워진 글"로 바꾼다.
- * 댓글은 서버에 경로가 없어 수와 자리만 있다(공감도 누르는 단추를 두지 않는다). 종목 이름은 그 종목 상세로 가는 링크다
+ * 댓글은 서버에 경로가 없어 수와 자리만 있다(공감도 누르는 단추를 두지 않는다).
+ * 글의 종목은 먹 선 바로 아래 첫 줄이다 — 이름 · 그날 등락률 / 기준일 | ›, 줄 어디를 눌러도 그 종목 상세(2026-11-04 다듬기: 쓴 사람 줄과 같은 꼴로
+ * 겹쳐 서 있던 것을 가는 선으로 가른 이동 줄로). 그 아래 쓴 사람 → 본문
  */
 export default function CommunityPostPage() {
   const { postId: param = '' } = useParams()
@@ -65,6 +69,8 @@ export default function CommunityPostPage() {
   useDocumentTitle(post?.title ?? '커뮤니티 글')
 
   const quote = post?.stockCode != null ? quotes.get(post.stockCode) : undefined
+  const fluctuate = quote?.fluctuate ?? null
+  const asOf = fluctuate !== null && quote !== undefined ? toKoreanDate(quote.baseDate) : ''
 
   return (
     <>
@@ -92,11 +98,28 @@ export default function CommunityPostPage() {
           ) : (
             <>
               {post.stockCode !== null && post.stockName !== null && (
+                // 링크 이름은 종목 이름만 — ::after가 줄을 덮어 줄 어디를 눌러도 간다(글 줄과 같은 방식). 이름을 싣고 간다
                 <div className={styles.stock}>
-                  <PostStock code={post.stockCode} name={post.stockName} quote={quote} linked />
-                  {quote?.fluctuate != null && toKoreanDate(quote.baseDate) !== '' && (
-                    <span className={styles.asOf}>{toKoreanDate(quote.baseDate)} 종가 기준</span>
-                  )}
+                  <span className={styles.stockBadge} aria-hidden="true">
+                    {Array.from(post.stockName)[0] ?? ''}
+                  </span>
+                  <p className={styles.stockMain}>
+                    <Link
+                      to={`/stocks/${post.stockCode}`}
+                      state={toPreviewState({ stockCode: post.stockCode, stockName: post.stockName })}
+                      className={styles.stockLink}
+                    >
+                      {post.stockName}
+                    </Link>
+                    {fluctuate !== null && (
+                      <>
+                        {' '}
+                        <span className={styles[rateTone(fluctuate)]}>{formatChangeRate(fluctuate)}</span>
+                      </>
+                    )}
+                  </p>
+                  {asOf !== '' && <p className={styles.asOf}>{asOf} 종가 기준</p>}
+                  <ChevronIcon />
                 </div>
               )}
               <p className={styles.author}>
@@ -136,5 +159,13 @@ export default function CommunityPostPage() {
         <CommunitySide status={status} className={layout.side} />
       </div>
     </>
+  )
+}
+
+function ChevronIcon() {
+  return (
+    <svg className={styles.chevron} width="20" height="20" viewBox="0 0 24 24" aria-hidden="true">
+      <path d="m9 5 7 7-7 7" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
   )
 }

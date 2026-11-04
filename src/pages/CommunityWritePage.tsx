@@ -121,9 +121,15 @@ export default function CommunityWritePage() {
           </div>
 
           <div className={styles.field}>
-            <label className={styles.label} htmlFor="community-write-title">
-              제목
-            </label>
+            {/* 몇 자 썼는지는 이름 줄 오른쪽 — 칸 아래에 두면 휴대폰에서 칸마다 한 줄씩 더 내려간다 */}
+            <div className={styles.labelRow}>
+              <label className={styles.label} htmlFor="community-write-title">
+                제목
+              </label>
+              <span className={styles.counter} aria-hidden="true">
+                {Array.from(title).length}/{COMMUNITY_LIMITS.title}
+              </span>
+            </div>
             <input
               id="community-write-title"
               className={styles.input}
@@ -133,15 +139,17 @@ export default function CommunityWritePage() {
               placeholder="무엇에 대한 글인지 한 줄로"
               onChange={(event) => setTitle(event.target.value)}
             />
-            <span className={styles.counter} aria-hidden="true">
-              {Array.from(title).length}/{COMMUNITY_LIMITS.title}
-            </span>
           </div>
 
           <div className={styles.field}>
-            <label className={styles.label} htmlFor="community-write-content">
-              내용
-            </label>
+            <div className={styles.labelRow}>
+              <label className={styles.label} htmlFor="community-write-content">
+                내용
+              </label>
+              <span className={styles.counter} aria-hidden="true">
+                {Array.from(content).length}/{COMMUNITY_LIMITS.content}
+              </span>
+            </div>
             <textarea
               id="community-write-content"
               className={styles.textarea}
@@ -151,9 +159,6 @@ export default function CommunityWritePage() {
               placeholder="배운 것, 궁금한 것을 나눠 보세요. 종목을 사라·팔라 권하는 글은 올리지 않아요."
               onChange={(event) => setContent(event.target.value)}
             />
-            <span className={styles.counter} aria-hidden="true">
-              {Array.from(content).length}/{COMMUNITY_LIMITS.content}
-            </span>
           </div>
 
           <div className={styles.field}>
@@ -182,6 +187,7 @@ export default function CommunityWritePage() {
           </p>
         )}
 
+        {/* 화면 아래(지수 띠 위)에 붙어 따라온다 — 휴대폰에서 내용 칸을 쓰는 동안에도 올리기가 보인다 */}
         <div className={styles.actions}>
           <Link to="/community" className={styles.cancel}>
             취소

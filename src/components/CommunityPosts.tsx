@@ -4,7 +4,6 @@ import type { StockQuote } from '../hooks/useStockQuotes'
 import { toCommunityHandoff } from '../hooks/useStockHandoff'
 import { timeAgo } from '../utils/date'
 import { formatChangeRate, rateTone } from '../utils/format'
-import { toPreviewState } from '../utils/stockPreview'
 import HeartIcon from './HeartIcon'
 import styles from './CommunityPosts.module.css'
 
@@ -68,7 +67,7 @@ export default function CommunityPosts({ posts, compact = false, quotes, now }: 
         return (
           <li key={post.postId} className={styles.post}>
             {post.stockCode !== null && post.stockName !== null && (
-              <PostStock code={post.stockCode} name={post.stockName} quote={quotes?.get(post.stockCode)} />
+              <PostStock name={post.stockName} quote={quotes?.get(post.stockCode)} />
             )}
             <div className={image === undefined ? styles.main : styles.mainWithImage}>
               <h3 className={styles.title}>{link}</h3>
@@ -88,27 +87,21 @@ export default function CommunityPosts({ posts, compact = false, quotes, now }: 
 }
 
 interface PostStockProps {
-  code: string
   name: string
   quote: StockQuote | undefined
-  /** 글 상세: 종목 이름이 그 종목 상세로 가는 링크(이름을 싣고 간다). 글 줄은 줄 전체가 글 링크라 글자 */
-  linked?: boolean
 }
 
-/** 글 머리 종목 줄 — 첫 글자 동그라미 · 이름 · 그날 등락률(등락색 글자, 홈 시세표와 같은 값). 등락률을 모르면 이름만 */
-export function PostStock({ code, name, quote, linked = false }: PostStockProps) {
+/**
+ * 글 머리 종목 줄 — 첫 글자 동그라미 · 이름 · 그날 등락률(등락색 글자, 홈 시세표와 같은 값). 등락률을 모르면 이름만.
+ * 줄 전체가 글 링크라 이름은 글자다. 종목 상세로 가는 줄은 글 상세(CommunityPostPage)가 따로 그린다
+ */
+function PostStock({ name, quote }: PostStockProps) {
   return (
     <p className={styles.stockRow}>
       <span className={styles.stockBadge} aria-hidden="true">
         {Array.from(name)[0] ?? ''}
       </span>
-      {linked ? (
-        <Link to={`/stocks/${code}`} state={toPreviewState({ stockCode: code, stockName: name })} className={styles.stockLink}>
-          {name}
-        </Link>
-      ) : (
-        <span className={styles.stockName}>{name}</span>
-      )}
+      <span className={styles.stockName}>{name}</span>
       {quote !== undefined && quote.fluctuate !== null && (
         <>
           {' '}

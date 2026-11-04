@@ -10,8 +10,9 @@ import Spinner from '../components/Spinner'
 import { useCommunityFeed } from '../hooks/useCommunityFeed'
 import { useDocumentTitle } from '../hooks/useDocumentTitle'
 import { toStockHandoff } from '../hooks/useStockHandoff'
-import { useStockQuotes } from '../hooks/useStockQuotes'
+import { useStockQuotes, type StockQuote } from '../hooks/useStockQuotes'
 import { sharedYmd, toKoreanDate } from '../utils/date'
+import { formatChangeRate, rateTone } from '../utils/format'
 import { prefersReducedMotion } from '../utils/motion'
 import type { StockInfo } from '../types/stock'
 import styles from './CommunityPage.module.css'
@@ -69,6 +70,8 @@ export default function CommunityPage() {
   /** 검색으로 고른 종목. 아직 글이 없으면 카드 줄 맨 앞(전체 다음)에 세운다 — 고른 것이 카드 줄에 보여야 다시 풀 수 있다 */
   const [searched, setSearched] = useState<{ code: string; name: string } | null>(null)
   const [searchOpen, setSearchOpen] = useState(false)
+  /** 사람이 탭·카드·검색으로 목록을 바꾼 횟수. 바뀐 목록만 잠깐 떠오른다(처음 그릴 때는 걸지 않는다) */
+  const [feedTurn, setFeedTurn] = useState(0)
   // "N분 전"은 목록이 바뀔 때마다 새로 센다 — 새 글을 세웠는데 앞 글이 "방금"에 멈춰 있지 않게
   const now = Date.now()
 
@@ -95,9 +98,21 @@ export default function CommunityPage() {
     searchToggleRef.current?.focus()
   }
 
+  const pickOrder = (next: Order) => {
+    if (next === order) return
+    setOrder(next)
+    setFeedTurn((turn) => turn + 1)
+  }
+
+  const pickStock = (code: string | null) => {
+    if (code === stockCode) return
+    setStockCode(code)
+    setFeedTurn((turn) => turn + 1)
+  }
+
   const pickSearched = (stock: StockInfo) => {
     setSearched({ code: stock.stockCode, name: stock.stockName })
-    setStockCode(stock.stockCode)
+    pickStock(stock.stockCode)
     setSearchOpen(false)
     focusCodeRef.current = stock.stockCode
   }
@@ -155,7 +170,7 @@ export default function CommunityPage() {
                   type="button"
                   className={order === item.key ? styles.tabActive : styles.tab}
                   aria-pressed={order === item.key}
-                  onClick={() => setOrder(item.key)}
+                  onClick={() => pickOrder(item.key)}
                 >
                   {item.label}
                 </button>
@@ -164,7 +179,7 @@ export default function CommunityPage() {
             <span className={styles.orderNote}>{orderNote}</span>
           </div>
 
-          <StockStrip ref={stripRef} stocks={stocks} total={all.length} pickedCode={picked?.code ?? null} onPick={setStockCode} />
+          <StockStrip ref={stripRef} stocks={stocks} total={all.length} quotes={quotes} pickedCode={picked?.code ?? null} onPick={pickStock} />
 
           {quoteDate !== null && <p className={styles.asOf}>등락률은 {toKoreanDate(quoteDate)} 종가 기준이에요</p>}
 
@@ -181,7 +196,10 @@ export default function CommunityPage() {
           ) : shown.length === 0 ? (
             <p className={styles.message}>{picked === null ? '아직 올라온 글이 없어요.' : `${picked.name} 이야기는 아직 없어요.`}</p>
           ) : (
-            <CommunityPosts posts={shown} now={now} quotes={quotes} />
+            // 바뀐 목록은 새로 그려 잠깐 떠오르게 한다 — 카드를 누른 손가락 아래가 아니라 그 아래 글이 바뀌어, 바뀐 것을 눈이 따라가게(움직임 줄이기면 없다)
+            <div key={feedTurn} className={feedTurn > 0 ? styles.feedTurn : undefined}>
+              <CommunityPosts posts={shown} now={now} quotes={quotes} />
+            </div>
           )}
           <div className={styles.feedEnd} />
         </section>
@@ -203,6 +221,8 @@ interface StockStripProps {
   stocks: StockChoice[]
   /** 전체 글 수 */
   total: number
+  /** 종목별 그날 등락률 — 카드 아래 줄 오른쪽(글 머리와 같은 값) */
+  quotes: Map<string, StockQuote>
   pickedCode: string | null
   onPick: (code: string | null) => void
 }
@@ -212,7 +232,7 @@ interface StockStripProps {
  * 휴대폰은 손가락으로 민다. 마우스로는 옆으로 밀기 어려워(세로 휠은 줄을 밀지 않는다) 넘치는 쪽 끝에 앞·뒤 단추를 띄운다 —
  * 키보드는 Tab으로 카드를 따라가면 줄이 따라 밀리므로 단추를 Tab 차례에 넣지 않는다(마우스 전용, 손가락 화면에서는 CSS로 숨긴다)
  */
-function StockStrip({ ref, stocks, total, pickedCode, onPick }: StockStripProps) {
+function StockStrip({ ref, stocks, total, quotes, pickedCode, onPick }: StockStripProps) {
   const listRef = useRef<HTMLUListElement>(null)
   const [edges, setEdges] = useState({ start: false, end: false })
 
@@ -240,15 +260,45 @@ function StockStrip({ ref, stocks, total, pickedCode, onPick }: StockStripProps)
     list.scrollBy({ left: direction * list.clientWidth * 0.8, behavior: prefersReducedMotion() ? 'auto' : 'smooth' })
   }
 
+  // 화면 끝에 걸쳐 반쯤 보이는 카드를 누르면 줄을 밀어 다 보인다(줄 안에서만 — 페이지는 움직이지 않는다)
+  const reveal = (button: HTMLElement) => {
+    const list = listRef.current
+    if (list === null) return
+    const box = button.getBoundingClientRect()
+    const view = list.getBoundingClientRect()
+    const pad = parseFloat(getComputedStyle(list).scrollPaddingInlineStart) || 0
+    const shift = box.left < view.left + pad ? box.left - view.left - pad : box.right > view.right - pad ? box.right - view.right + pad : 0
+    if (shift !== 0) list.scrollBy({ left: shift, behavior: prefersReducedMotion() ? 'auto' : 'smooth' })
+  }
+
   const card = (code: string | null, name: string, count: number) => {
     const on = pickedCode === code
+    const fluctuate = code === null ? null : (quotes.get(code)?.fluctuate ?? null)
     return (
       <li key={code ?? 'all'}>
-        <button type="button" data-code={code ?? 'all'} className={on ? styles.cardOn : styles.card} aria-pressed={on} onClick={() => onPick(code)}>
+        <button
+          type="button"
+          data-code={code ?? 'all'}
+          className={on ? styles.cardOn : styles.card}
+          aria-pressed={on}
+          onClick={(event) => {
+            reveal(event.currentTarget)
+            onPick(code)
+          }}
+        >
           <span className={styles.badge} aria-hidden="true">
             {code === null ? <AllIcon /> : Array.from(name)[0]}
           </span>
-          <span className={styles.cardName}>{name}</span> <span className={styles.count}>글 {count}</span>
+          <span className={styles.cardName}>{name}</span>{' '}
+          <span className={styles.cardFoot}>
+            <span className={styles.count}>글 {count}</span>
+            {fluctuate !== null && (
+              <>
+                {' '}
+                <span className={styles[rateTone(fluctuate)]}>{formatChangeRate(fluctuate)}</span>
+              </>
+            )}
+          </span>
         </button>
       </li>
     )
