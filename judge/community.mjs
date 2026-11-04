@@ -1,48 +1,58 @@
 // 커뮤니티 판정(2026-11-03 사용자 "토스증권처럼 게시판으로… AI 주가분석과 사용설명서 사이에 커뮤니티… 웹소켓을 받을 자리만 남기고 목업을").
 // 2026-11-02의 홈 채팅창 판정(C1~C13)을 게시판 판정으로 바꿨다. 기대값은 예시 글 파일(src/content/communityPreview.ts)에서 읽는다 —
-// 사용자가 글을 고쳐도 판정을 고치지 않는다. /api는 전부 가짜(mock.mjs), 커뮤니티는 서버가 없어 /api를 부르지 않는다(B9).
+// 사용자가 글을 고쳐도 판정을 고치지 않는다. /api는 전부 가짜(mock.mjs), 커뮤니티 글은 서버가 없어 /api를 부르지 않는다(B9 — 등락률 GET /api/stocks 하나뿐).
+// 2026-11-04 글이 제목 + 본문 + 사진이 되고(사용자가 토스증권 앱 캡처로 "커뮤니티 글쓰기 개념"을 짚었다) 글 상세·글쓰기 화면이 생겨 글 줄은 제목으로 견준다.
 //  B1 머리글 메뉴: 홈 · 관심종목 · 주식 백테스트 · AI 주가분석 · 커뮤니티 · 사용설명서(커뮤니티는 AI와 사용설명서 사이)
-//  B2 홈 오른쪽 칸: "커뮤니티" 제목 줄(예시 표시·전체 보기 → /community), 최신 글 다섯 줄(별명·몇 분 전·글). 종목 이름은 홈에선 글 링크 안 글자,
-//     커뮤니티 화면에선 그 종목 상세 링크
+//  B2 홈 오른쪽 칸: "커뮤니티" 제목 줄(예시 표시·전체 보기 → /community), 최신 글 다섯 줄(별명·몇 분 전·제목). 종목 이름은 글 줄에선 글자,
+//     글 상세에선 그 종목 상세 링크
 //  B3 커뮤니티 화면: 화면 제목, 예시 글 전부가 최신순, "인기" 탭을 누르면 공감 수 차례(2026-11-04 "최신순 · 공감 많은 순" → 큰 탭 "최신 · 인기")
 //  B4 종목으로 보기(2026-11-04부터 글 위 카드 줄): 종목 카드를 누르면 그 종목 글만, 구역 이름이 "<종목> 이야기", 글 수가 카드의 수와 같다. "전체"로 돌아온다
 //  B5 실시간(목업): 보고 있는 동안 새 글이 오면 끼우지 않고 "새 글 N개 보기"로 모은다 — 누르면 맨 위에 선다. 홈도 제목 줄에 "새 글 N"
-//  B6 글쓰기: 서버가 없는 목업에서는 잠겨 있고 그렇다고 밝힌다(써도 갈 곳이 없다)
+//  B6 글쓰기(2026-11-04 떠 있는 "글쓰기" → /community/write): 종목 카드를 고른 채 누르면 그 종목 이야기로, 서버가 없는 목업에서는 칸이 다 잠겨 있고
+//     그렇다고 밝힌다(써도 갈 곳이 없다), 제목·내용 칸·사진 자리·취소 → 목록
 //  B7 두 열의 첫 선(1440·1024): 가운데 탭 줄 먹 선 = 오른쪽 제목 줄 먹 선(1px 안). 11-03까지는 왼쪽 종목 열까지 세 열이었다
 //  B8 좁은 화면(390·320): 가로 넘침 없음, 종목 카드는 한 줄로 서고 옆으로 민다(줄이 화면보다 넓다), 첫 카드는 글과 같은 줄에서 시작
 //  B11 종목 검색(2026-11-04 "검색 버튼을 통해 종목을 선택"): 제목 줄 "종목 검색" → 검색 칸(포커스) → 글이 있는 종목을 고르면 그 종목 글만·카드 눌림·
 //      카드에 포커스, 글이 없는 종목(검색 가짜 응답)을 고르면 "글 0" 카드가 전체 다음에 서고 "<종목> 이야기는 아직 없어요", Esc로 닫으면 단추로 포커스
 //  B12 인기 + 종목: 두 거름이 같이 걸린다(그 종목 글만 공감 수 차례), 탭 줄 오른쪽에 무엇 순인지
 //  B13 카드 줄 앞·뒤 단추(마우스): 넘칠 때 뒤 단추만 → 누르면 줄이 밀리고 앞 단추가 생긴다, 손가락 화면에서는 단추가 없다(밀면 된다)
-//  B9 커뮤니티는 열 때 /api를 부르지 않는다(서버가 없다 — 웹소켓 주소를 넣기 전까지). 아래 지수 띠의 요청은 어느 화면에나 있어 뺀다.
+//  B9 커뮤니티는 열 때 글 /api를 부르지 않는다(서버가 없다 — 웹소켓 주소를 넣기 전까지). 부르는 건 글 머리 등락률의 GET /api/stocks 한 번(DB, 홈 시세표와 같은 값).
 //     종목 검색 칸에 글자를 치면 홈 검색창과 같은 /api/stocks/search가 나간다(B11)
-//  B10 홈 글 줄을 누르면 커뮤니티 화면의 그 글로 간다(2026-11-03 사용자 "홈화면에서 커뮤니티의 글을 클릭하면 커뮤니티로 가는 기능") —
-//      줄 어디를 눌러도(별명 자리·휴대폰에서 종목 이름 자리) /community, 그 글이 화면 안에 표시(aria-current)·포커스, 홈에서 세운 새 글(목업)도 찾아간다,
-//      새로고침하면 표시가 풀린다(한 번 읽고 비운다), 메뉴로 그냥 들어오면 표시가 없다
-// node community.mjs <BASE> [--only B1,B2] [--headed]
+//  B10 홈 글 줄을 누르면 그 글 상세로 간다(2026-11-03 사용자 "홈화면에서 커뮤니티의 글을 클릭하면 커뮤니티로", 11-04부터 목록 표시 대신 글 상세) —
+//      줄 어디를 눌러도(별명 자리·휴대폰에서 종목 이름 자리) /community/{postId}, 새로고침해도 그 글, 홈에서 세운 새 글(목업)도 찾아간다
+//  B14 글 줄 → 글 상세: 제목(화면 제목)·본문 전부·종목 상세 링크·등락률·사진(목록은 미리보기 한 장, 상세는 사진마다 이름)·댓글 자리, "커뮤니티로 돌아가기", 없는 글
+//  B15 등락률: 글 머리 종목 옆 값·색이 GET /api/stocks의 그 종목 값과 같다, 기준일은 목록 위에 한 번
+//  B16 실제 연결(--ws <웹소켓 주소를 넣고 묶은 빌드>, 가짜 WebSocket): 로그인하면 칸이 열린다 → 종목 고르기·제목·내용 → 올리기가 SEND에 제목·내용·종목을 싣고,
+//      서버가 되돌려 준 내 글(POST_CREATED)의 글 상세로 간다. 비로그인은 칸이 잠기고 로그인 안내
+// node community.mjs <BASE> [--only B1,B2] [--headed] [--ws <BASE2>]
 import { readFileSync } from 'node:fs'
 import { cli, judge, noOverflow, sleep } from './lib.mjs'
 
-const j = await judge(cli())
+const args = cli()
+const WS_BASE = args.flag('--ws')
+const j = await judge(args)
 const HOME = 'section[aria-labelledby="home-community-title"]'
 const FEED = 'section[aria-labelledby="community-feed-title"]'
 const STRIP = 'nav[aria-label="종목으로 보기"]'
 
 const SOURCE = readFileSync(new URL('../src/content/communityPreview.ts', import.meta.url), 'utf8')
 const STOCKS = Object.fromEntries([...SOURCE.matchAll(/const (\w+) = \{ code: '(\d{6})', name: '([^']+)' \}/g)].map(([, key, code, name]) => [key, { code, name }]))
-const parse = (block) => [...block.matchAll(/\{ id: (\d+), author: '([^']+)', stock: (null|\w+), text: '([^']*)', minutesAgo: (\d+), likes: (\d+), comments: (\d+) \}/g)]
-  .map(([, id, author, stock, text, minutesAgo, likes, comments]) => ({ id: Number(id), author, stock: stock === 'null' ? null : STOCKS[stock], text, minutesAgo: Number(minutesAgo), likes: Number(likes), comments: Number(comments) }))
+const parse = (block) => [...block.matchAll(/\{ id: (\d+), author: '([^']+)', stock: (null|\w+), title: '([^']*)', text: '([^']*)', minutesAgo: (\d+), likes: (\d+), comments: (\d+)(?:, images: \[([^\]]*)\])? \}/g)]
+  .map(([, id, author, stock, title, text, minutesAgo, likes, comments, images]) => ({ id: Number(id), author, stock: stock === 'null' ? null : STOCKS[stock], title, text,
+    minutesAgo: Number(minutesAgo), likes: Number(likes), comments: Number(comments), images: images ? [...images.matchAll(/'([^']+)'/g)].map((m) => m[1]) : [] }))
 const [initialBlock, liveBlock] = SOURCE.split('export const COMMUNITY_PREVIEW_LIVE')
 const POSTS = parse(initialBlock)
 const LIVE = parse(liveBlock)
 if (POSTS.length < 5 || LIVE.length < 1) throw new Error(`예시 글을 ${POSTS.length}·${LIVE.length}개밖에 못 읽었다 — communityPreview.ts 모양이 바뀌었으면 위 정규식을 고친다`)
 const LATEST = [...POSTS].sort((a, b) => a.minutesAgo - b.minutesAgo)
 const POPULAR = [...POSTS].sort((a, b) => b.likes - a.likes || a.minutesAgo - b.minutesAgo)
-// 글 줄은 ol > li다 — 2026-11-04부터 글 구역 안에 종목 카드 줄(ul > li)이 같이 있다
-const postTexts = (page, scope) => page.$$eval(`${scope} ol > li`, (lis) => lis.map((li) => li.querySelector('p:nth-of-type(2)')?.textContent.trim() ?? ''))
+// 글 줄은 ol > li, 제목은 h3다 — 2026-11-04부터 글 구역 안에 종목 카드 줄(ul > li)이 같이 있고 글은 제목 + 본문이다
+const postTitles = (page, scope) => page.$$eval(`${scope} ol > li`, (lis) => lis.map((li) => li.querySelector('h3')?.textContent.trim() ?? ''))
+/** 지금 시각의 등락률 글(앱 formatChangeRate와 같은 규칙) */
+const rateText = (rate) => (Number(rate.toFixed(2)) === 0 ? '0.00%' : `${rate > 0 ? '+' : ''}${rate.toFixed(2)}%`)
 /** 종목 카드의 글(첫 글자 동그라미는 aria-hidden이라 뺀다) — "삼성전자 글 2" */
 const cardTexts = (page) => page.$$eval(`${STRIP} li button`, (buttons) => buttons.map((b) => [...b.children].filter((c) => c.getAttribute('aria-hidden') !== 'true').map((c) => c.textContent.trim()).join(' ')))
-const withStock = (post) => (post.stock ? `${post.stock.name} ${post.text}` : post.text)
+const titleOf = (post) => post.title
 
 await j.run('B1', async () => {
   const t = await j.open({ width: 1440 })
@@ -59,18 +69,21 @@ await j.run('B2', async () => {
   const head = await section.locator('h2').first().textContent()
   const sample = await section.getByText('예시', { exact: true }).count()
   const more = await section.getByRole('link', { name: '전체 보기' }).getAttribute('href')
-  const texts = await postTexts(t.page, HOME)
-  const expected = LATEST.slice(0, 5).map(withStock)
+  const texts = await postTitles(t.page, HOME)
+  const expected = LATEST.slice(0, 5).map(titleOf)
   const meta = await t.page.$$eval(`${HOME} li`, (lis) => lis.map((li) => li.querySelector('p')?.textContent.trim() ?? ''))
   j.report('B2a', head === '커뮤니티' && sample === 1 && more === '/community', `제목 "${head}", 예시 표시 ${sample}, 전체 보기 → ${more}`)
   j.report('B2b', JSON.stringify(texts) === JSON.stringify(expected) && meta.every((m) => /\S+ (방금|\d+분 전|\d+시간 전)$/.test(m)),
     `최신 글 ${texts.length}줄 — 예시 글 최신 다섯과 ${JSON.stringify(texts) === JSON.stringify(expected) ? '같다' : '다르다'}, 별명·시각 ${meta.slice(0, 2).join(' / ')}`)
-  // 홈은 줄 전체가 커뮤니티로 가는 글 링크라 종목 이름은 그 안의 글자다(따로 눌리는 작은 링크를 두지 않는다 — B10). 종목 상세 링크는 커뮤니티 화면에 있다
+  // 글 줄은 줄 전체가 글 상세로 가는 링크라 종목 이름은 글자다(따로 눌리는 작은 링크를 두지 않는다 — B10). 종목 상세 링크는 글 상세에 있다
   const tag = LATEST.slice(0, 5).find((post) => post.stock)
   const homeStockLinks = tag ? await section.getByRole('link', { name: tag.stock.name, exact: true }).count() : -1
   await t.goto('/community', 1500)
-  const href = tag ? await t.page.locator(FEED).getByRole('link', { name: tag.stock.name, exact: true }).first().getAttribute('href') : null
-  j.report('B2c', tag !== undefined && homeStockLinks === 0 && href === `/stocks/${tag.stock.code}`, `홈 글 줄 안 종목 링크 ${homeStockLinks}개, 커뮤니티 화면 종목 이름 링크 ${tag?.stock.name} → ${href}`)
+  const listStockLinks = tag ? await t.page.locator(FEED).getByRole('link', { name: tag.stock.name, exact: true }).count() : -1
+  await t.goto(`/community/${tag.id}`, 1500)
+  const href = tag ? await t.page.locator('main article').getByRole('link', { name: tag.stock.name, exact: true }).getAttribute('href') : null
+  j.report('B2c', tag !== undefined && homeStockLinks === 0 && listStockLinks === 0 && href === `/stocks/${tag.stock.code}`,
+    `홈·목록 글 줄 안 종목 링크 ${homeStockLinks}·${listStockLinks}개, 글 상세 종목 이름 링크 ${tag?.stock.name} → ${href}`)
   await t.close()
 })
 
@@ -78,15 +91,15 @@ await j.run('B3', async () => {
   const t = await j.open({ width: 1440 })
   await t.goto('/community', 1500)
   const title = await t.page.locator('main h1').textContent()
-  const latest = await postTexts(t.page, FEED)
-  j.report('B3a', title === '커뮤니티' && JSON.stringify(latest) === JSON.stringify(LATEST.map(withStock)), `화면 제목 "${title}", 최신순 ${latest.length}개 ${JSON.stringify(latest) === JSON.stringify(LATEST.map(withStock)) ? '예시 글 그대로' : '순서·글이 다르다'}`)
+  const latest = await postTitles(t.page, FEED)
+  j.report('B3a', title === '커뮤니티' && JSON.stringify(latest) === JSON.stringify(LATEST.map(titleOf)), `화면 제목 "${title}", 최신순 ${latest.length}개 ${JSON.stringify(latest) === JSON.stringify(LATEST.map(titleOf)) ? '예시 글 그대로' : '순서·글이 다르다'}`)
   const tabs = await t.page.locator(FEED).getByRole('group', { name: '정렬' }).getByRole('button').allTextContents()
   await t.page.getByRole('button', { name: '인기', exact: true }).click()
   await sleep(200)
-  const popular = await postTexts(t.page, FEED)
+  const popular = await postTitles(t.page, FEED)
   const pressed = await t.page.getByRole('button', { name: '인기', exact: true }).getAttribute('aria-pressed')
-  j.report('B3b', tabs.join('|') === '최신|인기' && pressed === 'true' && JSON.stringify(popular) === JSON.stringify(POPULAR.map(withStock)),
-    `탭 ${tabs.join(' · ')}, 인기 ${pressed}, 공감 수 차례 ${JSON.stringify(popular) === JSON.stringify(POPULAR.map(withStock))}, 첫 글 "${popular[0]?.slice(0, 20)}…"`)
+  j.report('B3b', tabs.join('|') === '최신|인기' && pressed === 'true' && JSON.stringify(popular) === JSON.stringify(POPULAR.map(titleOf)),
+    `탭 ${tabs.join(' · ')}, 인기 ${pressed}, 공감 수 차례 ${JSON.stringify(popular) === JSON.stringify(POPULAR.map(titleOf))}, 첫 글 "${popular[0]?.slice(0, 20)}…"`)
   await t.close()
 })
 
@@ -100,13 +113,14 @@ await j.run('B4', async () => {
   await nav.getByRole('button', { name: new RegExp(`^${name} 글`) }).click()
   await sleep(200)
   const head = await t.page.locator(`${FEED} h2`).first().textContent()
-  const texts = await postTexts(t.page, FEED)
+  const texts = await postTitles(t.page, FEED)
   const cardCount = (await cardTexts(t.page)).find((text) => text.startsWith(`${name} 글`)) ?? ''
-  j.report('B4a', head === `${name} 이야기` && texts.length === count && texts.every((text) => text.startsWith(name)) && cardCount.endsWith(`글 ${count}`),
-    `"${head}" — 글 ${texts.length}개(기대 ${count}, 카드 "${cardCount}"), 모두 ${name} 글`)
+  const expectedTitles = LATEST.filter((post) => post.stock?.name === name).map(titleOf)
+  j.report('B4a', head === `${name} 이야기` && JSON.stringify(texts) === JSON.stringify(expectedTitles) && cardCount.endsWith(`글 ${count}`),
+    `"${head}" — 글 ${texts.length}개(기대 ${count}, 카드 "${cardCount}"), ${name} 글만 최신순 ${JSON.stringify(texts) === JSON.stringify(expectedTitles)}`)
   await nav.getByRole('button', { name: /^전체 글/ }).click()
   await sleep(200)
-  j.report('B4b', (await postTexts(t.page, FEED)).length === POSTS.length, `전체 글로 돌아오면 ${POSTS.length}개`)
+  j.report('B4b', (await postTitles(t.page, FEED)).length === POSTS.length, `전체 글로 돌아오면 ${POSTS.length}개`)
   await t.close()
 })
 
@@ -115,16 +129,16 @@ await j.run('B5', async () => {
     const t = await j.open({ width: 1440 })
     await t.page.clock.install()
     await t.goto(path, 1500)
-    const before = await postTexts(t.page, scope)
+    const before = await postTitles(t.page, scope)
     await t.page.clock.runFor(41_000)
     await sleep(200)
     const fresh = t.page.locator(scope).getByRole('button', { name: /^새 글 1/ })
     const shown = await fresh.count()
-    const unchanged = JSON.stringify(await postTexts(t.page, scope)) === JSON.stringify(before)
+    const unchanged = JSON.stringify(await postTitles(t.page, scope)) === JSON.stringify(before)
     if (shown === 1) await fresh.click()
     await sleep(200)
-    const after = await postTexts(t.page, scope)
-    j.report(`B5-${path === '/' ? 'home' : 'page'}`, shown === 1 && unchanged && after[0] === withStock(LIVE[0]) && (await fresh.count()) === 0,
+    const after = await postTitles(t.page, scope)
+    j.report(`B5-${path === '/' ? 'home' : 'page'}`, shown === 1 && unchanged && after[0] === LIVE[0].title && (await fresh.count()) === 0,
       `40초 뒤 "새 글 1" 단추 ${shown}개, 누르기 전 목록 ${unchanged ? '그대로' : '바뀜'}, 누른 뒤 맨 위 "${after[0]?.slice(0, 24)}…"`)
     await t.close()
   }
@@ -133,12 +147,32 @@ await j.run('B5', async () => {
 await j.run('B6', async () => {
   const t = await j.open({ width: 1440 })
   await t.goto('/community', 1500)
-  const input = t.page.locator('#community-input')
-  const disabled = await input.isDisabled()
-  const placeholder = await input.getAttribute('placeholder')
+  const samsung = POSTS.find((post) => post.stock?.code === '005930').stock
+  await t.page.locator(STRIP).getByRole('button', { name: new RegExp(`^${samsung.name} 글`) }).click()
+  await t.page.getByRole('link', { name: '글쓰기' }).click()
+  await sleep(800)
+  const path = new URL(t.page.url()).pathname
+  const form = await t.page.evaluate(() => ({
+    h1: document.querySelector('main h1')?.textContent,
+    fieldset: document.querySelector('main fieldset')?.disabled,
+    // 칸은 묶음(fieldset)이 잠근다 — 칸 자신의 disabled 속성이 아니라 :disabled로 본다
+    title: document.getElementById('community-write-title')?.matches(':disabled'),
+    content: document.getElementById('community-write-content')?.tagName,
+    contentDisabled: document.getElementById('community-write-content')?.matches(':disabled'),
+    maxTitle: document.getElementById('community-write-title')?.maxLength,
+    maxContent: document.getElementById('community-write-content')?.maxLength,
+    photo: [...document.querySelectorAll('main button')].some((b) => b.textContent.includes('사진') && b.disabled),
+    stock: document.querySelector('main form')?.textContent.includes('삼성전자 이야기'),
+  }))
   const send = await t.page.getByRole('button', { name: '올리기' }).isDisabled()
-  const status = await t.page.locator('aside[aria-label="커뮤니티 안내"]').textContent()
-  j.report('B6', disabled && send && /서버가 열리면/.test(placeholder ?? '') && /예시/.test(status ?? ''), `입력칸 잠김 ${disabled}("${placeholder}"), 올리기 잠김 ${send}, 안내에 예시라고 ${/예시/.test(status ?? '')}`)
+  const notice = await t.page.locator('main').getByText(/서버가 열리면/).count()
+  j.report('B6a', path === '/community/write' && form.h1 === '글쓰기' && form.fieldset && form.title && form.content === 'TEXTAREA' && form.contentDisabled && form.photo && send && notice >= 1 && form.stock,
+    `${path} "${form.h1}" — 칸 묶음 잠김 ${form.fieldset}(제목 ${form.title}·내용 ${form.content} ${form.contentDisabled}), 사진 자리 잠김 ${form.photo}, 올리기 잠김 ${send}, 까닭 ${notice}, 고른 종목 실림 ${form.stock}`)
+  await t.page.getByRole('link', { name: '취소' }).click()
+  await sleep(600)
+  const side = await t.page.locator('aside[aria-label="커뮤니티 안내"]').textContent()
+  j.report('B6b', new URL(t.page.url()).pathname === '/community' && form.maxTitle === 40 && form.maxContent === 1000 && /예시/.test(side ?? ''),
+    `취소 → ${new URL(t.page.url()).pathname}, 제목 ${form.maxTitle}자·내용 ${form.maxContent}자까지, 목록 안내에 예시라고 ${/예시/.test(side ?? '')}`)
   await t.close()
 })
 
@@ -191,12 +225,13 @@ await j.run('B11', async () => {
   await sleep(600)
   await t.page.getByRole('option', { name: new RegExp(bio.name) }).first().getByRole('button').click()
   await sleep(300)
-  const texts = await postTexts(t.page, FEED)
+  const texts = await postTitles(t.page, FEED)
   const card = t.page.locator(STRIP).getByRole('button', { name: new RegExp(`^${bio.name} 글`) })
   const state = await card.evaluate((el) => ({ pressed: el.getAttribute('aria-pressed'), focused: el === document.activeElement }))
   const closed = (await t.page.getByRole('combobox').count()) === 0
   const expected = POSTS.filter((post) => post.stock?.code === bio.code).length
-  j.report('B11a', focused && closed && state.pressed === 'true' && state.focused && texts.length === expected && texts.every((text) => text.startsWith(bio.name)),
+  const expectedTitles = LATEST.filter((post) => post.stock?.code === bio.code).map(titleOf)
+  j.report('B11a', focused && closed && state.pressed === 'true' && state.focused && texts.length === expected && JSON.stringify(texts) === JSON.stringify(expectedTitles),
     `열면 입력칸 포커스 ${focused}, "${bio.name}" 고름 → 칸 닫힘 ${closed}, 카드 눌림 ${state.pressed}·포커스 ${state.focused}, 글 ${texts.length}개(기대 ${expected})`)
   // 글이 없는 종목: 글 0 카드가 전체 다음에 선다
   await toggle.click()
@@ -229,13 +264,13 @@ await j.run('B12', async () => {
   await t.page.getByRole('button', { name: '인기', exact: true }).click()
   await t.page.locator(STRIP).getByRole('button', { name: new RegExp(`^${samsung.name} 글`) }).click()
   await sleep(200)
-  const texts = await postTexts(t.page, FEED)
-  const expected = POPULAR.filter((post) => post.stock?.code === samsung.code).map(withStock)
+  const texts = await postTitles(t.page, FEED)
+  const expected = POPULAR.filter((post) => post.stock?.code === samsung.code).map(titleOf)
   const note = await t.page.locator(FEED).getByText('공감 많은 순').count()
   await t.page.getByRole('button', { name: '최신', exact: true }).click()
   await sleep(200)
-  const latest = await postTexts(t.page, FEED)
-  const latestExpected = LATEST.filter((post) => post.stock?.code === samsung.code).map(withStock)
+  const latest = await postTitles(t.page, FEED)
+  const latestExpected = LATEST.filter((post) => post.stock?.code === samsung.code).map(titleOf)
   j.report('B12', JSON.stringify(texts) === JSON.stringify(expected) && JSON.stringify(latest) === JSON.stringify(latestExpected) && note === 1,
     `인기 + ${samsung.name} ${texts.length}개 공감 차례 ${JSON.stringify(texts) === JSON.stringify(expected)}, 최신으로 바꾸면 ${JSON.stringify(latest) === JSON.stringify(latestExpected)}, "공감 많은 순" 표시 ${note}`)
   await t.close()
@@ -278,15 +313,15 @@ await j.run('B9', async () => {
   const t = await j.open({ width: 1440 })
   await t.goto('/community', 2000)
   const calls = t.api().filter((line) => /community/i.test(line))
-  j.report('B9', calls.length === 0, `커뮤니티 /api 요청 ${calls.length}건${calls.length ? ' — ' + calls.join(', ') : ''}`)
+  // 아래 지수 띠의 장 상태(휴장일) 요청은 어느 화면에나 있어 뺀다
+  const all = t.api().filter((line) => !line.startsWith('GET /api/market/'))
+  const stocks = all.filter((line) => line === 'GET /api/stocks').length
+  j.report('B9', calls.length === 0 && stocks === 1 && all.length === 1, `커뮤니티 글 /api 요청 ${calls.length}건, 등락률 GET /api/stocks ${stocks}건, 전체 ${all.join(', ')}`)
   await t.close()
 })
 
 await j.run('B10', async () => {
-  const current = (page) => page.$$eval(`${FEED} li[aria-current="true"]`, (lis) => lis.map((li) => {
-    const box = li.getBoundingClientRect()
-    return { text: li.querySelector('p:nth-of-type(2)')?.textContent.trim() ?? '', inView: box.top >= 0 && box.bottom <= innerHeight, focused: li.contains(document.activeElement) }
-  }))
+  const detail = (page) => page.evaluate(() => ({ path: location.pathname, h1: document.querySelector('main h1')?.textContent.trim() ?? '' }))
   // 줄 어디를 눌러도 — 링크 글자가 아니라 별명 자리를 좌표로 누른다(행 전체를 덮는 링크)
   const t = await j.open({ width: 1440, height: 900 })
   await t.goto('/', 1800)
@@ -296,33 +331,27 @@ await j.run('B10', async () => {
   const name = await row.locator('strong').first().boundingBox()
   await t.page.mouse.click(name.x + 4, name.y + name.height / 2)
   await sleep(1200)
-  const path = new URL(t.page.url()).pathname
-  const marked = await current(t.page)
-  j.report('B10a', path === '/community' && marked.length === 1 && marked[0].text === withStock(target) && marked[0].inView && marked[0].focused,
-    `별명 자리 누름 → ${path}, 표시된 글 ${marked.length}개 "${marked[0]?.text.slice(0, 20)}…"(기대 "${withStock(target).slice(0, 20)}…"), 화면 안 ${marked[0]?.inView}, 포커스 ${marked[0]?.focused}`)
+  const opened = await detail(t.page)
+  j.report('B10a', opened.path === `/community/${target.id}` && opened.h1 === target.title, `별명 자리 누름 → ${opened.path} "${opened.h1}"(기대 /community/${target.id} "${target.title}")`)
   await t.page.reload({ waitUntil: 'domcontentloaded' }); await sleep(1500)
-  const afterReload = (await current(t.page)).length
-  await t.goto('/', 1500)
-  await t.page.getByRole('navigation', { name: '서비스' }).getByRole('link', { name: '커뮤니티' }).click(); await sleep(1000)
-  const viaMenu = (await current(t.page)).length
-  j.report('B10b', afterReload === 0 && viaMenu === 0, `새로고침 뒤 표시 ${afterReload}개, 메뉴로 들어오면 ${viaMenu}개`)
+  const reloaded = await detail(t.page)
+  j.report('B10b', reloaded.path === opened.path && reloaded.h1 === target.title, `새로고침해도 ${reloaded.path} "${reloaded.h1}"(주소가 곧 그 글이다)`)
   await t.close()
 
   // 휴대폰 폭에서 종목 이름 자리를 눌러도 같은 글로 간다(줄 안에 따로 눌리는 작은 링크가 없다 — 있으면 조금만 빗나가도 다른 곳으로 갔다)
   const s = await j.open({ width: 375, height: 812 })
   await s.goto('/', 1800)
   const tag = LATEST.slice(0, 5).find((post) => post.stock)
-  const tagged = s.page.locator(`${HOME} li`).filter({ hasText: tag.text }).first()
+  const tagged = s.page.locator(`${HOME} li`).filter({ hasText: tag.title }).first()
   await tagged.scrollIntoViewIfNeeded()
   const stockBox = await tagged.getByText(tag.stock.name, { exact: true }).boundingBox()
   await s.page.mouse.click(stockBox.x + 4, stockBox.y + stockBox.height / 2)
   await sleep(1200)
-  const opened = await current(s.page)
-  j.report('B10c', new URL(s.page.url()).pathname === '/community' && opened[0]?.text === withStock(tag),
-    `375 폭 종목 이름(${tag.stock.name}) 자리 누름 → ${new URL(s.page.url()).pathname}, 표시된 글 "${opened[0]?.text.slice(0, 20)}…"`)
+  const viaStock = await detail(s.page)
+  j.report('B10c', viaStock.path === `/community/${tag.id}` && viaStock.h1 === tag.title, `375 폭 종목 이름(${tag.stock.name}) 자리 누름 → ${viaStock.path} "${viaStock.h1}"`)
   await s.close()
 
-  // 홈에서 세운 새 글(목업 — 커뮤니티 화면은 따로 받으니 처음 목록에 없다)도 그 글로 간다
+  // 홈에서 세운 새 글(목업 — 글 상세는 따로 받으니 처음 목록에 없다)도 그 글로 간다. 새로고침하면 글 하나 받기로 다시 찾는다
   const l = await j.open({ width: 1440, height: 900 })
   await l.page.clock.install()
   await l.goto('/', 1500)
@@ -330,16 +359,150 @@ await j.run('B10', async () => {
   await sleep(200)
   await l.page.locator(HOME).getByRole('button', { name: /^새 글 1/ }).click()
   await sleep(200)
-  await l.page.locator(`${HOME} li`).first().locator('p').nth(1).click({ position: { x: 200, y: 8 } })
+  await l.page.locator(`${HOME} li`).first().locator('h3 a').click()
   await sleep(1200)
-  const live = await current(l.page)
-  const pending = await l.page.locator(FEED).getByRole('button', { name: /^새 글/ }).count()
-  await l.page.clock.runFor(41_000)
-  await sleep(200)
-  const later = await l.page.locator(FEED).getByRole('button', { name: /^새 글/ }).textContent().catch(() => null)
-  j.report('B10d', live.length === 1 && live[0].text === withStock(LIVE[0]) && pending === 0 && later === null,
-    `새 글 누름 → 표시 "${live[0]?.text.slice(0, 20)}…", 들어오자마자 "새 글" ${pending}개, 40초 뒤 "${later}"(이미 보이는 글은 다시 세지 않는다)`)
+  const live = await detail(l.page)
+  const body = await l.page.locator('main article').textContent()
+  await l.page.reload({ waitUntil: 'domcontentloaded' }); await sleep(1500)
+  const liveReloaded = await detail(l.page)
+  j.report('B10d', live.path === `/community/${LIVE[0].id}` && live.h1 === LIVE[0].title && body.includes(LIVE[0].text) && liveReloaded.h1 === LIVE[0].title,
+    `새 글 누름 → ${live.path} "${live.h1}", 본문 ${body.includes(LIVE[0].text)}, 새로고침 뒤 "${liveReloaded.h1}"`)
   await l.close()
+})
+
+await j.run('B14', async () => {
+  const t = await j.open({ width: 1440, height: 900 })
+  await t.goto('/community', 1500)
+  const pictured = POSTS.find((post) => post.images.length > 0 && post.stock)
+  const listImages = await t.page.$$eval(`${FEED} ol > li`, (lis) => lis.map((li) => li.querySelectorAll('img').length))
+  const expectedImages = LATEST.map((post) => Math.min(1, post.images.length))
+  const row = t.page.locator(`${FEED} ol > li`).filter({ hasText: pictured.title })
+  await row.scrollIntoViewIfNeeded()
+  // 제목 링크가 아니라 줄 아래쪽(공감 수와 별명 사이 빈자리)을 누른다 — 줄 전체가 글 상세로 간다
+  const box = await row.boundingBox()
+  await t.page.mouse.click(box.x + box.width * 0.5, box.y + box.height - 14)
+  await sleep(1000)
+  const page = await t.page.evaluate(() => {
+    const article = document.querySelector('main article')
+    return {
+      path: location.pathname,
+      h1: document.querySelector('main h1')?.textContent.trim(),
+      text: article?.textContent ?? '',
+      images: [...(article?.querySelectorAll('img') ?? [])].map((img) => ({ src: new URL(img.src).pathname, alt: img.alt })),
+      comments: document.getElementById('community-comments-title')?.textContent.trim(),
+      stockHref: article?.querySelector('a[href^="/stocks/"]')?.getAttribute('href'),
+    }
+  })
+  j.report('B14a', page.path === `/community/${pictured.id}` && page.h1 === pictured.title && page.text.includes(pictured.text) && page.stockHref === `/stocks/${pictured.stock.code}`
+    && page.images.length === pictured.images.length && page.images.every((img, i) => img.src === pictured.images[i] && img.alt === `글에 붙은 사진 ${i + 1}`)
+    && page.comments === `댓글 ${pictured.comments}` && JSON.stringify(listImages) === JSON.stringify(expectedImages),
+    `목록 사진 미리보기 ${JSON.stringify(listImages)}, 줄 아래 빈자리 누름 → ${page.path} "${page.h1}", 본문 전부 ${page.text.includes(pictured.text)}, 종목 → ${page.stockHref}, 사진 ${JSON.stringify(page.images)}, "${page.comments}"`)
+  // 본문은 목록에서 두 줄로 자르고 글 상세에서 전부(긴 글 하나로)
+  await t.page.getByRole('link', { name: /커뮤니티로 돌아가기/ }).click()
+  await sleep(800)
+  const back = new URL(t.page.url()).pathname
+  const clamp = await t.page.$$eval(`${FEED} ol > li h3 + p`, (ps) => ps.map((el) => getComputedStyle(el).webkitLineClamp))
+  for (const path of ['/community/999', '/community/abc']) {
+    await t.goto(path, 1200)
+    const missing = await t.page.evaluate(() => ({ h1: document.querySelector('main h1')?.textContent.trim(), link: document.querySelector('main article a[href="/community"]') !== null }))
+    j.report(`B14-${path.split('/').pop()}`, missing.h1 === '글을 찾을 수 없어요' && missing.link, `${path}: "${missing.h1}", 목록으로 링크 ${missing.link}`)
+  }
+  j.report('B14b', back === '/community' && clamp.length > 0 && clamp.every((value) => value === '2'), `돌아가기 → ${back}, 목록 본문 줄 수 제한 ${[...new Set(clamp)].join(',')}`)
+  await t.close()
+})
+
+await j.run('B15', async () => {
+  const t = await j.open({ width: 1440, height: 900 })
+  await t.goto('/community', 1500)
+  const shown = await t.page.$$eval(`${FEED} ol > li`, (lis) => lis.map((li) => {
+    // 종목 줄은 글 줄의 첫 문단이다(없으면 제목·본문 칸이 먼저)
+    const head = li.firstElementChild?.tagName === 'P' ? li.firstElementChild : null
+    return head === null ? null : { name: head.textContent, rate: head.lastElementChild?.textContent.trim(), color: getComputedStyle(head.lastElementChild).color }
+  }))
+  // 기대값은 같은 가짜 응답에서 — 화면 안에서 같은 주소를 한 번 더 받는다(판정의 요청, 화면 요청 수는 B9가 본다)
+  const list = await t.page.evaluate(async () => (await (await fetch('/api/stocks')).json()).result)
+  const byCode = new Map(list.stockList.map((row) => [row.stockCode, row.fluctuate]))
+  const colors = await t.page.evaluate(() => {
+    const probe = (token) => { const el = document.createElement('span'); el.style.color = `var(${token})`; document.body.append(el); const c = getComputedStyle(el).color; el.remove(); return c }
+    return { up: probe('--color-up-text'), down: probe('--color-down-text'), sub: probe('--color-text-sub') }
+  })
+  const bad = []
+  LATEST.forEach((post, i) => {
+    const got = shown[i]
+    if (!post.stock) { if (got !== null) bad.push(`${post.id} 종목 없는 글에 종목 줄`); return }
+    const rate = byCode.get(post.stock.code)
+    const want = rateText(rate)
+    const color = Number(rate.toFixed(2)) === 0 ? colors.sub : rate > 0 ? colors.up : colors.down
+    if (got === null || !got.name.includes(post.stock.name) || got.rate !== want || got.color !== color) bad.push(`${post.id} ${JSON.stringify(got)} 기대 ${want}`)
+  })
+  const asOf = await t.page.locator(FEED).getByText(/^등락률은 .+ 종가 기준이에요$/).count()
+  j.report('B15', bad.length === 0 && asOf === 1, `글 머리 등락률 ${LATEST.filter((p) => p.stock).length}개 중 어긋남 ${bad.length}${bad.length ? ' · ' + bad.slice(0, 3).join(' | ') : ''}, 기준일 한 번 ${asOf}`)
+  await t.close()
+})
+
+/*
+ * B16 — 웹소켓 주소를 넣고 묶은 빌드에서만(--ws). 브라우저의 WebSocket을 가짜로 바꿔 STOMP 서버 흉내를 낸다:
+ * CONNECT에 CONNECTED, SEND에 같은 글을 POST_CREATED로 되돌려 준다. 밖으로 나가는 연결은 없다
+ */
+const FAKE_SOCKET = () => {
+  window.__frames = []
+  class FakeSocket {
+    constructor(url) { this.url = url; this.readyState = 0; setTimeout(() => { this.readyState = 1; this.onopen?.() }, 30) }
+    reply(body) { setTimeout(() => this.onmessage?.({ data: body }), 60) }
+    send(data) {
+      window.__frames.push(data)
+      const command = data.split('\n')[0]
+      if (command === 'CONNECT') this.reply('CONNECTED\nversion:1.2\n\n\0')
+      if (command === 'SEND') {
+        const draft = JSON.parse(data.slice(data.indexOf('\n\n') + 2).replace(/\0$/, ''))
+        const post = { postId: 9001, author: '나', stockCode: draft.stockCode, stockName: draft.stockCode === '005930' ? '삼성전자' : null, title: draft.title, content: draft.content,
+          imageUrls: [], createdAt: new Date().toISOString(), likeCount: 0, commentCount: 0 }
+        this.reply(`MESSAGE\ndestination:/topic/community\n\n${JSON.stringify({ type: 'POST_CREATED', post })}\0`)
+      }
+    }
+    close() { this.readyState = 3 }
+  }
+  window.WebSocket = FakeSocket
+}
+
+await j.run('B16', async () => {
+  if (WS_BASE === null || WS_BASE === undefined) { j.report('B16', null, '웹소켓 빌드 없음 — --ws <BASE2>를 주면 실제 연결 흐름을 잰다'); return }
+  const t = await j.open({ width: 1440, height: 900 })
+  await t.context.addInitScript(FAKE_SOCKET)
+  // 목록에서 떠 있는 "글쓰기"로 들어간다 — 다 쓴 뒤 뒤로 가면 목록이어야 한다
+  await t.page.goto(`${WS_BASE}/community`, { waitUntil: 'domcontentloaded' })
+  await sleep(1000)
+  await t.page.getByRole('link', { name: '글쓰기' }).click()
+  await sleep(800)
+  const enabled = !(await t.page.locator('#community-write-title').isDisabled())
+  await t.page.getByRole('button', { name: '종목 고르기' }).click()
+  await t.page.getByRole('combobox').fill('삼성전자')
+  await sleep(500)
+  await t.page.getByRole('option', { name: /삼성전자 005930/ }).getByRole('button').click()
+  const lockedEmpty = await t.page.getByRole('button', { name: '올리기' }).isDisabled()
+  await t.page.locator('#community-write-title').fill('처음 써 보는 글')
+  await t.page.locator('#community-write-content').fill('첫 줄\n둘째 줄')
+  await t.page.getByRole('button', { name: '올리기' }).click()
+  await sleep(1200)
+  const frames = await t.page.evaluate(() => window.__frames)
+  const sent = frames.find((frame) => frame.startsWith('SEND'))
+  const body = sent ? JSON.parse(sent.slice(sent.indexOf('\n\n') + 2).replace(/\0$/, '')) : null
+  const after = await t.page.evaluate(() => ({ path: location.pathname, h1: document.querySelector('main h1')?.textContent.trim(), text: document.querySelector('main article')?.textContent ?? '' }))
+  j.report('B16a', enabled && lockedEmpty && body?.title === '처음 써 보는 글' && body?.content === '첫 줄\n둘째 줄' && body?.stockCode === '005930'
+    && after.path === '/community/9001' && after.h1 === '처음 써 보는 글' && after.text.includes('둘째 줄'),
+    `로그인 칸 열림 ${enabled}, 빈 칸이면 올리기 잠김 ${lockedEmpty}, SEND ${JSON.stringify(body)}, 되돌려 받은 내 글 → ${after.path} "${after.h1}"`)
+  // 뒤로 가면 글쓰기가 아니라 그 앞(주소 기록을 바꿔 넣었다)
+  await t.page.goBack({ waitUntil: 'domcontentloaded' }); await sleep(600)
+  j.report('B16b', new URL(t.page.url()).pathname === '/community', `글 상세에서 뒤로 → ${new URL(t.page.url()).pathname}(글쓰기로 돌아가지 않고 목록)`)
+  await t.close()
+
+  const o = await j.open({ width: 1440, height: 900, loggedIn: false })
+  await o.context.addInitScript(FAKE_SOCKET)
+  await o.page.goto(`${WS_BASE}/community/write`, { waitUntil: 'domcontentloaded' })
+  await sleep(1200)
+  const out = await o.page.evaluate(() => ({ locked: document.querySelector('main fieldset')?.disabled, login: document.querySelector('main a[href^="/login"]')?.textContent }))
+  j.report('B16c', out.locked === true && out.login === '로그인하기', `비로그인: 칸 잠김 ${out.locked}, 안내 링크 "${out.login}"`)
+  await o.close()
 })
 
 await j.finish()

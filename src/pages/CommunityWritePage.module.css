@@ -1,0 +1,218 @@
+/*
+ * 커뮤니티 글쓰기(2026-11-04). 한 가지 일만 하는 화면이라 가운데 한 줄(680px)에 화면 제목 + 먹 선을 왼쪽 맞춤으로 둔다(로그인·투자성향 테스트와 같은 틀).
+ * 칸은 입력칸 규격(1.5px 테두리, 글자 16px — 아래면 아이폰 사파리가 누르는 순간 확대한다). 목업·비로그인이면 칸이 잠기고 까닭을 맨 위 옅은 면에 적는다.
+ */
+.page {
+  max-width: 680px;
+}
+
+.title {
+  composes: pageTitle from '../components/section.module.css';
+  margin: 0;
+}
+
+.notice {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  margin: var(--space-6) 0 0;
+  padding: var(--space-4) var(--space-5);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-sub);
+  font-size: var(--font-md);
+  line-height: 1.6;
+}
+
+.noticeLink {
+  font-weight: 700;
+  color: var(--color-brand-700);
+}
+
+.noticeLink:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.form {
+  margin-top: var(--space-6);
+}
+
+.fields {
+  display: grid;
+  gap: var(--space-6);
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.field {
+  display: grid;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.label {
+  font-size: var(--font-md);
+  font-weight: 700;
+}
+
+.optional {
+  font-weight: 400;
+  color: var(--color-text-sub);
+}
+
+.input,
+.textarea {
+  width: 100%;
+  min-width: 0;
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  font: inherit;
+  font-size: var(--font-lg);
+  color: var(--color-text);
+}
+
+.input {
+  min-height: 48px;
+  padding: 0 var(--space-4);
+}
+
+.textarea {
+  min-height: 220px;
+  padding: var(--space-3) var(--space-4);
+  line-height: 1.65;
+  resize: vertical;
+}
+
+.input::placeholder,
+.textarea::placeholder {
+  color: var(--color-text-sub);
+}
+
+.input:focus-visible,
+.textarea:focus-visible {
+  border-color: var(--color-brand-700);
+  outline: none;
+  box-shadow: 0 0 0 3px var(--color-brand-100);
+}
+
+.input:disabled,
+.textarea:disabled {
+  background: var(--color-bg-sub);
+  cursor: not-allowed;
+}
+
+/* 몇 자 썼는지 — 칸 오른쪽 아래 */
+.counter {
+  justify-self: end;
+  font-size: var(--font-sm);
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text-sub);
+}
+
+.pick {
+  composes: secondary md from '../components/buttons.module.css';
+  justify-self: start;
+}
+
+.stockChosen {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1) var(--space-3);
+  margin: 0;
+  font-size: var(--font-lg);
+}
+
+/* 제목 줄·줄 끝의 글자 동작 — 상자 없는 초록 굵은 글자(AI "+ 새 대화"와 같은 모양) */
+.textAction {
+  display: inline-flex;
+  align-items: center;
+  min-height: 40px;
+  padding: 0 var(--space-2);
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: none;
+  font: inherit;
+  font-size: var(--font-md);
+  font-weight: 700;
+  color: var(--color-brand-700);
+  cursor: pointer;
+}
+
+.textAction:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* 사진 자리 — 점선 칸. 사진을 받는 곳이 없어 늘 잠겨 있다 */
+.photo {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1);
+  width: 96px;
+  height: 96px;
+  border: 1.5px dashed var(--color-border-strong);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  font: inherit;
+  font-size: var(--font-sm);
+  color: var(--color-text-sub);
+}
+
+.photo:disabled {
+  cursor: not-allowed;
+}
+
+.hint {
+  margin: 0;
+  font-size: var(--font-sm);
+  line-height: 1.6;
+  color: var(--color-text-sub);
+}
+
+.error,
+.sending {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: var(--space-5) 0 0;
+  font-size: var(--font-md);
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  margin-top: var(--space-8);
+  padding-top: var(--space-5);
+  border-top: 1px solid var(--color-border);
+}
+
+.cancel {
+  composes: secondary lg from '../components/buttons.module.css';
+}
+
+.submit {
+  composes: primary lg from '../components/buttons.module.css';
+  min-width: 120px;
+}
+
+.srOnly {
+  composes: srOnly from '../components/a11y.module.css';
+}
+
+@media (max-width: 600px) {
+  .textAction {
+    min-height: 44px;
+  }
+
+  .actions > * {
+    flex: 1;
+  }
+}

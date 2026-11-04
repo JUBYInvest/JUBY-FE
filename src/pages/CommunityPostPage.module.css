@@ -1,0 +1,165 @@
+/*
+ * 커뮤니티 글 상세(2026-11-04). "‹ 커뮤니티로 돌아가기"(종목 상세의 "홈으로 돌아가기"와 같은 모양) → 글 제목이 화면 제목(28px + 먹 선) →
+ * 목록과 같은 두 열 틀(components/communityLayout.module.css): 종목 줄 · 쓴 사람 · 본문 · 사진 · 공감·댓글 수 · 댓글 구역 | 이용 안내.
+ * 본문은 760px에서 끊는다(15~16px 한글 45~50자).
+ */
+.back {
+  display: inline-block;
+  /* 손가락으로 누르는 넓이를 44px 넘게 넓힌다. 넓힌 만큼 바깥 여백을 빼서 배치는 그대로다 */
+  padding: 14px 0;
+  margin: -14px 0 -6px;
+  font-size: var(--font-md);
+  font-weight: 600;
+  color: var(--color-text-sub);
+}
+
+.back:hover {
+  color: var(--color-text);
+}
+
+.title {
+  composes: pageTitle from '../components/section.module.css';
+  margin: var(--space-3) 0 0;
+  /* 서버가 주는 자유 글 */
+  overflow-wrap: anywhere;
+}
+
+.message {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0;
+  font-size: var(--font-base);
+  color: var(--color-text-sub);
+}
+
+/* 없는 글·지워진 글 — 옅은 면에 무슨 일인지 + 목록으로 */
+.missing {
+  padding: var(--space-5);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-sub);
+  font-size: var(--font-base);
+}
+
+.missing p {
+  margin: 0;
+}
+
+.toList {
+  display: inline-flex;
+  align-items: center;
+  min-height: 40px;
+  margin-top: var(--space-2);
+  font-weight: 700;
+  color: var(--color-brand-700);
+}
+
+.toList:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* 종목 줄(CommunityPosts PostStock) + 언제 값인지 */
+.stock {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0 var(--space-3);
+  margin-bottom: var(--space-3);
+}
+
+.stock > p {
+  margin-bottom: 0;
+}
+
+.asOf {
+  composes: note from '../components/section.module.css';
+}
+
+.author {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0;
+  font-size: var(--font-sm);
+  color: var(--color-text-sub);
+}
+
+.author strong {
+  font-size: var(--font-md);
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.avatar {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--color-bg-sub);
+  color: var(--color-text-sub);
+  font-size: var(--font-sm);
+  font-weight: 700;
+}
+
+.content {
+  max-width: 760px;
+  margin: var(--space-5) 0 0;
+  font-size: var(--font-lg);
+  line-height: 1.75;
+  overflow-wrap: anywhere;
+  white-space: pre-line;
+}
+
+.images {
+  display: grid;
+  gap: var(--space-3);
+  max-width: 640px;
+  margin-top: var(--space-5);
+}
+
+.image {
+  display: block;
+  width: 100%;
+  height: auto;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-sub);
+}
+
+/* 공감·댓글 수 줄(PostCounts) */
+.counts {
+  margin-top: var(--space-5);
+}
+
+/* 댓글 구역 — 구역 제목 줄(20px + 먹 선) 아래 안내 한 줄 */
+.comments {
+  margin-top: var(--space-10);
+}
+
+.commentsHead {
+  composes: head from '../components/section.module.css';
+}
+
+.commentsTitle {
+  composes: title from '../components/section.module.css';
+}
+
+.commentsNote {
+  margin: var(--space-4) 0 0;
+  font-size: var(--font-md);
+  line-height: 1.6;
+  color: var(--color-text-sub);
+}
+
+@media (max-width: 600px) {
+  .content {
+    font-size: var(--font-base);
+  }
+
+  .toList {
+    min-height: 44px;
+  }
+}

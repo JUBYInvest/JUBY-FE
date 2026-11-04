@@ -152,7 +152,7 @@ function GuideSection() {
 
 /**
  * 커뮤니티 미리보기(2026-11-03 사용자 "토스증권처럼 게시판으로" — 2026-11-02의 채팅창을 글 목록으로 되돌렸다).
- * 최신 글 다섯 줄을 두 줄씩 보이고 제목 줄 오른쪽 '전체 보기'가 커뮤니티 화면이다. 글 줄을 누르면 커뮤니티 화면의 그 글로 간다. 글·연결은 커뮤니티 화면과 같은 훅(useCommunityFeed)이다.
+ * 최신 글 다섯 줄(제목 한 줄 + 종목·본문 한 줄)을 보이고 제목 줄 오른쪽 '전체 보기'가 커뮤니티 화면이다. 글 줄을 누르면 그 글 상세(`/community/{postId}`, 2026-11-04)로 간다. 글·연결은 커뮤니티 화면과 같은 훅(useCommunityFeed)이다.
  * 보고 있는 동안 웹소켓(지금은 목업)으로 새 글이 오면 바로 끼우지 않고 제목 옆 "새 글 N"으로 알린다 — 누르면 위에 선다.
  * 오른쪽 열은 홈 격자의 줄을 나눠 쓰므로(subgrid) 줄 수를 다섯으로 묶어 높이가 글 수만큼 늘지 않게 한다
  */
@@ -183,7 +183,7 @@ function CommunityPreview() {
       {posts === null ? (
         <div className={styles.loading} aria-hidden="true" />
       ) : (
-        <CommunityPosts posts={latest} now={now} compact linked />
+        <CommunityPosts posts={latest} now={now} compact />
       )}
       {status === 'mock' && <p className={styles.notice}>지금 보이는 글은 예시예요. 커뮤니티 서버가 열리면 실제 글로 바뀌어요.</p>}
     </section>

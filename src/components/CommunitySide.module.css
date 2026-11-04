@@ -1,0 +1,57 @@
+/*
+ * 커뮤니티 오른쪽 열(CommunitySide) — 실시간 연결 · 이용 안내. 커뮤니티 목록과 글 상세가 같이 쓴다(2026-11-04 글 상세가 생기며 CommunityPage에서 나눴다).
+ * 제목 줄(먹 선) 하나 아래 작은 제목 둘이다 — 묶음마다 먹 선을 두면 가운데 글 줄의 가는 선과 몇 px 차이로 나란히 섰다(lines.mjs G).
+ */
+.sideTitle {
+  composes: head title from './section.module.css';
+}
+
+.sideSection {
+  margin-top: var(--space-5);
+}
+
+.sideSection + .sideSection {
+  margin-top: var(--space-8);
+}
+
+/* 칸 안 작은 제목(16px) — 구역 제목(20px) 아래 단계 */
+.sideHeading {
+  margin: 0;
+  font-size: var(--font-lg);
+  font-weight: 700;
+}
+
+.status,
+.statusOn {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  margin: var(--space-2) 0 0;
+  font-size: var(--font-md);
+  line-height: 1.6;
+  color: var(--color-text-sub);
+}
+
+/* 실제로 붙어 있으면 앞에 초록 점(행동·활성 상태라 브랜드 색) */
+.statusOn::before {
+  content: '';
+  flex: 0 0 auto;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--color-brand-700);
+  transform: translateY(-1px);
+}
+
+.rules {
+  margin: var(--space-2) 0 0;
+  padding-left: 1.2em;
+  font-size: var(--font-md);
+  line-height: 1.6;
+  color: var(--color-text-sub);
+}
+
+.rules li + li {
+  margin-top: var(--space-2);
+}
+

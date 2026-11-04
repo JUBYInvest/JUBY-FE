@@ -2,6 +2,7 @@ import { COMMUNITY_PREVIEW_LIVE, COMMUNITY_PREVIEW_POSTS, type CommunityPreviewP
 import { getAccessToken } from '../utils/auth'
 import { toIsoTime } from '../utils/date'
 import { numberFromText } from '../utils/format'
+import { safeLink } from '../utils/link'
 
 /*
  * 커뮤니티(2026-11-03 사용자 요청 "토스증권처럼 게시판으로… 웹소켓으로 받을 예정이므로 웹소켓을 받을 자리만 남기고 목업을").
@@ -10,6 +11,7 @@ import { numberFromText } from '../utils/format'
  * 백엔드에는 아직 커뮤니티가 없다(JUBY-BE `feature/websocket/#73`은 증권사 실시간 시세용이고, spring-boot-starter-websocket·stomp를 들였다).
  * 그래서 연결은 스프링이 기본으로 주는 STOMP(웹소켓 위)로 짓는다 — 라이브러리를 들이지 않고 프레임 몇 개만 직접 쓴다.
  * 주고받는 모양은 docs/커뮤니티-웹소켓-제안.md에 적었다. 서버 주소를 VITE_COMMUNITY_WS_URL에 넣으면 목업 대신 실제로 붙는다.
+ * 2026-11-04 사용자가 토스증권 앱 캡처로 "커뮤니티 글쓰기 개념"을 짚어 글이 제목 + 본문(+ 사진)이 됐다 — 예전엔 본문 한 칸이었다.
  */
 
 export interface CommunityPost {
@@ -17,12 +19,26 @@ export interface CommunityPost {
   author: string
   stockCode: string | null
   stockName: string | null
+  /** 글 제목. 제목 없이 오는 글(11-03 모양)은 null — 화면은 본문을 제목 자리에 둔다 */
+  title: string | null
   content: string
+  /** 붙인 사진 주소(http·https만, 서버 글은 safeLink로 거른다). 없으면 빈 배열 */
+  imageUrls: string[]
   /** ISO 시각 */
   createdAt: string
   likeCount: number
   commentCount: number
 }
+
+/** 쓴 글. 서버로 보내는 모양(SEND /app/community/posts) */
+export interface CommunityDraft {
+  title: string
+  content: string
+  stockCode: string | null
+}
+
+/** 제목·본문 길이 한도. 글쓰기 칸의 maxLength이고 서버에 건넨 제안과 같다 */
+export const COMMUNITY_LIMITS = { title: 40, content: 1000 } as const
 
 /** 웹소켓으로 오는 일. 모르는 type·모양이 틀린 값은 버린다(서버 글은 구역 경계 밖이라 던지지 않는다) */
 export type CommunityEvent =
@@ -37,7 +53,7 @@ export interface CommunityConnection {
   /** 서버에 글을 보낼 수 있는가(실제 연결이 열렸을 때만) */
   canSend: () => boolean
   /** 새 글을 보낸다. 서버가 POST_CREATED로 되돌려 줄 때 목록에 선다. 못 보내면 false */
-  sendPost: (content: string, stockCode: string | null) => boolean
+  sendPost: (draft: CommunityDraft) => boolean
   close: () => void
 }
 
@@ -60,7 +76,9 @@ function fromPreview(post: CommunityPreviewPost, createdAt: number): CommunityPo
     author: post.author,
     stockCode: post.stock?.code ?? null,
     stockName: post.stock?.name ?? null,
+    title: post.title,
     content: post.text,
+    imageUrls: post.images ?? [],
     createdAt: toIsoTime(createdAt),
     likeCount: post.likes,
     commentCount: post.comments,
@@ -76,6 +94,16 @@ export async function loadCommunityPosts(now: number = Date.now()): Promise<Comm
   return COMMUNITY_PREVIEW_POSTS.map((post) => fromPreview(post, now - post.minutesAgo * 60_000))
 }
 
+/**
+ * 글 하나(글 상세 화면이 주소로 열렸을 때). 서버가 생기면 `GET /api/community/posts/{postId}`(제안) 자리다 —
+ * 지금은 예시 글에서 찾는다. 보고 있는 동안 들어온 예시 새 글은 지금 시각에 들어온 것으로 짓는다. 실제 연결 주소가 있으면 아직 받을 길이 없어 null
+ */
+export async function loadCommunityPost(postId: number, now: number = Date.now()): Promise<CommunityPost | null> {
+  if (SOCKET_URL !== '') return null
+  const post = [...COMMUNITY_PREVIEW_POSTS, ...COMMUNITY_PREVIEW_LIVE].find((item) => item.id === postId)
+  return post === undefined ? null : fromPreview(post, now - post.minutesAgo * 60_000)
+}
+
 /** 서버가 준 글 하나를 검사해 화면 모양으로. 틀리면 null */
 export function toCommunityPost(raw: unknown): CommunityPost | null {
   if (typeof raw !== 'object' || raw === null) return null
@@ -83,13 +111,16 @@ export function toCommunityPost(raw: unknown): CommunityPost | null {
   const postId = numberFromText(value.postId)
   const createdAt = typeof value.createdAt === 'string' ? Date.parse(value.createdAt) : NaN
   if (postId === null || typeof value.author !== 'string' || typeof value.content !== 'string' || Number.isNaN(createdAt)) return null
-  const text = (key: string) => (typeof value[key] === 'string' && value[key] !== '' ? (value[key] as string) : null)
+  const text = (key: string) => (typeof value[key] === 'string' && (value[key] as string).trim() !== '' ? (value[key] as string) : null)
+  const images = Array.isArray(value.imageUrls) ? value.imageUrls.map(safeLink).filter((url) => url !== '') : []
   return {
     postId,
     author: value.author,
     stockCode: text('stockCode'),
     stockName: text('stockName'),
+    title: text('title'),
     content: value.content,
+    imageUrls: images,
     createdAt: toIsoTime(createdAt),
     likeCount: Math.max(0, numberFromText(value.likeCount) ?? 0),
     commentCount: Math.max(0, numberFromText(value.commentCount) ?? 0),
@@ -207,9 +238,9 @@ function connectStomp(url: string, { onEvent, onStatus }: Handlers): CommunityCo
 
   return {
     canSend: () => ready,
-    sendPost: (content, stockCode) => {
+    sendPost: ({ title, content, stockCode }) => {
       if (!ready || socket === null) return false
-      socket.send(frame('SEND', { destination: SEND_TO, 'content-type': 'application/json' }, JSON.stringify({ content, stockCode })))
+      socket.send(frame('SEND', { destination: SEND_TO, 'content-type': 'application/json' }, JSON.stringify({ title, content, stockCode })))
       return true
     },
     close: () => {

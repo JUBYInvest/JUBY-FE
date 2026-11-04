@@ -83,11 +83,21 @@ describe('api/community — 웹소켓으로 오는 값 거르기(2026-11-03 커�
   test('글 하나: 모양이 맞으면 화면 모양으로, 틀리면 null(던지지 않는다)', async () => {
     const { toCommunityPost } = await src('api/community.ts')
     const post = toCommunityPost({ postId: 7, author: '가', content: '글', createdAt: '2026-10-29T02:00:00Z', stockCode: '005930', stockName: '삼성전자', likeCount: -3, commentCount: '2' })
-    assert.deepEqual(post, { postId: 7, author: '가', stockCode: '005930', stockName: '삼성전자', content: '글', createdAt: '2026-10-29T02:00:00.000Z', likeCount: 0, commentCount: 2 })
+    assert.deepEqual(post, { postId: 7, author: '가', stockCode: '005930', stockName: '삼성전자', title: null, content: '글', imageUrls: [], createdAt: '2026-10-29T02:00:00.000Z', likeCount: 0, commentCount: 2 })
     assert.equal(toCommunityPost({ postId: 7, author: '가', content: '글', createdAt: '어제' }), null)
     assert.equal(toCommunityPost({ author: '가', content: '글', createdAt: '2026-10-29T02:00:00Z' }), null)
     assert.equal(toCommunityPost(null), null)
     assert.equal(toCommunityPost({ postId: 1, author: '가', content: '글', createdAt: '2026-10-29T02:00:00Z', stockCode: '' }).stockCode, null)
+  })
+  test('글 하나(2026-11-04 제목 + 사진): 제목은 빈 글이면 null, 사진은 http·https 주소만 남긴다', async () => {
+    const { toCommunityPost } = await src('api/community.ts')
+    const base = { postId: 1, author: '가', content: '글', createdAt: '2026-10-29T02:00:00Z' }
+    assert.equal(toCommunityPost({ ...base, title: '제목' }).title, '제목')
+    assert.equal(toCommunityPost({ ...base, title: '  ' }).title, null)
+    assert.equal(toCommunityPost({ ...base, title: 3 }).title, null)
+    assert.deepEqual(toCommunityPost({ ...base, imageUrls: ['https://img.example.com/a.png', 'javascript:alert(1)', '/b.png', null, 'http://x.kr/c.jpg'] }).imageUrls,
+      ['https://img.example.com/a.png', 'http://x.kr/c.jpg'])
+    assert.deepEqual(toCommunityPost({ ...base, imageUrls: 'https://img.example.com/a.png' }).imageUrls, [])
   })
   test('일: 새 글·공감 수·지운 글만, 모르는 type·빠진 값은 버린다', async () => {
     const { toCommunityEvent } = await src('api/community.ts')
@@ -105,7 +115,14 @@ describe('api/community — 웹소켓으로 오는 값 거르기(2026-11-03 커�
     const { loadCommunityPosts } = await src('api/community.ts')
     const posts = await loadCommunityPosts(THU_11)
     assert.ok(posts.length >= 5)
-    assert.ok(posts.every((post) => Date.parse(post.createdAt) <= THU_11 && typeof post.content === 'string'))
+    assert.ok(posts.every((post) => Date.parse(post.createdAt) <= THU_11 && typeof post.content === 'string' && typeof post.title === 'string'))
+  })
+  test('글 하나 받기(글 상세를 주소로 열 때): 예시 글·예시 새 글에서 찾고, 없으면 null', async () => {
+    const { loadCommunityPost, loadCommunityPosts } = await src('api/community.ts')
+    const [first] = await loadCommunityPosts(THU_11)
+    assert.deepEqual(await loadCommunityPost(first.postId, THU_11), first)
+    assert.equal((await loadCommunityPost(101, THU_11))?.createdAt, new Date(THU_11).toISOString())
+    assert.equal(await loadCommunityPost(424242, THU_11), null)
   })
 })
 

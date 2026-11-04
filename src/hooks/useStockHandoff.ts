@@ -39,9 +39,9 @@ export function toSessionHandoff(sessionId: number): { openSession: number } {
 }
 
 /**
- * 홈 커뮤니티 글 줄이 싣는 글(2026-11-03 사용자 "홈화면에서 커뮤니티의 글을 클릭하면 커뮤니티로 가는 기능"). 글 상세 화면은 없어(커뮤니티 서버가 없다)
- * 커뮤니티 화면이 목록에서 그 글로 옮겨 표시한다. 번호가 아니라 글을 싣는 건, 홈에서 세운 새 글(웹소켓 — 지금은 목업)이 커뮤니티 화면이 따로 받는
- * 처음 목록에 아직 없을 수 있어서다
+ * 글 줄(홈·커뮤니티 목록)이 글 상세(`/community/{postId}`)로 싣는 글(2026-11-03 사용자 "홈화면에서 커뮤니티의 글을 클릭하면 커뮤니티로 가는 기능",
+ * 2026-11-04 글 상세 화면). 번호가 아니라 글을 싣는 건, 보고 있는 동안 들어온 새 글(웹소켓 — 지금은 목업)이 글 상세가 따로 받는
+ * 처음 목록에 없을 수 있어서다(글 하나를 받는 API도 아직 없다). 글쓰기 뒤 서버가 되돌려 준 내 글도 이 길로 연다
  */
 export function toCommunityHandoff(post: CommunityPost): { communityPost: CommunityPost } {
   return { communityPost: post }
@@ -118,7 +118,12 @@ export function useAiHandoff(): { stock: StockInfo | null; session: number | nul
   return useHandoffState((state) => ({ stock: readHandoff(state), session: readSession(state) }))
 }
 
-/** 커뮤니티 화면이 받는 글(홈 글 줄을 눌러 왔을 때). 메뉴·주소로 들어오면 null */
+/** 글 상세가 받는 글(글 줄을 눌러 왔을 때). 주소로 바로 열면 null */
 export function useCommunityHandoff(): CommunityPost | null {
   return useHandoffState(readCommunityPost)
+}
+
+/** 글쓰기 화면이 받는 종목(커뮤니티 목록에서 종목 카드를 고른 채 "글쓰기"를 눌렀을 때 — 그 종목 이야기로 쓴다). 없으면 null */
+export function useCommunityWriteHandoff(): StockInfo | null {
+  return useHandoffState(readHandoff)
 }

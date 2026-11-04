@@ -1,17 +1,18 @@
-import { useEffect, useMemo, useRef, useState, type FormEvent, type Ref } from 'react'
-import { Link, useLocation } from 'react-router-dom'
-import type { CommunityPost, CommunityStatus } from '../api/community'
+import { useEffect, useMemo, useRef, useState, type Ref } from 'react'
+import { Link } from 'react-router-dom'
+import type { CommunityPost } from '../api/community'
 import { STOCK_LIST } from '../api/stockList'
 import CommunityPosts from '../components/CommunityPosts'
+import CommunitySide from '../components/CommunitySide'
+import layout from '../components/communityLayout.module.css'
 import SearchBar from '../components/SearchBar'
 import Spinner from '../components/Spinner'
-import { COMMUNITY_RULES } from '../content/communityRules'
 import { useCommunityFeed } from '../hooks/useCommunityFeed'
 import { useDocumentTitle } from '../hooks/useDocumentTitle'
-import { useIsLoggedIn } from '../hooks/useIsLoggedIn'
-import { useCommunityHandoff } from '../hooks/useStockHandoff'
+import { toStockHandoff } from '../hooks/useStockHandoff'
+import { useStockQuotes } from '../hooks/useStockQuotes'
+import { sharedYmd, toKoreanDate } from '../utils/date'
 import { prefersReducedMotion } from '../utils/motion'
-import { loginPathFrom } from '../utils/navigation'
 import type { StockInfo } from '../types/stock'
 import styles from './CommunityPage.module.css'
 
@@ -49,19 +50,18 @@ function stocksOf(posts: CommunityPost[]): StockChoice[] {
  * 글 줄이 이어지는 게시판이다. 2026-11-04 사용자 "왼쪽에 있는 전체/각 종목 선택창을 맨 위에 올려 주고, 좌우로 스크롤해서 종목을 선택하거나
  * 검색 버튼을 통해 종목을 선택… 인기 탭을 만들어서"(토스증권 앱 커뮤니티 캡처를 참고로) — 왼쪽 종목 목록을 글 위의 옆으로 미는 종목 카드 줄로 올리고,
  * 화면 제목 줄 오른쪽 "종목 검색"으로 글이 없는 종목도 찾아 고른다. 정렬은 글 위 큰 탭 최신 · 인기(공감 많은 순)다.
- * 넓은 화면(901px~)은 두 열 — 글 | 오른쪽 연결·이용 안내.
+ * 같은 날 이어서(사용자가 토스증권 앱 인기 탭 캡처로 "커뮤니티 글쓰기 개념") 글이 제목 + 본문 + 사진이 되고, 글 줄은 글 상세(`/community/{postId}`)로,
+ * 오른쪽 아래 떠 있는 "글쓰기"는 글쓰기 화면(`/community/write`)으로 간다. 글 머리 종목 옆에 그날 등락률(GET /api/stocks — DB, 홈 시세표와 같은 값).
+ * 넓은 화면(901px~)은 두 열 — 글 | 오른쪽 연결·이용 안내(글 상세와 같은 틀).
  * 글은 웹소켓으로 받는다(src/api/community.ts). 서버가 없는 지금은 예시 글이고, 보고 있는 동안 예시 새 글이 띄엄띄엄 들어온다 —
- * 바로 끼우지 않고 "새 글 N개 보기"로 모았다가 누르면 위에 세운다(읽던 글이 밀리지 않게). 글쓰기는 실제 연결이 열렸을 때만 열린다.
- * 홈 글 줄을 눌러 왔으면 그 글을 표시하고 그리로 옮겨 포커스를 준다(한 번만 — 새로고침·메뉴로 오면 표시가 없다)
+ * 바로 끼우지 않고 "새 글 N개 보기"로 모았다가 누르면 위에 세운다(읽던 글이 밀리지 않게)
  */
 export default function CommunityPage() {
   useDocumentTitle('커뮤니티')
-  const opened = useCommunityHandoff()
-  const { posts, pending, status, revealPending, sendPost } = useCommunityFeed(opened)
-  const feedRef = useRef<HTMLElement>(null)
+  const { posts, pending, status, revealPending } = useCommunityFeed()
+  const quotes = useStockQuotes()
   const stripRef = useRef<HTMLElement>(null)
   const searchToggleRef = useRef<HTMLButtonElement>(null)
-  const jumpedRef = useRef(false)
   /** 검색으로 고른 종목 — 그려진 뒤 그 카드로 포커스를 옮긴다 */
   const focusCodeRef = useRef<string | null>(null)
   const [order, setOrder] = useState<Order>('latest')
@@ -79,6 +79,9 @@ export default function CommunityPage() {
   const picked = stocks.find((stock) => stock.code === stockCode) ?? null
   const shown = all.filter((post) => picked === null || post.stockCode === picked.code).sort(order === 'latest' ? byLatest : byPopular)
   const orderNote = ORDERS.find((item) => item.key === order)?.note ?? ''
+  // 등락률이 언제 값인지 — 보이는 글의 종목이 모두 같은 날 종가면 목록 위에 한 번 적는다
+  const quoted = shown.flatMap((post) => (post.stockCode === null ? [] : [quotes.get(post.stockCode)?.baseDate ?? '']))
+  const quoteDate = quoted.length > 0 ? sharedYmd(quoted) : null
 
   /* 검색 후보: 글이 있는 종목을 먼저(같은 일치 순위 안에서 앞선다 — api/search rankStocks), 그 뒤 시총 상위 사본. 서버 검색이 그 밖을 더한다 */
   const searchable = useMemo(() => {
@@ -98,16 +101,6 @@ export default function CommunityPage() {
     setSearchOpen(false)
     focusCodeRef.current = stock.stockCode
   }
-
-  // 눌러 온 글이 그려지면 화면 가운데로 옮기고 포커스를 준다(읽어 주는 쪽도 그 글부터). 목록이 오기 전에는 그 줄이 없다
-  useEffect(() => {
-    if (opened === null || posts === null || jumpedRef.current) return
-    const row = feedRef.current?.querySelector<HTMLElement>('li[aria-current="true"]')
-    if (row == null) return
-    jumpedRef.current = true
-    row.scrollIntoView({ block: 'center' })
-    row.focus({ preventScroll: true })
-  }, [opened, posts])
 
   // 검색으로 고른 종목의 카드로 포커스를 옮긴다 — 카드 줄 밖(옆으로 밀린 자리)이면 줄을 밀어 보인다. 닫힌 검색 칸에 있던 포커스가 갈 곳이기도 하다
   useEffect(() => {
@@ -148,8 +141,8 @@ export default function CommunityPage() {
         </div>
       )}
 
-      <div className={styles.layout}>
-        <section ref={feedRef} className={styles.feed} aria-labelledby="community-feed-title">
+      <div className={layout.layout}>
+        <section className={layout.main} aria-labelledby="community-feed-title">
           {/* 고른 종목은 아래 카드 줄이 보인다. 읽어 주는 쪽에는 구역 이름으로 알린다 */}
           <h2 id="community-feed-title" className={styles.srOnly}>
             {picked === null ? '전체 글' : `${picked.name} 이야기`}
@@ -173,7 +166,7 @@ export default function CommunityPage() {
 
           <StockStrip ref={stripRef} stocks={stocks} total={all.length} pickedCode={picked?.code ?? null} onPick={setStockCode} />
 
-          <Composer status={status} stock={picked} onSend={sendPost} />
+          {quoteDate !== null && <p className={styles.asOf}>등락률은 {toKoreanDate(quoteDate)} 종가 기준이에요</p>}
 
           {pending.length > 0 && (
             <button type="button" className={styles.fresh} onClick={revealPending}>
@@ -188,32 +181,19 @@ export default function CommunityPage() {
           ) : shown.length === 0 ? (
             <p className={styles.message}>{picked === null ? '아직 올라온 글이 없어요.' : `${picked.name} 이야기는 아직 없어요.`}</p>
           ) : (
-            <CommunityPosts posts={shown} now={now} currentId={opened?.postId ?? null} />
+            <CommunityPosts posts={shown} now={now} quotes={quotes} />
           )}
+          <div className={styles.feedEnd} />
         </section>
 
-        <aside className={styles.side} aria-label="커뮤니티 안내">
-          <h2 id="community-side-title" className={styles.sideTitle}>
-            이용 안내
-          </h2>
-          <section aria-labelledby="community-status-title" className={styles.sideSection}>
-            <h3 id="community-status-title" className={styles.sideHeading}>
-              실시간 연결
-            </h3>
-            <StatusLine status={status} />
-          </section>
-          <section aria-labelledby="community-rules-title" className={styles.sideSection}>
-            <h3 id="community-rules-title" className={styles.sideHeading}>
-              함께 지켜요
-            </h3>
-            <ul className={styles.rules}>
-              {COMMUNITY_RULES.map((rule) => (
-                <li key={rule}>{rule}</li>
-              ))}
-            </ul>
-          </section>
-        </aside>
+        <CommunitySide status={status} className={layout.side} />
       </div>
+
+      {/* 고른 종목이 있으면 그 종목 이야기로 쓴다(글쓰기 화면이 종목을 채운다) */}
+      <Link to="/community/write" state={picked === null ? undefined : toStockHandoff({ stockCode: picked.code, stockName: picked.name })} className={styles.write}>
+        <PencilIcon />
+        글쓰기
+      </Link>
     </>
   )
 }
@@ -312,81 +292,19 @@ function AllIcon() {
   )
 }
 
+function PencilIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M4 20h4L19 9l-4-4L4 16z M13.5 6.5l4 4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
+    </svg>
+  )
+}
+
 /** 뒤(오른쪽)를 가리킨다. 앞 단추는 CSS로 뒤집는다 */
 function ChevronIcon() {
   return (
     <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
       <path d="m9 5 7 7-7 7" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
-  )
-}
-
-function StatusLine({ status }: { status: CommunityStatus }) {
-  if (status === 'open') return <p className={styles.statusOn}>새 글을 실시간으로 받고 있어요.</p>
-  if (status === 'mock') {
-    return (
-      <p className={styles.status}>
-        지금 보이는 글은 예시예요. 커뮤니티 서버가 열리기 전까지, 새 글이 들어오는 모습을 보이려고 예시 글이 몇 분마다 들어와요.
-      </p>
-    )
-  }
-  return (
-    <p className={styles.status}>
-      <Spinner size={14} /> {status === 'connecting' ? '연결하는 중…' : '연결이 끊겨 다시 잇는 중…'}
-    </p>
-  )
-}
-
-/**
- * 글쓰기. 실제 연결이 열린 로그인 사용자만 쓴다 — 목업일 때 칸을 열어 두면 써도 아무 데도 가지 않는다(2026-10-30 결정과 같은 까닭).
- * 보낸 글은 서버가 POST_CREATED로 되돌려 줄 때 "새 글"로 들어온다
- */
-interface ComposerProps {
-  status: CommunityStatus
-  /** 종목으로 보는 중이면 그 종목 이야기로 올린다 */
-  stock: { code: string; name: string } | null
-  onSend: (content: string, stockCode: string | null) => boolean
-}
-
-function Composer({ status, stock, onSend }: ComposerProps) {
-  const loggedIn = useIsLoggedIn()
-  const { pathname } = useLocation()
-  const [text, setText] = useState('')
-  const open = status === 'open' && loggedIn
-  const placeholder =
-    status === 'mock' ? '글쓰기는 커뮤니티 서버가 열리면 시작돼요' : stock === null ? '배운 것, 궁금한 것을 나눠 보세요' : `${stock.name} 이야기를 나눠 보세요`
-
-  const submit = (event: FormEvent) => {
-    event.preventDefault()
-    const content = text.trim()
-    // 못 보냈으면(그새 끊김) 쓴 글을 지우지 않는다
-    if (content !== '' && onSend(content, stock?.code ?? null)) setText('')
-  }
-
-  return (
-    <form className={styles.composer} onSubmit={submit}>
-      <label className={styles.srOnly} htmlFor="community-input">
-        커뮤니티에 올릴 글
-      </label>
-      <input
-        id="community-input"
-        className={styles.input}
-        type="text"
-        maxLength={500}
-        value={text}
-        placeholder={placeholder}
-        disabled={!open}
-        onChange={(event) => setText(event.target.value)}
-      />
-      {status !== 'mock' && !loggedIn ? (
-        <Link to={loginPathFrom(pathname)} className={styles.login}>
-          로그인
-        </Link>
-      ) : (
-        <button type="submit" className={styles.send} disabled={!open || text.trim() === ''}>
-          올리기
-        </button>
-      )}
-    </form>
   )
 }

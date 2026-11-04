@@ -1,94 +1,140 @@
 import { Link } from 'react-router-dom'
 import type { CommunityPost } from '../api/community'
+import type { StockQuote } from '../hooks/useStockQuotes'
 import { toCommunityHandoff } from '../hooks/useStockHandoff'
 import { timeAgo } from '../utils/date'
+import { formatChangeRate, rateTone } from '../utils/format'
 import { toPreviewState } from '../utils/stockPreview'
 import HeartIcon from './HeartIcon'
 import styles from './CommunityPosts.module.css'
 
 interface Props {
   posts: CommunityPost[]
-  /** 홈 오른쪽 칸: 글을 두 줄로 자르고 줄을 좁힌다. 커뮤니티 화면은 글 전체 */
+  /** 홈 오른쪽 칸: 첫 글자 동그라미 + 별명 줄, 제목·본문 한 줄씩. 커뮤니티 화면은 종목 줄·제목·본문 두 줄·사진 */
   compact?: boolean
-  /** 홈: 줄을 누르면 커뮤니티 화면의 그 글로 간다 */
-  linked?: boolean
-  /** 커뮤니티 화면: 홈에서 눌러 온 글. 표시하고(aria-current) 화면이 그리로 옮겨 포커스를 준다 */
-  currentId?: number | null
+  /** 종목별 그날 등락률(useStockQuotes). 커뮤니티 화면만 넘긴다 */
+  quotes?: Map<string, StockQuote>
   now: number
 }
 
 /**
- * 커뮤니티 글 줄(2026-11-03 "토스증권처럼 게시판으로"). 카드 없이 가는 선으로 나눈 글 줄이다 — 별명 · 몇 분 전, 종목, 글, 공감·댓글 수.
- * 종목 이름은 그 종목 상세로 가는 링크(브랜드 초록 글자 — 등락색을 쓰지 않는다, 이름을 싣고 간다). 공감·댓글은 아직 서버가 없어 수만 보인다(누르는 단추를 두지 않는다).
- * 여백으로 띄운 자리(별명 | 시각, 종목 | 글)에도 글자 빈칸을 둔다 — 없으면 읽어 주는 쪽·복사한 글이 "SK하이닉스1년"처럼 붙는다.
- * 홈(`linked`)은 글이 커뮤니티 화면으로 가는 링크이고 그 링크가 줄 전체를 덮는다(2026-11-03 사용자 "홈화면에서 커뮤니티의 글을 클릭하면 커뮤니티로") —
- * 글 상세 화면이 없어 커뮤니티 목록에서 그 글을 표시한다(`currentId`). 글을 싣고 간다(toCommunityHandoff).
- * 홈에서는 종목 이름이 링크가 아니라 글 링크 안의 굵은 글자다 — 두 줄로 자른 글 안의 종목 링크는 높이가 17px이라 휴대폰에서 조금만 빗나가도
- * 줄을 덮은 글 링크가 눌려 엉뚱한 곳(커뮤니티)으로 갔다(common 4·ui U2-3). 종목 상세로는 커뮤니티 화면의 종목 이름에서 간다
+ * 커뮤니티 글 줄(2026-11-03 "토스증권처럼 게시판으로", 2026-11-04 사용자가 토스증권 앱 캡처로 "커뮤니티 글쓰기 개념"을 짚어 제목 + 본문 + 사진이 됐다).
+ * 카드 없이 가는 선으로 나눈 글 줄이다 — 커뮤니티 화면은 종목 줄(첫 글자 동그라미 · 이름 · 그날 등락률) → 굵은 제목 → 본문 두 줄(+ 오른쪽 사진) →
+ * 공감·댓글 수 | 별명 · 몇 분 전. 줄 어디를 눌러도 글 상세(`/community/{postId}`)로 간다 — 제목 링크의 ::after가 줄을 덮는다(홈 시세표와 같은 방식,
+ * 줄을 통째로 <a>로 싸면 별명·공감 수까지 링크 이름이 된다). 그래서 줄 안에 따로 눌리는 것을 두지 않는다 — 종목 상세 링크는 글 상세에 있다
+ * (11-03 홈에서 두 줄로 자른 글 안의 17px 종목 링크가 휴대폰에서 조금만 빗나가도 다른 곳으로 갔다, common 4·ui U2-3).
+ * 글을 싣고 간다(toCommunityHandoff) — 보고 있는 동안 들어온 새 글은 글 상세가 따로 받는 처음 목록에 없다.
+ * 공감·댓글은 아직 서버가 없어 수만 보인다(누르는 단추를 두지 않는다). 여백으로 띄운 자리에도 글자 빈칸을 둔다 — 없으면 읽어 주는 쪽·복사한 글이 붙는다.
  */
-export default function CommunityPosts({ posts, compact = false, linked = false, currentId = null, now }: Props) {
-  const listClass = `${compact ? styles.listCompact : styles.list}${linked ? ` ${styles.linked}` : ''}`
+export default function CommunityPosts({ posts, compact = false, quotes, now }: Props) {
   return (
-    <ol className={listClass}>
-      {posts.map((post) => (
-        <li
-          key={post.postId}
-          className={post.postId === currentId ? styles.postOn : styles.post}
-          aria-current={post.postId === currentId ? 'true' : undefined}
-          tabIndex={post.postId === currentId ? -1 : undefined}
-        >
-          <span className={styles.avatar} aria-hidden="true">
-            {Array.from(post.author)[0] ?? ''}
-          </span>
-          <div className={styles.body}>
-            <p className={styles.meta}>
-              <strong>{post.author}</strong>{' '}
-              <time dateTime={post.createdAt}>{timeAgo(Date.parse(post.createdAt), now)}</time>
-            </p>
-            <p className={styles.text}>
-              {linked ? (
-                <Link to="/community" state={toCommunityHandoff(post)} className={styles.postLink}>
+    <ol className={compact ? styles.listCompact : styles.list}>
+      {posts.map((post) => {
+        const image = post.imageUrls[0]
+        const author = (
+          <>
+            <strong>{post.author}</strong> <time dateTime={post.createdAt}>{timeAgo(Date.parse(post.createdAt), now)}</time>
+          </>
+        )
+        const link = (
+          <Link to={`/community/${post.postId}`} state={toCommunityHandoff(post)} className={styles.postLink}>
+            {post.title ?? post.content}
+          </Link>
+        )
+
+        if (compact) {
+          return (
+            <li key={post.postId} className={styles.post}>
+              <span className={styles.avatar} aria-hidden="true">
+                {Array.from(post.author)[0] ?? ''}
+              </span>
+              <div className={styles.body}>
+                <p className={styles.meta}>{author}</p>
+                <h3 className={styles.titleCompact}>{link}</h3>
+                {/* 홈에서 종목 이름은 링크가 아니라 글자다(위 주석) */}
+                <p className={styles.textCompact}>
                   {post.stockName !== null && (
                     <>
                       <strong className={styles.stockText}>{post.stockName}</strong>{' '}
                     </>
                   )}
-                  {post.content}
-                </Link>
-              ) : (
-                <>
-                  {post.stockCode !== null && post.stockName !== null && (
-                    <>
-                      {/* 이름을 싣고 간다 — 상세가 응답을 기다리는 동안에도 탭 제목·머리에 종목 이름이 선다(홈 표·카드와 같다) */}
-                      <Link
-                        to={`/stocks/${post.stockCode}`}
-                        state={toPreviewState({ stockCode: post.stockCode, stockName: post.stockName })}
-                        className={styles.stock}
-                      >
-                        {post.stockName}
-                      </Link>{' '}
-                    </>
-                  )}
-                  {post.content}
-                </>
-              )}
-            </p>
-            <p className={styles.counts}>
-              <span>
-                <HeartIcon filled={false} />
-                <span className={styles.srOnly}>공감 </span>
-                {post.likeCount}
-              </span>{' '}
-              <span>
-                <CommentIcon />
-                <span className={styles.srOnly}>댓글 </span>
-                {post.commentCount}
-              </span>
-            </p>
-          </div>
-        </li>
-      ))}
+                  {post.title !== null && post.content}
+                </p>
+              </div>
+            </li>
+          )
+        }
+
+        return (
+          <li key={post.postId} className={styles.post}>
+            {post.stockCode !== null && post.stockName !== null && (
+              <PostStock code={post.stockCode} name={post.stockName} quote={quotes?.get(post.stockCode)} />
+            )}
+            <div className={image === undefined ? styles.main : styles.mainWithImage}>
+              <h3 className={styles.title}>{link}</h3>
+              {post.title !== null && <p className={styles.text}>{post.content}</p>}
+              {/* 목록의 사진은 미리보기라 이름을 따로 읽히지 않는다 — 글 상세가 사진마다 이름을 단다. 몇 장인지는 아래 수 줄에 적는다 */}
+              {image !== undefined && <img className={styles.thumb} src={image} alt="" loading="lazy" />}
+            </div>
+            <div className={styles.foot}>
+              <PostCounts post={post} />
+              <p className={styles.metaRight}>{author}</p>
+            </div>
+          </li>
+        )
+      })}
     </ol>
+  )
+}
+
+interface PostStockProps {
+  code: string
+  name: string
+  quote: StockQuote | undefined
+  /** 글 상세: 종목 이름이 그 종목 상세로 가는 링크(이름을 싣고 간다). 글 줄은 줄 전체가 글 링크라 글자 */
+  linked?: boolean
+}
+
+/** 글 머리 종목 줄 — 첫 글자 동그라미 · 이름 · 그날 등락률(등락색 글자, 홈 시세표와 같은 값). 등락률을 모르면 이름만 */
+export function PostStock({ code, name, quote, linked = false }: PostStockProps) {
+  return (
+    <p className={styles.stockRow}>
+      <span className={styles.stockBadge} aria-hidden="true">
+        {Array.from(name)[0] ?? ''}
+      </span>
+      {linked ? (
+        <Link to={`/stocks/${code}`} state={toPreviewState({ stockCode: code, stockName: name })} className={styles.stockLink}>
+          {name}
+        </Link>
+      ) : (
+        <span className={styles.stockName}>{name}</span>
+      )}
+      {quote !== undefined && quote.fluctuate !== null && (
+        <>
+          {' '}
+          <span className={styles[rateTone(quote.fluctuate)]}>{formatChangeRate(quote.fluctuate)}</span>
+        </>
+      )}
+    </p>
+  )
+}
+
+/** 공감·댓글 수(+ 사진 장수는 읽어 주는 쪽에만). 서버가 없어 누르는 단추가 아니다 */
+export function PostCounts({ post }: { post: CommunityPost }) {
+  return (
+    <p className={styles.counts}>
+      <span>
+        <HeartIcon filled={false} />
+        <span className={styles.srOnly}>공감 </span>
+        {post.likeCount}
+      </span>{' '}
+      <span>
+        <CommentIcon />
+        <span className={styles.srOnly}>댓글 </span>
+        {post.commentCount}
+      </span>
+      {post.imageUrls.length > 0 && <span className={styles.srOnly}> 사진 {post.imageUrls.length}장</span>}
+    </p>
   )
 }
 

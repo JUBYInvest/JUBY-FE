@@ -49,7 +49,11 @@ const MypagePersonalityPage = lazy(() =>
 const MypageProfilePage = lazy(() => mypageBundle().then((m) => ({ default: m.MypageProfilePage })))
 const LikesPage = lazy(trackRouteChunk(() => import('./pages/LikesPage')))
 const GuidePage = lazy(trackRouteChunk(() => import('./pages/GuidePage')))
-const CommunityPage = lazy(trackRouteChunk(() => import('./pages/CommunityPage')))
+/* 커뮤니티 목록·글 상세·글쓰기도 한 묶음이다(pages/communityBundle.ts — 목록에서 글을 누를 때 왕복이 하나 더 끼지 않게) */
+const communityBundle = trackRouteChunk(() => import('./pages/communityBundle'))
+const CommunityPage = lazy(() => communityBundle().then((m) => ({ default: m.CommunityPage })))
+const CommunityPostPage = lazy(() => communityBundle().then((m) => ({ default: m.CommunityPostPage })))
+const CommunityWritePage = lazy(() => communityBundle().then((m) => ({ default: m.CommunityWritePage })))
 const BacktestPage = lazy(trackRouteChunk(() => import('./pages/BacktestPage')))
 const PersonalityTestPage = lazy(trackRouteChunk(() => import('./pages/PersonalityTestPage')))
 const PersonalityResultPage = lazy(trackRouteChunk(() => import('./pages/PersonalityResultPage')))
@@ -151,6 +155,8 @@ function Layout() {
 
               {/* 사용설명서. 글이 있는 첫 장이 /guide, 나머지 장은 /guide/<장> */}
               <Route path="/community" element={<CommunityPage />} />
+              <Route path="/community/write" element={<CommunityWritePage />} />
+              <Route path="/community/:postId" element={<CommunityPostPage />} />
               <Route path="/guide/:chapterId?" element={<GuidePage />} />
               <Route path="/backtest" element={<BacktestPage />} />
 

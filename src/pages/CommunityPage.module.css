@@ -1,10 +1,9 @@
 /*
- * 커뮤니티(2026-11-03, 2026-11-04 종목 카드 줄·최신/인기 탭). 화면 제목의 굵은 먹 선 아래 두 열 — 글 | 실시간 연결·이용 안내.
- * 글 열은 위에서부터 큰 탭(최신 · 인기) 제목 줄 → 옆으로 미는 종목 카드 줄 → 글쓰기 줄 → 글 줄이다(토스증권 앱 커뮤니티를 참고).
- * 11-03까지 왼쪽 열이던 "종목으로 보기"를 카드 줄로 올리면서 글 열이 남는 폭을 다 쓴다 — 글 줄 글자는 CommunityPosts가 760px에서 끊는다.
+ * 커뮤니티 목록(2026-11-03, 2026-11-04 종목 카드 줄·최신/인기 탭·글 상세·글쓰기). 두 열 틀(글 | 실시간 연결·이용 안내)은 글 상세와 같이 쓴다 —
+ * components/communityLayout.module.css, 오른쪽 열은 components/CommunitySide.
+ * 글 열은 위에서부터 큰 탭(최신 · 인기) 제목 줄 → 옆으로 미는 종목 카드 줄 → (등락률 기준일) → 글 줄이다(토스증권 앱 커뮤니티를 참고).
+ * 글쓰기는 오른쪽 아래에 떠 있는 "글쓰기" 단추 → /community/write(11-03까지는 글 위 한 줄 입력칸).
  * 두 열의 첫 선이 같은 높이다: 가운데 탭 줄 먹 선 = 오른쪽 제목 줄 먹 선(줄 높이 46px, judge/community.mjs B7).
- * 오른쪽은 제목 줄(먹 선) 하나 아래 작은 제목 둘이다 — 묶음마다 먹 선을 두면 가운데 글 줄의 가는 선과 몇 px 차이로 나란히 섰다(lines.mjs G).
- * 900px 이하는 한 열(탭 → 카드 줄 → 글 → 안내), 카드 줄은 화면 끝에서 끝까지 민다.
  */
 .titleRow {
   position: relative;
@@ -56,27 +55,6 @@
   margin-top: var(--space-4);
 }
 
-.layout {
-  --community-side: clamp(220px, 18vw, 320px);
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) var(--community-side);
-  grid-template-areas: 'feed side';
-  column-gap: clamp(32px, 4vw, 80px);
-  margin-top: var(--space-6);
-}
-
-.feed {
-  grid-area: feed;
-  min-width: 0;
-}
-
-.side {
-  grid-area: side;
-  position: sticky;
-  top: var(--space-6);
-  align-self: start;
-}
-
 /* 글 열 제목 줄 — 큰 밑줄 탭(최신 · 인기) + 오른쪽 "무엇 순", 아래 먹 선(구역 제목 줄과 같은 46px) */
 .head {
   composes: head from '../components/section.module.css';
@@ -100,9 +78,15 @@
   composes: tabActive from '../components/tabs.module.css';
 }
 
+/*
+ * 무엇 순인지 — 탭 줄 오른쪽 끝. 구역 보조 글(section note)을 composes로 가져오지 않는다 — 그 margin: 0이 같은 우선순위라
+ * 묶음 순서에 따라 margin-left: auto를 이겨 글이 탭 바로 옆으로 붙었다(2026-11-04 글 상세 묶음을 더하자 드러남). 홈 sortNote와 같은 꼴
+ */
 .orderNote {
-  composes: note from '../components/section.module.css';
   margin-left: auto;
+  font-size: var(--font-md);
+  color: var(--color-text-sub);
+  white-space: nowrap;
 }
 
 /*
@@ -259,58 +243,6 @@
   }
 }
 
-/* 글쓰기 줄. 입력칸과 같은 1.5px 테두리 칸 + 주 단추 */
-.composer {
-  display: flex;
-  gap: var(--space-2);
-  padding: var(--space-4) 0;
-  border-bottom: 1px solid var(--color-border);
-}
-
-.input {
-  flex: 1;
-  min-width: 0;
-  min-height: 44px;
-  padding: 0 var(--space-4);
-  border: 1.5px solid var(--color-border);
-  border-radius: var(--radius-md);
-  background: var(--color-surface);
-  font: inherit;
-  /* 16px 아래면 아이폰 사파리가 누르는 순간 화면을 확대한다 */
-  font-size: var(--font-lg);
-  color: var(--color-text);
-}
-
-.input::placeholder {
-  overflow: hidden;
-  color: var(--color-text-sub);
-  white-space: nowrap;
-  text-overflow: ellipsis;
-}
-
-.input:focus-visible {
-  border-color: var(--color-brand-700);
-  outline: none;
-  box-shadow: 0 0 0 3px var(--color-brand-100);
-}
-
-.input:disabled {
-  background: var(--color-bg-sub);
-  cursor: not-allowed;
-}
-
-.send {
-  composes: primary md from '../components/buttons.module.css';
-  flex-shrink: 0;
-  --button-height: 44px;
-}
-
-.login {
-  composes: secondary md from '../components/buttons.module.css';
-  flex-shrink: 0;
-  --button-height: 44px;
-}
-
 /* 보고 있는 동안 들어온 새 글. 목록 맨 위에 한 줄로 — 누르면 위에 세운다 */
 .fresh {
   display: flex;
@@ -349,78 +281,40 @@
   color: var(--color-text-sub);
 }
 
-/* 오른쪽 — 실시간 연결 · 이용 안내 */
-.sideTitle {
-  composes: head title from '../components/section.module.css';
-}
-
-.sideSection {
-  margin-top: var(--space-5);
-}
-
-.sideSection + .sideSection {
-  margin-top: var(--space-8);
-}
-
-/* 칸 안 작은 제목(16px) — 구역 제목(20px) 아래 단계 */
-.sideHeading {
-  margin: 0;
-  font-size: var(--font-lg);
-  font-weight: 700;
-}
-
-.status,
-.statusOn {
-  display: flex;
-  align-items: baseline;
-  gap: var(--space-2);
-  margin: var(--space-2) 0 0;
+/* 등락률이 언제 값인지 — 글 줄마다 적지 않고 목록 위에 한 번(기준일은 구역에 한 번, 2026-11-03 지시서 N-3) */
+.asOf {
+  margin: var(--space-3) 0 0;
   font-size: var(--font-md);
-  line-height: 1.6;
   color: var(--color-text-sub);
 }
 
-/* 실제로 붙어 있으면 앞에 초록 점(행동·활성 상태라 브랜드 색) */
-.statusOn::before {
-  content: '';
-  flex: 0 0 auto;
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--color-brand-700);
-  transform: translateY(-1px);
+/*
+ * 떠 있는 "글쓰기"(토스증권 앱처럼 오른쪽 아래). 주 단추(primary lg) + 떠 있는 층 그림자. 아래 지수 띠(44px, 600px 이하 40px) 위에 서고,
+ * 넓은 화면에서는 본문 폭(--content-max) 오른쪽 끝에 맞춘다. 마지막 글 줄이 단추 밑에 깔리지 않게 글 열 아래를 비워 둔다(.feedEnd)
+ */
+.write {
+  composes: primary lg from '../components/buttons.module.css';
+  position: fixed;
+  z-index: 6;
+  right: max(var(--page-gutter), calc((100vw - var(--content-max)) / 2 + var(--page-gutter)));
+  bottom: calc(44px + var(--space-4));
+  box-shadow: var(--shadow-pop);
 }
 
-.rules {
-  margin: var(--space-2) 0 0;
-  padding-left: 1.2em;
-  font-size: var(--font-md);
-  line-height: 1.6;
-  color: var(--color-text-sub);
+.write svg {
+  flex-shrink: 0;
 }
 
-.rules li + li {
-  margin-top: var(--space-2);
+.feedEnd {
+  height: 72px;
 }
 
 .srOnly {
   composes: srOnly from '../components/a11y.module.css';
 }
 
-/* 900px 이하: 한 열(글 → 안내). 카드 줄은 화면 끝에서 끝까지 밀고(본문 좌우 여백만큼 내민다), 첫 카드는 글과 같은 줄에서 시작한다 */
+/* 900px 이하: 카드 줄은 화면 끝에서 끝까지 밀고(본문 좌우 여백만큼 내민다), 첫 카드는 글과 같은 줄에서 시작한다 */
 @media (max-width: 900px) {
-  .layout {
-    grid-template-columns: minmax(0, 1fr);
-    grid-template-areas:
-      'feed'
-      'side';
-    row-gap: var(--space-10);
-  }
-
-  .side {
-    position: static;
-  }
-
   /* 제목 글자 줄(24px × 1.25)의 가운데, 누르는 높이 44px */
   .searchToggle {
     top: -7px;
@@ -436,5 +330,11 @@
     margin-inline: calc(var(--page-gutter) * -1);
     padding-inline: var(--page-gutter);
     scroll-padding-inline: var(--page-gutter);
+  }
+}
+
+@media (max-width: 600px) {
+  .write {
+    bottom: calc(40px + var(--space-3));
   }
 }
