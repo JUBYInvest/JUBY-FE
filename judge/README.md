@@ -27,7 +27,7 @@ node quick.mjs http://localhost:4198 --only layout,heart,backtest,ai,regress,ext
 node ui.mjs http://localhost:4198                     # UI 규칙(10-29 리디자인 + 10-30 재정비)
 node backtest.mjs http://localhost:4198               # 백테스트 즉석 실행
 node feature.mjs http://localhost:4198                # 10-30 재정비 화면별(홈·상세·주식 모아보기)
-node community.mjs http://localhost:4198              # 커뮤니티 게시판(11-03, 11-02 채팅 판정을 바꿈): 메뉴 자리·홈 다섯 줄·최신/공감 정렬·종목으로 보기·목업 새 글(시계 앞당김)·잠긴 글쓰기·세 열 첫 선·좁은 폭·/api 0건
+node community.mjs http://localhost:4198              # 커뮤니티 게시판(11-03, 11-02 채팅 판정을 바꿈): 메뉴 자리·홈 다섯 줄·최신/인기 탭·종목 카드 줄·목업 새 글(시계 앞당김)·잠긴 글쓰기·두 열 첫 선·좁은 폭·/api 0건·종목 검색·앞뒤 단추(11-04)
 node lines.mjs http://localhost:4198                  # 나란한 열의 선(11-02): 홈·백테스트·마이페이지 다섯 쌍 + 홈의 다른 상태가 같은 높이, 두 열 화면 전부 옆 열 선 어긋남 0
 node motion.mjs http://localhost:4198                 # 화면 전환(11-03): 메뉴 막대 미끄러짐·본문 떠오름(같은 때·곡선)·뒤로 가기·움직임 줄이기·줄이 다른 메뉴·묶음 받는 동안 띠 아래 줄
 node login.mjs http://localhost:4198                  # 로그인 화면(11-02): 글자 든 단추 셋·가운데 한 줄·떠나는 주소·최근 사용(적기·지우기)·실패 안내·좁은 폭·다른 화면에 다녀온 뒤·고대비

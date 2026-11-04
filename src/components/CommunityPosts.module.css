@@ -75,7 +75,9 @@
   color: var(--color-text);
 }
 
+/* 글은 760px에서 끊는다(15px 한글 50자 안팎) — 2026-11-04부터 커뮤니티 글 열이 남는 폭을 다 써 넓은 화면에서 한 줄이 100자를 넘었다 */
 .text {
+  max-width: 760px;
   margin: var(--space-1) 0 0;
   font-size: var(--font-base);
   line-height: 1.65;

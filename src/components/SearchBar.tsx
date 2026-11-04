@@ -13,9 +13,22 @@ const SEARCH_DEBOUNCE = 250
 interface Props {
   /** 검색 대상. 홈이 GET /api/stocks 로 받은 목록을 넘긴다(도착 전엔 로컬 사본) */
   stocks: StockInfo[]
+  /** 고른 종목을 받는다. 없으면 그 종목 상세로 간다(홈). 커뮤니티는 그 종목 글만 보이게 쓴다 */
+  onPick?: (stock: StockInfo) => void
+  /** 칸이 열리자마자 입력칸에 포커스(커뮤니티 "종목 검색" 단추로 여는 칸) */
+  autoFocus?: boolean
+  placeholder?: string
+  /** 후보 목록이 닫힌 채 Esc를 누르면 — 단추로 연 칸을 닫는 쪽이 받는다 */
+  onDismiss?: () => void
 }
 
-export default function SearchBar({ stocks }: Props) {
+export default function SearchBar({
+  stocks,
+  onPick,
+  autoFocus = false,
+  placeholder = '종목명이나 종목코드로 검색 (예: 삼성전자)',
+  onDismiss,
+}: Props) {
   const [keyword, setKeyword] = useState('')
   const [suggestions, setSuggestions] = useState<StockInfo[]>([])
   /** 화살표로 고른 후보. -1이면 아직 아무것도 안 골랐다 */
@@ -102,6 +115,10 @@ export default function SearchBar({ stocks }: Props) {
   function goTo(stock: StockInfo) {
     setIsOpen(false)
     setMessage('')
+    if (onPick !== undefined) {
+      onPick(stock)
+      return
+    }
     // 후보 목록에는 기준일이 없어 이름만 싣는다
     navigate(`/stocks/${stock.stockCode}`, {
       state: toPreviewState({ stockCode: stock.stockCode, stockName: stock.stockName }),
@@ -139,6 +156,7 @@ export default function SearchBar({ stocks }: Props) {
 
   function handleKeyDown(event: KeyboardEvent<HTMLInputElement>) {
     if (event.key === 'Escape') {
+      if (!isListVisible) onDismiss?.()
       setIsOpen(false)
       return
     }
@@ -202,7 +220,9 @@ export default function SearchBar({ stocks }: Props) {
             setIsOpen(true)
           }}
           onKeyDown={handleKeyDown}
-          placeholder="종목명이나 종목코드로 검색 (예: 삼성전자)"
+          // 사용자가 단추를 눌러 연 칸에서만 켠다(커뮤니티 "종목 검색")
+          autoFocus={autoFocus}
+          placeholder={placeholder}
           role="combobox"
           aria-expanded={isListVisible}
           aria-controls="stock-suggestions"

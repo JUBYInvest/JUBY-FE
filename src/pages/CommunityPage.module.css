@@ -1,37 +1,68 @@
 /*
- * 커뮤니티(2026-11-03). 화면 제목의 굵은 먹 선 아래 사용설명서와 같은 세 열 — 종목으로 보기 | 글 | 실시간 연결·이용 안내.
- * 글 줄은 읽기 좋게 760px까지(16px 한글 45자 안팎), 남는 폭은 두 옆 열과의 사이에 나눠 글이 가운데 선다. 두 옆 열은 읽는 동안 위에 붙어 따라온다.
- * 세 열의 첫 선이 같은 높이다: 왼쪽 첫 줄 아래 가는 선 = 가운데 제목 줄 먹 선 = 오른쪽 제목 줄 먹 선(줄 높이 46px, judge/lines.mjs·community.mjs B7).
+ * 커뮤니티(2026-11-03, 2026-11-04 종목 카드 줄·최신/인기 탭). 화면 제목의 굵은 먹 선 아래 두 열 — 글 | 실시간 연결·이용 안내.
+ * 글 열은 위에서부터 큰 탭(최신 · 인기) 제목 줄 → 옆으로 미는 종목 카드 줄 → 글쓰기 줄 → 글 줄이다(토스증권 앱 커뮤니티를 참고).
+ * 11-03까지 왼쪽 열이던 "종목으로 보기"를 카드 줄로 올리면서 글 열이 남는 폭을 다 쓴다 — 글 줄 글자는 CommunityPosts가 760px에서 끊는다.
+ * 두 열의 첫 선이 같은 높이다: 가운데 탭 줄 먹 선 = 오른쪽 제목 줄 먹 선(줄 높이 46px, judge/community.mjs B7).
  * 오른쪽은 제목 줄(먹 선) 하나 아래 작은 제목 둘이다 — 묶음마다 먹 선을 두면 가운데 글 줄의 가는 선과 몇 px 차이로 나란히 섰다(lines.mjs G).
- * 900~1199px은 두 열(오른쪽 열이 종목 목록 아래), 900px 이하는 한 열(종목은 두 칸씩 → 글 → 안내).
+ * 900px 이하는 한 열(탭 → 카드 줄 → 글 → 안내), 카드 줄은 화면 끝에서 끝까지 민다.
  */
+.titleRow {
+  position: relative;
+}
+
 .title {
   composes: pageTitle from '../components/section.module.css';
   margin: 0;
 }
 
+/*
+ * 제목 줄 오른쪽 "종목 검색" — 상자 없는 초록 굵은 글자 단추(제목 줄 글자 동작, AI "+ 새 대화"와 같은 모양). 제목 글자 줄(28px × 1.25)의 가운데에 선다.
+ * 누르면 제목 아래에 검색 칸이 열린다(SearchBar — 고르면 그 종목 글만)
+ */
+.searchToggle {
+  position: absolute;
+  top: -3px;
+  right: calc(var(--space-2) * -1);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  min-height: 40px;
+  padding: 0 var(--space-2);
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: none;
+  font: inherit;
+  font-size: var(--font-md);
+  font-weight: 700;
+  color: var(--color-brand-700);
+  cursor: pointer;
+}
+
+.searchToggle:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.searchToggle:focus-visible {
+  outline-offset: -2px;
+}
+
+.searchToggle[aria-expanded='true'] {
+  color: var(--color-brand-800);
+}
+
+.search {
+  max-width: 640px;
+  margin-top: var(--space-4);
+}
+
 .layout {
-  /* 종목 한 줄 = 가운데·오른쪽 제목 줄(46px — 44px 탭 + 먹 선 2px). 세 열의 첫 선이 같은 높이다 */
-  --community-row: var(--section-head-height);
-  --side-row: var(--community-row);
-  --community-side: clamp(220px, 16vw, 280px);
+  --community-side: clamp(220px, 18vw, 320px);
   display: grid;
-  grid-template-columns: var(--community-side) minmax(0, 760px) var(--community-side);
-  grid-template-areas: 'stocks feed side';
-  justify-content: space-between;
-  column-gap: clamp(32px, 3vw, 56px);
+  grid-template-columns: minmax(0, 1fr) var(--community-side);
+  grid-template-areas: 'feed side';
+  column-gap: clamp(32px, 4vw, 80px);
   margin-top: var(--space-6);
-}
-
-.stocks,
-.side {
-  position: sticky;
-  top: var(--space-6);
-  align-self: start;
-}
-
-.stocks {
-  grid-area: stocks;
 }
 
 .feed {
@@ -41,64 +72,24 @@
 
 .side {
   grid-area: side;
+  position: sticky;
+  top: var(--space-6);
+  align-self: start;
 }
 
-/*
- * 종목으로 보기 — 옆 열 줄 목록(sideList.module.css, 사용설명서 장 목록과 같은 모양). 글 수는 줄 오른쪽 끝.
- * 목록을 닫는 맨 아래 선은 두지 않는다 — 종목 수에 따라 자리가 바뀌어 옆 열 글 줄의 가는 선과 2px 차이로 나란히 섰다(judge/lines.mjs G)
- */
-.stockList {
-  composes: list from '../components/sideList.module.css';
-}
-
-.stock {
-  composes: item from '../components/sideList.module.css';
-  justify-content: space-between;
-}
-
-.stockOn {
-  composes: itemOn from '../components/sideList.module.css';
-  justify-content: space-between;
-}
-
-.stockList li:last-child > * {
-  border-bottom: 0;
-}
-
-/* 종목 이름은 길면 말줄임표(좁은 화면 두 칸) */
-.stockName {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-/* 글 수 */
-.count {
-  font-size: var(--font-sm);
-  font-weight: 600;
-  font-variant-numeric: tabular-nums;
-  color: var(--color-text-sub);
-}
-
-.stockOn .count {
-  color: var(--color-brand-700);
-}
-
-/* 가운데 제목 줄 — 구역 제목(20px) + 오른쪽 정렬 탭, 아래 먹 선 */
+/* 글 열 제목 줄 — 큰 밑줄 탭(최신 · 인기) + 오른쪽 "무엇 순", 아래 먹 선(구역 제목 줄과 같은 46px) */
 .head {
   composes: head from '../components/section.module.css';
 }
 
-.headTitle {
-  composes: title from '../components/section.module.css';
-}
-
-/* 정렬 탭(tabs.module.css). 먹 선 머리 안이라 막대는 먹 선 바로 위, 글자는 제목과 바닥선을 맞춘다 */
+/* 탭(tabs.module.css). 제목 대신 서는 탭이라 왼쪽부터, 글자를 키운다. 먹 선 머리 안이라 막대는 먹 선 바로 위 */
 .tabs {
   composes: tabs from '../components/tabs.module.css';
   --tab-bar-offset: 0;
   --tabs-align: baseline;
+  --tabs-margin-left: 0;
+  --tab-gap: var(--space-6);
+  --tab-font-size: var(--font-xl);
 }
 
 .tab {
@@ -107,6 +98,165 @@
 
 .tabActive {
   composes: tabActive from '../components/tabs.module.css';
+}
+
+.orderNote {
+  composes: note from '../components/section.module.css';
+  margin-left: auto;
+}
+
+/*
+ * 종목 카드 줄. 카드는 옅은 테두리 칸(그림자 없음) — 첫 글자 동그라미(글 줄의 별명 동그라미와 같은 모양), 종목 이름 두 줄까지, 글 수.
+ * 고른 카드는 옆 열 고른 줄(sideList itemOn)과 같은 옅은 초록 면 + 초록 테두리. 줄은 옆으로 넘치면 밀고 스크롤 막대는 숨긴다
+ * (마우스는 앞·뒤 단추, 손가락은 밀기). 위아래 4px은 포커스 테두리가 스크롤 칸에 잘리지 않을 자리다
+ */
+.strip {
+  position: relative;
+  margin-top: var(--space-3);
+}
+
+.stockList {
+  display: flex;
+  gap: var(--space-2);
+  margin: 0;
+  padding: var(--space-1) 2px;
+  overflow-x: auto;
+  list-style: none;
+  scroll-padding-inline: var(--space-2);
+  scrollbar-width: none;
+}
+
+.stockList::-webkit-scrollbar {
+  display: none;
+}
+
+.stockList > li {
+  flex: 0 0 auto;
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-2);
+  width: 124px;
+  height: 100%;
+  padding: var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  font: inherit;
+  color: var(--color-text);
+  text-align: left;
+  cursor: pointer;
+}
+
+.card:hover {
+  border-color: var(--color-border-strong);
+}
+
+.cardOn {
+  composes: card;
+  border-color: var(--color-brand-700);
+  background: var(--color-brand-50);
+  box-shadow: inset 0 0 0 1px var(--color-brand-700);
+}
+
+.cardOn:hover {
+  border-color: var(--color-brand-700);
+}
+
+.badge {
+  display: grid;
+  flex-shrink: 0;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--color-bg-sub);
+  color: var(--color-text-sub);
+  font-size: var(--font-sm);
+  font-weight: 700;
+}
+
+.cardOn .badge {
+  background: var(--color-surface);
+  color: var(--color-brand-700);
+}
+
+/*
+ * 종목 이름 두 줄까지 — 두 줄 자리를 늘 잡아 카드마다 글 수가 같은 높이에 선다. 종목 이름은 띄어쓰기 없는 한 낱말이라
+ * 앱 기본(keep-all)으로는 넘치는 자리에서 억지로 끊겨 "삼성바이오로직 / 스"처럼 한 글자가 남았다 — 이 칸만 글자 사이에서 꺾을 수 있게 하고
+ * 두 줄 길이를 고르게 나눈다("삼성바이 / 오로직스", "한화에어로 / 스페이스")
+ */
+.cardName {
+  display: -webkit-box;
+  min-height: calc(2 * 1.35em);
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  font-size: var(--font-base);
+  font-weight: 600;
+  line-height: 1.35;
+  word-break: normal;
+  overflow-wrap: anywhere;
+  text-wrap: balance;
+}
+
+/* 글 수 */
+.count {
+  margin-top: auto;
+  font-size: var(--font-sm);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text-sub);
+}
+
+.cardOn .count {
+  color: var(--color-brand-700);
+}
+
+/* 마우스로 줄을 미는 앞·뒤 단추. 넘치는 쪽 끝에만 뜬다(StockStrip). 손가락 화면에서는 밀면 되어 숨긴다 */
+.slidePrev,
+.slideNext {
+  position: absolute;
+  top: 50%;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: 1px solid var(--color-border-strong);
+  border-radius: 50%;
+  background: var(--color-surface);
+  box-shadow: var(--shadow-pop);
+  color: var(--color-text);
+  cursor: pointer;
+  transform: translateY(-50%);
+}
+
+.slidePrev {
+  left: calc(var(--space-2) * -1);
+}
+
+.slidePrev svg {
+  transform: scaleX(-1);
+}
+
+.slideNext {
+  right: calc(var(--space-2) * -1);
+}
+
+.slidePrev:hover,
+.slideNext:hover {
+  background: var(--color-bg-sub);
+}
+
+@media (hover: none), (pointer: coarse) {
+  .slidePrev,
+  .slideNext {
+    display: none;
+  }
 }
 
 /* 글쓰기 줄. 입력칸과 같은 1.5px 테두리 칸 + 주 단추 */
@@ -257,51 +407,34 @@
   composes: srOnly from '../components/a11y.module.css';
 }
 
-/* 901~1199px: 두 열. 안내는 종목 목록 아래로 */
-@media (max-width: 1199px) {
-  .layout {
-    grid-template-columns: var(--community-side) minmax(0, 1fr);
-    grid-template-rows: auto 1fr;
-    grid-template-areas:
-      'stocks feed'
-      'side feed';
-  }
-
-  .side {
-    position: static;
-    margin-top: var(--space-8);
-  }
-}
-
-/* 900px 이하: 한 열. 종목은 두 칸씩, 안내는 글 아래 */
+/* 900px 이하: 한 열(글 → 안내). 카드 줄은 화면 끝에서 끝까지 밀고(본문 좌우 여백만큼 내민다), 첫 카드는 글과 같은 줄에서 시작한다 */
 @media (max-width: 900px) {
   .layout {
     grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: none;
     grid-template-areas:
-      'stocks'
       'feed'
       'side';
-    row-gap: var(--space-6);
-  }
-
-  .stocks {
-    position: static;
-  }
-
-  /* minmax(0, 1fr) — 1fr은 "한화에어로스페이스"보다 좁아지지 않아 320px에서 22px 넘쳤다 */
-  .stockList {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    column-gap: var(--space-4);
-    border-bottom: 0;
-  }
-
-  .stockList li:last-child > * {
-    border-bottom: 1px solid var(--color-border);
+    row-gap: var(--space-10);
   }
 
   .side {
-    margin-top: var(--space-4);
+    position: static;
+  }
+
+  /* 제목 글자 줄(24px × 1.25)의 가운데, 누르는 높이 44px */
+  .searchToggle {
+    top: -7px;
+    right: 0;
+    min-height: 44px;
+  }
+
+  .search {
+    max-width: none;
+  }
+
+  .stockList {
+    margin-inline: calc(var(--page-gutter) * -1);
+    padding-inline: var(--page-gutter);
+    scroll-padding-inline: var(--page-gutter);
   }
 }
