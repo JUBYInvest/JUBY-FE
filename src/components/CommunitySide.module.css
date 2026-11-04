@@ -1,7 +1,4 @@
-/*
- * 커뮤니티 오른쪽 열(CommunitySide) — 실시간 연결 · 이용 안내. 커뮤니티 목록과 글 상세가 같이 쓴다(2026-11-04 글 상세가 생기며 CommunityPage에서 나눴다).
- * 제목 줄(먹 선) 하나 아래 작은 제목 둘이다 — 묶음마다 먹 선을 두면 가운데 글 줄의 가는 선과 몇 px 차이로 나란히 섰다(lines.mjs G).
- */
+/* 커뮤니티 오른쪽 열 — 제목 줄(먹 선) 하나 아래 작은 제목 둘. 묶음마다 먹 선을 두면 가운데 글 줄의 가는 선과 몇 px 차이로 나란히 섰다(lines.mjs G) */
 .sideTitle {
   composes: head title from './section.module.css';
 }
@@ -32,7 +29,7 @@
   color: var(--color-text-sub);
 }
 
-/* 실제로 붙어 있으면 앞에 초록 점(행동·활성 상태라 브랜드 색) */
+/* 실제로 붙어 있으면 앞에 초록 점(활성 상태) */
 .statusOn::before {
   content: '';
   flex: 0 0 auto;

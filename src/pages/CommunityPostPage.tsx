@@ -21,13 +21,9 @@ interface Loaded {
 }
 
 /**
- * 커뮤니티 글 상세(`/community/{postId}`, 2026-11-04 사용자가 고른 것 — 토스증권 앱처럼 글을 누르면 글 하나를 본다).
- * 목록과 같은 두 열 틀(글 | 이용 안내) 위에 글 제목이 화면 제목으로 선다. 글은 ① 눌러 온 글(목록·홈·글쓰기가 싣는다 — 보고 있는 동안 들어온 새 글은
- * 처음 목록에 없다) ② 처음 목록 ③ 주소로 바로 열었고 목록에 없으면 글 하나 받기(`loadCommunityPost` — 지금은 예시 글에서 찾는다) 순으로 찾는다.
- * 같은 웹소켓을 들어 공감·댓글 수가 바뀌면 따라가고, 보는 사이 지워지면 "지워진 글"로 바꾼다.
- * 댓글은 서버에 경로가 없어 수와 자리만 있다(공감도 누르는 단추를 두지 않는다).
- * 글의 종목은 먹 선 바로 아래 첫 줄이다 — 이름 · 그날 등락률 / 기준일 | ›, 줄 어디를 눌러도 그 종목 상세(2026-11-04 다듬기: 쓴 사람 줄과 같은 꼴로
- * 겹쳐 서 있던 것을 가는 선으로 가른 이동 줄로). 그 아래 쓴 사람 → 본문
+ * 커뮤니티 글 상세(`/community/{postId}`). 글은 ① 눌러 온 글(보고 있는 동안 들어온 새 글은 처음 목록에 없다) ② 처음 목록
+ * ③ 목록에 없으면 글 하나 받기 순으로 찾는다. 같은 웹소켓을 들어 공감·댓글 수를 따라가고, 보는 사이 지워지면 "지워진 글"로 바꾼다.
+ * 먹 선 바로 아래 첫 줄이 글의 종목(줄 어디를 눌러도 그 종목 상세), 그 아래 쓴 사람 → 본문. 댓글은 서버 경로가 없어 수와 자리만 있다
  */
 export default function CommunityPostPage() {
   const { postId: param = '' } = useParams()
@@ -44,7 +40,7 @@ export default function CommunityPostPage() {
 
   const inList = postId === null || posts === null ? null : (posts.find((post) => post.postId === postId) ?? null)
   const listReady = posts !== null
-  // 주소가 글 번호가 아니면(postId null) 본 적도 없다 — seenId도 null이라 견주면 "지워진 글"이 됐다
+  // 글 번호가 아닌 주소는 seenId도 null이라 postId를 먼저 본다 — 안 보면 "지워진 글"이 된다
   const deleted = postId !== null && listReady && inList === null && seenId === postId
   const fetched = loaded !== null && loaded.postId === postId ? loaded.post : undefined
   /** undefined: 아직 모름(불러오는 중), null: 없는 글 */
@@ -98,7 +94,7 @@ export default function CommunityPostPage() {
           ) : (
             <>
               {post.stockCode !== null && post.stockName !== null && (
-                // 링크 이름은 종목 이름만 — ::after가 줄을 덮어 줄 어디를 눌러도 간다(글 줄과 같은 방식). 이름을 싣고 간다
+                // 링크 이름은 종목 이름만 — ::after가 줄을 덮는다
                 <div className={styles.stock}>
                   <span className={styles.stockBadge} aria-hidden="true">
                     {Array.from(post.stockName)[0] ?? ''}

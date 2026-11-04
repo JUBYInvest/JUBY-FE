@@ -16,11 +16,9 @@ import styles from './CommunityWritePage.module.css'
 const ECHO_WAIT_MS = 8000
 
 /**
- * 커뮤니티 글쓰기(`/community/write`, 2026-11-04 사용자가 토스증권 앱 커뮤니티 캡처로 "커뮤니티 글쓰기 개념"을 짚었다 — 11-03까지는 목록 위 한 줄 입력칸).
- * 목록 오른쪽 아래 떠 있는 "글쓰기"로 온다. 종목(고르지 않아도 된다 — 목록에서 종목 카드를 고른 채 오면 그 종목) · 제목 · 내용(여러 줄) · 사진 자리.
- * **실제 연결이 열린 로그인 사용자만 쓴다** — 목업일 때 칸을 열어 두면 써도 갈 곳이 없다(2026-10-30 결정과 같은 까닭). 칸은 다 보이고 잠긴 채 까닭을 맨 위에 적는다.
- * 사진은 서버에 사진을 받는 곳이 없어 자리만 둔다(늘 잠김). 올리면 서버가 `/topic/community`로 되돌려 주는 내 글(제목·내용이 같은 새 글)을 기다려
- * 그 글 상세로 간다(주소 기록은 바꿔 넣는다 — 뒤로 가면 목록). 8초 안에 안 오면 목록으로 간다
+ * 커뮤니티 글쓰기(`/community/write`) — 종목(고르지 않아도 된다) · 제목 · 내용 · 사진 자리.
+ * 실제 연결이 열린 로그인 사용자만 쓴다 — 목업일 때 칸을 열어 두면 써도 갈 곳이 없다. 칸은 다 보이고 잠긴 채 까닭을 맨 위에 적는다.
+ * 올리면 서버가 되돌려 주는 내 글(제목·내용이 같은 새 글)의 글 상세로 간다(주소 기록을 바꿔 넣어 뒤로 가면 목록)
  */
 export default function CommunityWritePage() {
   useDocumentTitle('글쓰기')
@@ -121,7 +119,6 @@ export default function CommunityWritePage() {
           </div>
 
           <div className={styles.field}>
-            {/* 몇 자 썼는지는 이름 줄 오른쪽 — 칸 아래에 두면 휴대폰에서 칸마다 한 줄씩 더 내려간다 */}
             <div className={styles.labelRow}>
               <label className={styles.label} htmlFor="community-write-title">
                 제목
@@ -187,7 +184,6 @@ export default function CommunityWritePage() {
           </p>
         )}
 
-        {/* 화면 아래(지수 띠 위)에 붙어 따라온다 — 휴대폰에서 내용 칸을 쓰는 동안에도 올리기가 보인다 */}
         <div className={styles.actions}>
           <Link to="/community" className={styles.cancel}>
             취소

@@ -17,13 +17,9 @@ interface Props {
 }
 
 /**
- * 커뮤니티 글 줄(2026-11-03 "토스증권처럼 게시판으로", 2026-11-04 사용자가 토스증권 앱 캡처로 "커뮤니티 글쓰기 개념"을 짚어 제목 + 본문 + 사진이 됐다).
- * 카드 없이 가는 선으로 나눈 글 줄이다 — 커뮤니티 화면은 종목 줄(첫 글자 동그라미 · 이름 · 그날 등락률) → 굵은 제목 → 본문 두 줄(+ 오른쪽 사진) →
- * 공감·댓글 수 | 별명 · 몇 분 전. 줄 어디를 눌러도 글 상세(`/community/{postId}`)로 간다 — 제목 링크의 ::after가 줄을 덮는다(홈 시세표와 같은 방식,
- * 줄을 통째로 <a>로 싸면 별명·공감 수까지 링크 이름이 된다). 그래서 줄 안에 따로 눌리는 것을 두지 않는다 — 종목 상세 링크는 글 상세에 있다
- * (11-03 홈에서 두 줄로 자른 글 안의 17px 종목 링크가 휴대폰에서 조금만 빗나가도 다른 곳으로 갔다, common 4·ui U2-3).
- * 글을 싣고 간다(toCommunityHandoff) — 보고 있는 동안 들어온 새 글은 글 상세가 따로 받는 처음 목록에 없다.
- * 공감·댓글은 아직 서버가 없어 수만 보인다(누르는 단추를 두지 않는다). 여백으로 띄운 자리에도 글자 빈칸을 둔다 — 없으면 읽어 주는 쪽·복사한 글이 붙는다.
+ * 커뮤니티 글 줄. 줄 어디를 눌러도 글 상세로 간다 — 제목 링크의 ::after가 줄을 덮는다(줄을 통째로 <a>로 싸면 별명·공감 수까지 링크 이름이 된다).
+ * 그래서 줄 안에 따로 눌리는 것을 두지 않는다(휴대폰에서 작은 종목 링크가 조금만 빗나가도 다른 곳으로 갔다) — 종목 상세 링크는 글 상세에 있다.
+ * 글을 싣고 간다 — 보고 있는 동안 들어온 새 글은 글 상세가 받는 처음 목록에 없다. 여백으로 띄운 자리에도 글자 빈칸을 둔다(읽어 주는 쪽·복사한 글이 붙지 않게)
  */
 export default function CommunityPosts({ posts, compact = false, quotes, now }: Props) {
   return (
@@ -50,7 +46,6 @@ export default function CommunityPosts({ posts, compact = false, quotes, now }: 
               <div className={styles.body}>
                 <p className={styles.meta}>{author}</p>
                 <h3 className={styles.titleCompact}>{link}</h3>
-                {/* 홈에서 종목 이름은 링크가 아니라 글자다(위 주석) */}
                 <p className={styles.textCompact}>
                   {post.stockName !== null && (
                     <>
@@ -72,7 +67,7 @@ export default function CommunityPosts({ posts, compact = false, quotes, now }: 
             <div className={image === undefined ? styles.main : styles.mainWithImage}>
               <h3 className={styles.title}>{link}</h3>
               {post.title !== null && <p className={styles.text}>{post.content}</p>}
-              {/* 목록의 사진은 미리보기라 이름을 따로 읽히지 않는다 — 글 상세가 사진마다 이름을 단다. 몇 장인지는 아래 수 줄에 적는다 */}
+              {/* 미리보기라 이름을 읽히지 않는다 — 몇 장인지는 수 줄에, 이름은 글 상세에 */}
               {image !== undefined && <img className={styles.thumb} src={image} alt="" loading="lazy" />}
             </div>
             <div className={styles.foot}>
@@ -91,10 +86,7 @@ interface PostStockProps {
   quote: StockQuote | undefined
 }
 
-/**
- * 글 머리 종목 줄 — 첫 글자 동그라미 · 이름 · 그날 등락률(등락색 글자, 홈 시세표와 같은 값). 등락률을 모르면 이름만.
- * 줄 전체가 글 링크라 이름은 글자다. 종목 상세로 가는 줄은 글 상세(CommunityPostPage)가 따로 그린다
- */
+/** 글 머리 종목 줄 — 첫 글자 동그라미 · 이름 · 그날 등락률(모르면 이름만) */
 function PostStock({ name, quote }: PostStockProps) {
   return (
     <p className={styles.stockRow}>
@@ -112,7 +104,7 @@ function PostStock({ name, quote }: PostStockProps) {
   )
 }
 
-/** 공감·댓글 수(+ 사진 장수는 읽어 주는 쪽에만). 서버가 없어 누르는 단추가 아니다 */
+/** 공감·댓글 수(사진 장수는 읽어 주는 쪽에만). 서버가 없어 누르는 단추가 아니다 */
 export function PostCounts({ post }: { post: CommunityPost }) {
   return (
     <p className={styles.counts}>

@@ -9,7 +9,7 @@ interface Props {
   className: string
 }
 
-/** 커뮤니티 오른쪽 열 — 실시간 연결 · 이용 안내(src/content/communityRules.ts). 커뮤니티 목록과 글 상세가 같이 쓴다 */
+/** 커뮤니티 오른쪽 열 — 실시간 연결 · 이용 안내. 목록과 글 상세가 같이 쓴다 */
 export default function CommunitySide({ status, className }: Props) {
   return (
     <aside className={className} aria-label="커뮤니티 안내">

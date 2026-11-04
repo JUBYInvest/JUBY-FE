@@ -10,7 +10,8 @@
 //  B5 실시간(목업): 보고 있는 동안 새 글이 오면 끼우지 않고 "새 글 N개 보기"로 모은다 — 누르면 맨 위에 선다. 홈도 제목 줄에 "새 글 N"
 //  B6 글쓰기(2026-11-04 떠 있는 "글쓰기" → /community/write): 종목 카드를 고른 채 누르면 그 종목 이야기로, 서버가 없는 목업에서는 칸이 다 잠겨 있고
 //     그렇다고 밝힌다(써도 갈 곳이 없다), 제목·내용 칸·사진 자리·취소 → 목록
-//  B7 두 열의 첫 선(1440·1024): 가운데 탭 줄 가는 선(1px — 11-04부터, 굵은 먹 선은 화면 제목 하나) = 오른쪽 제목 줄 먹 선(아래 끝 1px 안). 11-03까지는 왼쪽 종목 열까지 세 열이었다
+//  B7 머리(1440·1024·390, 2026-11-04 사용자가 세 안을 견줘 고름): 화면 제목·최신 인기 줄에 선이 없고, 최신·인기는 아이콘 + 글 알약(고른 것은 먹 채움·흰 글자),
+//      넓은 화면에서 머리 줄과 오른쪽 "이용 안내" 제목 줄이 같은 높이에서 시작한다
 //  B8 좁은 화면(390·320): 가로 넘침 없음, 종목 카드는 한 줄로 서고 옆으로 민다(줄이 화면보다 넓다), 첫 카드는 글과 같은 줄에서 시작
 //  B11 종목 검색(2026-11-04 "검색 버튼을 통해 종목을 선택"): 제목 줄 "종목 검색" → 검색 칸(포커스) → 글이 있는 종목을 고르면 그 종목 글만·카드 눌림·
 //      카드에 포커스, 글이 없는 종목(검색 가짜 응답)을 고르면 "글 0" 카드가 전체 다음에 서고 "<종목> 이야기는 아직 없어요", Esc로 닫으면 단추로 포커스
@@ -189,17 +190,29 @@ await j.run('B6', async () => {
 })
 
 await j.run('B7', async () => {
-  for (const width of [1440, 1024]) {
-    const t = await j.open({ width })
+  for (const width of [1440, 1024, 390]) {
+    const t = await j.open({ width, touch: width <= 600 })
     await t.goto('/community', 1500)
-    const lines = await t.page.evaluate((feed) => {
-      const bottom = (el) => Math.round(el.getBoundingClientRect().bottom)
-      const feedHead = document.querySelector(`${feed} [role="group"][aria-label="정렬"]`).parentElement
-      const sideHead = document.getElementById('community-side-title')
-      return [bottom(feedHead), bottom(sideHead), Math.round(getComputedStyle(feedHead).borderBottomWidth.replace('px', ''))]
+    const r = await t.page.evaluate((feed) => {
+      const probe = (token) => { const el = document.createElement('span'); el.style.color = `var(${token})`; document.body.append(el); const c = getComputedStyle(el).color; el.remove(); return c }
+      const group = document.querySelector(`${feed} [role="group"][aria-label="정렬"]`)
+      const head = group.parentElement
+      const side = document.getElementById('community-side-title')
+      const pills = [...group.querySelectorAll('button')].map((b) => {
+        const s = getComputedStyle(b)
+        return { pressed: b.getAttribute('aria-pressed'), bg: s.backgroundColor, color: s.color, radius: parseFloat(s.borderTopLeftRadius), h: Math.round(b.getBoundingClientRect().height), icon: b.querySelector('svg') !== null }
+      })
+      return { h1Rule: parseFloat(getComputedStyle(document.querySelector('main h1')).borderBottomWidth), headRule: parseFloat(getComputedStyle(head).borderBottomWidth), pills,
+        headTop: Math.round(head.getBoundingClientRect().top), sideTop: Math.round(side.getBoundingClientRect().top), ink: probe('--color-text'), white: probe('--color-surface'), sub: probe('--color-bg-sub') }
     }, FEED)
-    // 탭 줄은 화면 제목 아래 단계라 가는 선(1px)이다 — 굵은 먹 선은 화면 제목 하나(2026-11-04 사용자 "검은색 가로줄이 두 개… 위계를 나누던가")
-    j.report(`B7-${width}`, Math.abs(lines[0] - lines[1]) <= 1 && lines[2] === 1, `첫 선 아래 끝 가운데 탭 줄·오른쪽 제목 줄 ${lines[0]}·${lines[1]}px, 탭 줄 선 ${lines[2]}px(가는 선)`)
+    const on = r.pills.find((pill) => pill.pressed === 'true')
+    const off = r.pills.find((pill) => pill.pressed === 'false')
+    const pillsOk = r.pills.length === 2 && r.pills.every((pill) => pill.icon && pill.radius >= 20 && pill.h >= (width <= 600 ? 44 : 40))
+      && on?.bg === r.ink && on?.color === r.white && off?.bg === r.sub
+    const aligned = width <= 900 || Math.abs(r.headTop - r.sideTop) <= 1
+    j.report(`B7-${width}`, r.h1Rule === 0 && r.headRule === 0 && pillsOk && aligned,
+      `화면 제목 선 ${r.h1Rule}px·최신 인기 줄 선 ${r.headRule}px, 알약 ${r.pills.length}개(아이콘 ${r.pills.every((p) => p.icon)}, 높이 ${r.pills.map((p) => p.h).join('·')}px, 고른 것 먹 채움 ${on?.bg === r.ink}·흰 글자 ${on?.color === r.white}, 나머지 옅은 면 ${off?.bg === r.sub})`
+      + (width > 900 ? `, 머리 줄·오른쪽 제목 줄 위 끝 ${r.headTop}·${r.sideTop}px` : ''))
     await t.close()
   }
 })

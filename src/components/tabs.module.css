@@ -8,7 +8,6 @@
  *   굵은 먹 선(2px) 머리 안의 탭은 0(먹 선 바로 위).
  * - --tab-min-width: 탭 최소 폭. 기본 44px, 기간 탭처럼 일곱이 한 줄에 서야 하면 줄인다.
  * - --tab-gap: 탭 사이. 기본 16px.
- * - --tab-font-size: 탭 글자. 기본 14px. 화면의 글 목록을 가르는 큰 탭(커뮤니티 최신·인기)만 키운다.
  * - --tabs-margin-left: 탭 묶음 왼쪽 여백. 기본 auto(제목 줄 오른쪽 끝에 선다), 탭만 한 줄로 서는 곳은 0.
  * - --tabs-align: 탭 묶음의 세로 자리. 기본 stretch(줄 높이를 채운다). 구역 제목 줄(section.module.css head — 글자 바닥선을 맞춘다) 안의 탭은
  *   baseline이라야 제목 글자와 탭 글자의 바닥선이 맞는다 — stretch면 제목이 줄 맨 위로 떠 옆 열 제목보다 10px 높았다(2026-11-03 주식 모아보기 '담은 종목').
@@ -29,7 +28,7 @@
   border: 0;
   background: none;
   color: var(--color-text-sub);
-  font-size: var(--tab-font-size, var(--font-md));
+  font-size: var(--font-md);
   font-weight: 600;
   white-space: nowrap;
 }

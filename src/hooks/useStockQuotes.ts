@@ -22,10 +22,7 @@ function loadQuotes(): Promise<Map<string, StockQuote>> {
   return quotes
 }
 
-/**
- * 종목별 그날 등락률(`GET /api/stocks` — DB만 읽는다, 증권사 0건). 커뮤니티 글 머리에 종목 이름 옆 등락률을 적는다
- * (2026-11-04 사용자가 고른 것 — 토스증권 앱 커뮤니티의 "-1.72%"). 받는 100종목 밖이거나 못 받으면 그 종목은 등락률 없이 이름만 선다
- */
+/** 종목별 그날 등락률(`GET /api/stocks` — DB만 읽는다, 증권사 0건). 받는 100종목 밖이거나 못 받으면 그 종목은 이름만 선다 */
 export function useStockQuotes(): Map<string, StockQuote> {
   const [quotes, setQuotes] = useState<Map<string, StockQuote>>(() => new Map())
 
