@@ -1,4 +1,4 @@
-// 블랙박스 흐름 판정 — 홈(순위 탭·검색 최근)·건너뛰기·지수 띠 장 상태·상세(정상·실패·임시 차트·물어서 찾기)·주식 모아보기·마이페이지 한눈에.
+// 블랙박스 흐름 판정 — 홈(순위 탭·검색 최근)·건너뛰기·지수 띠 장 상태·상세(정상·실패·임시 차트·기사 검색하기)·주식 모아보기·마이페이지 한눈에.
 // /api는 전부 가짜(mock.mjs), 백엔드 호스트는 막는다. 운영 빌드(vite preview)에서 잰다.
 // M1의 가입 경로는 2026-11-02부터 "Google로 가입한 계정"이다(로그인 단추 "Google로 로그인"과 같은 표기 — utils/social.ts 한 표).
 //   node flow.mjs <BASE> [--only H,S,K,I,D,L,M] [--headed]
@@ -208,15 +208,15 @@ await run('D', async () => {
   report('D2', before === 'true' && after === 'false' && t.count(/DELETE \/api\/members\/me\/like-stocks\/005930/) === 1, `하트: 담김(${before}) → 누르면 해제(${after}), DELETE ${t.count(/DELETE/)}건`)
   const stats = await t.page.getByRole('region', { name: '기간별 주가 변화' }).count()
   report('D1b', stats === 1, `기간별 주가 변화 칸 ${stats}`)
-  // 물어서 찾기
-  await t.page.getByRole('button', { name: '물어서 찾기' }).click()
+  // 기사 검색하기(2026-11-04까지 이름 '물어서 찾기')
+  await t.page.getByRole('button', { name: '기사 검색하기' }).click()
   const askInput = t.page.getByRole('searchbox')
   await askInput.fill('실적 전망'); await askInput.press('Enter')
   await t.page.getByText('가장 가까운 기사 3건').waitFor({ timeout: 5000 })
   const hits = await t.page.locator('a', { hasText: '가까운 기사' }).count()
-  report('D5', hits === 3 && t.count(/GET \/api\/vectordb\/search\?question=/) === 1, `물어서 찾기: vectordb ${t.count(/vectordb/)}건, 기사 ${hits}건`)
+  report('D5', hits === 3 && t.count(/GET \/api\/vectordb\/search\?question=/) === 1, `기사 검색하기: vectordb ${t.count(/vectordb/)}건, 기사 ${hits}건`)
   await t.page.getByRole('button', { name: '최신순' }).click(); await sleep(300)
-  await t.page.getByRole('button', { name: '물어서 찾기' }).click(); await sleep(200)
+  await t.page.getByRole('button', { name: '기사 검색하기' }).click(); await sleep(200)
   report('D6', t.count(/\/news\?sort=/) === 1, `정렬 탭으로 돌아와도 뉴스를 다시 묻지 않는다 (${t.count(/\/news\?sort=/)}건)`)
   report('D7', await noOverflow(t.page), '상세 1440 가로 넘침 없음')
   await t.close()

@@ -224,7 +224,7 @@ function LikesBoard() {
             <div className={styles.side}>
               <section aria-labelledby="likes-list-title">
                 <div className={styles.sectionHead}>
-                  <h2 id="likes-list-title" className={styles.sectionTitle}>
+                  <h2 id="likes-list-title" className={styles.listTitle}>
                     담은 종목
                   </h2>
                   <div className={styles.tabs} role="group" aria-label="정렬">

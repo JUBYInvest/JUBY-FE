@@ -11,6 +11,10 @@
 //  C5 마이페이지: 세 화면의 맨 위 한 줄(이름·성향 이름)은 같은 크기이고 화면 제목보다 작다. 구역 안 결론 줄·성향 칸 제목은 구역 제목보다 작다.
 //     본문 링크는 같은 곳으로 가는 왼쪽 메뉴와 같은 이름이다('투자유형 자세히'·'내 정보 보기'가 메뉴로는 '투자유형 보기'·'내 정보 확인'이었다)
 //  C6 투자성향 테스트: 옅은 면 판 안에 보기 칸을 얹지 않는다(판 안에 상자). 결과 화면에 다 찬 진행 막대를 두지 않는다(먹 선 아래 초록 줄로만 보였다)
+//  C7 마이페이지 900px 이하 메뉴: 다른 화면과 같은 밑줄 탭(14px·600, 고른 것은 먹 글자 + 2px 초록 막대가 가는 선 위)이고 테두리 상자·채운 칸이 없다.
+//     로그아웃은 같은 줄 오른쪽 끝의 글자 단추. 320px까지 한 줄에 서고 넘치지 않는다(2026-11-04 — 초록으로 채운 칸을 테두리 상자에 담고 있었다)
+//  C8 탭이 선 제목 줄(주식 모아보기 '담은 종목', 종목 상세 '뉴스 모아보기'): 넓으면 탭이 제목 줄 오른쪽 끝, 좁아서 다음 줄로 내려가면 제목과 왼쪽 끝이 같다
+//     (320px에서 오른쪽에 붙어 '담은 종목' 18px, 뉴스는 '기사 검색하기'로 이름이 길어져 내려간 뒤 오른쪽에 붙었다)
 // node consistency.mjs <BASE> [--only C1,C2] [--headed]
 import { cli, judge, sleep } from './lib.mjs'
 
@@ -199,6 +203,80 @@ await j.run('C6', async () => {
     const bars = await t.page.locator('main [role="progressbar"]').count()
     j.report(`C6b-${width}`, bars === 0, `결과 화면 진행 막대 ${bars}개`)
     await t.close()
+  }
+})
+
+await j.run('C7', async () => {
+  for (const width of [900, 390, 320]) {
+    const t = await j.open({ width })
+    await t.goto('/mypage/personality', 1600)
+    await t.page.evaluate(() => document.fonts.ready)
+    const r = await t.page.evaluate(() => {
+      const aside = document.querySelector('main aside[aria-label="마이페이지 메뉴"]')
+      const links = [...aside.querySelectorAll('a')]
+      const on = links.find((a) => a.getAttribute('aria-current') === 'page')
+      const logout = [...aside.querySelectorAll('button')].find((b) => b.textContent.includes('로그아웃'))
+      const tokenColor = (name) => { const i = document.createElement('i'); i.style.color = `var(${name})`; document.body.append(i); const c = getComputedStyle(i).color; i.remove(); return c }
+      const clear = (c) => c === 'rgba(0, 0, 0, 0)' || c === 'rgb(255, 255, 255)'
+      const textLeft = (el) => { const range = document.createRange(); range.selectNodeContents(el); return range.getBoundingClientRect().left }
+      // 고른 링크에서 메뉴 묶음까지 올라가며 테두리 상자(위·왼쪽·오른쪽)·채운 면을 찾는다 — 아래 가는 선 하나만 된다
+      const boxes = []
+      for (let el = on; el && el !== aside.parentElement; el = el.parentElement) {
+        const s = getComputedStyle(el)
+        if (['Top', 'Left', 'Right'].some((k) => parseFloat(s[`border${k}Width`]) > 0)) boxes.push(`${el.tagName.toLowerCase()} 테두리`)
+        if (!clear(s.backgroundColor)) boxes.push(`${el.tagName.toLowerCase()} 면 ${s.backgroundColor}`)
+      }
+      const bar = getComputedStyle(on, '::after')
+      const or = on.getBoundingClientRect(), ar = aside.getBoundingClientRect(), lr = logout.getBoundingClientRect()
+      const ls = getComputedStyle(logout)
+      const title = document.querySelector('main h1').getBoundingClientRect()
+      const rects = links.map((a) => a.getBoundingClientRect())
+      return {
+        boxes,
+        on: { color: getComputedStyle(on).color, fs: parseFloat(getComputedStyle(on).fontSize), fw: getComputedStyle(on).fontWeight },
+        off: links.filter((a) => a !== on).map((a) => getComputedStyle(a).color),
+        ink: tokenColor('--color-text'), sub: tokenColor('--color-text-sub'), brand: tokenColor('--color-brand-700'),
+        bar: { h: parseFloat(bar.height), bg: bar.backgroundColor, bottom: or.bottom - parseFloat(bar.bottom) },
+        line: { w: parseFloat(getComputedStyle(aside).borderBottomWidth), bottom: ar.bottom },
+        oneRow: rects.every((x) => Math.abs(x.top - rects[0].top) < 1) && lr.top < rects[0].bottom && lr.bottom > rects[0].top,
+        // 탭 글자와 로그아웃 글자 사이(단추 앞 여백 포함), 로그아웃이 탭(14px·600)과 다른 꼴인지
+        logout: { right: lr.right, asideRight: ar.right, gap: textLeft(logout) - rects.at(-1).right, h: lr.height, boxed: parseFloat(ls.borderBottomWidth) > 0 || !clear(ls.backgroundColor),
+          distinct: parseFloat(ls.fontSize) < 14 || ls.fontWeight !== '600' },
+        minH: Math.min(...rects.map((x) => x.height)),
+        left: rects[0].left - title.left,
+        overflow: document.documentElement.scrollWidth - innerWidth,
+      }
+    })
+    const tabsOk = r.boxes.length === 0 && r.on.color === r.ink && r.off.every((c) => c === r.sub) && r.on.fs === 14 && r.on.fw === '600'
+      && r.bar.h === 2 && r.bar.bg === r.brand && r.line.w === 1 && near(r.bar.bottom, r.line.bottom, 0.5)
+    j.report(`C7a-${width}`, tabsOk, `밑줄 탭: 상자·면 ${r.boxes.length ? r.boxes.join(', ') : '없음'}, 고른 글자 ${r.on.color}(먹 ${r.ink}) ${r.on.fs}px·${r.on.fw}, 나머지 ${[...new Set(r.off)].join('/')}(보조 ${r.sub}), 막대 ${r.bar.h}px ${r.bar.bg}, 가는 선 ${r.line.w}px, 막대 아래 끝 − 선 아래 끝 ${Math.round((r.bar.bottom - r.line.bottom) * 10) / 10}px`)
+    j.report(`C7b-${width}`, r.oneRow && near(r.logout.right, r.logout.asideRight, 1) && r.logout.gap >= 12 && !r.logout.boxed && r.logout.distinct && r.logout.h >= 44 && r.minH >= 44 && near(r.left, 0, 1) && r.overflow <= 0,
+      `한 줄 ${r.oneRow}, 로그아웃 오른쪽 끝 ${Math.round(r.logout.asideRight - r.logout.right)}px·탭 글자와 ${Math.round(r.logout.gap)}px·${r.logout.boxed ? '상자' : '글자'}${r.logout.distinct ? '' : '(탭과 같은 꼴)'}·${Math.round(r.logout.h)}px, 탭 높이 ${Math.round(r.minH)}px, 제목과 왼쪽 ${Math.round(r.left)}px, 넘침 ${r.overflow}px`)
+    await t.close()
+  }
+})
+
+await j.run('C8', async () => {
+  const heads = [['likes', '/likes', '담은 종목'], ['news', '/stocks/005930', '뉴스 모아보기']]
+  for (const [key, path, name] of heads) {
+    for (const width of [1680, 390, 320]) {
+      const t = await j.open({ width })
+      await t.goto(path, 1800)
+      await t.page.evaluate(() => document.fonts.ready)
+      const r = await t.page.evaluate((name) => {
+        const title = [...document.querySelectorAll('main h2')].find((h) => h.textContent.trim() === name)
+        const head = title.parentElement
+        const tabs = head.querySelector('button').parentElement
+        const range = document.createRange(); range.selectNodeContents(title)
+        const tr = range.getBoundingClientRect(), gr = tabs.getBoundingClientRect(), hr = head.getBoundingClientRect()
+        return { wrapped: gr.top >= tr.bottom - 1, tabsLeft: gr.left, tabsRight: gr.right, titleLeft: tr.left, headRight: hr.right, overflow: document.documentElement.scrollWidth - innerWidth }
+      }, name)
+      const ok = (r.wrapped ? near(r.tabsLeft, r.titleLeft, 1) : near(r.tabsRight, r.headRight, 1)) && r.overflow <= 0
+      j.report(`C8-${key}-${width}`, ok && (width !== 1680 || !r.wrapped), `'${name}' ${r.wrapped
+        ? `탭이 다음 줄 — 왼쪽 끝 탭 ${Math.round(r.tabsLeft)}·제목 ${Math.round(r.titleLeft)}px`
+        : `탭이 제목 줄 — 오른쪽 끝 탭 ${Math.round(r.tabsRight)}·줄 ${Math.round(r.headRight)}px`}, 넘침 ${r.overflow}px`)
+      await t.close()
+    }
   }
 })
 

@@ -9,7 +9,7 @@ import type { NewsItem, NewsPage, NewsSort } from '../types/news'
  * 뉴스 창구 셋(2026-10-31 api/stock.ts에서 나눔). 셋 다 증권사와 무관하다.
  * - 종목 뉴스 `GET /api/stocks/{code}/news` — Pinecone에 모아 둔 기사. 서버가 요청마다 검색하고(캐시 없음) 작은 서버라 미리 부르지 않는다.
  * - 네이버 뉴스 검색 `GET /api/news` — 주식 모아보기의 관심종목 뉴스. 로그인 필요, 네이버 하루 한도를 회원 모두가 나눠 쓴다.
- * - 질문으로 찾기 `GET /api/vectordb/search` — 종목 상세 뉴스의 '물어서 찾기'. 로그인 필요.
+ * - 질문으로 찾기 `GET /api/vectordb/search` — 종목 상세 뉴스의 '기사 검색하기'. 로그인 필요.
  * 같은 요청은 10분 동안 다시 쓴다(NEWS_MEMO_AGE) — 뉴스는 백엔드가 매달 1일에 넣는다.
  */
 const NEWS_MEMO_AGE = 10 * 60 * 1000
@@ -189,7 +189,7 @@ interface NewsHitResponse {
 const askMemo = new Map<string, Memo<NewsItem[]>>()
 
 /**
- * 종목 뉴스 가운데 질문과 가장 가까운 기사 3건(종목 상세 뉴스의 '물어서 찾기'). **로그인해야 한다.**
+ * 종목 뉴스 가운데 질문과 가장 가까운 기사 3건(종목 상세 뉴스의 '기사 검색하기'). **로그인해야 한다.**
  * 서버가 Pinecone에 모아 둔 그 종목 기사에서 질문 글로 찾는다 — 증권사와 무관하다. 순서는 서버가 준 가까운 순 그대로다.
  * 같은 종목·질문은 10분 동안 다시 쓴다.
  */

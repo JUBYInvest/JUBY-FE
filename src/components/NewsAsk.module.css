@@ -1,4 +1,4 @@
-/* 물어서 찾기. 뉴스 목록 자리에 들어가 같은 기사 줄 모양을 쓴다(NewsList.module.css) */
+/* 기사 검색하기. 뉴스 목록 자리에 들어가 같은 기사 줄 모양을 쓴다(NewsList.module.css) */
 .ask {
   padding-top: var(--space-4);
 }

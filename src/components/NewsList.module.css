@@ -16,7 +16,9 @@
   border-bottom: 1px solid var(--color-border);
 }
 
+/* 제목이 남는 폭을 가져가 탭을 오른쪽 끝으로 민다 — 좁아서 탭이 다음 줄로 내려가면 왼쪽부터 선다(LikesPage .listTitle과 같다) */
 .heading {
+  flex-grow: 1;
   margin: 0;
   font-size: var(--font-lg);
   font-weight: 700;
@@ -26,6 +28,7 @@
 .tabs {
   composes: tabs from './tabs.module.css';
   --tab-gap: var(--space-3);
+  --tabs-margin-left: 0;
 }
 
 .tab {

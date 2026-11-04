@@ -20,7 +20,7 @@ const NEWS_STEP = 6
 
 interface Props {
   stockCode: string
-  /** 종목명. 아직 모르면 null — '물어서 찾기' 탭을 두지 않는다(서버가 종목명으로 찾는다) */
+  /** 종목명. 아직 모르면 null — '기사 검색하기' 탭을 두지 않는다(서버가 종목명으로 찾는다) */
   stockName: string | null
 }
 
@@ -49,7 +49,7 @@ type State =
 export default function NewsList({ stockCode, stockName }: Props) {
   const [sort, setSort] = useState<NewsSort>('LATEST')
   /**
-   * '물어서 찾기'(NewsAsk)를 펼쳤는가(2026-10-30). 펼쳐도 정렬 목록은 받아 둔 채로 두어, 정렬 탭으로 돌아오면 다시 받지 않는다
+   * '기사 검색하기'(NewsAsk)를 펼쳤는가(2026-10-30). 펼쳐도 정렬 목록은 받아 둔 채로 두어, 정렬 탭으로 돌아오면 다시 받지 않는다
    */
   const [asking, setAsking] = useState(false)
   const [state, setState] = useState<State>({ kind: 'loading' })
@@ -178,7 +178,7 @@ export default function NewsList({ stockCode, stockName }: Props) {
               onClick={() => setAsking(true)}
               aria-pressed={asking}
             >
-              물어서 찾기
+              기사 검색하기
             </button>
           )}
         </div>

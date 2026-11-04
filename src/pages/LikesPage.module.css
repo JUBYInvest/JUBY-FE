@@ -241,11 +241,21 @@
 
 /* ── 담은 종목 목록 ────────────────────────────────────────────────── */
 
+/*
+ * '담은 종목' 제목이 줄의 남는 폭을 가져가 정렬 탭을 오른쪽 끝으로 민다 — 탭의 왼쪽 auto 여백으로 밀면 좁아서 다음 줄로 내려갔을 때도
+ * 오른쪽에 붙어 제목과 왼쪽 끝이 어긋났다(320px 18px, 2026-11-04). 이렇게 하면 내려간 줄에서는 왼쪽부터 선다
+ */
+.listTitle {
+  composes: sectionTitle;
+  flex-grow: 1;
+}
+
 /* 정렬·종목 탭(tabs.module.css). 굵은 먹 선 머리 안이라 막대는 먹 선 바로 위(0), 글자는 제목과 바닥선을 맞춘다 */
 .tabs {
   composes: tabs from '../components/tabs.module.css';
   --tab-bar-offset: 0;
   --tabs-align: baseline;
+  --tabs-margin-left: 0;
 }
 
 .tab {
