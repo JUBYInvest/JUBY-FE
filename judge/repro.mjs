@@ -247,7 +247,7 @@ await run('S', async () => {
     // 상세 바로 가기 단추는 설명 한 줄(화면에서 숨김)을 안에 품어 글자가 "이 종목 백테스트…"로 이어진다
     measure: () => { const a = [...document.querySelectorAll('main a')].find((x) => x.textContent?.trim().startsWith('이 종목 백테스트')); if (!a) return null; const c = getComputedStyle(a); return [Math.round(a.getBoundingClientRect().height), c.paddingLeft, c.fontSize] },
   })
-  const toCommunity = (page) => menu(page, '서비스', '커뮤니티')
+  const toCommunity = (page) => menu(page, '서비스', '커뮤니티(예시)')
   // S8 사용설명서 "이 장에서" 제목은 900px 이하에서 숨는다 — 구역 제목 줄(section head, display:flex)을 가져다 쓰고 미디어 쿼리에서 display:none으로 덮어,
   // 같은 공용 모듈을 다시 들여오는 커뮤니티에 다녀오면 제목과 먹 선이 되살아났다(2026-11-03 코드 점검 D1)
   await roundTrip('S8', {

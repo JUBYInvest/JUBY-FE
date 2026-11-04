@@ -71,7 +71,8 @@ await j.run('B1', async () => {
   const t = await j.open({ width: 1440 })
   await t.goto('/', 1500)
   const menu = await t.page.$$eval('nav[aria-label="서비스"] a', (as) => as.map((a) => a.textContent.trim()))
-  j.report('B1', menu.join('|') === '홈|관심종목|주식 백테스트|AI 주가분석|커뮤니티|사용설명서', `메뉴 ${menu.join(' · ')}`)
+  // 커뮤니티 서버가 붙기 전까지 메뉴 이름은 "커뮤니티(예시)"(2026-11-04 사용자 결정 — 연결하면 "커뮤니티")
+  j.report('B1', menu.join('|') === '홈|관심종목|주식 백테스트|AI 주가분석|커뮤니티(예시)|사용설명서', `메뉴 ${menu.join(' · ')}`)
   await t.close()
 })
 
