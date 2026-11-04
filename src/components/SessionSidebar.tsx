@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { TITLE_MAX_LENGTH, normalizeTitle } from '../api/ai'
+import { useMediaQuery } from '../hooks/useMediaQuery'
 import Modal from './Modal'
 import Spinner from './Spinner'
 import type { ChatSession } from '../types/ai'
@@ -41,6 +42,11 @@ interface Deleting {
 const RENAME_FAILED = '이름을 바꾸지 못했어요. 다시 시도해 주세요.'
 const DELETE_FAILED = '지우지 못했어요. 다시 시도해 주세요.'
 const GONE_NOTICE = '이미 지워진 대화라 목록에서 뺐어요.'
+/** 날개 안에서 탭으로 닿을 수 있는 것들(Modal과 같은 규칙) */
+const FOCUSABLE =
+  'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+/** 날개를 이만큼 왼쪽으로 밀면 닫는다 */
+const SWIPE_CLOSE = 60
 
 export default function SessionSidebar({
   sessions,
@@ -54,19 +60,25 @@ export default function SessionSidebar({
   isLoggedIn,
 }: Props) {
   /*
-   * 좁은 화면(900px 이하)에서 목록을 펼쳤는가. 거기서는 목록이 대화창 위에 쌓여, 펼쳐 두면
-   * 입력칸이 첫 화면 밖으로 밀린다(아이폰 13에서 933px 지점, 화면 664px). 접어 두고 누르면 편다.
-   * 넓은 화면은 옆에 서므로 CSS가 이 값과 상관없이 늘 보여준다.
+   * 좁은 화면(900px 이하)은 목록이 왼쪽에서 밀려 나오는 날개다(Claude 앱처럼) — 대화창 위에 쌓으면 펼친 만큼 입력칸이 첫 화면 밖으로 밀렸다.
+   * 대화창 위에는 "이전 대화 N개 | + 새 대화" 한 줄만 두고, 누르면 날개가 열린다. 넓은 화면은 옆 열에 늘 서므로 이 값과 상관없다
    */
+  const narrow = useMediaQuery('(max-width: 900px)')
   const [isOpen, setIsOpen] = useState(false)
+  const drawerOpen = narrow && isOpen
+  const openRef = useRef<HTMLButtonElement>(null)
+  const panelRef = useRef<HTMLElement>(null)
+  const swipeRef = useRef<{ x: number; y: number } | null>(null)
 
-  /*
-   * 방마다 '⋯'을 누르면 그 줄 아래에 이름 바꾸기·지우기가 펼쳐진다. 떠 있는 메뉴로 띄우지 않은 건 사이드바가
-   * 모서리 밖을 잘라서(overflow: hidden) 넘치는 메뉴가 잘리고, 휴대폰에서는 목록이 접히기 때문이다.
-   */
+  /* 방마다 '⋯'을 누르면 그 줄 아래에 이름 바꾸기·지우기가 펼쳐진다 — 떠 있는 메뉴를 날개(떠 있는 층) 위에 또 띄우지 않는다 */
   const [menuId, setMenuId] = useState<number | null>(null)
   const [editing, setEditing] = useState<Editing | null>(null)
   const [deleting, setDeleting] = useState<Deleting | null>(null)
+  // 날개의 Esc·탭 가두기는 지우기 확인 상자가 떠 있는 동안 비켜선다 — 상자가 따로 받는다
+  const deletingRef = useRef(false)
+  useEffect(() => {
+    deletingRef.current = deleting !== null
+  })
   /** 목록 위에 띄우는 한 줄 알림(다른 곳에서 지운 방을 뺐다) */
   const [listNotice, setListNotice] = useState('')
 
@@ -93,6 +105,49 @@ export default function SessionSidebar({
     inputRef.current?.focus()
     inputRef.current?.select()
   }, [editingId])
+
+  /*
+   * 날개가 열려 있는 동안: 뒤 화면이 스크롤되지 않게 잠그고, 날개로 포커스를 옮겨 탭을 안에 가두고, Esc로 닫는다.
+   * 닫히면 연 단추로 포커스를 돌려준다. 이름칸의 Esc는 이름 고치기를 거두는 것이라(기본 동작을 막는다) 날개를 닫지 않는다
+   */
+  useEffect(() => {
+    if (!drawerOpen) return
+    const { body } = document
+    const prevOverflow = body.style.overflow
+    body.style.overflow = 'hidden'
+    panelRef.current?.focus()
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (deletingRef.current || event.defaultPrevented) return
+      if (event.key === 'Escape') {
+        setIsOpen(false)
+        return
+      }
+      if (event.key !== 'Tab') return
+      const panel = panelRef.current
+      if (panel === null) return
+      const items = [...panel.querySelectorAll<HTMLElement>(FOCUSABLE)]
+      const first = items[0]
+      const last = items.at(-1)
+      if (first === undefined || last === undefined) return
+      const active = document.activeElement
+      if (event.shiftKey && (active === first || active === panel)) {
+        event.preventDefault()
+        last.focus()
+      } else if (!event.shiftKey && active === last) {
+        event.preventDefault()
+        first.focus()
+      }
+    }
+
+    document.addEventListener('keydown', handleKeyDown)
+    const opener = openRef.current
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown)
+      body.style.overflow = prevOverflow
+      opener?.focus({ preventScroll: true })
+    }
+  }, [drawerOpen])
 
   const isSaving = editing?.state === 'saving'
 
@@ -168,44 +223,68 @@ export default function SessionSidebar({
     }
   }
 
+  function startNewChat() {
+    setIsOpen(false)
+    setMenuId(null)
+    setListNotice('')
+    onNewChat()
+  }
+
   return (
     <>
-      <aside className={styles.sidebar}>
+      {/* 좁은 화면에서만 — 대화창 위 한 줄. 새 대화는 날개를 열지 않고도 시작한다 */}
+      <div className={styles.bar}>
+        <button
+          ref={openRef}
+          type="button"
+          className={styles.open}
+          aria-expanded={drawerOpen}
+          aria-controls="session-list"
+          onClick={() => setIsOpen(true)}
+        >
+          <ListIcon />
+          {isLoggedIn && listState === 'ready' ? `이전 대화 ${sessions.length}개` : '이전 대화'}
+        </button>
+        <button type="button" className={styles.newChat} onClick={startNewChat}>
+          + 새 대화
+        </button>
+      </div>
+
+      <div className={styles.backdrop} data-open={drawerOpen || undefined} aria-hidden="true" onClick={() => setIsOpen(false)} />
+
+      {/* 넓은 화면은 옆 열, 좁은 화면은 날개. 닫힌 날개는 포커스·읽어 주기에서 빠진다(inert) */}
+      <aside
+        id="session-list"
+        ref={panelRef}
+        className={styles.sidebar}
+        data-open={drawerOpen || undefined}
+        inert={narrow && !isOpen}
+        aria-label={narrow ? '이전 대화' : undefined}
+        tabIndex={narrow ? -1 : undefined}
+        onTouchStart={(event) => {
+          swipeRef.current = drawerOpen ? { x: event.touches[0].clientX, y: event.touches[0].clientY } : null
+        }}
+        onTouchEnd={(event) => {
+          const start = swipeRef.current
+          swipeRef.current = null
+          if (start === null) return
+          const dx = event.changedTouches[0].clientX - start.x
+          const dy = event.changedTouches[0].clientY - start.y
+          if (dx < -SWIPE_CLOSE && Math.abs(dx) > Math.abs(dy) * 1.5) setIsOpen(false)
+        }}
+      >
         <div className={styles.head}>
           <h2 className={styles.headTitle}>이전 대화내용</h2>
-          {/* 좁은 화면에서만 보이는 접기 단추. 제목 자리를 대신한다 */}
-          <button
-            type="button"
-            className={styles.toggle}
-            aria-expanded={isOpen}
-            aria-controls="session-list"
-            onClick={() => setIsOpen((open) => !open)}
-          >
-            {isLoggedIn && listState === 'ready' ? `이전 대화 ${sessions.length}개` : '이전 대화'}
-            <span className={styles.chevron} aria-hidden="true">
-              ▾
-            </span>
-          </button>
-          {/*
-            피그마에는 없지만 필요하다. 세션을 한 번 고르고 나면
-            빈 화면으로 돌아갈 방법이 사라진다.
-          */}
-          <button
-            ref={newChatRef}
-            type="button"
-            className={styles.newChat}
-            onClick={() => {
-              setIsOpen(false)
-              setMenuId(null)
-              setListNotice('')
-              onNewChat()
-            }}
-          >
+          {/* 방을 한 번 고르고 나면 빈 화면으로 돌아갈 길이 이것뿐이다 */}
+          <button ref={newChatRef} type="button" className={styles.newChat} onClick={startNewChat}>
             + 새 대화
+          </button>
+          <button type="button" className={styles.close} aria-label="목록 닫기" onClick={() => setIsOpen(false)}>
+            <CloseIcon />
           </button>
         </div>
 
-        <div id="session-list" className={isOpen ? undefined : styles.bodyClosed}>
+        <div>
           {isLoggedIn && listNotice !== '' && (
             <p className={styles.listNotice} role="status">
               {listNotice}
@@ -296,7 +375,7 @@ export default function SessionSidebar({
                             type="button"
                             className={styles.item}
                             onClick={() => {
-                              // 좁은 화면에서 방을 고르면 목록을 접어 대화가 보이게 한다
+                              // 좁은 화면에서 방을 고르면 날개를 닫아 대화가 보이게 한다
                               setIsOpen(false)
                               setMenuId(null)
                               setListNotice('')
@@ -384,5 +463,21 @@ export default function SessionSidebar({
         </div>
       </Modal>
     </>
+  )
+}
+
+function ListIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M4 7h16M4 12h16M4 17h10" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+    </svg>
+  )
+}
+
+function CloseIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true">
+      <path d="m6 6 12 12M18 6 6 18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+    </svg>
   )
 }

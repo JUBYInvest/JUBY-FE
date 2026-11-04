@@ -61,8 +61,8 @@ await run('A2', async () => {
   const listed = await room(t.page).count()
   const personality = await t.page.getByText('현재 당신의 투자성향은 ‘위험중립형’입니다.').count()
   const link = await t.page.getByRole('link', { name: '투자성향 변경하기' }).getAttribute('href')
-  // 접기 단추는 넓은 화면에서 숨어 role로는 안 잡힌다 — 글자만 본다
-  const count = (await t.page.locator('aside button[aria-controls="session-list"]').textContent()).trim()
+  // 날개 여는 단추는 넓은 화면에서 숨어 role로는 안 잡힌다 — 글자만 본다
+  const count = (await t.page.locator('button[aria-controls="session-list"]').textContent()).trim()
   report('A2', listed === 1 && personality === 1 && link === '/personality-test?from=ai' && t.count(SESSIONS) === 1 && t.count(/personality/) === 1 && t.count(DETAIL) === 0 && await watermark(t.page) === 1,
     `방 ${listed}, 성향 ${personality}, 변경 링크 ${link}, 접기 단추 "${count}", 목록 ${t.count(SESSIONS)}·성향 ${t.count(/personality/)}·상세 ${t.count(DETAIL)}건`)
   order('A2', t)
@@ -365,7 +365,7 @@ await run('A15', async () => {
   await t.close()
 })
 
-/* ── A16 좁은 화면 ─────────────────────────────────────────────────── */
+/* ── A16 좁은 화면 — 이전 대화는 왼쪽 날개(2026-11-04 사용자 "claude처럼 이전 대화를 날개 형식으로") ─ */
 await run('A16', async () => {
   const t = await open({ width: 375, height: 812 })
   await t.goto('/ai', 1500)
@@ -382,7 +382,71 @@ await run('A16', async () => {
   await t.page.setViewportSize({ width: 320, height: 640 }); await sleep(400)
   const over320 = await noOverflow(t.page)
   report('A16', closed === 'false' && !hiddenRoom && opened === 'true' && shownRoom && collapsed === 'false' && over375 && over320,
-    `접힘 ${closed}(방 보임 ${hiddenRoom}) → 펼침 ${opened}(방 보임 ${shownRoom}) → 방 고르면 접힘 ${collapsed}, 가로 넘침 없음 375 ${over375}·320 ${over320}`)
+    `닫힘 ${closed}(방 보임 ${hiddenRoom}) → 열림 ${opened}(방 보임 ${shownRoom}) → 방 고르면 닫힘 ${collapsed}, 가로 넘침 없음 375 ${over375}·320 ${over320}`)
+  await t.close()
+})
+
+/*
+ * A16b 날개: 왼쪽 끝에서 화면 높이를 다 쓰고 머리글·지수 띠 위에 선다, 뒤는 어둡고 스크롤이 잠긴다, 열면 날개로 포커스·탭은 안에서 돈다,
+ * Esc·뒤 누르기·닫기 단추·왼쪽으로 밀기로 닫히고 포커스는 연 단추로, 닫힌 날개 안은 탭으로 닿지 않는다(inert),
+ * 날개 안에서 연 지우기 확인 상자가 날개 위에 서고 상자의 Esc는 상자만 닫는다
+ */
+await run('A16b', async () => {
+  const t = await open({ width: 375, height: 812, touch: true })
+  await t.goto('/ai', 1500)
+  const opener = t.page.getByRole('button', { name: /^이전 대화/ })
+  const drawer = () => t.page.evaluate(() => {
+    const a = document.getElementById('session-list')
+    const r = a.getBoundingClientRect()
+    const header = document.querySelector('header')
+    const band = document.querySelector('aside[aria-label="국내 지수"]')
+    const topAt = (x, y) => document.elementFromPoint(x, y)?.closest('#session-list') !== null
+    return { x: Math.round(r.left), w: Math.round(r.width), h: Math.round(r.height), vh: innerHeight, open: a.hasAttribute('data-open'), inert: a.inert,
+      focusIn: a.contains(document.activeElement), onOpener: document.activeElement?.getAttribute('aria-controls') === 'session-list',
+      lock: document.body.style.overflow, overHeader: header ? topAt(20, header.getBoundingClientRect().top + 10) : null,
+      overBand: band ? topAt(20, band.getBoundingClientRect().top + 10) : null }
+  })
+  const closedState = await drawer()
+  // 닫힌 날개 안 방 단추는 탭으로 닿지 않는다
+  await opener.focus()
+  const reachable = await t.page.evaluate(() => { const b = document.querySelector('#session-list button'); b?.focus(); return document.activeElement === b })
+  await opener.click(); await sleep(400)
+  const openState = await drawer()
+  // 탭을 열 번 눌러도 날개 밖으로 나가지 않는다
+  for (let i = 0; i < 10; i++) await t.page.keyboard.press('Tab')
+  const trapped = await t.page.evaluate(() => document.getElementById('session-list').contains(document.activeElement))
+  await t.page.keyboard.press('Escape'); await sleep(400)
+  const esc = await drawer()
+  report('A16b-1', closedState.x < 0 && !closedState.open && closedState.inert && !reachable
+    && openState.open && openState.x === 0 && openState.h === openState.vh && openState.w >= 280 && openState.w <= 320 && openState.focusIn && openState.lock === 'hidden'
+    && openState.overHeader && openState.overBand && trapped && !esc.open && esc.onOpener && esc.lock === '',
+    `닫힘: 왼쪽 ${closedState.x}px·inert ${closedState.inert}·방 단추 닿음 ${reachable} → 열림: 왼쪽 ${openState.x}px·폭 ${openState.w}·높이 ${openState.h}/${openState.vh}, 머리글 위 ${openState.overHeader}·지수 띠 위 ${openState.overBand}, `
+    + `포커스 날개 안 ${openState.focusIn}·스크롤 잠금 ${openState.lock}, 탭 10번 뒤 안 ${trapped} → Esc 닫힘 ${!esc.open}·포커스 연 단추 ${esc.onOpener}·잠금 풂 "${esc.lock}"`)
+
+  // 뒤 누르기·닫기 단추·왼쪽으로 밀기
+  await opener.click(); await sleep(400)
+  await t.page.touchscreen.tap(360, 400); await sleep(400)
+  const byBackdrop = !(await drawer()).open
+  await opener.click(); await sleep(400)
+  await t.page.getByRole('button', { name: '목록 닫기' }).click(); await sleep(400)
+  const byClose = !(await drawer()).open
+  await opener.click(); await sleep(400)
+  const cdp = await t.context.newCDPSession(t.page)
+  const touch = (type, x, y) => cdp.send('Input.dispatchTouchEvent', { type, touchPoints: type === 'touchEnd' ? [] : [{ x, y }] })
+  await touch('touchStart', 250, 400)
+  for (let i = 1; i <= 8; i++) { await touch('touchMove', 250 - i * 20, 404); await sleep(16) }
+  await touch('touchEnd'); await sleep(400)
+  const bySwipe = !(await drawer()).open
+  // 날개 안에서 지우기 확인 상자 — 상자가 위에 서고, 상자의 Esc는 상자만 닫는다
+  await opener.click(); await sleep(400)
+  await t.page.getByRole('button', { name: `‘${ROOM}’ 대화 관리` }).click()
+  await t.page.getByRole('button', { name: '지우기', exact: true }).click(); await sleep(300)
+  const modalOnTop = await t.page.evaluate(() => { const d = document.querySelector('[role="dialog"]'); if (!d) return false; const r = d.getBoundingClientRect(); return document.elementFromPoint(r.left + r.width / 2, r.top + 10)?.closest('[role="dialog"]') !== null })
+  await t.page.keyboard.press('Escape'); await sleep(300)
+  const afterModalEsc = { modal: await t.page.locator('[role="dialog"]').count(), drawer: (await drawer()).open }
+  await cdp.detach()
+  report('A16b-2', byBackdrop && byClose && bySwipe && modalOnTop && afterModalEsc.modal === 0 && afterModalEsc.drawer,
+    `뒤 누르기 닫힘 ${byBackdrop}, 닫기 단추 ${byClose}, 왼쪽으로 밀기 ${bySwipe}, 지우기 확인 상자가 날개 위 ${modalOnTop}, 상자 Esc → 상자 ${afterModalEsc.modal}개·날개 열림 ${afterModalEsc.drawer}`)
   await t.close()
 })
 
