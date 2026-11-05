@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { getLikeStocks, unlikeStock } from '../api/member'
+import { useLiveRows, useRealtime, withLivePrice } from '../api/realtime'
 import { useDocumentTitle } from '../hooks/useDocumentTitle'
 import { useIsLoggedIn } from '../hooks/useIsLoggedIn'
 import KeywordNews from '../components/KeywordNews'
@@ -17,6 +18,7 @@ import {
 } from '../utils/format'
 import { loginPathFrom } from '../utils/navigation'
 import { preloadStockChartPage } from '../utils/preload'
+import { basisLabel } from '../utils/priceBasis'
 import { toQuotePreviewState } from '../utils/stockPreview'
 import { sortBy } from '../utils/sort'
 import { squarify } from '../utils/treemap'
@@ -25,7 +27,7 @@ import styles from './LikesPage.module.css'
 
 type State =
   | { kind: 'loading' }
-  | { kind: 'ready'; baseDate: string; stocks: LikeStock[] }
+  | { kind: 'ready'; baseDate: string; realtime: boolean; stocks: LikeStock[] }
   | { kind: 'error' }
 
 type ListOrder = 'rate' | 'value' | 'recent'
@@ -81,7 +83,7 @@ function LikesBoard() {
     setState({ kind: 'loading' })
     getLikeStocks()
       .then((result) =>
-        setState({ kind: 'ready', baseDate: result.baseDate, stocks: result.likeStockList }),
+        setState({ kind: 'ready', baseDate: result.baseDate, realtime: result.realtime, stocks: result.likeStockList }),
       )
       .catch((error: unknown) => {
         console.warn('관심종목 조회 실패', error)
@@ -115,8 +117,10 @@ function LikesBoard() {
     }
   }
 
-  const stocks = useMemo(() => (state.kind === 'ready' ? state.stocks : []), [state])
-  const sorted = useMemo(() => sortLikes(stocks, order), [stocks, order])
+  const { prices, live } = useRealtime()
+  const rows = useMemo(() => (state.kind === 'ready' ? state.stocks : []), [state])
+  const sorted = useLiveRows(rows, order, sortLikes)
+  const stocks = useMemo(() => rows.map((row) => withLivePrice(row, prices)), [rows, prices])
 
   if (state.kind === 'loading') {
     return (
@@ -140,7 +144,7 @@ function LikesBoard() {
     )
   }
 
-  const baseDate = toKoreanDate(state.baseDate)
+  const basis = basisLabel({ baseDate: state.baseDate, asOf: null, realtime: state.realtime }, live && prices.size > 0)
   const rated = stocks.filter((s) => isFiniteNumber(s.fluctuate))
   const ups = rated.filter((s) => !isFlatRate(s.fluctuate) && (s.fluctuate ?? 0) > 0)
   const downs = rated.filter((s) => !isFlatRate(s.fluctuate) && (s.fluctuate ?? 0) < 0)
@@ -154,7 +158,7 @@ function LikesBoard() {
           <p className={styles.eyebrow}>관심종목</p>
           <h1 className={styles.title}>{summarize(stocks.length, ups.length, downs.length)}</h1>
         </div>
-        {baseDate !== '' && <p className={styles.base}>{baseDate} 종가 기준</p>}
+        {basis !== '' && <p className={styles.base}>{basis}</p>}
       </header>
 
       {notice !== '' && (

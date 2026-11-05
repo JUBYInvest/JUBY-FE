@@ -87,13 +87,6 @@ export function formatPoint(value: number | null | undefined): string {
   return KO_POINT.format(value)
 }
 
-/** 지수 전일 대비. 12.31 → "+12.31", -3.2 → "-3.20". 찍히는 자리에서 0이면 부호 없이 "0.00"(isFlatRate와 같은 규칙) */
-export function formatPointChange(value: number | null | undefined): string {
-  if (!isFiniteNumber(value)) return EMPTY
-  if (isFlatRate(value)) return KO_POINT.format(0)
-  return `${value > 0 ? '+' : ''}${KO_POINT.format(value)}`
-}
-
 /** 181200 → "181,200원" */
 export function formatPrice(price: number | null | undefined): string {
   if (!isFiniteNumber(price)) return EMPTY

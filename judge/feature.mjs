@@ -29,7 +29,8 @@ async function open(path, { width = 1440, height = 900, login = true, opts = {},
   await page.goto(BASE + path, { waitUntil: 'domcontentloaded' })
   await sleep(wait)
   await page.evaluate(() => document.fonts.ready)
-  return { context, page, log: log.filter((l) => !l.startsWith('BLOCKED')), raw: log }
+  // 화면 아래 지수 띠의 요청(지수·실시간 연결)은 모든 화면 뒤에서 돈다 — 화면 요청을 셀 때 뺀다(market.mjs가 따로 본다)
+  return { context, page, log: log.filter((l) => !l.startsWith('BLOCKED') && !/^GET \/api\/(stream\/|market-indices)/.test(l)), raw: log }
 }
 /** 첫 화면(지수 띠 위)에 다 들어온 요소 수 */
 const inView = (page, sel) => page.evaluate((sel) => {
@@ -174,15 +175,17 @@ for (const [width, height, least] of [[1920, 1080, 8], [1440, 900, 8], [390, 844
 
 /* ── 아래 지수 띠 ── */
 {
-  // B-1 예시 값 표시(2026-11-03부터 "(목업본)" — 사용자)는 기준 시각("10월 29일 11:00 기준")처럼 띠 위 글자로만 적는다 — 둥근 바탕 표시는 "AI가 만든 화면" 같았다(2026-11-02 사용자)
+  // B-1 기준 시각("10월 29일 11:00 기준")은 띠 위 글자로만 적는다(둥근 바탕 표시 없음). 예시 값 표시 "(목업본)"은 실제 지수로 바꾼 뒤 없다
   const { context, page } = await open('/', { width: 1440, height: 900 })
+  await page.waitForTimeout(800)
   const s = await page.evaluate(() => {
-    const el = [...document.querySelectorAll('aside[aria-label="국내 지수"] p')].find((p) => /목업본/.test(p.textContent))
+    const ps = [...document.querySelectorAll('aside[aria-label="국내 지수"] p')]
+    const el = ps.find((p) => /기준$/.test(p.textContent.trim()))
     if (!el) return null
     const cs = getComputedStyle(el)
-    return { text: el.textContent.trim(), bg: cs.backgroundColor, radius: cs.borderTopLeftRadius, padding: cs.paddingLeft, weight: cs.fontWeight }
+    return { text: el.textContent.trim(), sample: ps.some((p) => /목업본/.test(p.textContent)), bg: cs.backgroundColor, radius: cs.borderTopLeftRadius, padding: cs.paddingLeft }
   })
-  report('B-1', s !== null && s.bg === 'rgba(0, 0, 0, 0)' && s.radius === '0px' && s.padding === '0px', `"(목업본)" 표시 ${JSON.stringify(s)}`)
+  report('B-1', s !== null && !s.sample && s.bg === 'rgba(0, 0, 0, 0)' && s.radius === '0px' && s.padding === '0px', `기준 시각 표시 ${JSON.stringify(s)}`)
   await context.close()
 }
 

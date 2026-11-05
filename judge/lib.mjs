@@ -44,8 +44,8 @@ export async function judge({ BASE, ONLY = null, HEADED = false } = {}) {
     page.on('response', (r) => { if (r.headers()['x-vercel-id']) realHits += 1 })
     const count = (re) => log.filter((l) => re.test(l)).length
     const goto = async (path, wait = 1200) => { await page.goto(BASE + path, { waitUntil: 'domcontentloaded' }); await sleep(wait) }
-    /** BLOCKED 줄을 뺀 /api 요청 순서 */
-    const api = () => log.filter((l) => !l.startsWith('BLOCKED'))
+    /** BLOCKED 줄과 화면 아래 지수 띠의 요청(지수·실시간 연결 — market.mjs가 따로 본다)을 뺀 /api 요청 순서 */
+    const api = () => log.filter((l) => !l.startsWith('BLOCKED') && !/^GET \/api\/(stream\/|market-indices)/.test(l))
     return { page, context, log, count, goto, api, close: () => context.close() }
   }
   const run = async (key, fn) => {

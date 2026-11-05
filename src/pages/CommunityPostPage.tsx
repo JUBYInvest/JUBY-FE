@@ -9,7 +9,7 @@ import { useCommunityFeed } from '../hooks/useCommunityFeed'
 import { useDocumentTitle } from '../hooks/useDocumentTitle'
 import { useCommunityHandoff } from '../hooks/useStockHandoff'
 import { useStockQuotes } from '../hooks/useStockQuotes'
-import { timeAgo, toKoreanDate } from '../utils/date'
+import { timeAgo } from '../utils/date'
 import { formatChangeRate, rateTone } from '../utils/format'
 import { toPreviewState } from '../utils/stockPreview'
 import styles from './CommunityPostPage.module.css'
@@ -66,7 +66,7 @@ export default function CommunityPostPage() {
 
   const quote = post?.stockCode != null ? quotes.get(post.stockCode) : undefined
   const fluctuate = quote?.fluctuate ?? null
-  const asOf = fluctuate !== null && quote !== undefined ? toKoreanDate(quote.baseDate) : ''
+  const asOf = fluctuate !== null && quote !== undefined ? quote.basis : ''
 
   return (
     <>
@@ -114,7 +114,7 @@ export default function CommunityPostPage() {
                       </>
                     )}
                   </p>
-                  {asOf !== '' && <p className={styles.asOf}>{asOf} 종가 기준</p>}
+                  {asOf !== '' && <p className={styles.asOf}>{asOf}</p>}
                   <ChevronIcon />
                 </div>
               )}

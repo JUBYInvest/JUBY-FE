@@ -19,7 +19,7 @@
   align-items: center;
   gap: var(--space-6);
   max-width: calc(var(--content-max) + var(--page-gutter) * 2);
-  height: 44px;
+  height: var(--index-bar-height);
   margin: 0 auto;
   padding: 0 var(--page-gutter);
   font-size: var(--font-sm);
@@ -158,17 +158,7 @@
 }
 
 .tone {
-  display: flex;
-  gap: var(--space-1);
   font-weight: 600;
-}
-
-.rate::before {
-  content: '(';
-}
-
-.rate::after {
-  content: ')';
 }
 
 /* 등락 글자는 띠 위용으로 밝힌 빨강·파랑이다(index.css -on-dark, 4.8:1·5.1:1) */
@@ -185,17 +175,6 @@
 }
 
 .asOf {
-  margin: 0 0 0 auto;
-  font-size: var(--font-xs);
-  color: var(--color-brand-100);
-}
-
-/*
- * 백엔드 API가 나오기 전의 예시 값이라는 표시 "(목업본)"(2026-11-03 사용자 — 그 전엔 "예시 값 · 실제 지수 아님"). 휴대폰에서도 남긴다 — 실제 지수로 읽히면 안 된다.
- * 기준 시각(.asOf)이 설 자리에 같은 모양의 글로 적는다 — 둥근 바탕을 깐 표시는 "AI가 만든 화면" 같았다(2026-11-02 사용자)
- */
-.sample {
-  flex-shrink: 0;
   margin: 0 0 0 auto;
   font-size: var(--font-xs);
   color: var(--color-brand-100);
@@ -225,23 +204,10 @@
   }
 }
 
-/* 태블릿 세로 폭(601~760px)은 장 상태와 두 줄이 다 들어가지 않는다. 포인트 대비를 빼고 대비율만 남긴다 */
-@media (max-width: 760px) {
-  .change {
-    display: none;
-  }
-
-  .rate::before,
-  .rate::after {
-    content: none;
-  }
-}
-
-/* 휴대폰: 이름·지수·대비율만 남긴다. 기준 시각과 대비(포인트)는 뺀다. 375px에서 두 줄과 "예시 값"이 한 줄에 들어간다 */
+/* 휴대폰: 이름·지수·대비율만 남긴다 */
 @media (max-width: 600px) {
   .inner {
     gap: var(--space-2);
-    height: 40px;
     font-size: var(--font-xs);
   }
 
@@ -254,23 +220,10 @@
     padding-left: var(--space-2);
   }
 
-  .sample {
-    font-size: var(--font-2xs);
-  }
-
-  /*
-   * 장 상태도 뺀다. 375px에서 두 줄과 "예시 값"만으로 남는 자리가 10px쯤이라, 상태("장 중"만 해도 50px)를 넣으면 코스닥 등락률이 띠 밖으로 밀려
-   * 안 보였다(2026-10-31 판정 S8). 지수가 먼저다
-   */
-  .change,
+  /* 장 상태·기준 시각을 넣으면 375px에서 코스닥 등락률이 띠 밖으로 밀린다. 지수가 먼저다 */
   .asOf,
   .statusGroup {
     display: none;
-  }
-
-  .rate::before,
-  .rate::after {
-    content: none;
   }
 }
 

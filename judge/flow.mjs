@@ -159,16 +159,11 @@ await run('I', async () => {
   await t.close()
   report('I12', !sessions.includes('← 틀림') && !narrow.trackShown && narrow.edge === 31, `장 진행 막대 — ${sessions.join(' · ')} / 800px 막대 ${narrow.trackShown ? '보임' : '숨김'}·띠 위 끝 줄 ${narrow.edge}%`)
 
+  // I5 비로그인: 지수 API(/api/market-indices)가 로그인을 요구해 띠가 없다. 휴장일도 묻지 않는다(백엔드가 지수를 공개로 열면 I5·I6을 되살린다)
   t = await open({ loggedIn: false })
-  await t.goto('/')
-  s = await status(t.page)
-  report('I5', s === null && t.count(/holiday/) === 0, `비로그인 평일: 상태 없음(${s}), 휴장일 ${t.count(/holiday/)}건`)
-  await t.close()
-
-  t = await open({ loggedIn: false, at: kst(2026, 10, 31, 12) })
-  await t.goto('/')
-  s = await status(t.page)
-  report('I6', s === '오늘 휴장', `비로그인 토요일: "${s}"(다음 개장일은 모른다)`)
+  await t.goto('/', 1500)
+  const guestBar = await t.page.getByRole('complementary', { name: '국내 지수' }).count()
+  report('I5', guestBar === 0 && t.count(/holiday/) === 0, `비로그인 평일: 띠 ${guestBar}개, 휴장일 ${t.count(/holiday/)}건`)
   await t.close()
 
   t = await open({ at: kst(2026, 10, 31, 12) })

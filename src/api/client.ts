@@ -9,7 +9,7 @@ import { goTo, loginPathFrom } from '../utils/navigation'
  * 토큰이 없거나 만료되면 서버가 401 JSON을 준다. 토큰을 실어 보낸 요청이면 한 번 재발급해 다시 보내고, 그래도 안 되면
  * 여기서 한 번에 처리해 로그인 화면으로 보낸다.
  */
-const BASE_URL: string = import.meta.env.VITE_API_BASE_URL ?? ''
+export const BASE_URL: string = import.meta.env.VITE_API_BASE_URL ?? ''
 
 /**
  * 백엔드 주소. 프록시를 거치지 않고 브라우저가 곧장 찾아가는 두 곳이 쓴다 — 소셜 로그인 이동(LoginPage)과 토큰 재발급.
@@ -234,7 +234,7 @@ async function requestReissue(): Promise<string | null> {
  * 보낸 뒤에 토큰이 바뀌었으면(다른 요청이나 다른 탭이 이미 재발급했다) 재발급 없이 그걸 쓴다. 재발급이 실패해도 한 번 더 본다 —
  * 두 탭이 같은 refresh token으로 동시에 재발급하면 늦은 쪽은 실패하는데, 그 사이 앞선 탭이 새 토큰을 담아 뒀을 수 있다.
  */
-async function tokenForRetry(sentToken: string): Promise<string | null> {
+export async function tokenForRetry(sentToken: string): Promise<string | null> {
   const current = getAccessToken()
   if (current !== null && current !== sentToken) return current
   const renewed = await reissueAccessToken()

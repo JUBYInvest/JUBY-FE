@@ -462,7 +462,7 @@ await j.run('B15', async () => {
     const color = Number(rate.toFixed(2)) === 0 ? colors.sub : rate > 0 ? colors.up : colors.down
     if (got === null || !got.name.includes(post.stock.name) || got.rate !== want || got.color !== color) bad.push(`${post.id} ${JSON.stringify(got)} 기대 ${want}`)
   })
-  const asOf = await t.page.locator(FEED).getByText(/^등락률은 .+ 종가 기준이에요$/).count()
+  const asOf = await t.page.locator(FEED).getByText(/^.+ 종가 기준 등락률이에요$/).count()
   j.report('B15', bad.length === 0 && asOf === 1, `글 머리 등락률 ${LATEST.filter((p) => p.stock).length}개 중 어긋남 ${bad.length}${bad.length ? ' · ' + bad.slice(0, 3).join(' | ') : ''}, 기준일 한 번 ${asOf}`)
   // 종목 카드 아래 줄 오른쪽에도 같은 값·색(2026-11-04 다듬기). 전체 카드는 등락률이 없다
   const cards = await cardRates(t.page)

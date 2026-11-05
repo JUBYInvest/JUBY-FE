@@ -1,7 +1,8 @@
+import { getAccountId } from '../utils/auth'
+
 /**
- * 같은 탭에서 잠깐 다시 쓰는 값(상세 1분, 뉴스 10분 — 사용자 결정 2026-09-27). 메모리에만 두므로 새로고침하면 비고,
- * 실패는 담지 않는다(부르는 쪽이 성공만 넣는다). 읽을 때만 만료를 보므로 오래 열어 둔 탭에서는 지난 항목이 남을 수 있다 —
- * 상세는 종목마다 전체 일봉을 들어 수 MB까지 갈 수 있지만 체감 장애는 아니라 그대로 둔다(docs/남은-일.md).
+ * 같은 탭에서 잠깐 다시 쓰는 값(상세 1분, 뉴스 10분, 공용 조회 1분). 메모리에만 두므로 새로고침하면 비고, 실패는 담지 않는다.
+ * 읽을 때만 만료를 보므로 오래 열어 둔 탭에서는 지난 항목이 남을 수 있다.
  */
 export interface Memo<T> {
   savedAt: number
@@ -17,4 +18,35 @@ export function readMemo<T>(memo: Map<string, Memo<T>>, key: string, maxAge: num
     return null
   }
   return entry.value
+}
+
+/** 열쇠마다 받는 중이거나 받아 둔 요청 */
+const requests = new Map<string, { at: number; promise: Promise<unknown> }>()
+
+/**
+ * 여러 화면이 같이 쓰는 조회를 한 번만 보낸다 — 홈·백테스트·커뮤니티의 시세표, 관심종목·마이페이지의 관심종목 목록처럼.
+ * 같은 열쇠로 maxAge 안에 다시 부르면 같은 요청(받는 중이면 그 요청)을 돌려준다. 실패는 담지 않는다.
+ * 값을 바꾸는 요청 뒤에는 forget으로 지운다. 회원마다 다른 값은 열쇠에 계정을 넣는다(memberKey).
+ */
+export function shared<T>(key: string, maxAge: number, load: () => Promise<T>): Promise<T> {
+  const hit = requests.get(key)
+  if (hit !== undefined && Date.now() - hit.at < maxAge) return hit.promise as Promise<T>
+  const promise = load()
+  requests.set(key, { at: Date.now(), promise })
+  promise.catch(() => {
+    if (requests.get(key)?.promise === promise) requests.delete(key)
+  })
+  return promise
+}
+
+/** 이름이 이것으로 시작하는 열쇠를 모두 지운다(계정이 붙은 열쇠까지) */
+export function forget(...names: string[]): void {
+  for (const key of [...requests.keys()]) {
+    if (names.some((name) => key === name || key.startsWith(`${name}:`))) requests.delete(key)
+  }
+}
+
+/** 회원마다 다른 값의 열쇠 — 로그인·로그아웃하면 다른 열쇠가 된다 */
+export function memberKey(name: string): string {
+  return `${name}:${getAccountId() ?? 'guest'}`
 }

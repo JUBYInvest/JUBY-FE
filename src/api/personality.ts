@@ -1,4 +1,5 @@
 import { ApiError, get, post } from './client'
+import { forgetMyPersonality } from './member'
 import { isLoggedIn } from '../utils/auth'
 import { isFiniteNumber } from '../utils/format'
 import {
@@ -178,6 +179,7 @@ export async function submitTest(
 
   // 서버는 받은 배열을 전부 더해 구간에 넣는다. 명세대로 낱개 점수를 보낸다(서버 문항이라 환산값과 같다)
   const result = await post<TestResultResponse | null>('/api/personality-tests', { scores })
+  forgetMyPersonality()
 
   /*
    * 여기까지 왔으면 서버는 이미 저장을 끝냈다. 여기서 던지면 화면이 "저장하지 못했어요"를 띄우고

@@ -1,4 +1,5 @@
 import { ApiError, get, malformedResponse, patch, post, remove } from './client'
+import { forget, memberKey, shared } from './memo'
 import { isStockCode, nameOrCode } from './stock'
 import { clearTokens } from '../utils/auth'
 import { fromDashedYmd } from '../utils/date'
@@ -33,7 +34,11 @@ interface MemberInfoResponse {
  * 낱개 칸은 여기서 거른다(다른 API와 같다 — CLAUDE.md "API 계층"): 이름·이메일이 문자열이 아니면 ""(화면이 "회원님"으로 적는다),
  * 생일이 비면 null, 가입 경로가 모르는 값이면 null. 예전엔 거르지 않고 넘겨 name이 null이면 내 정보 수정이 `null.trim()`에서 죽었다.
  */
-export async function getMemberInfo(): Promise<MemberInfo> {
+export function getMemberInfo(): Promise<MemberInfo> {
+  return shared(memberKey('member'), 60_000, fetchMemberInfo)
+}
+
+async function fetchMemberInfo(): Promise<MemberInfo> {
   const member = await get<MemberInfoResponse | null>('/api/members/me')
   if (member === null || typeof member !== 'object') throw malformedResponse()
   return toMemberInfo(member)
@@ -80,6 +85,7 @@ export async function checkAfterLogin(): Promise<{ needsOnboarding: boolean; soc
  */
 export async function updateMemberInfo(update: MemberUpdate): Promise<void> {
   await patch<{ modifiedDate: string }>('/api/members/me', update)
+  forget('member')
 }
 
 /**
@@ -92,9 +98,17 @@ export async function updateMemberInfo(update: MemberUpdate): Promise<void> {
  * 다만 **그 밖의 통신·서버 오류는 삼키지 않고 던진다.** 부르는 쪽이
  * "아직 검사 안 함"과 "못 불러옴"을 다른 화면으로 보여줘야 하기 때문이다.
  */
-export async function getMyPersonality(options?: {
-  ignoreUnauthorized?: boolean
-}): Promise<PersonalityInfo | null> {
+export function getMyPersonality(options?: { ignoreUnauthorized?: boolean }): Promise<PersonalityInfo | null> {
+  const name = options?.ignoreUnauthorized === true ? 'personality-public' : 'personality'
+  return shared(memberKey(name), 60_000, () => fetchMyPersonality(options))
+}
+
+/** 성향을 바꾸는 요청(검사 제출·성향 변경) 뒤에 부른다 — 화면들이 지난 성향을 다시 쓰지 않게 */
+export function forgetMyPersonality(): void {
+  forget('personality', 'personality-public', 'member')
+}
+
+async function fetchMyPersonality(options?: { ignoreUnauthorized?: boolean }): Promise<PersonalityInfo | null> {
   let result: PersonalityInfo | null
   try {
     result = await get<PersonalityInfo | null>('/api/members/me/personality', options)
@@ -146,13 +160,24 @@ export function deleteMember(): Promise<null> {
  * 홈의 하트가 낙관적으로 먼저 켜지고 이 요청이 실패하면 되돌린다.
  */
 export async function likeStock(stockCode: string): Promise<void> {
-  await post<unknown>('/api/members/me/like-stocks', { stockCode })
+  try {
+    await post<unknown>('/api/members/me/like-stocks', { stockCode })
+  } finally {
+    forgetLikes()
+  }
 }
 
 export async function unlikeStock(stockCode: string): Promise<void> {
-  await remove<unknown>(
-    `/api/members/me/like-stocks/${encodeURIComponent(stockCode)}`,
-  )
+  try {
+    await remove<unknown>(`/api/members/me/like-stocks/${encodeURIComponent(stockCode)}`)
+  } finally {
+    forgetLikes()
+  }
+}
+
+/** 관심종목이 바뀌면 관심종목 목록과 시세표 하트(isLiked)를 다시 받게 한다 */
+function forgetLikes(): void {
+  forget('likes', 'likes-public', 'stocks')
 }
 
 /**
@@ -161,9 +186,12 @@ export async function unlikeStock(stockCode: string): Promise<void> {
  * 화면의 "불러오지 못했습니다 + 다시 시도"를 태운다. 기준일은 비어도 된다(화면이 그 줄만 숨긴다).
  * 날짜는 다른 API처럼 받는 자리에서 YYYYMMDD로 바꾼다(CLAUDE.md "날짜는 YYYYMMDD") — 예전엔 하이픈 그대로 넘겨 화면 둘이 각자 바꿨다.
  */
-export async function getLikeStocks(options?: {
-  ignoreUnauthorized?: boolean
-}): Promise<LikeStockList> {
+export function getLikeStocks(options?: { ignoreUnauthorized?: boolean }): Promise<LikeStockList> {
+  const name = options?.ignoreUnauthorized === true ? 'likes-public' : 'likes'
+  return shared(memberKey(name), 60_000, () => fetchLikeStocks(options))
+}
+
+async function fetchLikeStocks(options?: { ignoreUnauthorized?: boolean }): Promise<LikeStockList> {
   const result = await get<LikeStockListResponse | null>('/api/members/me/like-stocks', options)
   if (typeof result !== 'object' || result === null || !Array.isArray(result.likeStockList)) {
     throw malformedResponse()
@@ -175,6 +203,7 @@ export async function getLikeStocks(options?: {
   return {
     // 기준일이 빈 건 화면이 그 줄을 숨긴다(fromDashedYmd → "")
     baseDate: fromDashedYmd(typeof result.baseDate === 'string' ? result.baseDate : null),
+    realtime: result.likeStockList.some((row) => row?.realtime === true),
     totalCount: finiteOrNull(result.totalCount) ?? likeStockList.length,
     likeStockList,
   }
@@ -208,6 +237,8 @@ interface LikeStockResponse {
   fluctuate?: number | null
   tradingValue?: number | null
   likedAt?: string | null
+  /** 종가 자리가 장중 현재가인가 */
+  realtime?: boolean | null
 }
 
 /**

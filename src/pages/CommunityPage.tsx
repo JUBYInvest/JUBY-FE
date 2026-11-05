@@ -12,7 +12,6 @@ import { useDocumentTitle } from '../hooks/useDocumentTitle'
 import { usePullToRefresh } from '../hooks/usePullToRefresh'
 import { toStockHandoff } from '../hooks/useStockHandoff'
 import { useStockQuotes, type StockQuote } from '../hooks/useStockQuotes'
-import { sharedYmd, toKoreanDate } from '../utils/date'
 import { formatChangeRate, rateTone } from '../utils/format'
 import { prefersReducedMotion } from '../utils/motion'
 import type { StockInfo } from '../types/stock'
@@ -89,8 +88,8 @@ export default function CommunityPage() {
   const shown = all.filter((post) => picked === null || post.stockCode === picked.code).sort(order === 'latest' ? byLatest : byPopular)
   const orderNote = ORDERS.find((item) => item.key === order)?.note ?? ''
   // 등락률이 언제 값인지 — 보이는 글의 종목이 모두 같은 날 종가면 목록 위에 한 번 적는다
-  const quoted = shown.flatMap((post) => (post.stockCode === null ? [] : [quotes.get(post.stockCode)?.baseDate ?? '']))
-  const quoteDate = quoted.length > 0 ? sharedYmd(quoted) : null
+  const quoted = new Set(shown.flatMap((post) => (post.stockCode === null ? [] : [quotes.get(post.stockCode)?.basis ?? ''])))
+  const quoteBasis = quoted.size === 1 ? [...quoted][0] : ''
 
   // 검색 후보: 글이 있는 종목이 같은 일치 순위 안에서 앞선다(rankStocks), 그 뒤 시총 상위 사본
   const searchable = useMemo(() => {
@@ -196,7 +195,7 @@ export default function CommunityPage() {
 
               <StockStrip ref={stripRef} stocks={stocks} total={all.length} quotes={quotes} pickedCode={picked?.code ?? null} onPick={pickStock} />
 
-              {quoteDate !== null && <p className={styles.asOf}>등락률은 {toKoreanDate(quoteDate)} 종가 기준이에요</p>}
+              {quoteBasis !== '' && <p className={styles.asOf}>{quoteBasis} 등락률이에요</p>}
 
               {pending.length > 0 && (
                 <button type="button" className={styles.fresh} onClick={revealPending}>

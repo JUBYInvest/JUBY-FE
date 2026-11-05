@@ -136,6 +136,16 @@ export function toKoreanDateTime(ms: number): string {
   return `${kst.getUTCMonth() + 1}월 ${kst.getUTCDate()}일 ${hours}:${minutes}`
 }
 
+/** 서버가 주는 한국 시각 글자("2026-11-04T10:15:30", 시간대 없음) → ms. 모양이 틀리면 null */
+export function fromKstDateTime(text: string | null | undefined): number | null {
+  if (typeof text !== 'string') return null
+  const match = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2}))?/.exec(text)
+  if (match === null) return null
+  const [, y, mo, d, h, mi, s = '0'] = match
+  const ms = Date.UTC(Number(y), Number(mo) - 1, Number(d), Number(h) - 9, Number(mi), Number(s))
+  return Number.isNaN(ms) ? null : ms
+}
+
 /** `<time dateTime>`에 넣는 ISO 시각("2026-10-29T02:00:00.000Z"). 시각이 아니면 "" — toISOString은 던져서 그리던 화면을 멈춘다 */
 export function toIsoTime(ms: number): string {
   const date = new Date(ms)

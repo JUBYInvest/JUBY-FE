@@ -37,7 +37,7 @@ export interface PersonalityInfo {
   personalityImg: string | null
 }
 
-/** GET /api/members/me/like-stocks 한 줄. 시세는 baseDate 기준 종가다. 숫자 칸은 비어 오면 null("-") */
+/** GET /api/members/me/like-stocks 한 줄. 시세는 baseDate 종가(장중엔 현재가)다. 숫자 칸은 비어 오면 null("-") */
 export interface LikeStock extends StockInfo {
   closePrice: number | null
   fluctuate: number | null
@@ -51,6 +51,8 @@ export interface LikeStock extends StockInfo {
 export interface LikeStockList {
   /** YYYYMMDD. 비어 오면 ""(화면이 기준일 줄을 숨긴다) */
   baseDate: string
+  /** 한 종목이라도 장중 현재가면 true(서버가 종가 자리에 현재가를 넣는다) */
+  realtime: boolean
   /** 서버가 비워 보내면 받은 목록의 길이 */
   totalCount: number
   likeStockList: LikeStock[]

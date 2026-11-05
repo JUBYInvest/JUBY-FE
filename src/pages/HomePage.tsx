@@ -6,7 +6,7 @@ import {
   useRef,
   useState,
 } from 'react'
-import { Link, useLocation, useNavigationType } from 'react-router-dom'
+import { useLocation, useNavigationType } from 'react-router-dom'
 import HomeRail from '../components/HomeRail'
 import SearchBar from '../components/SearchBar'
 import TopStockCard from '../components/TopStockCard'
@@ -14,19 +14,22 @@ import StockTable from '../components/StockTable'
 import VolumeRank from '../components/VolumeRank'
 import SectionBoundary from '../components/SectionBoundary'
 import Spinner from '../components/Spinner'
-import Modal from '../components/Modal'
+import LoginModal from '../components/LoginModal'
 import { readCardSeries } from '../api/cardSeries'
 import { FALLBACK_LEADING, loadCardSeries, loadLeading, readCachedLeading } from '../api/home'
 import { likeStock, unlikeStock } from '../api/member'
 import { byTradingValue } from '../api/search'
+import { useLiveRows, useRealtime, withLivePrice } from '../api/realtime'
 import { getStockList } from '../api/stock'
 import { STOCK_LIST } from '../api/stockList'
 import { useDocumentTitle } from '../hooks/useDocumentTitle'
+import { useMediaQuery } from '../hooks/useMediaQuery'
 import { useIsLoggedIn } from '../hooks/useIsLoggedIn'
-import { sharedYmd, toKoreanDate } from '../utils/date'
+import { sharedYmd } from '../utils/date'
 import { isFiniteNumber } from '../utils/format'
 import { loginPathFrom } from '../utils/navigation'
 import { preloadStockChartPage } from '../utils/preload'
+import { basisLabel, type PriceBasis } from '../utils/priceBasis'
 import { describeSort, nextSort, sortStocks } from '../utils/sort'
 import type {
   CardQuote,
@@ -39,6 +42,9 @@ import type {
 import styles from './HomePage.module.css'
 
 const PAGE_SIZE = 20
+/** 좁은 화면(한 열)은 시세표 아래에 처음 시작하기·커뮤니티가 오므로 10행만 보이고 단추로 늘린다 */
+const NARROW_PAGE_SIZE = 10
+const NARROW = '(max-width: 1100px)'
 
 /**
  * 표의 처음 순서. 서버 목록은 가나다순이라 그대로 두면 사람들이 찾는 종목이 아래로 밀린다.
@@ -75,7 +81,7 @@ const savedViews = new Map<string, HomeView>()
 
 type ListState =
   | { kind: 'loading' }
-  | { kind: 'ready'; baseDate: string; stocks: Stock[] }
+  | ({ kind: 'ready'; stocks: Stock[] } & PriceBasis)
   | { kind: 'error' }
 
 /**
@@ -117,8 +123,10 @@ export default function HomePage() {
   const [leadingSettled, setLeadingSettled] = useState(false)
   const themes = leading.themes
   const [list, setList] = useState<ListState>({ kind: 'loading' })
+  const narrow = useMediaQuery(NARROW)
+  const firstPage = narrow ? NARROW_PAGE_SIZE : PAGE_SIZE
   const [visibleCount, setVisibleCount] = useState(
-    restored?.visibleCount ?? PAGE_SIZE,
+    () => restored?.visibleCount ?? (window.matchMedia(NARROW).matches ? NARROW_PAGE_SIZE : PAGE_SIZE),
   )
   const [sort, setSort] = useState<SortState>(restored?.sort ?? DEFAULT_SORT)
   /** 순위 탭에서 종목을 누르고 뒤로 오면 순위 탭으로 돌아온다 */
@@ -160,9 +168,9 @@ export default function HomePage() {
     let isStale = false
 
     getStockList()
-      .then(({ baseDate, stocks }) => {
+      .then(({ stocks, ...basis }) => {
         if (isStale) return
-        setList({ kind: 'ready', baseDate, stocks })
+        setList({ kind: 'ready', stocks, ...basis })
         // 비로그인이면 서버가 isLiked를 비워 주지만, 기대지 않고 여기서도 비운다
         setFavoriteCodes(
           new Set(loggedIn ? stocks.filter((stock) => stock.isLiked).map((s) => s.stockCode) : []),
@@ -270,10 +278,12 @@ export default function HomePage() {
    * 카드가 그래프를 못 받았을 때 대신 적을 종가. 시세표는 DB만 읽어 늘 받아지므로
    * 카드 그래프(증권사를 거치는 상세 API)가 막혀도 이 값은 있다.
    */
+  const realtime = useRealtime()
+  const live = realtime.live && realtime.prices.size > 0
   const quotes = useMemo(() => {
     const byCode = new Map<string, CardQuote>()
     if (list.kind !== 'ready') return byCode
-    for (const stock of list.stocks) {
+    for (const stock of list.stocks.map((row) => withLivePrice(row, realtime.prices))) {
       if (!isFiniteNumber(stock.closePrice)) continue
       byCode.set(stock.stockCode, {
         closePrice: stock.closePrice,
@@ -282,7 +292,7 @@ export default function HomePage() {
       })
     }
     return byCode
-  }, [list])
+  }, [list, realtime.prices])
 
   /*
    * 카드 셋이 같은 날의 종가면 그 날을 구역 제목 줄에 한 번만 적는다("현재 주가 보기"와 같다). 다르거나 모르면 카드마다 적는다.
@@ -296,10 +306,10 @@ export default function HomePage() {
     [stocks],
   )
 
-  // 목록 끝이 화면에 들어오면 20개 더 보여준다
+  // 넓은 화면은 목록 끝이 화면에 들어오면 20개 더 보여준다(좁은 화면은 "종목 더 보기" 단추)
   useEffect(() => {
     const sentinel = sentinelRef.current
-    if (sentinel === null) return
+    if (sentinel === null || narrow) return
     if (visibleCount >= stocks.length) return
 
     const observer = new IntersectionObserver((entries) => {
@@ -315,11 +325,11 @@ export default function HomePage() {
     observer.observe(sentinel)
     return () => observer.disconnect()
     // 순위 탭에 다녀오면 끝 표시가 새로 붙는다. 다시 관찰해야 이어서 불러온다
-  }, [visibleCount, stocks.length, listTab])
+  }, [visibleCount, stocks.length, listTab, narrow])
 
   function handleSort(key: SortKey) {
     setSort((current) => nextSort(current, key))
-    setVisibleCount(PAGE_SIZE)
+    setVisibleCount(firstPage)
   }
 
   /**
@@ -363,8 +373,8 @@ export default function HomePage() {
     }
   }
 
-  // 하트·카드 그래프·무한 스크롤로 다시 그릴 때마다 100행을 다시 정렬하지 않는다
-  const sortedStocks = useMemo(() => sortStocks(stocks, sort), [stocks, sort])
+  const sortedStocks = useLiveRows(stocks, sort, sortStocks)
+  const listBasis = list.kind === 'ready' ? basisLabel(list, live) : ''
 
   return (
     <>
@@ -382,9 +392,7 @@ export default function HomePage() {
           <div className={styles.sectionHead}>
             {/* 홈의 대표 제목. 아래 '현재 주가 보기'가 h2로 이어진다 */}
             <h1 className={styles.heading}>테마별 대표 종목</h1>
-            {cardDate !== null && toKoreanDate(cardDate) !== '' && (
-              <span className={styles.asOf}>{toKoreanDate(cardDate)} 종가 기준</span>
-            )}
+            {cardDate !== null && listBasis !== '' && <span className={styles.asOf}>{listBasis}</span>}
             {/*
               무엇을 보여 주는지 쉬운 말로. 예전 머리말("SMA 이동평균선 전략 · 1년 기준으로 뽑은")은 사실과 달랐다 —
               백엔드는 테마마다 정해 둔 종목을 주고(JUBY-BE LeadingStockTheme) 전략 결과로 고르지 않는다(dev 3dc3f3a 확인).
@@ -432,11 +440,7 @@ export default function HomePage() {
               16시 배치 전에는 전 거래일 종가가 뜬다. 언제 것인지 밝혀둔다.
               기준일이 비어 오면 줄째 숨긴다 — 시세표는 그대로 보여준다
             */}
-            {listTab === 'all' && list.kind === 'ready' && toKoreanDate(list.baseDate) !== '' && (
-              <span className={styles.asOf}>
-                {toKoreanDate(list.baseDate)} 종가 기준
-              </span>
-            )}
+            {listTab === 'all' && listBasis !== '' && <span className={styles.asOf}>{listBasis}</span>}
             {/*
               무엇 순인지 글로도 적는다. 좁은 화면에서는 거래대금 열이 숨는데 기본 정렬이 거래대금이라 칸 머리로는 안 보인다
             */}
@@ -499,38 +503,28 @@ export default function HomePage() {
                 onHeartClick={(code) => void handleHeartClick(code)}
               />
 
-              <div ref={sentinelRef} className={styles.sentinel}>
-                {visibleCount < stocks.length && (
-                  <>
-                    <Spinner size={16} /> 불러오는 중…
-                  </>
-                )}
-              </div>
+              {narrow ? (
+                visibleCount < stocks.length && (
+                  <button type="button" className={styles.moreRows} onClick={() => setVisibleCount((count) => count + PAGE_SIZE)}>
+                    종목 더 보기 ({Math.min(visibleCount, stocks.length)}/{stocks.length})
+                  </button>
+                )
+              ) : (
+                <div ref={sentinelRef} className={styles.sentinel}>
+                  {visibleCount < stocks.length && (
+                    <>
+                      <Spinner size={16} /> 불러오는 중…
+                    </>
+                  )}
+                </div>
+              )}
             </SectionBoundary>
           )}
           </div>
         </section>
       </div>
 
-      <Modal
-        isOpen={isLoginModalOpen}
-        onClose={() => setIsLoginModalOpen(false)}
-        label="로그인 안내"
-      >
-        <p className={styles.modalMessage}>로그인 후 이용 가능한 기능입니다</p>
-        <div className={styles.modalButtons}>
-          <Link to="/login" className={styles.modalPrimary}>
-            로그인
-          </Link>
-          <button
-            type="button"
-            className={styles.modalSecondary}
-            onClick={() => setIsLoginModalOpen(false)}
-          >
-            닫기
-          </button>
-        </div>
-      </Modal>
+      <LoginModal isOpen={isLoginModalOpen} onClose={() => setIsLoginModalOpen(false)} />
     </>
   )
 }

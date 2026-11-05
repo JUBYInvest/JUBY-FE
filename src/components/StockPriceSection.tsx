@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import type { ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import CandleChart from './CandleChart'
+import { useRealtime } from '../api/realtime'
 import { nameOrCode } from '../api/stock'
 import { periodStart, toKoreanDate, toKoreanDateTime } from '../utils/date'
 import { formatChangeRate, formatPrice, formatVolume, rateTone } from '../utils/format'
@@ -471,21 +472,21 @@ function PriceLines({
   detail: StockDetail | null
   preview: StockPreview | null
 }) {
+  const realtime = useRealtime()
   if (detail !== null) {
+    // 장중에는 실시간 연결의 값으로 바꿔 그린다(api/realtime.ts). 아래 시세 요약은 마지막 거래일 마감 값 그대로다
+    const tick = realtime.live ? realtime.prices.get(detail.stockCode) : undefined
+    const rate = tick?.changeRate ?? detail.comparePrev
+    const asOf = tick !== undefined ? '실시간' : toKoreanDateTime(detail.receivedAt) !== '' ? `${toKoreanDateTime(detail.receivedAt)} 기준` : ''
     return (
       <>
         <p className={styles.price}>
-          <PriceText value={detail.currentPrice} />
+          <PriceText value={tick?.price ?? detail.currentPrice} />
         </p>
         <p className={styles.change}>
           전일 대비{' '}
-          <span className={toRateClassName(detail.comparePrev)}>
-            {formatChangeRate(detail.comparePrev)}
-          </span>
-          {/* 현재가는 증권사 실시간 값이라 언제 받았는지 적는다. 아래 시세 요약은 마지막 거래일 마감 값이다 */}
-          {toKoreanDateTime(detail.receivedAt) !== '' && (
-            <span className={styles.asOf}>{toKoreanDateTime(detail.receivedAt)} 기준</span>
-          )}
+          <span className={toRateClassName(rate)}>{formatChangeRate(rate)}</span>
+          {asOf !== '' && <span className={styles.asOf}>{asOf}</span>}
         </p>
       </>
     )

@@ -1,9 +1,9 @@
 import { ApiError, get, malformedResponse } from './client'
 import { rememberCardSeries } from './cardSeries'
-import { readMemo, type Memo } from './memo'
+import { memberKey, readMemo, shared, type Memo } from './memo'
 import { isLoggedIn } from '../utils/auth'
 import { readStamp, writeStamp } from '../utils/cache'
-import { fromDashedYmd, kstNow } from '../utils/date'
+import { fromDashedYmd, fromKstDateTime, kstNow } from '../utils/date'
 import { finiteOrNull } from '../utils/format'
 import type { Candle, LeadingStocks, Period, Stock, StockDetail, TopTheme } from '../types/stock'
 
@@ -19,8 +19,12 @@ import type { Candle, LeadingStocks, Period, Stock, StockDetail, TopTheme } from
  */
 
 interface StockList {
-  /** YYYYMMDD. 이 날 종가 기준이다 */
+  /** YYYYMMDD. 장 밖에는 이 날 종가 기준이다 */
   baseDate: string
+  /** 서버가 값을 만든 때(ms). 장중에는 종가 자리에 그때의 현재가가 들어 있다(realtime) */
+  asOf: number | null
+  /** 한 종목이라도 장중 현재가면 true — 화면이 "종가 기준" 대신 시각을 적는다 */
+  realtime: boolean
   stocks: Stock[]
 }
 
@@ -33,6 +37,8 @@ interface StockList {
 interface StockListResponse {
   /** YYYY-MM-DD */
   baseDate?: string | null
+  /** 응답을 만든 한국 시각 */
+  asOf?: string | null
   stockList?: (StockRowResponse | null)[] | null
 }
 
@@ -43,10 +49,16 @@ interface StockRowResponse {
   fluctuate?: number | null
   tradingValue?: number | null
   isLiked?: boolean | null
+  /** 종가 자리가 장중 현재가인가 */
+  realtime?: boolean | null
 }
 
-/** 100종목 시세. DB만 읽는다 — 증권사 호출이 없어 몇 번을 불러도 부담이 없다 */
-export async function getStockList(): Promise<StockList> {
+/** 100종목 시세(장중엔 서버가 받아 둔 실시간 값, 증권사 호출 없음). 화면 여럿이 1분 동안 같이 쓴다 — 하트(isLiked)가 회원마다 달라 열쇠에 계정을 넣는다 */
+export function getStockList(): Promise<StockList> {
+  return shared(memberKey('stocks'), 60_000, fetchStockList)
+}
+
+async function fetchStockList(): Promise<StockList> {
   const response = await get<StockListResponse | null>('/api/stocks')
   // 목록 자체가 없으면 그릴 게 없다. 한 행의 값이 빈 건 그 칸만 "-"로 두고 넘긴다
   if (response === null || !Array.isArray(response.stockList)) throw malformedResponse()
@@ -56,6 +68,8 @@ export async function getStockList(): Promise<StockList> {
   }
   return {
     baseDate: fromDashedYmd(response.baseDate),
+    asOf: fromKstDateTime(response.asOf),
+    realtime: response.stockList.some((row) => row?.realtime === true),
     stocks,
   }
 }

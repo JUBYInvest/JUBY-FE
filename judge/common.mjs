@@ -15,6 +15,8 @@ const [BASE, MODE] = args
 const flag = (name) => { const i = args.indexOf(name); return i === -1 ? null : args[i + 1] }
 const OUT = flag('--out')
 const REPO = flag('--repo') ?? REPO_ROOT.replace(/\/$/, '')
+/** 화면 아래 지수 띠의 요청(지수·실시간 연결)은 모든 화면 뒤에서 돌아 순서 비교에서 뺀다(market.mjs가 따로 본다) */
+const STREAM_LINE = /^GET \/api\/(stream\/|market-indices)/
 const API = flag('--api') ?? join(REPO_ROOT, 'judge/expect/api-order.json')
 const ONLY = flag('--only')?.split(',') ?? null
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
@@ -219,7 +221,7 @@ for (const screen of SCREENS) {
   }
   if (MODE === 'apilog') {
     const s = await open(screen, 1440, 900)
-    apiLogs[name] = s.log.filter((l) => !l.startsWith('BLOCKED'))
+    apiLogs[name] = s.log.filter((l) => !l.startsWith('BLOCKED') && !STREAM_LINE.test(l))
     console.log(`${name}: ${apiLogs[name].length}건 ${JSON.stringify(apiLogs[name])}`)
     await s.close()
     continue
@@ -231,7 +233,7 @@ for (const screen of SCREENS) {
   const c1440 = await contrast(s.page)
   const f = await focusRings(s.page)
   const m = await marketMisuse(s.page)
-  const log = s.log.filter((l) => !l.startsWith('BLOCKED'))
+  const log = s.log.filter((l) => !l.startsWith('BLOCKED') && !STREAM_LINE.test(l))
   await s.close()
   const s375 = await open(screen, 375, 812)
   await tools(s375.page)

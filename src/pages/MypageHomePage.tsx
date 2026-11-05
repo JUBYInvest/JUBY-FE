@@ -16,6 +16,7 @@ import { socialLabel } from '../utils/social'
 import { toQuotePreviewState } from '../utils/stockPreview'
 import type { ChatSession } from '../types/ai'
 import type { LikeStock, LikeStockList, MemberInfo, PersonalityInfo } from '../types/member'
+import { basisLabel } from '../utils/priceBasis'
 import styles from './MypageHomePage.module.css'
 
 /** 칸마다 보여 주는 줄 수. 전부는 각 화면(주식 모아보기·AI 주가분석)에서 본다 */
@@ -225,7 +226,7 @@ function LikesPart({ state, onRetry }: { state: Load<LikeStockList>; onRetry: ()
   if (state.kind === 'loading') return <Skeleton />
   if (state.kind === 'error') return <Failed text="관심종목을 불러오지 못했어요." onRetry={onRetry} />
 
-  const { likeStockList: stocks, baseDate } = state.value
+  const { likeStockList: stocks, baseDate, realtime } = state.value
   if (stocks.length === 0) {
     return (
       <Empty
@@ -238,14 +239,14 @@ function LikesPart({ state, onRetry }: { state: Load<LikeStockList>; onRetry: ()
   const rated = stocks.filter((s) => isFiniteNumber(s.fluctuate) && !isFlatRate(s.fluctuate))
   const ups = rated.filter((s) => (s.fluctuate ?? 0) > 0).length
   const downs = rated.length - ups
-  const base = toKoreanDate(baseDate)
+  const base = basisLabel({ baseDate, asOf: null, realtime }, false)
 
   return (
     <>
       <p className={styles.lead}>
         {stocks.length}개 중 {ups}개 올랐고 {downs}개 내렸어요
       </p>
-      <p className={styles.note}>오늘 가장 크게 움직인 종목{base !== '' && `, ${base} 종가 기준`}</p>
+      <p className={styles.note}>오늘 가장 크게 움직인 종목{base !== '' && `, ${base}`}</p>
       <ul className={styles.rows}>
         {byMove(stocks)
           .slice(0, ROWS)

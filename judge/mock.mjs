@@ -34,26 +34,21 @@ export const STOCKS = {
     stockCode, stockName, closePrice, fluctuate, tradingValue: (ROWS.length - i) * 1e11, isLiked: i === 0,
   })),
 }
-// 지수 응답(제안 모양). 값은 지은 것이다
+// 지수 응답(GET /api/market-indices의 indices). 값은 지은 것이다
+const idx = (code, name, currentIndex, changeRate) => ({ code, name, currentIndex, changeRate, accTradingValue: 1e13, realtime: false })
 export const INDICES = {
-  ok: [
-    { indexCode: '0001', indexName: '코스피', currentValue: 2612.43, changeValue: 12.31, changeRate: 0.47 },
-    { indexCode: '1001', indexName: '코스닥', currentValue: 745.1, changeValue: -3.2, changeRate: -0.43 },
-  ],
-  strings: [
-    { indexCode: '0001', indexName: '코스피', currentValue: '2612.43', changeValue: '12.31', changeRate: '0.47' },
-    { indexCode: '1001', indexName: '코스닥', currentValue: '745.10', changeValue: '-3.20', changeRate: '-0.43' },
-  ],
-  flat: [
-    { indexCode: '0001', indexName: '코스피', currentValue: 2600, changeValue: 0, changeRate: 0 },
-    { indexCode: '1001', indexName: '코스닥', currentValue: 745.1, changeValue: null, changeRate: null },
-  ],
-  partial: [
-    { indexCode: '0001', indexName: '', currentValue: 2612.43, changeValue: 12.31, changeRate: 0.47 },
-    null,
-    { indexCode: '1001', indexName: '코스닥', currentValue: 'abc', changeValue: -3.2, changeRate: -0.43 },
-    { indexCode: '2001', indexName: '코스피200', currentValue: 350.25, changeValue: 1.5, changeRate: 0.43 },
-  ],
+  ok: [idx('0001', '코스피', 2612.43, 0.47), idx('1001', '코스닥', 745.1, -0.43)],
+  strings: [idx('0001', '코스피', '2612.43', '0.47'), idx('1001', '코스닥', '745.10', '-0.43')],
+  flat: [idx('0001', '코스피', 2600, 0), idx('1001', '코스닥', 745.1, null)],
+  partial: [idx('0001', '', 2612.43, 0.47), null, idx('1001', '코스닥', 'abc', -0.43), idx('2001', '코스피200', 350.25, 0.43)],
+}
+/** 실시간 스트림 한 번분 SSE 본문. batch = { prices?: PriceEvent[], indices?: IndexEvent[], raw?: 덧붙일 글 } */
+export function sseBody(batch) {
+  const parts = [': 연결\n\n']
+  if (batch.prices) parts.push(`event: prices\ndata: ${JSON.stringify(batch.prices)}\n\n`)
+  if (batch.indices) parts.push(`event: indices\ndata: ${JSON.stringify(batch.indices)}\n\n`)
+  if (batch.raw) parts.push(batch.raw)
+  return parts.join('')
 }
 export const LEADING = {
   strategyName: 'SMA 이동평균선 전략', period: 'ONE_YEAR', periodLabel: '1년',
@@ -139,6 +134,8 @@ export function scoring(stockCode, investType, live = false, zero = false) {
 }
 const PRESET = (stockCode, investType, period, zero = false) => ({ stockCode, investType, period, startDate: '2025-10-28', endDate: '2026-10-28', updatedAt: '2026-10-29T04:00:03', result: scoring(stockCode, investType, false, zero) })
 
+/** 서버가 주는 한국 시각 글자("2026-10-29T11:00:00") */
+const kstIso = (ms) => new Date(ms + 9 * 3600_000).toISOString().slice(0, 19)
 const ymd = (ms) => { const d = new Date(ms + 9 * 3600_000); return `${d.getUTCFullYear()}${String(d.getUTCMonth() + 1).padStart(2, '0')}${String(d.getUTCDate()).padStart(2, '0')}` }
 
 /** 휴장일 응답: 기준일부터 28일. 주말은 N, holidays(YYYYMMDD[])도 N */
@@ -208,7 +205,11 @@ export const ROOM_1 = { title: '삼성전자 주가 어때?', messages: [
  *   now: 기준 시각(ms, 기본 THU_11) — 휴장일·기간별 시세 날짜를 이 시각에 맞춘다
  *   stocksBaseDate: 시세표 기준일(기본 '2026-10-28', null이면 비워 준다), stocksDelay(ms)
  *   leading: 'ok' | 'alt'(고정 목록과 다른 대장주 셋)
- *   indices: 지수 API(제안 모양 GET /api/stocks/indices) — 'ok'(기본) | 'strings' | 'flat' | 'partial' | 'malformed' | '500' | (n번째 요청) => 그중 하나
+ *   indices: 지수 API(GET /api/market-indices) — 'ok'(기본) | 'strings' | 'flat' | 'partial' | 'malformed' | '500' | (n번째 요청) => 그중 하나
+ *   stream: 실시간 스트림(GET /api/stream/prices) 연결마다 보낼 묶음 배열(sseBody). n번째 연결이 n번째 묶음을 받고 끝난다(앱이 1초 뒤 다시 붙는다).
+ *     묶음이 다 떨어지면(기본은 처음부터) 연결을 열어 둔 채 아무것도 보내지 않는다 — 장중에 값이 안 바뀌는 때와 같다
+ *   streamStatus: 스트림을 그 상태로 거절(예: 500)
+ *   stocksRealtime: true면 시세표 행이 장중 현재가(realtime)이고 asOf가 붙는다
  * opts — 종목 상세·증권사
  *   detailDelay(ms), detailStatus: 상세를 그 상태로 실패(예: 500)
  *   holiday: 'ok'(기본) | '500' | '401' | 'empty', holidayClosed: YYYYMMDD[](공휴일)
@@ -283,6 +284,7 @@ export async function mock(context, opts = {}) {
   log.asks = []
   let likeListCount = 0
   let indicesCount = 0
+  let streamCount = 0
   let askCount = 0
   // 방 목록은 서버처럼 최근 대화 순(updatedAt 내림차순)이다 — 질문·이름 바꾸기·만들기가 updatedAt을 지금으로 적는다
   const rooms = new Map([[1, { title: ROOM_1.title, updatedAt: '2026-10-28T10:00:05', messages: ROOM_1.messages.map((m) => ({ ...m })) }]])
@@ -309,16 +311,25 @@ export async function mock(context, opts = {}) {
     if (p === '/api/stocks') {
       await sleep(stocksDelay)
       // 실서버처럼 비로그인에는 isLiked를 주지 않는다
-      return json(wrap('STOCK200_2', { baseDate: stocksBaseDate, stockList: STOCKS.stockList.map((row) => ({ ...row, isLiked: authed && row.isLiked })) }))
+      const live = opts.stocksRealtime === true
+      return json(wrap('STOCK200_2', { baseDate: stocksBaseDate, ...(live ? { asOf: kstIso(now) } : {}), stockList: STOCKS.stockList.map((row) => ({ ...row, isLiked: authed && row.isLiked, realtime: live })) }))
     }
-    if (p === '/api/stocks/leading-stocks') return json(wrap('STOCK200_5', leading === 'alt' ? LEADING_ALT : LEADING))
-    if (p === '/api/stocks/indices') {
+    if (p === '/api/market-indices') {
       indicesCount += 1
       const v = typeof opts.indices === 'function' ? opts.indices(indicesCount) : (opts.indices ?? 'ok')
       if (v === '500') return json(fail(), 500)
-      if (v === 'malformed') return json(wrap('STOCK200_6', { list: [] }))
-      return json(wrap('STOCK200_6', { indices: INDICES[v] }))
+      if (v === 'malformed') return json(wrap('MARKET_INDEX200_1', { list: [] }))
+      return json(wrap('MARKET_INDEX200_1', { asOf: kstIso(now), indices: INDICES[v] }))
     }
+    if (p === '/api/stream/prices') {
+      streamCount += 1
+      if (opts.streamStatus) return json(fail(), opts.streamStatus)
+      const batch = opts.stream?.[streamCount - 1]
+      if (batch === undefined) return new Promise(() => {})
+      return route.fulfill({ status: 200, contentType: 'text/event-stream', body: sseBody(batch) }).catch(() => {})
+    }
+    if (p === '/api/stocks/leading-stocks') return json(wrap('STOCK200_5', leading === 'alt' ? LEADING_ALT : LEADING))
+
     if (p === '/api/stocks/search') return json(wrap('STOCK200_4', search(q.get('keyword') ?? '')))
     if ((mm = p.match(/^\/api\/stocks\/(\d{6})\/news$/))) return json(wrap('STOCK200_3', NEWS(mm[1])))
     if ((mm = p.match(/^\/api\/stocks\/(\d{6})$/))) {

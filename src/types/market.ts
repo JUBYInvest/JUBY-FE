@@ -5,18 +5,14 @@ export interface MarketIndex {
   name: string
   /** 지수(포인트) */
   value: number
-  /** 전일 대비(포인트). 내리면 음수 */
-  change: number | null
   /** 전일 대비율(%). 0.47이면 +0.47% */
   changeRate: number | null
 }
 
 export interface MarketIndices {
   indices: MarketIndex[]
-  /** 받은 때(ms). 띠는 "10월 29일 15:30 기준"으로 적는다 */
+  /** 서버가 값을 만든 때(ms). 띠는 "10월 29일 15:30 기준"으로 적는다 */
   receivedAt: number
-  /** 백엔드 지수 API가 나오기 전의 예시 값이면 true. 띠가 "예시 값"이라고 밝힌다(api/market.ts USE_SAMPLE) */
-  isSample: boolean
 }
 
 /** 하루가 장이 열리는 날인지. 증권사 휴장일 조회(GET /api/market/holiday)의 개장일 여부(opnd_yn)다 */

@@ -187,10 +187,6 @@ describe('utils/format', async () => {
     assert.equal(f.formatTradingValue(1_234_567_890_123), '1.2조')
     assert.equal(f.formatTradingValue(12_340_000), '1,234만원')
     assert.equal(f.formatPoint(2612.4), '2,612.40')
-    assert.equal(f.formatPointChange(12.31), '+12.31')
-    assert.equal(f.formatPointChange(-3.2), '-3.20')
-    assert.equal(f.formatPointChange(0.004), '0.00')
-    assert.equal(f.formatPointChange(null), '-')
   })
   test('formatBirth', () => {
     assert.equal(f.formatBirth('2002-05-07'), '2002년 05월 07일')
@@ -646,7 +642,10 @@ describe('api/kisMarket·member·stock — 응답 모양 거르기', async () =>
   const member = await src('api/member.ts')
   const stock = await src('api/news.ts')
   const auth = await src('utils/auth.ts')
-  beforeEach(() => { calls.length = 0; localStorage.clear(); auth.saveTokens('tok') })
+  // 화면 여럿이 같이 쓰는 조회는 1분 담아 둔다(api/memo.ts shared) — 응답을 바꿔 다시 부를 때마다 지운다
+  const { forget } = await src('api/memo.ts')
+  const fresh = () => forget('likes', 'member', 'personality', 'stocks')
+  beforeEach(() => { calls.length = 0; localStorage.clear(); auth.saveTokens('tok'); fresh() })
 
   test('getVolumeRank — 문자열 숫자, 순위 정렬, 빈 줄 제외, 1분 메모', async () => {
     responder = () => ok([
@@ -690,22 +689,30 @@ describe('api/kisMarket·member·stock — 응답 모양 거르기', async () =>
     assert.equal(list.totalCount, 1)
     assert.equal(list.baseDate, '20261028')
     assert.deepEqual(list.likeStockList, [{ stockCode: '005930', stockName: '005930', closePrice: 71000, fluctuate: null, tradingValue: 1, likedAt: '2026-10-01T00:00:00', likedDate: '20261001' }])
+    const n = calls.length
+    await member.getLikeStocks()
+    assert.equal(calls.length, n, '1분 안에는 같은 목록을 다시 묻지 않는다')
+    fresh()
     responder = () => ok({ likeStockList: null })
     await assert.rejects(member.getLikeStocks(), /서버 응답을 읽을 수 없습니다/)
   })
   test('getMemberInfo — 이름·이메일이 비면 "", 생일 비면 null, 모르는 가입 경로는 null', async () => {
     responder = () => ok({ name: null, email: 'a@b.c', birth: '', socialType: 'APPLE', onboarded: true })
     assert.deepEqual(await member.getMemberInfo(), { name: '', email: 'a@b.c', birth: null, socialType: null })
+    fresh()
     responder = () => ok({ name: '허광엽', email: 'a@b.c', birth: '2002-05-07', socialType: 'KAKAO' })
     assert.deepEqual(await member.getMemberInfo(), { name: '허광엽', email: 'a@b.c', birth: '2002-05-07', socialType: 'KAKAO' })
+    fresh()
     responder = () => ok(null)
     await assert.rejects(member.getMemberInfo(), /서버 응답을 읽을 수 없습니다/)
   })
   test('getMyPersonality — MEMBER404_2만 null', async () => {
     responder = () => fail(404, 'MEMBER404_2')
     assert.equal(await member.getMyPersonality(), null)
+    fresh()
     responder = () => ok({ investPersonality: '', description: 'x', personalityImg: null })
     assert.equal(await member.getMyPersonality(), null)
+    fresh()
     responder = () => fail(500, 'COMMON500_1')
     await assert.rejects(member.getMyPersonality(), (e) => e.status === 500)
   })
