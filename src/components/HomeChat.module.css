@@ -167,8 +167,10 @@
   border-top: 1px solid var(--color-border);
 }
 
+/* width 0 — 입력칸의 기본 폭(글자 20개 × 글꼴 평균 폭)이 오른쪽 열의 최소 폭이 되면, 평균 폭이 넓은 글꼴(리눅스 한글 글꼴)에서 열이 화면 밖으로 밀린다. 폭은 flex가 채운다 */
 .input {
   flex: 1;
+  width: 0;
   min-width: 0;
   min-height: 44px;
   padding: 0 var(--space-4);

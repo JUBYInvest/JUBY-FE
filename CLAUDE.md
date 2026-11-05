@@ -33,7 +33,7 @@ npx knip@5               # 안 쓰는 파일·내보내기(judge/는 뺀다)
 **앱에는 테스트 러너가 없다.** `lint` + `build` + **판정(`judge/`)**으로 확인한다. 돌리는 법과 파일별 내용은 [judge/README.md](judge/README.md).
 
 - 함수 단위는 `cd judge && node --import ./register.mjs unit.test.mjs`(`loader.mjs`가 `.ts` 원본을 읽는다). 화면은 운영 빌드 + `vite preview` + 설치된 크롬(`channel: 'chrome'`).
-- `market.mjs`는 한 빌드에서 지수(A1–A9)·실시간(R1–R8)·띠 배치(S3–S8)를 본다. 요청 순서 비교(`common.mjs`, `lib.mjs api()`)는 지수·스트림 줄을 뺀다.
+- `market.mjs`는 한 빌드에서 지수(A1–A11)·실시간(R1–R8)·띠 배치·입력칸 넘침(S3–S9)을 본다. 요청 순서 비교(`common.mjs`, `lib.mjs api()`)는 지수·스트림 줄을 뺀다.
   기대 순서 `judge/expect/api-order.json`·`ai-order.json`은 구조를 바꾸기 전에 적고 바꾼 뒤 견준다.
 - 가짜 API는 `judge/mock.mjs`, 옵션은 `mock()` 주석에 있다(`indices`, `stream` — 연결마다 보낼 묶음, `streamStatus`, `stocksRealtime` 등).
 - CI(`.github/workflows/ci.yml`): `check`(tsc·lint·build·unit) → `judge`(운영 빌드를 4251에 띄워 flow·repro·ai·market).
@@ -253,6 +253,7 @@ npx knip@5               # 안 쓰는 파일·내보내기(judge/는 뺀다)
 - `Modal`: 포커스는 상자 자체, 닫으면 연 단추로. `onClose`는 ref에 담는다(의존성에 넣으면 칠 때마다 포커스가 튄다). 배경은 배경에서 누르기 시작했을 때만 닫는다.
 - **휴대폰**: 320px까지 가로 넘침이 없다. 누르는 넓이 44px(데스크톱 40px) — 여백 + 음수 margin이나 투명 `::after`(스크롤 상자 안에서는 잘리니 칸을 키운다).
   입력칸 안내 글은 한 줄 말줄임. 한 열 격자는 `minmax(0, 1fr)`. 대화창 높이는 `dvh`.
+  **flex로 늘리는 입력칸은 `width: 0`**(기본 폭 = 글자 20개 × 글꼴 평균 폭이 부모의 최소 폭이 된다 — 리눅스 한글 글꼴에서 홈 오른쪽 열이 넘쳤다, judge market S9).
 
 ## 예외 처리 규칙
 

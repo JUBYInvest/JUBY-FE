@@ -26,6 +26,7 @@
 //  S5 띠 높이 1440: 44px, 375: 40px. 띠 글자 왼쪽 끝 = 머리글 로고 왼쪽 끝
 //  S6 띠 글자 대비 전부 ≥ 4.5:1 (REST·실시간)
 //  S8 375에서 두 줄이 띠 안에서 잘리지 않음
+//  S9 입력칸 기본 폭이 넓어도(리눅스 한글 글꼴 흉내 — size 40·cols 60) 320·1440 홈·상세·백테스트·AI·글 상세·글쓰기 가로 넘침 없음
 import { cli, judge, kst, noOverflow, sleep, tokenFor } from './lib.mjs'
 
 const j = await judge(cli())
@@ -217,6 +218,23 @@ await j.run('S', async () => {
     }
   }
   j.report('S3', over.length === 0, over.length === 0 ? '4폭 × 2화면 가로 넘침 0' : over.join(', '))
+
+  // 입력칸의 기본 폭은 글자 수 × 글꼴 평균 폭이다. 리눅스 한글 글꼴은 평균 폭이 넓어 홈 채팅 입력칸이 오른쪽 열을 밀었다 — 기본 폭을 키워 그 글꼴을 흉내 낸다
+  const wide = []
+  for (const width of [320, 1440]) {
+    for (const path of ['/', '/stocks/005930', '/backtest', '/ai', '/community/1', '/community/write']) {
+      const t = await j.open({ width, height: 800 })
+      await t.goto(path, 2000)
+      await t.page.evaluate(() => {
+        for (const input of document.querySelectorAll('input')) input.size = 40
+        for (const area of document.querySelectorAll('textarea')) area.cols = 60
+      })
+      await sleep(300)
+      if (!(await noOverflow(t.page))) wide.push(`${width}${path}`)
+      await t.close()
+    }
+  }
+  j.report('S9', wide.length === 0, wide.length === 0 ? '입력칸 기본 폭을 넓혀도 2폭 × 6화면 가로 넘침 0' : wide.join(', '))
 
   const res = []
   for (const [width, height, path] of [[1440, 900, '/'], [375, 812, '/'], [1440, 900, '/nope'], [375, 812, '/nope']]) {
