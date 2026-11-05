@@ -72,5 +72,28 @@ export async function judge({ BASE, ONLY = null, HEADED = false } = {}) {
 }
 
 /** 가로 넘침이 없는가 */
-export const noOverflow = (page) => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)
+/** 가로 넘침이 없는가. 넘치면 화면 밖으로 나간 요소(잘라 내는 스크롤 상자 안은 빼고) 몇 개를 적는다 — CI는 주석으로 남아 로그인 없이 읽힌다 */
+export async function noOverflow(page) {
+  const found = await page.evaluate(() => {
+    const { scrollWidth, clientWidth } = document.documentElement
+    if (scrollWidth <= window.innerWidth + 1) return null
+    const clipped = (el) => {
+      for (let p = el.parentElement; p && p !== document.body; p = p.parentElement) if (getComputedStyle(p).overflowX !== 'visible') return true
+      return false
+    }
+    const out = [...document.querySelectorAll('body *')].filter((el) => {
+      const box = el.getBoundingClientRect()
+      return box.width > 0 && box.right > clientWidth + 1 && !clipped(el) && !(el.parentElement?.getBoundingClientRect().right > clientWidth + 1)
+    })
+    const name = (el) => `${el.tagName.toLowerCase()}${el.classList[0] ? '.' + el.classList[0] : ''}`
+    return `scrollWidth ${scrollWidth} > ${window.innerWidth}: ` + out.slice(0, 5).map((el) => {
+      const box = el.getBoundingClientRect()
+      return `${el.parentElement ? name(el.parentElement) + ' > ' : ''}${name(el)} 오른쪽 ${Math.round(box.right)} 폭 ${Math.round(box.width)} "${(el.innerText ?? el.textContent ?? '').replace(/\s+/g, ' ').slice(0, 24)}"`
+    }).join(' | ')
+  })
+  if (found === null) return true
+  const where = new URL(page.url()).pathname
+  console.log(process.env.GITHUB_ACTIONS === 'true' ? `::warning title=가로 넘침 ${where}::${found}` : `  가로 넘침 ${where} — ${found}`)
+  return false
+}
 export const hexToRgb = (hex) => { const h = hex.replace('#', ''); const n = parseInt(h.length === 3 ? h.split('').map((c) => c + c).join('') : h, 16); return `rgb(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255})` }
