@@ -33,7 +33,7 @@
 
 /*
  * 상자 안의 제목·글·실패 안내·단추 줄. 확인 상자(AI 대화 지우기·회원 탈퇴)와 내 정보 수정이 같은 모양이다 —
- * 두 화면 CSS에 같은 네 규칙이 따로 있었다(2026-11-03). 부르는 쪽이 `composes: title from './Modal.module.css'`로 가져다 쓴다
+ * 부르는 쪽이 `composes: title from './Modal.module.css'`로 가져다 쓴다
  */
 .title {
   margin: 0;

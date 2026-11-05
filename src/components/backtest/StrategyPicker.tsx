@@ -23,7 +23,7 @@ export default function StrategyPicker({ investType, savedPersonality, onSelect 
           item.personality === savedPersonality
         /*
          * 이름은 전략 이름 하나다. 단추 안 글 전체가 이름이 되면 "위험도 1단계 (5단계 중) RSI 역추세 전략 너무 많이 팔려…"처럼
-         * 길어 무엇을 고르는지 늦게 들렸다. 위험도·맞음 표시·요약은 설명으로 읽힌다
+         * 길어 무엇을 고르는지 늦게 들린다. 위험도·맞음 표시·요약은 설명으로 읽힌다
          */
         const id = (part: string) => `${idBase}-${part}-${item.investType}`
 
@@ -35,6 +35,7 @@ export default function StrategyPicker({ investType, savedPersonality, onSelect 
                 isActive ? styles.strategyOn : styles.strategyOff
               }
               aria-pressed={isActive}
+              data-invest-type={item.investType}
               aria-labelledby={id('name')}
               aria-describedby={[id('risk'), isRecommended ? id('fit') : '', id('desc')].filter(Boolean).join(' ')}
               onClick={() => onSelect(item.investType)}

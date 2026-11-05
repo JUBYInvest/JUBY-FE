@@ -83,24 +83,34 @@ async function run(opts, period) {
   report('B6', /결과를 불러오지 못했어요/.test(r.text) && /잠시 후 다시 시도/.test(r.text) && r.errors.length === 0, `안내 ${/결과를 불러오지 못했어요/.test(r.text)}, 예외 ${r.errors.length}`)
 }
 
-// B7 왼쪽 날개 진행 단계: 고르지 않은 단계는 "미완성"(2026-11-03 사용자 — 그 전엔 "아직"), 종목을 고르면 그 줄이 종목 이름이 된다
+// B7 전략은 카드 하나에서만 고른다: 1440은 왼쪽 열 '전략 고르기'에 카드 다섯(진행 단계 줄·전략 목록 상자 없음), 카드를 누르면 그 카드가 눌린 상태이고
+//    가운데 ②칸이 그 전략 이름을 되짚는다. 390은 왼쪽 열 없이 입력 ②칸 안에 카드 다섯
 {
-  const context = await browser.newContext({ viewport: { width: 1440, height: 1000 } })
-  await seedLogin(context)
-  await mock(context, {})
-  const page = await context.newPage()
-  await page.goto(BASE + '/backtest', { waitUntil: 'domcontentloaded' })
-  await sleep(1200)
-  const values = () => page.$$eval('nav[aria-label="백테스트 단계"] li a', (as) => as.map((a) => a.lastElementChild?.textContent.trim() ?? ''))
-  const before = await values()
-  await page.locator('#backtest-stock').fill('삼성전자')
-  await page.getByRole('button', { name: /삼성전자\s*005930/ }).first().click()
-  await sleep(300)
-  const after = await values()
-  const rail = await page.locator('nav[aria-label="백테스트 단계"]').innerText()
-  report('B7', before.length === 4 && before[0] === '미완성' && before[3] === '미완성' && after[0] === '삼성전자' && !/아직/.test(rail),
-    `고르기 전 ${JSON.stringify(before)}, 종목 고른 뒤 ${JSON.stringify(after)}, 날개에 "아직" ${/아직/.test(rail)}`)
-  await context.close()
+  const result = {}
+  for (const width of [1440, 390]) {
+    const context = await browser.newContext({ viewport: { width, height: 1000 } })
+    await seedLogin(context)
+    await mock(context, {})
+    const page = await context.newPage()
+    await page.goto(BASE + '/backtest', { waitUntil: 'domcontentloaded' })
+    await sleep(1500)
+    const aside = page.locator('aside[aria-labelledby="backtest-strategies-title"]')
+    const r = {
+      asideCards: await aside.locator('[data-invest-type]').count(),
+      formCards: await page.locator('[class*="_form_"] [data-invest-type]').count(),
+      select: await page.locator('#backtest-strategy').count(),
+      rail: await page.locator('nav[aria-label="백테스트 단계"]').count(),
+    }
+    await page.locator('[data-invest-type="1"]').first().click()
+    await sleep(300)
+    r.pressed = await page.locator('[data-invest-type="1"]').first().getAttribute('aria-pressed')
+    r.chosen = width > 1200 ? ((await page.locator('[class*="_chosen_"]').innerText().catch(() => '')).includes('RSI 역추세 전략')) : null
+    result[width] = r
+    await context.close()
+  }
+  const wide = result[1440], narrow = result[390]
+  report('B7', wide.asideCards === 5 && wide.formCards === 0 && wide.select === 0 && wide.rail === 0 && wide.pressed === 'true' && wide.chosen === true &&
+    narrow.asideCards === 0 && narrow.formCards === 5 && narrow.pressed === 'true', JSON.stringify(result))
 }
 
 await browser.close()

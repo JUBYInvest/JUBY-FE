@@ -3,7 +3,7 @@ import { fromDashedYmd } from '../utils/date'
 import type { AskResult, ChatMessage, ChatSession, ChatSessionDetail } from '../types/ai'
 
 /**
- * AI 주가분석 창구. 질문과 대화방 모두 실제 API다(JUBY-BE dev `0c79ec5`, 2026-09-30). 전부 로그인해야 한다.
+ * AI 주가분석 창구. 질문과 대화방 모두 실제 API다. 전부 로그인해야 한다.
  *
  * - 대화방: `GET /api/chat-sessions`(최근 대화 순), `POST /api/chat-sessions`(빈 방, 제목 '새 대화', 201),
  *   `GET /api/chat-sessions/{id}`(메시지 작성 순. 없는 방 404 `CHAT404_1`, 남의 방 403 `CHAT403_1`),
@@ -143,9 +143,8 @@ export async function ask(
   sessionId: number,
   /**
    * 종목이 분명할 때만(예: 종목 상세에서 묻는 경우). 비우면 서버가 질문과 앞 대화에서 찾는다.
-   * AI 화면은 비운다 — 예전에는 질문 글에서 목록의 이름을 글자로 찾아 실었는데(utils/stockName.ts, 지움), 서버는 실린 값을
-   * 먼저 쓰므로 "sk하이닉스랑 LG에너지솔루션 중에 뭐가 나아?"가 LG에너지솔루션 하나로 좁혀졌고, "그 종목은?" 같은
-   * 이어 묻기에는 "종목명을 함께 입력하라"는 엉뚱한 안내가 떴다.
+   * AI 화면은 비운다 — 서버는 실린 값을 먼저 쓰므로, 질문 글에서 이름을 찾아 실으면 "sk하이닉스랑 LG에너지솔루션 중에
+   * 뭐가 나아?"가 LG에너지솔루션 하나로 좁혀지고 "그 종목은?" 같은 이어 묻기에는 "종목명을 함께 입력하라"는 엉뚱한 안내가 뜬다.
    */
   stockName: string | null = null,
   /** "그만 기다리기"가 끊는 신호. 끊으면 `요청을 끊었습니다` Error다(서버는 답을 계속 만들어 방에 저장한다) */

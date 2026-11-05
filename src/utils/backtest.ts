@@ -170,7 +170,7 @@ export function periodLabel(period: BacktestPeriod): string {
  *
  * 50점 선은 AI 답변과 맞춘다. 서버 AI는 같은 점수를 50점 이상이면 "추천 (투자성향에 비교적 적합한 편)",
  * 미만이면 "비추천"으로 말한다(OpenAiService RECOMMEND_SCORE_THRESHOLD). 그래서 50~70점은 "비교적 잘 맞아요"다 —
- * 예전엔 "무난해요"(중립)라 같은 종목이 AI에서는 추천, 이 화면에서는 무난으로 읽혔다(2026-10-04 사용자 결정으로 바꿈).
+ * 중립 말("무난해요")로 두면 같은 종목이 AI에서는 추천, 이 화면에서는 무난으로 읽힌다.
  */
 export function scoreVerdict(score: number): {
   /** 문장 안에 넣는 꼴: "~에 적합한 종목이에요" */
@@ -192,7 +192,7 @@ export function scoreVerdict(score: number): {
 
 /**
  * 소수 비율(0.1856)을 백분율 문자열(18.56%)로.
- * 숫자가 아니면 "-"다. 예전엔 null이 0으로 계산돼 "0.00%"가 나와 값이 없는 것과 0이 구분되지 않았다.
+ * 숫자가 아니면 "-"다 — null을 0으로 계산하면 "0.00%"가 나와 값이 없는 것과 0이 구분되지 않는다.
  */
 export function toPercent(ratio: number | null | undefined, digits = 2): string {
   if (typeof ratio !== 'number' || !Number.isFinite(ratio)) return '-'
@@ -232,7 +232,7 @@ type AxisPart = [value: unknown, score: (value: number) => number, weight: numbe
 function axisScore(parts: AxisPart[]): number | null {
   let sum = 0
   for (const [value, score, weight] of parts) {
-    // 빈 값을 0으로 치면 MDD·변동성이 "0 = 가장 안전"이 되어 값이 없는데 안정성 100점이 나왔다
+    // 빈 값을 0으로 치면 MDD·변동성이 "0 = 가장 안전"이 되어 값이 없는데 안정성 100점이 나온다
     if (!isFiniteNumber(value)) return null
     sum += score(value) * weight
   }
@@ -272,7 +272,7 @@ export function calculateAxisScores(
  *
  * 백엔드는 기간 끝에 열린 포지션을 청산하지 않는다(CLAUDE.md "백엔드 사정 > 백테스트"). 거래 횟수·수익률은 끝난
  * 거래만 세고 낙폭·변동성은 들고 있던 동안까지 세서, 사서 끝까지 들고 있으면 "거래 0회·수익률 0%"인데 낙폭은 남는다.
- * 정말 한 번도 안 샀으면 손익 흐름이 평평해 낙폭·변동성이 모두 0이다(2026-09-27 실제 프리셋 300건 중 거래 0회
+ * 정말 한 번도 안 샀으면 손익 흐름이 평평해 낙폭·변동성이 모두 0이다(실제 프리셋 300건 중 거래 0회
  * 167건: 셋 다 0인 것 68건, 아닌 것 99건). 끝난 거래 뒤에 다시 사서 들고 있는 경우는 여기서 가려낼 수 없다.
  */
 export function isHeldToEnd(result: QuantScoring): boolean {

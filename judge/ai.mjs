@@ -25,7 +25,8 @@ const answers = (page) => page.locator('[class*="_bubbleAnswer_"]').filter({ has
 const answerBubble = (page) => page.locator('[class*="_bubbleAnswer_"]').filter({ hasText: '요약입니다.' }).first()
 const bubbleRetry = (page) => page.locator('[class*="_bubble_"]').getByRole('button', { name: '다시 시도' })
 /** 새 대화의 빈 화면(머리글 로고도 'JUBY'라 글자로 세지 않는다) */
-const watermark = (page) => page.locator('[class*="_watermark_"]').count()
+// 말풍선 없는 첫 화면(성향 한 줄 + 문답 예시)
+const watermark = (page) => page.locator('[class*="_emptyArea_"]').count()
 /** 요청 순서를 적어 두거나(--record) 기록과 견준다 */
 function order(key, t) {
   const now = t.api()
@@ -41,7 +42,7 @@ const ask = async (page, text) => { await box(page).fill(text); await box(page).
 await run('A1', async () => {
   const t = await open({ loggedIn: false })
   await t.goto('/ai')
-  const chips = t.page.locator('[class*="_exampleChip_"]')
+  const chips = t.page.locator('[class*="_exampleQuestion_"]')
   const n = await chips.count()
   const first = (await chips.first().innerText()).trim()
   await chips.first().click(); await sleep(100)
@@ -59,8 +60,8 @@ await run('A2', async () => {
   const t = await open()
   await t.goto('/ai', 1500)
   const listed = await room(t.page).count()
-  const personality = await t.page.getByText('현재 당신의 투자성향은 ‘위험중립형’입니다.').count()
-  const link = await t.page.getByRole('link', { name: '투자성향 변경하기' }).getAttribute('href')
+  const personality = await t.page.getByText(/^지금 투자성향은 위험중립형이에요/).count()
+  const link = await t.page.getByRole('link', { name: '성향 다시 검사' }).getAttribute('href')
   // 날개 여는 단추는 넓은 화면에서 숨어 role로는 안 잡힌다 — 글자만 본다
   const count = (await t.page.locator('button[aria-controls="session-list"]').textContent()).trim()
   report('A2', listed === 1 && personality === 1 && link === '/personality-test?from=ai' && t.count(SESSIONS) === 1 && t.count(/personality/) === 1 && t.count(DETAIL) === 0 && await watermark(t.page) === 1,
@@ -183,7 +184,7 @@ await run('A8', async () => {
 await run('A9', async () => {
   let t = await open({ personality: 'none', askStatus: 'MEMBER404_2' })
   await t.goto('/ai', 1500)
-  const invite = await t.page.getByText('투자성향을 정하면 나에게 맞춘 답을 받을 수 있어요.').count()
+  const invite = await t.page.getByText('투자성향을 정하면 질문할 수 있어요. 답도 내 성향에 맞춰 나와요.').count()
   const testLink = await t.page.getByRole('link', { name: '투자성향 검사하기' }).getAttribute('href')
   await ask(t.page, '성향 없이')
   await t.page.getByText('투자성향을 먼저 정해야 답할 수 있어요.').waitFor({ timeout: 4000 })
@@ -359,7 +360,7 @@ await run('A15', async () => {
   await sleep(500)
   const side = await t.page.getByText('로그인하면 이전 대화를 저장할 수 있어요.').count()
   const bubbles = await t.page.locator('[class*="_bubble_"]').count()
-  const examples = await t.page.locator('[class*="_exampleChip_"]').count()
+  const examples = await t.page.locator('[class*="_exampleQuestion_"]').count()
   const personality = await t.page.getByText(/투자성향은/).count()
   report('A15', side === 1 && bubbles === 0 && examples >= 3 && personality === 0, `로그아웃 뒤 목록 자리 안내 ${side}, 말풍선 ${bubbles}, 예시 ${examples}, 성향 글 ${personality}`)
   await t.close()

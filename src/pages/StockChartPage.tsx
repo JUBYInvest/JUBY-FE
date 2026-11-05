@@ -22,8 +22,7 @@ const DEFAULT_PERIOD: Period = 'THREE_MONTH'
 
 /**
  * 종목 상세. 상세 상태기계(hooks/useStockDetail)·관심종목 하트(hooks/useLikeToggle)·임시 차트·최근 본 종목을 엮고,
- * 그림은 components/StockPriceSection(머리 띠·차트 열·정보 열)과 StockActions(하트·바로 가기)가 맡는다
- * (2026-10-31 — 한 파일에 1,100줄이 있어 나눴다. 동작은 그대로다).
+ * 그림은 components/StockPriceSection(머리 띠·차트 열·정보 열)과 StockActions(하트·바로 가기)가 맡는다.
  */
 export default function StockChartPage() {
   const { stockCode } = useParams<{ stockCode: string }>()
@@ -57,7 +56,7 @@ export default function StockChartPage() {
   )
 
   /*
-   * 상세를 못 받았을 때의 임시 차트(2026-10-31). 상세는 증권사 현재가가 실패하면 DB 일봉까지 못 받는다(useStockDetail).
+   * 상세를 못 받았을 때의 임시 차트. 상세는 증권사 현재가가 실패하면 DB 일봉까지 못 받는다(useStockDetail).
    * 로그인했으면 그 종목 하나의 기간별 시세(증권사 `GET /api/market/{code}/daily_itemchartprice`, 모의투자 토큰 — api/kisMarket.ts)를
    * 한 번 받아 차트 자리를 채운다. 기다리는 중(waiting)이나 끝내 실패(error)일 때만, 이 화면에서 종목마다 한 번이다. 상세가 오면 상세가 먼저다.
    * 받은 값은 종목코드와 함께 두고 그릴 때 견준다 — 다른 종목으로 옮긴 뒤 늦게 온 응답이 새 종목 자리에 그려지지 않는다
@@ -157,7 +156,7 @@ export default function StockChartPage() {
       */}
       {/*
         넓은 화면(1600px 이상)은 가격 구역 | 뉴스 두 열이다. 가격 구역 안이 다시 정보 열 | 차트로 나뉘어 화면에는 세 열로 보인다
-        (2026-10-30 재정비 — 16:9에서 좌우가 비어 보이고 뉴스가 첫 화면에 안 보였다). 그보다 좁으면 뉴스가 아래로 내려간다
+        (뉴스가 첫 화면에 들도록). 그보다 좁으면 뉴스가 아래로 내려간다
       */}
       <div className={styles.layout}>
         <SectionBoundary resetKey={stockCode} onRetry={retry}>

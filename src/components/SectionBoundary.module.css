@@ -4,7 +4,7 @@
   align-items: center;
   gap: 14px;
   padding: 48px 16px;
-  /* 상자 대신 옅은 면. 흰 바탕에 테두리 상자를 또 띄우지 않는다(2026-10-30) */
+  /* 상자 대신 옅은 면. 흰 바탕에 테두리 상자를 또 띄우지 않는다 */
   border-radius: var(--radius-md);
   background: var(--color-bg-sub);
   text-align: center;

@@ -86,9 +86,6 @@ type ListState =
 
 /**
  * 홈. 표는 `GET /api/stocks` 한 번으로 100종목이 다 온다(DB, 증권사 호출 없음).
- *
- * 예전에는 종목마다 현재가를 따로 불러 보이는 20개 먼저·나머지 나중·장 열림 탐지·
- * 지난 값 저장 같은 장치가 이 파일에 가득했다. 지금은 전부 없다.
  */
 
 export default function HomePage() {
@@ -97,12 +94,12 @@ export default function HomePage() {
   const navigationType = useNavigationType()
   /*
    * 로그인 여부를 구독한다. 시세표의 하트(isLiked)는 토큰에 딸린 값이라 같은 탭·다른 탭에서 로그아웃하면 목록을 다시 받아
-   * 꺼야 한다 — 한 번 받은 Set을 그대로 두던 때는 로그아웃해도 하트가 켜진 채였다(2026-10-31). 목록은 DB만 읽는다
+   * 꺼야 한다. 목록은 DB만 읽는다
    */
   const loggedIn = useIsLoggedIn()
   /*
    * 뒤로·앞으로 가기로 돌아왔으면 떠날 때의 정렬·보이던 행 수·스크롤을 되살린다.
-   * 100행을 내려 보다 종목을 눌렀는데 돌아오면 맨 위 20행에 기본 정렬이라 보던 자리를 잃었다.
+   * 안 그러면 100행을 내려 보다 종목을 누르고 돌아왔을 때 맨 위 20행·기본 정렬이라 보던 자리를 잃는다.
    * 링크(머리글 로고 등)로 새로 들어오면 처음부터 보여준다 — 브라우저가 스크롤을 다루는 방식과 같다.
    */
   const [restored] = useState(() =>
@@ -118,7 +115,7 @@ export default function HomePage() {
   )
   /**
    * 대장주 응답이 왔는가(실패해도 지난 값·고정 목록으로 끝난다). 카드 그래프는 그 뒤의 목록으로만 묻는다 — 첫 그림의 고정 목록으로
-   * 먼저 묻고 서버 목록이 다르면 또 물어, 첫 방문에 증권사를 거치는 상세 요청이 3건이 아니라 6건 나갔다(2026-10-31)
+   * 먼저 물으면 서버 목록이 다를 때 또 물어, 첫 방문에 증권사를 거치는 상세 요청이 3건이 아니라 6건 나간다
    */
   const [leadingSettled, setLeadingSettled] = useState(false)
   const themes = leading.themes
@@ -162,8 +159,7 @@ export default function HomePage() {
   const load = useCallback(() => {
     setList({ kind: 'loading' })
     /*
-     * 로그인 상태가 바뀌면 다시 받는다. 앞 요청이 늦게 오면 버린다 — 로그인 때 보낸 응답이 로그아웃 뒤 응답보다 늦게 오면 앞 회원의 하트가
-     * 비로그인 화면에 칠해졌다(코드 점검, judge/repro.mjs R7)
+     * 로그인 상태가 바뀌면 다시 받는다. 늦게 온 앞 요청은 버린다 — 안 버리면 앞 회원의 하트가 비로그인 화면에 칠해진다(judge/repro.mjs R7)
      */
     let isStale = false
 
@@ -199,7 +195,7 @@ export default function HomePage() {
   const [cardSeries, setCardSeries] = useState<Map<string, CardSeries | 'unavailable'>>(
     () => new Map(),
   )
-  // 기준일이 비어 오면("") 모르는 것(null)이다 — ""를 그대로 넘기면 담아 둔 그래프가 어느 날짜든 "기준일 이후"로 읽혀 영영 묵지 않았다
+  // 기준일이 비어 오면("") 모르는 것(null)이다 — ""를 그대로 넘기면 담아 둔 그래프가 어느 날짜든 "기준일 이후"로 읽혀 영영 묵지 않는다
   const baseDate = list.kind === 'ready' && list.baseDate !== '' ? list.baseDate : null
   /** 카드 종목이 바뀔 때만 다시 받는다. themes 배열은 받을 때마다 새로 만들어진다 */
   const themeCodes = themes.map((theme) => theme.stockCode).join(',')
@@ -315,7 +311,7 @@ export default function HomePage() {
     const observer = new IntersectionObserver((entries) => {
       /*
        * 마지막 기록이 지금 상태다. 관찰을 걸자마자 끝이 보이면 한 콜백에 "안 보임 → 보임"이 같이 온다 — 첫 기록만 보면
-       * 넘기고, 그 뒤로는 끝 표시가 계속 보인 채라 다시 불리지 않아 20행에서 멈췄다(2026-09-29 재현. 위로 올렸다 내려야 이어졌다)
+       * 넘기고, 그 뒤로는 끝 표시가 계속 보인 채라 다시 불리지 않아 20행에서 멈춘다(위로 올렸다 내려야 이어진다)
        */
       if (entries.at(-1)?.isIntersecting === true) {
         setVisibleCount((count) => count + PAGE_SIZE)
@@ -380,7 +376,7 @@ export default function HomePage() {
     <>
       {/*
         왼쪽 열: 검색 → 테마별 대표 종목 → 현재 주가 보기, 오른쪽 열: 사용설명서·커뮤니티(HomeRail).
-        16:9에서 좌우가 비어 보인다는 말에 넓힌 본문을 두 열로 쓴다(2026-10-30 재정비)
+        16:9에서 좌우가 비어 보이지 않게 넓은 본문을 두 열로 쓴다
       */}
       <div className={styles.home}>
         {/* 목록이 오기 전에는 로컬 사본으로 검색한다. 도착하면 서버 목록으로 바꾼다 */}
@@ -394,18 +390,15 @@ export default function HomePage() {
             <h1 className={styles.heading}>테마별 대표 종목</h1>
             {cardDate !== null && listBasis !== '' && <span className={styles.asOf}>{listBasis}</span>}
             {/*
-              무엇을 보여 주는지 쉬운 말로. 예전 머리말("SMA 이동평균선 전략 · 1년 기준으로 뽑은")은 사실과 달랐다 —
-              백엔드는 테마마다 정해 둔 종목을 주고(JUBY-BE LeadingStockTheme) 전략 결과로 고르지 않는다(dev 3dc3f3a 확인).
-              "1년 전보다" 숫자는 그 종목의 1년 주가 변화다(CardChart)
+              무엇을 보여 주는지 쉬운 말로. 백엔드는 테마마다 정해 둔 종목을 주고(LeadingStockTheme) 전략 결과로 고르지 않으므로
+              머리말에 전략을 적지 않는다. "1년 전보다" 숫자는 그 종목의 1년 주가 변화다(CardChart)
             */}
             <p className={styles.lede}>테마마다 대표 종목을 하나씩 골라 1년 주가 흐름을 보여드려요</p>
           </div>
 
           {/*
-            카드를 그리다 멈춰도 검색·시세표는 남는다. 경계가 없을 땐 카드 한 장 때문에 홈 전체가
-            오류 화면이 됐다. 다시 시도는 대장주만 새로 받는다.
-            카드는 종목·종가(DB)만으로 세 장이 늘 선다. 그래프를 못 받은 카드만 그래프 자리에 알린다 —
-            예전처럼 그래프가 실패해 구역 전체를 안내 한 줄로 바꾸는 일이 없다.
+            카드를 그리다 멈춰도 검색·시세표는 남는다(경계가 없으면 카드 한 장 때문에 홈 전체가 오류 화면이 된다).
+            다시 시도는 대장주만 새로 받는다. 카드는 종목·종가(DB)만으로 세 장이 늘 선다. 그래프를 못 받은 카드만 그래프 자리에 알린다.
           */}
           <SectionBoundary onRetry={reloadLeading}>
             <div className={styles.cards}>
@@ -421,15 +414,6 @@ export default function HomePage() {
             </div>
           </SectionBoundary>
         </section>
-
-        {/*
-          오른쪽 열은 시세표보다 앞에 둔다 — 1100px 이하에서는 화면에도 시세표 위에 보이고, 키보드(Tab)·읽어 주는 순서가 보이는 순서와
-          같아야 한다. 시세표 뒤에 두던 때는 그 순서로 가려면 시세표 행(링크·하트)을 다 지나야 했다. 넓은 화면의 자리는 격자 영역이 정한다
-        */}
-        <div className={styles.rail}>
-          {/* 처음 시작하기 진행표가 관심종목을 담았는지 본다 — 시세표를 받기 전·못 받았을 땐 모른다(null. 못 받았을 때 0으로 넘겨 담은 회원에게도 "담으러 가기"가 떴다) */}
-          <HomeRail likedCount={list.kind === 'ready' ? favoriteCodes.size : null} />
-        </div>
 
         <section className={styles.list}>
           <div className={styles.sectionHead}>
@@ -522,6 +506,12 @@ export default function HomePage() {
           )}
           </div>
         </section>
+
+        {/* 처음 시작하기·커뮤니티. DOM은 시세표 뒤라 좁은 화면(한 열)에서 보이는 순서와 Tab 순서가 같다. 넓은 화면의 자리는 격자 영역이 정한다 */}
+        <div className={styles.rail}>
+          {/* 처음 시작하기 진행표가 관심종목을 담았는지 본다 — 시세표를 받기 전·못 받았을 땐 모른다(null — 0으로 넘기면 담은 회원에게도 "담으러 가기"가 뜬다) */}
+          <HomeRail likedCount={list.kind === 'ready' ? favoriteCodes.size : null} />
+        </div>
       </div>
 
       <LoginModal isOpen={isLoginModalOpen} onClose={() => setIsLoginModalOpen(false)} />

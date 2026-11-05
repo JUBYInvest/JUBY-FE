@@ -6,11 +6,11 @@ import { kstNow, weekdayOf } from '../utils/date'
 import type { MarketDay, MarketStatus } from '../types/market'
 
 /*
- * 장이 열리는 날(증권사 휴장일 조회 `GET /api/market/holiday?basedate=YYYYMMDD`, 2026-10-31 연결).
+ * 장이 열리는 날(증권사 휴장일 조회 `GET /api/market/holiday?basedate=YYYYMMDD`).
  * 아래 지수 띠가 장 상태(장 시작 전·장 중·장 마감·오늘 휴장)와 다음 개장일을 적고, 휴장일에는 지수를 다시 묻지 않는다
  * (market.ts isMarketHours).
  *
- * 증권사 직통이다 — 백엔드가 요청마다 증권사를 부르고 실전 토큰을 쓴다(JUBY-BE MarketService.getHolidayList, dev b1aedd7).
+ * 증권사 직통이다 — 백엔드가 요청마다 증권사를 부르고 실전 토큰을 쓴다(JUBY-BE MarketService.getHolidayList).
  * 증권사도 "하루 한 번 넘게 부르지 말라"고 안내하는 API라 아끼고 아낀다.
  * - 로그인했을 때만 묻는다(`/api/market/**`는 인증 경로).
  * - 사용자가 누르지 않은 증권사 호출이라 서버에 토큰이 있을 때만 묻는다(canSpendKisCall, api/stock.ts).
@@ -89,7 +89,7 @@ export function marketStatus(now: number = Date.now()): MarketStatus | null {
 }
 
 /**
- * 오늘 정규장(9:00~15:30, 한국 시각)이 얼마나 지났는지 — 지수 띠의 장 진행 막대(2026-11-03 사용자가 시안 비교에서 고름).
+ * 오늘 정규장(9:00~15:30, 한국 시각)이 얼마나 지났는지 — 지수 띠의 장 진행 막대.
  * 장 중이면 지난 몫(0~1)과 마감까지 남은 분, 장 시작 전이면 0과 개장까지 남은 분. 그 밖(마감·휴장·모름)은 null — 막대를 두지 않는다
  */
 export function sessionClock(status: MarketStatus | null, now: number = Date.now()): { ratio: number; minutesLeft: number; until: 'close' | 'open' } | null {

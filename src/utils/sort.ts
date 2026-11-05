@@ -18,8 +18,8 @@ function sortValue(stock: Stock, key: SortKey): string | number | null {
  * 정렬된 새 배열을 돌려준다. 원본은 건드리지 않는다.
  *
  * 값이 빈 행은 방향과 상관없이 맨 뒤로 보낸다. 빈 값을 그대로 빼면 NaN이 나오는데, 엔진은 이를
- * "같다"로 읽어 **값이 있는 행들까지** 순서가 틀어진다(거래대금 기본 정렬에서 100행 중 빈 행 셋이면
- * 표 중간에 빈 행이 끼고 앞뒤가 뒤섞였다). 종목명이 비면 localeCompare가 던져 표가 통째로 멈췄다.
+ * "같다"로 읽어 **값이 있는 행들까지** 순서가 틀어진다(표 중간에 빈 행이 끼고 앞뒤가 뒤섞인다).
+ * 종목명이 비면 localeCompare가 던져 표가 통째로 멈춘다.
  */
 export function sortStocks(stocks: Stock[], sort: SortState): Stock[] {
   return sortBy(stocks, (stock) => sortValue(stock, sort.key), sort.direction)

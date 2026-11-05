@@ -17,13 +17,13 @@ import styles from './Header.module.css'
  * 보조기기가 "탐색"을 두 번 읽지 않게 하고, 메뉴 링크는 NavLink라 지금 화면에
  * aria-current="page"가 붙는다. 그 메뉴만 굵은 흰 글자에 아래 연초록 막대다.
  *
- * 메뉴를 옮기면 막대가 앞 메뉴에서 누른 메뉴로 미끄러져 간다(2026-11-03, 본문이 떠오르는 것과 같은 때·같은 곡선 — utils/motion.ts).
+ * 메뉴를 옮기면 막대가 앞 메뉴에서 누른 메뉴로 미끄러져 간다(본문이 떠오르는 것과 같은 때·같은 곡선 — utils/motion.ts).
  * 막대는 링크마다 그리는 `::before`라, 새 메뉴의 막대를 앞 메뉴 자리·폭에서 출발시켜 제자리로 옮긴다(Web Animations의 pseudoElement).
  * 같은 줄(서비스 메뉴끼리) 안에서만 옮긴다 — 좁은 화면은 계정 메뉴가 윗줄이라 줄을 건너 옆으로만 움직이면 엉뚱하다.
  * 뒤로·앞으로 가기, 움직임을 줄인 설정, pseudoElement를 모르는 브라우저에서는 막대가 그 자리에 바로 선다.
  *
  * 다음 화면의 묶음을 받는 동안에는 띠 아래 끝에 연초록 줄이 흐른다(150ms가 지나야 보인다 — 받아 둔 묶음은 그 전에 온다).
- * 화면 이동은 묶음이 올 때까지 앞 화면을 그대로 두므로, 눌렀는데 아무 일도 없는 것처럼 보이던 사이를 이 줄이 메운다(utils/routeLoading.ts).
+ * 화면 이동은 묶음이 올 때까지 앞 화면을 그대로 두므로, 눌렀는데 아무 일도 없는 것처럼 보이는 사이를 이 줄이 메운다(utils/routeLoading.ts).
  */
 export default function Header() {
   const loggedIn = useIsLoggedIn()
@@ -37,7 +37,7 @@ export default function Header() {
 
   /*
    * 좁은 화면(800px 이하)은 서비스 메뉴 줄이 옆으로 밀린다. 지금 화면 메뉴가 줄 밖(또는 끝의 흐린 자리)에 있으면 줄 가운데로 민다 —
-   * 주소로 곧장 /guide를 열면 '사용설명서'가 오른쪽 밖에 있었다(지시서 N-1). 줄의 scrollLeft만 바꾼다(scrollIntoView는 페이지까지 움직인다)
+   * 안 밀면 주소로 곧장 /guide를 열 때 '사용설명서'가 오른쪽 밖에 숨는다. 줄의 scrollLeft만 바꾼다(scrollIntoView는 페이지까지 움직인다)
    */
   useLayoutEffect(() => {
     const nav = serviceRef.current
@@ -88,7 +88,7 @@ export default function Header() {
         <MenuLink to="/likes" label="관심종목" />
         <MenuLink to="/backtest" label="주식 백테스트" />
         <MenuLink to="/ai" label="AI 주가분석" />
-        {/* 커뮤니티 서버가 붙기 전까지 예시 글이라 메뉴에서도 밝힌다(사용자 결정 — 연결하면 "커뮤니티"로 되돌린다) */}
+        {/* 커뮤니티 서버가 붙기 전까지 예시 글이라 메뉴에서도 밝힌다(연결하면 "커뮤니티"로 되돌린다) */}
         <MenuLink to="/community" label="커뮤니티(예시)" />
         <MenuLink to="/guide" label="사용설명서" />
       </nav>

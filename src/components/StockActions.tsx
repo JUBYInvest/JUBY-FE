@@ -7,7 +7,7 @@ import HeartIcon from './HeartIcon'
 import styles from '../pages/StockChartPage.module.css'
 
 /*
- * 종목 상세 머리 띠의 단추들(2026-10-31 pages/StockChartPage.tsx에서 나눔) — 관심종목 토글(하트)과 바로 가기 둘(이 종목 백테스트·
+ * 종목 상세 머리 띠의 단추들 — 관심종목 토글(하트)과 바로 가기 둘(이 종목 백테스트·
  * AI에게 물어보기). 하트의 상태·동작은 hooks/useLikeToggle, 비로그인 안내 모달은 화면(StockChartPage)이 연다.
  */
 
@@ -31,7 +31,7 @@ export function LikeToggle({ like, onToggle }: { like: LikeView; onToggle: () =>
   )
 }
 
-/** 바로 가기 두 단추. 백테스트가 주 행동이라 브랜드 초록으로 채우고, AI는 먹 테두리다(2026-10-30 재정비, 시안 B) */
+/** 바로 가기 두 단추. 백테스트가 주 행동이라 브랜드 초록으로 채우고, AI는 먹 테두리다 */
 const ACTIONS = [
   {
     to: '/backtest',

@@ -62,7 +62,7 @@
   grid-template-columns: 36px minmax(0, 1fr) auto;
   align-items: center;
   column-gap: var(--space-3);
-  /* 본문과 같은 폭에서 끊는다 — 넓은 화면에서 ›가 이름에서 1000px 넘게 떨어졌다 */
+  /* 본문과 같은 폭에서 끊는다 — 안 끊으면 넓은 화면에서 ›가 이름에서 1000px 넘게 떨어진다 */
   max-width: 760px;
   padding: var(--space-3) 0;
   border-bottom: 1px solid var(--color-border);

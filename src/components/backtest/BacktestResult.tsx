@@ -21,7 +21,7 @@ import { toPreviewState } from '../../utils/stockPreview'
 import styles from '../../pages/BacktestPage.module.css'
 
 /*
- * 백테스트 결과(2026-10-31 pages/BacktestPage.tsx에서 나눔) — 결론(내 성향 ↔ 종목 성향) · 고른 전략의 성적 · 왜 그 성향인가 · 이어서 할 일.
+ * 백테스트 결과 — 결론(내 성향 ↔ 종목 성향) · 고른 전략의 성적 · 왜 그 성향인가 · 이어서 할 일.
  * 값은 hooks/useBacktestRun이 받고 여기는 그리기만 한다. 스타일은 화면의 모듈(BacktestPage.module.css)을 그대로 쓴다.
  */
 
@@ -51,8 +51,8 @@ export default function BacktestResult({
   const { stockName } = stock
 
   /*
-   * 1등. 화면에 적는 점수(소수 첫째 자리)가 같으면 공동 1위다 — 예전엔 번호 작은 성향 하나를 "가장 잘 맞는"으로
-   * 단정했다(사용자 결정 2026-09-27). 순서는 정렬 그대로(점수, 같으면 성향 번호)
+   * 1등. 화면에 적는 점수(소수 첫째 자리)가 같으면 공동 1위다.
+   * 순서는 정렬 그대로(점수, 같으면 성향 번호)
    */
   const topScore = ranking[0]?.score.toFixed(1) ?? null
   const isTop = (item: Ranked) => item.score.toFixed(1) === topScore
@@ -63,8 +63,7 @@ export default function BacktestResult({
   const isJoint = topInfos.length > 1
   const topNames = topInfos.map((item) => item.personality).join('·')
   /*
-   * 다섯 중 일부를 못 받았으면 1등은 "받은 것 중" 1등일 뿐이다. 결론을 그 범위로 한정한다 — 예전엔 빠진 전략이 있어도
-   * "가장 잘 맞는 성향은 ○○이에요"로 단정했다(비교 칸 아래 "N개 전략은 불러오지 못했어요"만 따로 적었다)
+   * 다섯 중 일부를 못 받았으면 1등은 "받은 것 중" 1등일 뿐이다. 결론을 그 범위로 한정한다
    */
   const comparedPart = missed.count > 0 ? ranking.length : null
 
@@ -85,9 +84,9 @@ export default function BacktestResult({
    */
   /*
    * 낱개 지표는 비어 올 수 있다(api/backtest.ts toScoring이 null로 넘긴다). 값이 있을 때만 숫자·색을 쓰고 아니면 "-"다.
-   * null >= 0은 참이라 그대로 두면 "-"가 빨간색으로 칠해지고, null.toFixed에서 결과 구역이 멈췄다.
+   * null >= 0은 참이라 그대로 두면 "-"가 빨간색으로 칠해지고, null.toFixed에서 결과 구역이 멈춘다.
    * 화면에 "0.00%"로 보이는 값은 보합이라 색을 주지 않는다(다른 화면의 등락과 같은 규칙, utils/format isFlatRate) —
-   * 끝까지 들고 있던 결과(수익률 0, 300건 중 97건)가 오름 빨강으로 칠해졌다(2026-10-31). 비율은 소수라 백분율로 바꿔 본다
+   * 안 그러면 끝까지 들고 있던 결과(수익률 0)가 오름 빨강으로 칠해진다. 비율은 소수라 백분율로 바꿔 본다
    */
   const toneOf = (value: number | null): 'up' | 'down' | undefined => {
     const tone = rateTone(isFiniteNumber(value) ? value * 100 : null)

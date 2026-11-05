@@ -12,9 +12,9 @@ const TABS: { key: NewsSort; label: string }[] = [
 ]
 
 /**
- * 한 번에 펼치는 기사 수. 서버는 10건씩 주지만 10건을 다 펼치면 뉴스가 1,600px 남짓이라 첫 화면에 한 건도 안 보였다.
+ * 한 번에 펼치는 기사 수. 서버는 10건씩 주지만 10건을 다 펼치면 뉴스가 1,600px 남짓이라 첫 화면에 한 건도 안 보인다.
  * 받아 둔 기사가 남았으면 '뉴스 더 보기'가 서버에 묻지 않고 더 펼친다 — 요청 수는 그대로다.
- * 짝수다 — 넓은 칸에서는 두 줄로 서서 둘씩 짝짓는다(NewsList.module.css). 5건씩이던 때는 끝 기사가 홀로 남았다(2026-11-02)
+ * 짝수다 — 넓은 칸에서는 두 줄로 서서 둘씩 짝짓는다(NewsList.module.css). 홀수면 끝 기사가 홀로 남는다
  */
 const NEWS_STEP = 6
 
@@ -49,7 +49,7 @@ type State =
 export default function NewsList({ stockCode, stockName }: Props) {
   const [sort, setSort] = useState<NewsSort>('LATEST')
   /**
-   * '기사 검색하기'(NewsAsk)를 펼쳤는가(2026-10-30). 펼쳐도 정렬 목록은 받아 둔 채로 두어, 정렬 탭으로 돌아오면 다시 받지 않는다
+   * '기사 검색하기'(NewsAsk)를 펼쳤는가. 펼쳐도 정렬 목록은 받아 둔 채로 두어, 정렬 탭으로 돌아오면 다시 받지 않는다
    */
   const [asking, setAsking] = useState(false)
   const [state, setState] = useState<State>({ kind: 'loading' })

@@ -16,7 +16,7 @@ interface Props {
   sendLocked: boolean
 }
 
-/** 질문 입력칸과 보내기(2026-10-31 pages/AiPage.tsx에서 나눔). Enter는 보내기, Shift+Enter는 줄바꿈이다 */
+/** 질문 입력칸과 보내기. Enter는 보내기, Shift+Enter는 줄바꿈이다 */
 export default function Composer({ value, onChange, onSubmit, inputRef, waiting, sendLocked }: Props) {
   function handleKeyDown(event: React.KeyboardEvent<HTMLTextAreaElement>) {
     // Shift+Enter는 줄바꿈으로 둔다. 조합 중인 한글이 확정되는 엔터도 보내면 안 된다

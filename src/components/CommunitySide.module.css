@@ -1,4 +1,4 @@
-/* 커뮤니티 오른쪽 열 — 제목 줄(먹 선) 하나 아래 작은 제목 둘. 묶음마다 먹 선을 두면 가운데 글 줄의 가는 선과 몇 px 차이로 나란히 섰다(lines.mjs G) */
+/* 커뮤니티 오른쪽 열 — 제목 줄(먹 선) 하나 아래 작은 제목 둘. 묶음마다 먹 선을 두면 가운데 글 줄의 가는 선과 몇 px 차이로 나란히 선다(lines.mjs G) */
 .sideTitle {
   composes: head title from './section.module.css';
 }

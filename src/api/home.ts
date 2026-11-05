@@ -11,8 +11,8 @@ import type { CardSeries, LeadingStocks, TopTheme } from '../types/stock'
  * - 1년 그래프: 종목 상세 GET /api/stocks/{code}?period=ONE_YEAR (일봉은 DB, 그 앞에 증권사 현재가)
  *
  * 그래프 일봉도 DB에 있지만, 그걸 꺼내 주는 API가 상세 하나뿐이고 그 API가 증권사 현재가부터 묻는다.
- * 서버에 저장된 증권사 토큰이 없으면(주말) 그 현재가가 서버 전체에서 1분에 1번만 돼서, 2026-10-04에는
- * 2·3번 카드가 비었고 그래프를 한때 뺐다(5da71f7). 같은 날 사용자 결정으로 되살리며 이렇게 막는다.
+ * 서버에 저장된 증권사 토큰이 없으면(주말) 그 현재가가 서버 전체에서 1분에 1번만 돼서, 셋을 그냥 물으면
+ * 2·3번 카드가 빈다. 그래서 이렇게 막는다.
  * - 받은 그래프는 다음 일봉 배치까지 담아 두고 다시 묻지 않는다(api/cardSeries.ts). 상세를 본 종목도 담긴다.
  * - 로그인했으면 먼저 토큰을 심는다(primeKisToken) — 그러면 카드도 상세도 1분 제한 없이 된다.
  * - 그 밖에는 서버에 토큰이 있을 때만 묻는다(canSpendKisCall). 없으면 카드는 그래프 없이 선다 —
@@ -22,8 +22,7 @@ import type { CardSeries, LeadingStocks, TopTheme } from '../types/stock'
 /**
  * 서버에서 대장주를 못 받았을 때 쓰는 고정 목록.
  *
- * 2026-10-04에 leading-stocks로 갈아탔다. 그 전에는 이 셋이 유일한 목록이어서 대장이 바뀌면
- * 코드를 고쳐 배포해야 했다. 지금은 첫 방문의 첫 그림과, 서버가 못 줄 때만 쓴다.
+ * 첫 방문의 첫 그림과, 서버가 못 줄 때만 쓴다. 대장은 서버(leading-stocks)가 정한다.
  * 카드는 이름·종가(홈 시세표)·그래프(따로 받는다)로 선다 — 이 목록만으로 부족한 건 없다.
  */
 const FALLBACK_THEMES: TopTheme[] = [
@@ -36,19 +35,18 @@ const FALLBACK_THEMES: TopTheme[] = [
 export const FALLBACK_LEADING: LeadingStocks = { themes: FALLBACK_THEMES }
 
 /*
- * 키를 예전('topThemes')과 다르게 둔다. 예전 값에는 수익률이 없어서, 같은 키로 읽으면
- * 첫 그림에서 수익률 자리가 "–"로 떴다가 바뀐다. 새 키는 그런 반쪽 값을 아예 읽지 않는다.
+ * 옛 키('topThemes')와 다르게 둔다 — 브라우저에 남은 옛 모양 값을 아예 읽지 않는다.
  */
 const LEADING_CACHE_KEY = 'leadingStocks'
-/** 서버 배치가 새벽 4시에 하루 한 번 다시 고르므로 반나절 묵은 값도 첫 그림으로는 충분하다 */
+/** 대표 종목은 서버가 테마마다 정해 두어 잘 바뀌지 않는다 — 반나절 묵은 값도 첫 그림으로는 충분하다 */
 const LEADING_CACHE_MAX_AGE = 12 * 60 * 60 * 1000
 
 /**
  * 지난 방문에서 받아 둔 대장주. 첫 그림을 즉시 그리는 용도다.
  * 이 값을 띄운 뒤에도 loadLeading()이 새 값을 받아 갈아끼운다.
  *
- * 모양이 하나라도 틀리면(예전 버전이 다른 모양으로 저장, 사람이 손댄 값) 없는 셈 친다.
- * 그대로 그리면 카드가 던져 홈 상단이 오류 화면이 되고, 새로고침해도 같은 값을 읽어 반나절 안 열렸다.
+ * 모양이 하나라도 틀리면(옛 판이 다른 모양으로 저장, 사람이 손댄 값) 없는 셈 친다.
+ * 그대로 그리면 카드가 던져 홈 상단이 오류 화면이 되고, 새로고침해도 같은 값을 읽어 반나절 안 열린다.
  */
 export function readCachedLeading(): LeadingStocks | null {
   const cached = readCache<unknown>(LEADING_CACHE_KEY, LEADING_CACHE_MAX_AGE)
@@ -57,7 +55,7 @@ export function readCachedLeading(): LeadingStocks | null {
   const { themes } = cached as Partial<LeadingStocks>
   if (!Array.isArray(themes) || themes.length === 0 || !themes.every(isTopTheme)) return null
 
-  // 예전 판이 담은 다른 칸(basis·returnRate 등)은 읽지 않는다. 카드가 쓰는 셋만 옮긴다
+  // 옛 판이 담은 다른 칸(basis·returnRate 등)은 읽지 않는다. 카드가 쓰는 셋만 옮긴다
   return { themes: themes.map(({ stockCode, stockName, theme }) => ({ stockCode, stockName, theme })) }
 }
 

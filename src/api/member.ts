@@ -32,7 +32,7 @@ interface MemberInfoResponse {
 /**
  * 내 정보. 본문이 비어 오면 그리다가 null.birth를 읽어 화면 전체가 오류 화면이 되므로 여기서 실패로 바꿔 던진다.
  * 낱개 칸은 여기서 거른다(다른 API와 같다 — CLAUDE.md "API 계층"): 이름·이메일이 문자열이 아니면 ""(화면이 "회원님"으로 적는다),
- * 생일이 비면 null, 가입 경로가 모르는 값이면 null. 예전엔 거르지 않고 넘겨 name이 null이면 내 정보 수정이 `null.trim()`에서 죽었다.
+ * 생일이 비면 null, 가입 경로가 모르는 값이면 null. 거르지 않으면 name이 null일 때 내 정보 수정이 `null.trim()`에서 죽는다.
  */
 export function getMemberInfo(): Promise<MemberInfo> {
   return shared(memberKey('member'), 60_000, fetchMemberInfo)
@@ -57,7 +57,7 @@ function toMemberInfo(row: MemberInfoResponse): MemberInfo {
  * 로그인을 마친 뒤 한 번 묻는 회원 정보(`GET /api/members/me`). 로그인 콜백이 부른다. **던지지 않는다** — 못 받으면 둘 다 모름이다.
  * - `needsOnboarding`: 성향테스트를 아직 안 한 회원인가(`onboarded`, 성향을 저장하면 참). 값이 불리언 false일 때만 참이다 —
  *   빠졌거나 모양이 다르면(옛 서버) 멀쩡한 회원을 검사로 끌고 가지 않는다.
- * - `socialType`: 가입 경로. 로그인 화면이 다음에 그 단추에 "최근 사용"을 붙인다(utils/lastLogin, 2026-11-02 — 요청은 늘지 않았다).
+ * - `socialType`: 가입 경로. 로그인 화면이 다음에 그 단추에 "최근 사용"을 붙인다(utils/lastLogin).
  * 401이어도 로그인 화면으로 보내지 않는다. 콜백이 가려던 자리로 보내고, 그 화면이 알아서 한다.
  */
 export async function checkAfterLogin(): Promise<{ needsOnboarding: boolean; socialType: SocialType | null }> {
@@ -146,8 +146,8 @@ export function getMyPersonalityOnPublicPage(): Promise<PersonalityInfo | null> 
 }
 
 /**
- * 탈퇴. 서버는 계정 행을 지우지 않고 탈퇴 시각만 적은 뒤(soft delete) 로그아웃처럼 토큰을 막고 refresh token 쿠키를 지운다
- * (JUBY-BE dev 7e5b023). 같은 소셜 계정으로 다시 로그인하면 새 회원으로 가입된다(CustomOAuth2MemberService).
+ * 탈퇴. 서버는 계정 행을 지우지 않고 탈퇴 시각만 적은 뒤(soft delete) 로그아웃처럼 토큰을 막고 refresh token 쿠키를 지운다.
+ * 같은 소셜 계정으로 다시 로그인하면 새 회원으로 가입된다(CustomOAuth2MemberService).
  */
 export function deleteMember(): Promise<null> {
   return remove<null>('/api/members/me')
@@ -182,9 +182,9 @@ function forgetLikes(): void {
 
 /**
  * 내 관심종목 목록. 시세는 baseDate 종가 기준이다.
- * 목록이 배열이 아니면 화면이 그리다 `null.length`에서 던져 구역 경계까지 올라갔다 — 여기서 응답 모양 오류로 던져
+ * 목록이 배열이 아니면 화면이 그리다 `null.length`에서 던져 구역 경계까지 올라간다 — 여기서 응답 모양 오류로 던져
  * 화면의 "불러오지 못했습니다 + 다시 시도"를 태운다. 기준일은 비어도 된다(화면이 그 줄만 숨긴다).
- * 날짜는 다른 API처럼 받는 자리에서 YYYYMMDD로 바꾼다(CLAUDE.md "날짜는 YYYYMMDD") — 예전엔 하이픈 그대로 넘겨 화면 둘이 각자 바꿨다.
+ * 날짜는 다른 API처럼 받는 자리에서 YYYYMMDD로 바꾼다(CLAUDE.md "날짜는 YYYYMMDD").
  */
 export function getLikeStocks(options?: { ignoreUnauthorized?: boolean }): Promise<LikeStockList> {
   const name = options?.ignoreUnauthorized === true ? 'likes-public' : 'likes'
@@ -242,7 +242,7 @@ interface LikeStockResponse {
 }
 
 /**
- * 종목코드가 없거나 틀린 행은 뺀다 — 링크가 `/stocks/null`, 해제 요청이 `/like-stocks/null`로 나갔다(2026-09-27 확인).
+ * 종목코드가 없거나 틀린 행은 뺀다 — 안 빼면 링크가 `/stocks/null`, 해제 요청이 `/like-stocks/null`로 나간다.
  * 이름이 비면 종목코드로 대신한다. 값 칸이 빈 건 포맷 함수가 "-"로 적는다
  */
 function toLikeStock(row: LikeStockResponse | null): LikeStock[] {

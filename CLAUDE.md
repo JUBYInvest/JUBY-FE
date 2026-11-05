@@ -2,1207 +2,277 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-프로젝트 소개·실행법·화면 주소·배포·코딩 규칙은 [README.md](README.md)에 있다. 먼저 읽는다.
-이 문서는 README에 없는 것, 즉 **여러 파일을 읽어야 보이는 구조와 그렇게 된 이유**만 적는다.
+JUBY 프론트엔드(React 19 + TypeScript + Vite + CSS Modules) 작업 안내다. 소개·실행법·화면 주소·배포는 [README.md](README.md)에 있다. 먼저 읽는다.
+이 문서는 여러 파일을 읽어야 보이는 구조와 지킬 규칙만 적는다. 알고도 남겨 둔 문제와 결정을 기다리는 일은 [docs/남은-일.md](docs/남은-일.md)에 있다 — **고치기 전에 먼저 본다.**
+지난 결정과 결과 보고서는 `docs/`와 git 기록에 있다.
 
-알고도 남겨 둔 문제와 사용자 결정을 기다리는 일은 [docs/남은-일.md](docs/남은-일.md)에 있다.
-**코드를 고치기 전에 먼저 본다.**
-
-**작업은 이 저장소(`JUBYInvest/JUBY-FE`)에서 한다.** 2026-09-30에 개인 저장소 `yeopkwang/juby-fe-personal`에서
-커밋 해시 그대로 옮겨 왔다. 문서에 적힌 커밋 번호는 그대로 맞고, `juby-fe-personal`·`~/juby-fe-recheck`가 나오는 곳은
-옮기기 전 기록이다. 개인 저장소에는 더 올리지 않는다.
+**작업은 이 저장소(`JUBYInvest/JUBY-FE`)에서 한다.** 개인 저장소 `yeopkwang/juby-fe-personal`에는 더 올리지 않는다.
 
 ## 지킬 것
 
-README의 "규칙"에 더해:
+- **증권사(KIS) 경로를 실제로 부르지 않는다 — 검증할 때도.** 실제 백엔드로 보내도 되는 건 `GET /v3/api-docs`뿐이고 예외는 사용자가 그때 시킨 것뿐이다.
+  앱도 증권사로 가는 요청을 미리 부르지 않는다 — 새 요청은 아래 "증권사 호출" 표에 자리를 정한다.
+- **`package.json`에 의존성을 넣지 않는다**(테스트 러너도 먼저 묻는다). `katex`는 `rehype-katex`가 쓰는 판(0.16)과 맞춘다. Playwright는 `judge/package.json`에만 있다.
+- 손대지 않는다: 사용설명서 글(`src/content/guide/*.md` — 받은 그대로 두고 어긋난 곳은 알리기만), `feat/backtest-strategy-cards` 브랜치, `docs/남은-일.md`의 "결정이 먼저 필요한 것".
+- **`fetch`는 `src/api/client.ts`에서만 쓴다**(예외 `api/realtime.ts`의 SSE, `utils/reloadPage.ts`의 화면 묶음). 화면은 `src/api/*.ts`만 부른다.
+- **색 리터럴(`#hex`·`rgb()`)은 `src/index.css` 토큰 밖에 쓰지 않는다.** 모서리·그림자·글자·간격(`--space-*`)도 토큰이다(옛 px 간격은 그 화면을 다시 만질 때 옮긴다).
+- **`composes`로 가져온 속성을 같은 속성으로 덮어쓰지 않는다 — 미디어 쿼리 안에서도.** 공용 모듈은 쓰는 화면 묶음마다 같이 들어와 다른 화면에 다녀오면 순서가 뒤집힌다. 바뀌는 값은 변수로 받는다.
+- localStorage는 `utils/auth.ts`·`utils/cache.ts`만, 한국 시각 계산은 `utils/date.ts`만 한다.
+- 서버 `message`를 화면에 쓰지 않는다. 빨강·파랑은 등락에만 쓴다. 입력칸 글자는 16px 아래로 내리지 않는다. 새 화면에는 `useDocumentTitle`을 넣는다.
 
-- **증권사(KIS) 경로를 실제로 부르지 않는다 — 검증할 때도.** 실제 백엔드로 보내도 되는 건 `GET /v3/api-docs`뿐이다.
-  예외는 사용자가 그때 시킨 것뿐이다 — 2026-11-02 "실제 API와 연동… 실제 사용자로서 확인"으로 비로그인 화면을 실서버에 붙여 둘러봤다(상세 다섯 종목,
-  [docs/검토-결과-2026-11-02.md](docs/검토-결과-2026-11-02.md) "같은 날 밤"). 판정(`judge/`)은 그대로 전부 가로챈다.
-  `/api`는 전부 가로챈다(아래 "브라우저로 검증하는 법"). 예전에 실제로 보내던 `GET /api/backtest/**`·`GET /api/personality-tests`는
-  2026-09-28부터 토큰 없이 401이다 — 실제 토큰을 구하려 하지 않고 녹화해 둔 실제 응답(없으면 스웨거 모양대로 지은 응답)을 쓴다.
-- `package.json`에 의존성을 넣지 않는다. 테스트 러너를 들이는 것도 먼저 사용자에게 묻는다.
-  사용자가 정해 들인 것: AI 답변 렌더러 `react-markdown`·`remark-gfm`·`remark-math`·`rehype-katex`·`katex`(2026-09-30).
-  판정용 Playwright는 `judge/package.json`에만 있다(2026-10-31, 사용자 결정 "판정 스크립트를 저장소에 둬") — 앱 번들과 무관하다.
-  `katex`는 `rehype-katex`가 쓰는 판(0.16)과 맞춘다 — 어긋나면 두 벌이 깔려 수식은 한 판으로 그리고 CSS는 다른 판을 쓴다.
-- 사용자가 맡았거나 정할 것이라 손대지 않는다.
-  - 사용설명서 글(`src/content/guide/*.md`). 사용자가 노션에서 쓴 글을 받은 그대로 옮긴다 — 글을 다듬거나 고치지 않는다(어긋난 곳은 알리기만 한다).
-  - `feat/backtest-strategy-cards` 브랜치. 고치지도 합치지도 않는다(B-6). 이 저장소로 옮기지 않아 개인 저장소에만 있다.
-  - `docs/남은-일.md`의 "결정이 먼저 필요한 것"
-
-## 명령어
+## 명령어와 판정
 
 ```bash
-npm run dev              # 개발 서버 (vite 프록시가 /api 를 백엔드로 넘긴다)
+npm run dev              # 개발 서버(vite 프록시가 /api를 백엔드로)
 npm run build            # tsc -b 후 vite build
-npm run lint             # oxlint
-npx tsc -b --noEmit      # 타입만 빠르게 확인
-npx knip@5               # 안 쓰는 파일·내보내기(knip.json — 판정 폴더 judge/는 따로 된 묶음이라 뺀다, 2026-11-03)
+npm run lint             # oxlint (judge/도 본다)
+npx tsc -b --noEmit      # 타입만
+npx knip@5               # 안 쓰는 파일·내보내기(judge/는 뺀다)
 ```
 
-**앱에는 테스트 러너가 없다.** 변경 검증은 `npm run lint` + `npm run build`(타입 검사 포함) + **판정(`judge/`)**으로 한다.
-판정은 2026-10-31부터 저장소 안에 있다(사용자 결정 — 그 전엔 세션 임시 폴더라 며칠 지나면 사라졌다). 돌리는 법은 [judge/README.md](judge/README.md).
+**앱에는 테스트 러너가 없다.** `lint` + `build` + **판정(`judge/`)**으로 확인한다. 돌리는 법과 파일별 내용은 [judge/README.md](judge/README.md).
 
-- 함수 단위(utils·api 계층): 러너 없이 Node가 `.ts` 원본을 곧바로 읽는다 — `judge/loader.mjs`(확장자 없는 상대 경로에 `.ts`를 붙이고
-  `import.meta.env`를 바꿔 치기)·`register.mjs`(fetch·localStorage·window 흉내) + `node:test`. `cd judge && node --import ./register.mjs unit.test.mjs`(68항목). `파일?raw` 불러오기(사용설명서 글)도 로더가 글자 모듈로 바꾼다.
-- 화면: 운영 빌드 + Playwright 크롬. `flow`(흐름)·`repro`(결함 재현)·`ai`(AI 화면)·`community`(커뮤니티 게시판)·`lines`(나란한 열의 선)·`login`(로그인 화면)·
-  `common`(16화면 공통)·`quick`·`ui`·`backtest`·`feature`·`motion`(화면 전환)·`guide`(사용설명서)·`consistency`(화면 사이 위계·세부).
+- 함수 단위는 `cd judge && node --import ./register.mjs unit.test.mjs`(`loader.mjs`가 `.ts` 원본을 읽는다). 화면은 운영 빌드 + `vite preview` + 설치된 크롬(`channel: 'chrome'`).
+- `market.mjs`는 한 빌드에서 지수(A1–A9)·실시간(R1–R8)·띠 배치(S3–S8)를 본다. 요청 순서 비교(`common.mjs`, `lib.mjs api()`)는 지수·스트림 줄을 뺀다.
+  기대 순서 `judge/expect/api-order.json`·`ai-order.json`은 구조를 바꾸기 전에 적고 바꾼 뒤 견준다.
+- 가짜 API는 `judge/mock.mjs`, 옵션은 `mock()` 주석에 있다(`indices`, `stream` — 연결마다 보낼 묶음, `streamStatus`, `stocksRealtime` 등).
+- CI(`.github/workflows/ci.yml`): `check`(tsc·lint·build·unit) → `judge`(운영 빌드를 4251에 띄워 flow·repro·ai·market).
+- 가로채기 조건은 `url.pathname.startsWith('/api/')`다(글롭은 `/src/api/*.ts`까지 잡는다). 재발급(`api.juby.store` 직행)과 다른 호스트도 막는다. **가로챈 요청 안에서 `route.fetch()`를 부르지 않는다.**
+- 로그인은 JWT 모양 가짜 토큰(`tokenFor`, subject = 회원 번호)으로 흉내 낸다. 시계는 `THU_11`(목 11:00 KST)로 못박는다.
+- 화면은 운영 빌드에서 잰다(StrictMode는 effect가 두 번 돈다). 미리보기는 `node node_modules/vite/bin/vite.js preview`로 띄운다.
+- **버그 수정**: ① 고치기 전 빌드에서 판정이 실패하는지 본다(재현 안 되면 고치지 않는다) ② 고친다 ③ 통과 ④ 고친 파일만 되돌려(`git stash push -u -- 파일들`) 다시 실패하는지 본다
+  (안 돌아가면 판정이 무효) ⑤ 복구 후 lint·tsc·build. **새 기능**은 바꾸기 전 코드에서 새 판정이 실패하는 걸 본 뒤 만들고 기존 판정을 모두 돌린다.
+- 로딩은 `domcontentloaded`·`document.fonts.ready` 뒤에 잰다. `fill()`은 잠김을 가리고 `maxLength`를 지킨다. 판정이 도는 동안 소스를 고치지 않는다.
 
-## 브라우저로 검증하는 법
+## 구조
 
-판정 스크립트는 **`judge/`에 있다**(2026-10-31 사용자 결정으로 들였다). 가짜 API는 `judge/mock.mjs`(옵션은 `mock()` 주석), 탭 열기·PASS/FAIL·
-실제 응답 감시는 `judge/lib.mjs`, 돌리는 법은 `judge/README.md`. 새 판정은 거기에 더하고 아래 방식을 따른다.
+### 엔트리·라우팅·오류 경계
 
-- **playwright는 앱 의존성이 아니다.** `judge/package.json`에만 있고 `cd judge && npm install`로 받는다(`judge/node_modules`는 커밋하지 않는다).
-  크롬은 설치된 것을 쓴다(`channel: 'chrome'`) — 브라우저를 따로 받지 않는다.
-- **증권사 호출을 막는 것이 먼저다.** `/api` 요청은 전부 가로채 응답을 지어 주고, 실제 백엔드로는 보내지 않는다.
-  2026-09-27에 실서버에서 받아 둔 녹화(프리셋 20종목 × 5성향 × 4기간 400건 등)는 2026-09-30에 세션 임시 폴더째 macOS 정리로
-  사라졌다(아래 "헛디딘 곳"). 토큰 없이는 다시 받을 수 없어 지금은 **스웨거 모양대로 지은 응답**을 쓴다 — 값은 실제와 다르니
-  화면 동작 판정에만 쓴다. 녹화를 다시 마련하면 임시 폴더 밖에 두고, 어디서 받았는지 같이 적어 둔다.
-  백엔드 호스트로의 주소 이동(소셜 로그인)과 **토큰 재발급**(`https://api.juby.store/api/auth/reissue`, 프록시를 안 거치고 곧장 나간다)도
-  가로챈다 — 같은 출처의 `/api/`만 보면 재발급이 실제 백엔드로 샌다. 다른 호스트로 가는 요청은 전부 막거나 지어 준다.
-  가로채기 조건은 `url.pathname.startsWith('/api/')`로 쓴다 —
-  `**/api/**` 글롭은 개발 서버의 `/src/api/*.ts` 모듈까지 잡아 앱이 뜨지 않는다.
-- **로그인은 콜백 주소를 직접 열어 흉내 낸다.** 소셜 로그인은 하지 않는다. 성공은 `/oauth2/callback#accessToken=<가짜>`
-  (토큰이 쿼리가 아니라 **해시**에 온다), 실패는 `/oauth2/error?error=login_failed`. 로그인 뒤 화면은 localStorage에
-  가짜 `accessToken`을 넣고 연다. **가짜 토큰은 백엔드 JwtUtil 모양(JWT, subject = 회원 번호)이어야 한다**(`judge/mock.mjs tokenFor`) —
-  앱이 최근 본 백테스트의 주인을 그 subject로 가른다(2026-10-31). 글자 하나짜리 토큰이면 로그인으로는 보이지만 기록은 남지 않는다.
-- 지어 주는 응답은 스웨거(`GET /v3/api-docs`, 증권사 무관) 모양을 따라 `{ isSuccess, code, message, result }`로 싼다.
-  실서버처럼 토큰 없는 비공개 경로(공개는 `/api/stocks/**`·재발급뿐)는 401로 막고, 상세의 봉 가격은 현재가와 같은 가격대로 짓는다 —
-  2026-10-29까지 현재가 71,500원 옆 차트 축이 19,3xx대라 화면 판단이 틀어졌다(UI 리디자인 지시서 0절).
-- **사파리는 Playwright의 WebKit으로 잰다.** 크롬은 설치된 것을(`channel: 'chrome'`), WebKit은
-  캐시의 playwright로 `node <npx 캐시>/playwright/cli.js install webkit` 해서 받은 것을 쓴다(`~/Library/Caches/ms-playwright`,
-  `package.json`과 무관). 망 속도 흉내·메모리 측정은 크롬 전용(CDP)이라 WebKit에서는 못 잰다.
-  크롬에서 멀쩡해도 WebKit에서만 깨지는 게 있다(2026-09-26 AI 화면 320px 가로 넘침, 묶음 실패 뒤 새로고침).
-  묶음 실패는 `route` 가로채기 대신 vite preview 앞에 세운 작은 중계 서버가 첫 요청에만 500을 주게 해서도 잰다 —
-  가로채기로 만든 실패가 실제와 같은지 가르려고(둘 다 같았다).
-- **화면 동작은 운영 빌드(`npm run build` 후 `vite preview`)에서 잰다.** 개발 서버는 StrictMode라
-  effect가 두 번 돌아 요청 수를 세는 검사가 틀린다. 함수 단위 검사는 개발 서버 페이지에서
-  `await import('/src/utils/format.ts')`처럼 원본 모듈을 직접 불러 돌린다(러너를 들이지 않고).
+- `index.html` → `main.tsx` → `App.tsx`(`BrowserRouter`) 하나. 화면은 `lazy` + `trackRouteChunk`이고 마이페이지 넷(`pages/mypageBundle.ts`)·커뮤니티 셋(`pages/communityBundle.ts`)은 한 묶음이다.
+- 화면 전환(`utils/motion.ts PAGE_MOTION`)은 `main` 하나에 Web Animations로 건다 — `key`로 걸면 종목만 바뀔 때 상태가 날아간다. 뒤로·앞으로·움직임 줄이기엔 걸지 않는다.
+- `<ErrorBoundary resetKey={pathname}>`가 `Suspense`를 감싸고 **머리글과 지수 띠는 경계 밖**이다(띠는 `<SectionBoundary quiet>`). 다시 시도·새로고침은 `reloadPage()` 한 곳이다
+  (사파리는 못 받은 묶음을 캐시에 남기므로 `cache: 'reload'`로 다시 받은 뒤 새로고침한다).
+- `SectionBoundary`는 자식이 **그리다 난** 오류만 받는다. 대상이 바뀌면 `resetKey`를 주고, 다시 시도는 받아 둔 값을 버린 뒤 새로 받는다. 비동기·통신 실패는 각 화면 몫이다.
+- "본문으로 건너뛰기"는 `main`에 포커스를 준다(`href="#main"`은 홈 되살리기를 깬다).
 
-순서:
+### API 계층(`src/api/client.ts`)
 
-- **버그 수정**: ① 고치기 전 빌드에서 판정이 **실패하는지** 본다(재현 안 되면 고치지 않는다) ② 고친다
-  ③ 같은 판정으로 통과 확인 ④ **고친 파일만 되돌려**(`git stash push -u -- 파일들`) 다시 빌드하고 판정이
-  실패로 돌아가는지 본다 — 안 돌아가면 그 판정식은 무효다 ⑤ 복구 → lint·tsc·build.
-- **새 기능·개선**: 되돌릴 "고친 파일"이 따로 없으므로 ①이 ④를 겸한다 — 바꾸기 전 코드에서 새 판정이
-  실패하는 것을 본 뒤 만든다. 끝나면 기존 판정을 모두 다시 돌린다. 기존 판정이 옛 동작을 전제로 적혀 깨졌으면
-  (정렬을 바꿔 4번째 행이 달라지는 식) 새 동작이 맞는지 확인한 뒤 판정을 고치고, 고쳤다고 알린다.
+- `get`·`post`·`patch`·`remove`가 `{ isSuccess, code, message, result }`를 벗긴다. 실패는 `ApiError`(`status`·`code`·`message`), 망 끊김·시간 초과는 `Error`다.
+- **응답 거르기**: `*Response`는 필드를 `?: T | null`로 적고 화면 타입으로 옮기는 자리에서 **전부** 거른다(숫자 `finiteOrNull()`, 문자열 `typeof`, 빌 수 있는 칸은 화면 타입도 `| null`).
+  화면이 반드시 쓰는 값이 비면 `malformedResponse()`로 던진다. 목록 한 행의 빈 값은 막지 않는다(포맷 함수가 "-"). 서버 `YYYY-MM-DD`는 여기서 `fromDashedYmd()`로 바꾼다.
+- 기본 12초에 끊고, 연달아 두 번 무응답이면 차단기가 15초 동안 모두 실패시킨다. 없어도 되는 요청은 짧게 끊고 `countsTowardBreaker: false`.
+  **AI 질문만 제한 시간이 없다**(`timeoutMs: null`, "그만 기다리기"가 `AbortController`로 끊는다).
+- **401**: 토큰을 실은 요청이면 재발급(`POST /api/auth/reissue` — `API_ORIGIN`을 곧장 `credentials: 'include'`로) 후 한 번 다시 보낸다. 동시 401도 재발급은 한 번이다.
+  실패하면 토큰을 지우고 `/login?next=`로 보낸다(이미 `/login`이거나 토큰 없던 요청은 빼고). `{ ignoreUnauthorized: true }`면 이동하지 않는다.
+- **공개 화면(백테스트·AI·상세)이 들어오자마자 부르는 요청은 `ignoreUnauthorized`로 보내고 401이면 토큰만 지운다**(`member.ts onPublicPage`). 사용자가 한 동작의 401은 전역 처리대로다.
+- `API_DISABLED`는 모든 요청을 끊는 비상 스위치다(지금 꺼짐).
+- **같이 쓰는 조회**(`api/memo.ts`): `shared(key, maxAge, load)`가 같은 요청을 하나만 보낸다. 시세표(`stocks`)·관심종목(`likes`·`likes-public`)·성향(`personality`·`personality-public`)·
+  회원 정보(`member`)를 1분 같이 쓴다. 열쇠는 `memberKey(name)`로 계정을 붙여 로그인이 바뀌면 따로 받는다. 하트 등록·해제, 내 정보 수정, 성향 검사 제출 뒤 `forget(...names)`로 지운다.
+- 같은 탭 메모는 상세 1분, 뉴스 10분. **다시 시도는 캐시를 건너뛴다**(`{ fresh: true }`, 그 한 번만).
+- **늦은 응답**: effect의 `isStale`을 `.then`·`.catch` 안에서 본다. 버튼이 거는 요청은 번호 ref로 견주고 **화면을 바꾸는 쪽도 번호를 올린다.** 다시 부르기는 `retryCount` 같은 상태로.
 
-측정하다 실제로 헛디딘 곳:
+### 실시간 시세(`src/api/realtime.ts`)
 
-- `git stash`는 새로 만든(추적 안 되는) 파일을 경로 지정으로 못 가져간다. `-u`를 준다.
-- 개발 서버를 켠 채 파일을 고치면 앱은 `?t=`가 붙은 새 모듈을 쓰는데, 검사가 `/src/x.ts`로 부르면
-  **다른 모듈 인스턴스**가 된다. 구독·모듈 상태가 걸린 검사(동시 401 등)는 서버를 새로 띄운 뒤 잰다.
-- 로딩 화면을 볼 때 `goto(…, { waitUntil: 'networkidle' })`는 늦춘 응답까지 기다려 버린다. `domcontentloaded`를 쓴다.
-- 주소를 직접 열고 밀림을 재면 웹 글꼴(Pretendard)이 응답과 함께 받아져 글꼴 교체만으로 1~2px이 바뀐다.
-  로딩 상태는 `document.fonts.ready` 뒤에 잰다.
-- Playwright `fill()`은 입력칸이 풀릴 때까지 기다려 "잠겨 있었다"는 사실을 가린다. 잠김은 `isDisabled()`로 따로 잰다.
-- `fill()`은 `maxLength`를 지킨다. 내 정보 이름칸(4자)에 "가나다라마"를 넣으면 "가나다라"가 된다(2026-09-28). 정해진 값을
-  그대로 재려면 값 setter + `input` 이벤트로 넣고, 사용자가 실제로 칠 수 있는 경로는 따로 잰다.
-- 날짜 입력칸은 키보드 입력이 칸을 넘나들며 틀어진다. 값은 `fill('2030-01-01')`로 넣는다.
-- 홈 시세표는 종목명 링크의 `::after`가 행 전체를 덮는다. 화면 밖 행은 `scrollIntoViewIfNeeded()` 뒤 좌표로 누른다.
-- 일부러 500·404를 지어 주는 검사는 브라우저 콘솔에 "Failed to load resource"가 찍힌다. 콘솔 오류를 셀 때 그 줄은 뺀다.
-- grep 패턴의 `$`는 정규식 기호로 읽힌다. `` `${index}` `` 같은 코드는 `grep -F`로 찾는다.
-- 일부러 가드를 빼서 오류를 일으키는 임시 빌드는 `tsc`에 걸릴 수 있다. 그땐 `npx vite build`로만 묶는다(커밋하지 않는다).
-- 회귀 묶음의 번들 크기 검사(W-B-1)는 저장소에서 `npm run build`를 다시 돌린다. **판정이 도는 동안 소스를
-  고치면** 그 뒤의 판정은 고친 코드를 잰다 — "고치기 전 빌드"라고 믿은 결과가 틀린다.
-- 이미 커밋한 수정의 "고치기 전"을 재려면 `git stash`로는 안 된다. 그 커밋 앞을 `git worktree add --detach <폴더> <커밋>`으로
-  따로 꺼내 `node_modules`를 심볼릭 링크하고 `npx vite build` + 다른 포트의 `vite preview`로 잰 뒤 지운다.
-- `vite preview`를 `npx`로 띄우면 판정 뒤 `kill`이 npx에만 닿고 vite가 남아 포트를 쥔다. `node_modules/vite/bin/vite.js`를 직접 띄운다.
-  미리보기는 IPv6(`::1`)에만 붙어 Node에서 `127.0.0.1`로 준비됐는지 물으면 영영 안 뜬 것으로 보인다(`[::1]`이나 `localhost`로 묻는다).
-- 세션 임시 폴더(`/private/tmp/...`)는 날짜가 바뀌면 macOS가 며칠 지난 파일을 지운다. 판정 자료(실제 응답 녹화)와
-  검사 도구가 사라져 판정이 파일을 못 찾고 멈췄다(2026-09-28). 녹화한 응답은 어디서 받았는지 적어 두고 다시 받을 수 있게 한다.
-  (검사 도구는 2026-10-31부터 `judge/`에 있어 더는 사라지지 않는다.)
-- `npm run lint`(oxlint)는 `judge/`도 본다. 판정 스크립트에 `eval`·안 쓰는 변수를 남기면 앱 lint에 경고가 섞인다.
-- **가로챈 요청 안에서 `route.fetch()`를 부르지 않는다.** 다른 가로채기를 거치지 않고 실제 망으로 나간다 — 2026-10-05 사진 찍는 스크립트가
-  대화방 목록을 덧붙이려고 불러, 가짜 토큰을 단 `GET /api/chat-sessions`가 실제 백엔드로 6건쯤 나갔다(읽기 요청이라 401로 끝났다).
-  덧붙일 값은 스크립트가 직접 짓고, 판정에는 `/api/` 응답에 `x-vercel-id`(Vercel을 거친 실제 응답)가 붙으면 찍는 감시를 둔다.
-- **증권사 토큰이 걸린 판정은 시각을 못박는다.** 홈 카드가 그래프를 물을지는 한국 시각으로 가른다(`kisTokenLikelyExpired` — 주말·평일 16시 무렵).
-  주말 상황을 흉내 낸 판정이 실제 시계에 기대 주말에만 통과했고, 평일에 돌리자 비로그인 카드가 그래프를 물어 흉내 낸 "1분 1건"을 먼저 써
-  열몇 개가 한꺼번에 실패했다(2026-10-06). `addInitScript`로 `Date.now`에 차이를 더해 주말(일 14시)·평일(화 11시)로 맞춘다 — 앱은 `Date.now()`로 시각을 읽는다.
-- 구역 경계를 일부러 걸리게 하는 응답(`stockName: {}`, 봉 `date: {}`)은 나중 방어(F-5·F-20)가 막아 더는 던지지 않는다.
-  응답 모양 대신 시험용으로 특정 값(예: 가격 13131313)을 서식할 때만 `Number.prototype.toLocaleString`이 던지게
-  `addInitScript`로 가로채면 앱 방어와 상관없이 "그리다 난 오류"를 만든다.
+- 앱 전체가 SSE `GET /api/stream/prices` 연결 하나를 같이 쓴다(연결 직후 전체, 그 뒤 1초마다 바뀐 것만).
+  이벤트 `prices`: `{ stockCode, currentPrice, changeRate, accTradingValue, contractTime }[]`, `indices`: `{ code, name, currentIndex, changeRate }[]`.
+- EventSource는 머리글을 못 실어 fetch로 읽고 `Authorization`을 싣는다. **장중(`isMarketHours`)·탭이 보일 때·값을 쓰는 화면이 있을 때만 연결한다.**
+  정상 종료 뒤 1초에 다시 붙고 실패는 늘려 가며 기다린다. 비로그인은 한 번 시도해 401이면 로그인이 바뀔 때까지 쉰다.
+- 훅: `useRealtime()`, `withLivePrice(row, prices)`, `useLiveRows(rows, sortKey, sort)` — **줄 순서는 받거나 정렬을 바꿀 때만 정하고 값만 실시간으로 바뀐다.**
+- REST의 실시간 필드: `/api/stocks`의 `asOf`와 행마다 `realtime`(장중엔 종가 자리에 현재가), 관심종목 행 `realtime`. 가격 옆 기준 글은 `utils/priceBasis.ts basisLabel()` 하나로 적는다 —
+  "실시간" / "11월 5일 11:02 기준" / "장중 현재가" / "10월 28일 종가 기준"(날짜를 모르면 "" → 줄을 숨긴다). 상세 머리 가격도 같은 말을 쓴다.
 
-## 엔트리와 라우팅
+### 증권사(KIS) 호출
 
-`index.html` → `src/main.tsx` → `App.tsx`(`BrowserRouter`) 하나뿐이다. 투자성향 테스트도 본 앱 라우트다
-(예전의 `personality.html` + `MemoryRouter` 별도 엔트리는 2026-09-21에 합쳐 지웠다).
+호출 제한이 빡빡하다. **사용자가 누르지 않은 증권사 호출은 서버에 토큰이 있을 때만 쓴다**(`canSpendKisCall` — 6시간 안에 토큰을 심었거나, 토큰이 끝나 있을 때
+(`kisTokenLikelyExpired`: 토 15:45~월 16:05, 평일 15:45~16:05)가 아니고 30분 안에 서버 오류(`kisLimitedAt`)가 없을 때).
 
-화면은 `lazy`로 따로 받되, **마이페이지 넷(껍데기 + 한눈에 보기·투자유형·내 정보)은 `pages/mypageBundle.ts` 한 묶음**이다
-(`/mypage`는 한눈에 보기다 — 2026-10-30 전에는 투자유형으로 보냈다. 아래 "마이페이지")
-(관심종목은 2026-10-30에 머리글의 "주식 모아보기"(`/likes`, `pages/LikesPage.tsx`)로 옮겼고 `/mypage/likes`는 그리로 보낸다 — 아래 "주식 모아보기").
-따로 두면 껍데기 묶음이 온 뒤에야 안쪽 화면 묶음을 받기 시작해 들어올 때마다 왕복이 하나 더 끼었다(2026-10-05 측정 — 묶음 도착
-뒤 요청까지 200ms 남짓이 그 왕복이었다). `index.html`은 본문 글꼴 CDN(`cdn.jsdelivr.net`)에 `preconnect`를 건다 — 첫 그림을
-막는 글꼴 CSS인데 연결부터 맺고 있었다.
-
-**화면을 옮기면 머리글 메뉴의 막대가 누른 메뉴로 미끄러지고 본문이 8px 아래에서 떠오른다**(2026-11-03, 사용자 "화면전환은 네가 생각해서 디자인해줘").
-둘은 같은 때·같은 감속 곡선이다(`utils/motion.ts PAGE_MOTION`, 220ms) — 누른 곳과 바뀐 곳이 한 동작으로 읽힌다. 본문은 `main` 하나에 Web Animations로
-건다(`App.tsx` Layout) — `key`로 다시 거는 방식은 같은 화면 안에서 종목만 바뀔 때(/stocks/A → /stocks/B) 화면을 통째로 다시 만들어 받아 둔 상태가 날아간다.
-막대는 링크마다 그리는 `::before`라 새 메뉴의 막대를 앞 메뉴 자리·폭에서 출발시킨다(`Header`, pseudoElement) — 같은 줄의 메뉴끼리만(휴대폰은 계정 메뉴가 윗줄이다).
-**뒤로·앞으로 가기에는 둘 다 걸지 않는다** — 떠났던 자리로 바로 선다. 처음 들어올 때와 움직임을 줄인 설정에서도 걸지 않는다.
-**화면 묶음을 받는 동안은 머리글 띠 아래 끝에 연초록 줄이 흐른다**(150ms가 지나야 보인다, `utils/routeLoading.ts` — `App.tsx`의 `lazy`는 `trackRouteChunk`로 감싼다).
-React Router가 이동을 전환(startTransition)으로 처리해 묶음이 올 때까지 **앞 화면을 그대로 둔다** — `Suspense`의 빈 자리는 주소를 직접 열 때만 보이고,
-2026-11-02에 거기 둔 스피너는 메뉴 이동에서 한 번도 뜨지 않았다. 빈 자리는 높이만 잡는다. 판정은 `judge/motion.mjs`(17항목).
-
-검사 결과는 주소가 아니라 `navigate`의 state로 넘어간다. `/personality-test/result`를 직접 열면 보여줄 게
-없어 문항 화면으로 되돌린다(주소 뒤 조건은 유지). 완료 후 돌아갈 곳은 `?from=`으로 갈린다 — `mypage` → 마이페이지,
-`ai` → AI, 없으면 `?next=`의 경로(첫 로그인 온보딩, 아래 "로그인 뒤 돌아갈 곳"), 그것도 없으면 홈(`PersonalityResultPage.doneRoute`).
-
-## API 계층
-
-`src/api/client.ts`가 **`fetch`를 쓰는 유일한 곳**이다(예외: `LoginPage.tsx`의 소셜 로그인
-`window.location.href`, 받지 못한 화면 묶음을 다시 받는 `utils/reloadPage.ts` — API가 아니라 정적 파일이다).
-화면 컴포넌트는 `src/api/*.ts`만 부른다.
-
-- `get` / `post` / `patch` / `remove` — 모든 응답이 `{ isSuccess, code, message, result }`
-  래퍼라 여기서 벗겨 `result`만 돌려준다. 래퍼 없는 응답은 없다.
-- 실패(4xx/5xx)는 **`ApiError`**(`status`, 서버 `code`, `message`)로 던진다. 화면이
-  `error instanceof ApiError && error.code === 'BACKTEST404_5'` 식으로 가려 다른 안내를 낸다.
-  네트워크 단절·시간 초과는 그냥 `Error`다.
-- JSON이 아닌 본문(게이트웨이 오류 페이지)이 오면 `SyntaxError` 대신 상태코드 문장으로 바꿔 던진다.
-- 성공인데 본문이 비었거나 래퍼가 아니면 `ApiError`(code `null`, 고정 문구)다. 화면이 반드시 쓰는
-  값이 비어 오면 `src/api/*.ts`가 `malformedResponse()`로 같은 에러를 던진다(백테스트 preset·내 정보·
-  종목 목록·종목 상세). 그냥 넘기면 화면이 그리다 `null.필드`에서 던져 **화면 전체**가 오류 화면이 된다.
-  한 행의 값이 빈 건 막지 않는다 — 포맷 함수가 "-"로 적는다.
-- **응답 인터페이스(`src/api/*.ts`의 `*Response`)는 필드를 `?: T | null`로 적는다**(스웨거에 필수 표시가 없다).
-  화면 타입(`types/*.ts`)으로 옮기는 자리에서 **전부** 거른다 — 숫자는 `finiteOrNull()`(utils/format.ts), 문자열은
-  `typeof`로 보고, 비어 올 수 있는 칸은 화면 타입에도 `| null`로 적어 타입 검사가 쓰는 곳을 찾게 한다.
-  보낸 값을 되돌려 주는 칸(상세의 종목코드·기간, 뉴스의 쪽 번호·정렬)은 보낸 값을 쓴다. 새 API도 이렇게 적는다.
-  (2026-10-06까지는 거르지 않고 넘기는 `unchecked()`가 24곳 있었다. 일봉 배열에 null 칸이 하나만 섞여도 상세가
-  "서버가 잠시 응답하지 못했습니다"로 실패해 63초 뒤 증권사를 다시 불렀고, 빈 등락률 "-"가 하락 파랑으로 칠해졌다.)
-
-요청은 기본 12초에 끊고, 두 번 연달아 무응답이면 차단기가 15초 동안 모든 요청을 곧바로 실패시킨다.
-**AI 질문만 제한 시간이 없다**(`timeoutMs: null`) — 서버가 AI를 두 번 차례로 부르고 자세히 쓰라고 시켜 12초를
-넘기기 쉽다. 끊으면 서버는 계속 답을 만드는데 화면은 실패로 뜨고, 다시 시도까지 끊기면 차단기가 걸려 홈 시세표까지
-막혔다(15초 답을 흉내 내 재현). 배포에서는 Vercel 중계에도 대기 한도가 있을 수 있다 — 실제 배포에서 확인한다.
-대신 기다리는 동안 **"그만 기다리기"** 로 끊을 수 있다(`AiPage.handleStop`): 브라우저 연결을 끊고(`AbortController` →
-`client.ts`의 `signal`, 끊긴 요청은 차단기에 세지 않는다) 입력칸이 풀린다. 서버는 이미 받은 질문의 답을 계속 만들어 방에 저장한다 —
-그래서 그만 기다린 방에 새 질문을 보내면 방을 먼저 다시 받아 끝난 앞 답을 되살린 뒤 보낸다(2026-10-31. 다시 시도도 같다).
-대화방을 못 불러온 화면(오류 안내)에서는 보내지 않는다 — 보내면 말풍선이 안 보인 채 서버에만 저장됐다.
-
-401은 `client.ts`가 전역으로 처리한다. **토큰을 실어 보낸 요청이면 먼저 재발급해 같은 요청을 한 번 다시 보낸다**
-(2026-09-30 사용자 결정 — 예전엔 30분마다 로그인이 풀렸다). 재발급(`POST /api/auth/reissue`)만은 프록시가 아니라 백엔드를 곧장,
-쿠키를 실어(`credentials: 'include'`) 부른다 — refresh token 쿠키가 백엔드 주소에 박혀 있어 프론트 주소로 부르면 안 실린다.
-동시에 여러 요청이 401이어도 재발급은 한 번이고(`reissuing`), 보낸 뒤 토큰이 바뀌었으면(다른 요청·탭이 먼저 받았다) 그걸 쓴다.
-다른 사이트 쿠키를 막는 브라우저는 프론트가 `juby.store` 아래에 있어야 실린다 — 그 전에는 재발급이 실패하고 로그인 화면으로 간다.
-WebKit(사파리)에서 안 실리는 것을 확인했다(2026-09-30). 파이어폭스는 Playwright 판에서는 실렸지만 실제 브라우저의 쿠키 격리 설정에 따라 다를 수 있다.
-재발급이 실패하면 예전처럼 토큰 삭제 후 `/login?next=<보던 자리>`로 이동한다(아래 "로그인 뒤 돌아갈 곳"). 단
-① 이미 `/login`이거나 ② 애초에 토큰이 없던 요청이면 이동하지 않는다 — 무한 새로고침과
-비로그인 방문자를 끌고 가는 것을 막기 위해서다. 로그아웃처럼 예외가 필요하면
-`{ ignoreUnauthorized: true }`를 넘긴다(재발급·다시 보내기는 그래도 한다 — 만료된 토큰으로 로그아웃하면 서버가 RT를 못 지운다).
-
-**공개 화면(백테스트·AI·상세)이 들어오자마자 부르는 요청은 401로 끌고 가지 않는다.** 내 성향 조회는
-`getMyPersonalityOnPublicPage()`가 401이면 토큰만 지우고(머리글이 "로그인"으로 돌아간다) 없음으로 본다 —
-아무것도 누르기 전에 로그인 화면으로 끌려가던 것. 사용자가 직접 한 동작(질문 보내기·하트)의 401은 전역 처리대로다.
-두 화면은 `useMyPersonality(loggedIn)`으로 받아 불러오는 중·없음·실패·있음을 가르고 로그인 구독을 따라간다.
-같은 규칙을 쓰는 요청: 상세의 관심종목 목록(`getLikeStocksOnPublicPage`, 둘 다 `api/member.ts onPublicPage`), AI 대화방 목록,
-백테스트 기간 목록(`getPresetOptions` — 2026-10-31까지 이것만 빠져 있어 만료 토큰으로 `/backtest`를 열면 로그인으로 갔다),
-휴장일·임시 차트. 새로 "들어오자마자 부르는 요청"을 만들면 `ignoreUnauthorized: true`를 준다.
-
-`API_DISABLED`(client.ts)는 모든 요청을 끊는 비상 스위치다(지금 꺼짐). 증권사 계정을 보호해야 할 때
-그 한 줄만 바꾼다.
-
-## 증권사(KIS) 호출은 상세 화면·홈 카드 그래프와 아래 표의 셋뿐이다
-
-백엔드가 한국투자증권 API를 중계하는데 호출 제한이 빡빡하다(홈 한 번에 108건이던 것을 4건으로 줄였다).
-그래서 **증권사로 가는 요청은 미리 부르지 않는다.** 예외는 홈 카드 그래프와 휴장일인데, 둘 다 받은 값을 담아 두고
-서버에 토큰이 있을 때만 묻는다(아래). 2026-10-31에 남은 증권사 직통 API 셋을 붙였다(사용자 요청 "연결되지 않은 API를 찾아 연결해줘") —
-휴장일은 담아 두고 드물게, 거래대금 순위는 탭을 누를 때만, 기간별 시세는 상세가 실패했을 때만 묻는다. 종목 화면이 부르는 곳:
-
-| 어디 | KIS | 왜 |
+| 요청 | 증권사 | 언제 |
 | --- | --- | --- |
-| 홈 표 `GET /api/stocks` | **0회** | DB의 `daily_price`를 읽는다. 종가·등락률·거래대금·`isLiked`·`baseDate` |
-| 홈 카드 종목 `GET /api/stocks/leading-stocks` | **0회** | DB(새벽 4시 배치)를 읽는다. 테마·종목(전략 수익률·매매 횟수도 오지만 카드에 적지 않는다). 종가는 홈 표 응답에서 꺼내 쓴다. 아래 "홈 테마별 대표 종목" |
-| 홈 카드 그래프 `GET /api/stocks/{code}?period=ONE_YEAR` | 담아 둔 게 없는 카드만, 토큰이 있을 때만 | 일봉은 DB인데 그걸 주는 API가 상세뿐이다. 받은 1년은 다음 배치까지 담는다(`api/cardSeries.ts`). 아래 "사용자가 누르지 않은 증권사 호출" |
-| 상세 `GET /api/stocks/{code}?period=ALL` | 1회 | 같은 이유. **기간 탭은 서버에 다시 묻지 않고** 받아 둔 전체를 화면에서 자른다(`utils/date.periodStart`, 백엔드 `calculateDay`와 같은 규칙) |
-| 토큰 심기 `GET /api/market/{code}/price` | 로그인 때 6시간에 1회(홈·상세 중 먼저 연 곳) | **임시.** 서버가 토큰을 저장하게 만든다. 아래 "실패한 뒤에만 기다린다" |
-| 아래 지수 띠 `GET /api/stocks/indices`(제안 — 백엔드에 아직 없다) | **지금 0회**(예시 값). 붙이면 모른다 — 요청마다 부른다고 보고 토큰이 있을 때만 | 아래 "아래 지수 띠" |
-| 장 상태 `GET /api/market/holiday?basedate=` | 로그인·토큰 있을 때, 이 브라우저에 받아 둔 날짜가 오늘과 다음 개장일을 덮지 못할 때만(대개 2~3주에 1회, 길어도 7일에 1회) | 실전 토큰. 증권사가 "하루 한 번 넘게 부르지 말라"는 API다. `api/marketCalendar.ts`, 아래 "아래 지수 띠" |
-| 실시간 거래대금 순위 `GET /api/market/volume-rank` | 홈 '실시간 거래대금 순위' 탭을 누를 때 1회(1분 메모) | 실전 토큰. `api/kisMarket.ts`·`components/VolumeRank` |
-| 임시 차트 `GET /api/market/{code}/daily_itemchartprice` | 로그인했고 상세가 실패했을 때(기다리는 중·끝내 실패) 그 종목 1회(5분 메모) | **모의투자 토큰**이라 상세가 실패하는 까닭(실전 토큰 발급 한도)과 겹치지 않는다. 아래 "종목 상세의 바로 가기" |
+| `GET /api/stocks` 시세표 | 0(DB, 장중엔 서버의 실시간 값) | 화면 여럿이 1분 같이 쓴다 |
+| `/api/stocks/leading-stocks`·`/api/stream/prices` | 0 | 홈 카드 종목(DB 배치)·실시간 |
+| `GET /api/stocks/{code}?period=ALL` 상세 | 1 | 기간 탭은 화면에서 자른다(`periodStart`) |
+| `?period=ONE_YEAR` 홈 카드 그래프 | 담아 둔 게 없는 카드만 | 토큰을 심었거나 `canSpendKisCall`일 때(`api/cardSeries.ts`) |
+| `GET /api/market/{code}/price` 토큰 심기(임시) | 1 | 로그인 때 홈·상세에서 6시간에 1회(`primeKisToken`) |
+| `GET /api/market-indices` 지수 띠 | 장 밖 값은 서버가 증권사(1분 캐시) | 처음 + 실시간이 없을 때 장중 1분마다, `canSpendKisCall`일 때 |
+| `GET /api/market/holiday` 휴장일 | 1("하루 한 번" API) | 받아 둔 날짜가 오늘과 다음 개장일을 못 덮을 때(로그인) |
+| `GET /api/market/volume-rank` 순위 | 1 | 홈 순위 탭을 열 때만(1분 메모, 로그인) |
+| `GET /api/market/{code}/daily_itemchartprice` | 1(모의투자 토큰) | 로그인했고 상세가 실패했을 때 그 종목만 |
 
-**2026-10-04에는 상세가 1분에 1건만 성공했다** — 70초 간격으로 세 종목을 부르면 셋 다 200, 곧바로 이어 부르면
-방금 된 종목까지 셋 다 `COMMON500_1`. 원인은 백엔드다(`docs/남은-일.md` 백엔드 10). 백엔드 소스로 보면 증권사 토큰이
-DB에 살아 있으면 한도가 없다. 평일 16시 일봉 배치가 토큰을 받아 저장하고, 그 토큰이 끝나는 **주말**(토 16시 무렵~월 16시)에는
-상세가 새 토큰을 저장하지 못해(읽기 전용 트랜잭션) 요청마다 발급을 받으려다 증권사의 "1분에 1회 발급"에 걸린다 —
-실서버로 평일에 재 보지는 않았다. 상세는 현재가를 DB 일봉보다 먼저 부르고 실패를 잡지 않아, 현재가가 실패하면 일봉도 못 받는다.
-DB 일봉을 주는 API는 상세 하나뿐이라(스웨거·백엔드 컨트롤러 전체 확인, 2026-10-04) 프론트가 일봉만 따로 받을 길은 없다.
-**백엔드가 고칠 때까지 프론트는 실패한 뒤에만 기다린다(임시):**
-- **처음에는 곧바로 보낸다.** 서버가 멀쩡하면 종목을 연달아 열어도 기다리지 않는다. 처음부터 65초 간격을 지키던 판은
-  멀쩡한 서버에서도 둘째 종목을 1분 넘게 기다리게 해서 걷었다(2026-10-04).
-- 서버 오류(5xx·서버에 못 닿음)면 **1.5초 뒤 한 번**(잠깐의 오류는 이걸로 풀린다. 로그인했으면 토큰도 다시 심는다), 그래도 안 되면
-  이 브라우저가 마지막으로 보낸 때에서 **65초**(`DETAIL_GAP_MS`) 뒤 한 번 더 저절로 부른다. 1분 제한 중에는 그 안에 부르면 또
-  실패한다 — 한때 65초만 두었더니 평일의 잠깐 오류도 1분을 기다렸다(2026-10-04 점검). 또 실패하면 "다시 시도"를 띄우고, 그 버튼은
-  간격을 지켜 보낸다. 보낸 때는 메모리와 localStorage(`stockDetailSentAt`, 탭끼리 나눔)에 둔다.
-- 기다리는 동안 차트 자리에 "N초 뒤에 차트를 다시 불러옵니다"를 센다(`WaitNotice`). 가격 자리는 실어 온 종가다.
-  기다리는 사이 다른 종목으로 가면 그 종목 요청은 더 나가지 않는다.
-- **로그인했으면 상세를 부르기 전에 `GET /api/market/{code}/price`를 한 번 불러 서버가 토큰을 저장하게 한다**(`primeKisToken`,
-  사용자 결정 2026-10-04). `/api/market`은 읽기 전용 트랜잭션이 아니라 거기서 받은 토큰은 저장되고, 그 뒤 24시간은 모든 사용자의
-  상세가 바로 된다. 되면 6시간, 4xx(백엔드가 막음)면 6시간, 401이면 10분, 5xx면 65초 동안 다시 심지 않는다(localStorage
-  `kisTokenPrimedAt`·`kisTokenPrimeSkipUntil`). 비로그인은 심지 못한다. `docs/남은-일.md` 백엔드 7번의 "프론트는 부르지 않는다"를
-  깨는 우회라, 백엔드가 그 경로를 막으면 저절로 꺼진다.
-  - **홈에 와도 심는다**(`loadCardSeries`). 상세 앞에 심기가 끼면 그만큼 상세가 늦으니 미리 해 둔다.
-  - **심기는 3초만 기다린다**(`PRIME_TIMEOUT`, 기본 12초면 증권사가 느린 날 상세가 12초 밀린다). 끊어도 서버는 하던 일을 마친다.
-    이 시간 초과는 차단기(client.ts)에 세지 않는다(`countsTowardBreaker: false`) — 세면 이어지는 상세의 시간 초과와 합쳐 두 번이 되어
-    15초 동안 시세표·뉴스까지 막혔다. 연결 실패는 그대로 센다.
-  - **상세가 서버 오류를 내면 심어 둔 표시를 지운다**(`forgetKisTokenPrime`). 심을 때 남이 받아 둔 곧 끝날 토큰을 그대로 썼으면
-    표시는 6시간인데 토큰은 먼저 끝나, 남은 시간 내내 심기를 건너뛰고 1분에 1건으로 돌아갔다(2026-10-04 점검).
-- **사용자가 누르지 않은 증권사 호출(홈 카드 그래프)은 서버에 토큰이 있을 때만 쓴다**(`canSpendKisCall`). 토큰이 없으면 카드 한 장이
-  서버 전체의 "1분 1회 발급"을 써 버려, 바로 뒤 사용자가 누른 종목이 1분 넘게 기다린다. 있다고 보는 때: 이 브라우저가 6시간 안에
-  심었다, 또는 한국 시간으로 토큰이 끝나 있는 때(토 15:45~월 16:05, 평일 15:45~16:05 — `kisTokenLikelyExpired`, 백엔드
-  `DailyPriceScheduler`·`TokenService.isValid`에서 옮김)가 아니고 30분 안에 증권사 경유 요청이 서버 오류를 낸 적도 없다(`kisLimitedAt`).
-- 방금(1분) 받아 둔 종목은 묻지 않는다(`peekStockDetail`). **같은 종목을 이미 묻고 있으면 새로 보내지 않고 그 답을 같이
-  기다린다**(`isStockDetailInFlight`) — 없으면 개발 모드(StrictMode)가 effect를 두 번 돌려 처음 연 종목에도 요청이 둘 나갔다.
-- **4xx와 모양이 틀린 200은 다시 부르지 않는다**(없는 종목을 다시 물어도 없다).
-- 백엔드가 고치면 `api/stock.ts`의 "실패한 뒤 다시 부를 간격"·"증권사 토큰 심기"·"사용자가 누르지 않은 증권사 호출"과
-  `StockChartPage`의 `waiting` 상태를 걷는다. 카드 그래프를 담아 두는 것(`api/cardSeries.ts`)은 그대로 둬도 된다.
+- **상세 실패 대응(임시 — 백엔드가 고치면 걷는다)**: 처음엔 곧바로 보낸다. 5xx·무응답이면 1.5초 뒤 한 번, 또 실패하면 마지막으로 보낸 때에서 65초(`DETAIL_GAP_MS`) 뒤 한 번 더
+  (남은 초를 센다). 4xx·모양이 틀린 200은 다시 부르지 않는다. 걷을 곳은 `api/stock.ts`의 세 장치와 `StockChartPage`의 `waiting`이다.
+- 뉴스 `GET /api/stocks/{code}/news`(Pinecone)도 미리 부르지 않는다. 10건씩 받아 6건씩 펼치고(`NEWS_STEP`) 다 편 뒤 다음 쪽을 묻는다.
+- 검색은 `api/stockList.ts` 사본으로 먼저 보이고 250ms 멈추면 `GET /api/stocks/search` 결과를 **합친다**(서버는 종목명만 찾는다).
 
-`baseDate`: 16시 배치 전에는 전 거래일, 후에는 당일 종가다. 화면은 "9월 17일 종가 기준"처럼
-언제 값인지 함께 적는다. 상세의 현재가만 실시간이고 시·고·저·거래량은 마지막 확정 봉이다.
+### 로그인 상태·저장소·날짜
 
-뉴스 `GET /api/stocks/{code}/news`는 Pinecone이라 증권사와 무관하다. 그래도 서버가 요청마다 검색하고
-(캐시 없음) 백엔드가 작은 서버 한 대라 이것도 미리 부르지 않는다. `sort=LATEST|RELEVANCE`,
-`page=0~9`(서버 `@Max(9)`), 10건씩. **화면은 6건씩 펼친다**(`NewsList`의 `NEWS_STEP` — 리디자인 U-4는 5건이었다. 넓은 칸에서 두 줄로 서면
-둘씩 짝이 맞게 짝수다, 2026-11-02 `judge/feature.mjs` S-5) — 받아 둔 기사가 남았으면
-'뉴스 더 보기'가 서버에 묻지 않고 더 펴고, 다 편 뒤에야 다음 페이지를 묻는다(요청 수는 그대로).
+- 화면은 `useIsLoggedIn()`으로 구독한다(다른 탭은 `storage` 이벤트). **`MypageLayout`만 일부러 구독하지 않는다**(탈퇴의 홈 이동과 싸운다). `client.ts`는 `utils/navigation.ts goTo()`로 이동한다.
+- 로그인으로 보낼 땐 `loginPathFrom()`. 돌아갈 자리는 sessionStorage에 적어 콜백이 꺼내고, `toReturnPath`가 사이트 안 경로만 받는다.
+  콜백은 한 번만 처리하고 `onboarded`가 `false`면 `/personality-test?next=`로 보낸다(`checkAfterLogin`).
+- `logout()`은 이동하지 않는다(`hooks/useLogout`이 홈으로). 계정에 딸린 값 지우기는 `api/auth.ts clearSession` 한 곳이고 탈퇴도 부른다.
+- `utils/auth.ts`(`accessToken`): 저장소가 막히면(속성 접근에서 SecurityError) 모듈 안 `Map`에 둔다 — 흘리면 머리글이 렌더 중에 던져 흰 화면이 된다. `toUsableToken`이 빈 값·`"null"`을 거른다.
+  `getAccountId()`는 JWT subject(회원 번호)를 읽는다(서명은 보지 않는다).
+- `utils/cache.ts`: 실패·틀린 모양은 없는 셈 치고 **읽는 쪽이 모양까지 검사한다.** TTL `leadingStocks`·`marketIndices.v2`, JSON `cardSeriesYear`·`recentBacktests`(주인 + 10줄,
+  로그아웃·탈퇴 때 비움)·`startStepsDone`·`marketCalendar`·`recentStocks`(로그아웃해도 둠)·`lastLoginProvider`(탈퇴 때 지움), 때 한 칸 `stockDetailSentAt`·`kisToken*`·`kisLimitedAt` 등.
+- 날짜는 `YYYYMMDD` 문자열이다(사전순 = 날짜순). 화면은 하이픈을 모르고 차트만 `toDashedYmd()`. 서버 시각 글자는 `fromKstDateTime()`. 날짜 함수는 빈 값에 ""를 주고 부르는 쪽은 그 줄을 숨긴다.
 
-**같은 탭에서 방금 받은 상세는 1분, 뉴스는 10분 동안 다시 쓴다**(`api/stock.ts`의 메모리 캐시, 종목·기간 / 종목·정렬·페이지별).
-같은 종목을 다시 열거나 뉴스 정렬을 오갈 때 다시 기다리지 않게. 새로고침하면 비고, 실패는 담지 않는다.
-**다시 시도는 캐시를 쓰지 않는다**(`{ fresh: true }`) — 그리다 멈춘 값을 또 받아 오면 안 풀린다. 다시 시도로 도는 **그 한 번만**이다
-(상세는 `freshNextRef`를 effect가 한 번 쓰고 지운다). `retryCount > 0`으로 가르면 한 번 누른 뒤로 그 화면에서는 캐시를 계속 건너뛰었다.
+## 화면별 규칙
 
-**`src/api/stockList.ts`(102종목 사본)는 서버 목록이 오기 전 검색용 예비다.** 서버는 100종목을
-가나다순으로 주는데 그대로 검색하면 "삼성"에 삼성전자가 후보 밖으로 밀리므로
-`byTradingValue()`로 거래대금 순으로 세운 뒤 `searchStocks()`에 넘긴다.
-홈 검색창은 그 결과를 곧바로 보여 준 뒤, 250ms 멈추면 `GET /api/stocks/search`(DB)를 물어 **합친다**(`SearchBar`, 2026-10-04).
-바꾸지 않고 합치는 이유: 서버는 종목명만 찾아서 종목코드("005930")와 띄어쓴 이름("sk 하이닉스")은 0건이다 — 바꾸던 때는
-뜬 후보가 0.3초 뒤 사라졌다. 서버도 가나다순으로 주므로 순서는 `rankStocks()`가 같은 규칙으로 다시 매긴다.
-입력칸이 비어 있으면 후보 자리에 **최근 본 종목**(상세를 연 종목, 8개, `utils/recentStocks.ts`)을 '최근 본 종목 | 기록 지우기' 머리 줄과 함께 보인다(2026-10-31).
-방향키·Enter로 고르고, 서버에 묻지 않는다. 글자를 치면 검색 후보로 바뀐다.
-홈 시세표도 같은 이유로 처음부터 거래대금 내림차순으로 보여준다(`HomePage`의 `DEFAULT_SORT`).
-정렬 상태로 두었기 때문에 거래대금 머리글에 화살표가 켜진다.
+### 홈
 
-## 날짜는 `YYYYMMDD` 문자열이다
+- 넓은 화면: 왼쪽 검색 → 테마별 대표 종목 → 현재 주가 보기, 오른쪽 열(`HomeRail`: 처음 시작하기 또는 사용설명서 칸 → 커뮤니티 최신 다섯 줄)이 왼쪽 세 줄을 subgrid로 나눠 선을 맞춘다.
+- **1100px 이하(한 열)**: 검색 → 테마별 대표 종목 → 현재 주가 보기(10행 + "종목 더 보기" 단추 — 저절로 늘지 않는다) → 처음 시작하기 → 커뮤니티.
+  DOM도 이 순서라(오른쪽 열이 시세표 뒤) Tab·읽어 주는 순서가 보이는 순서와 같다. 넓은 화면은 목록 끝이 보이면 20행씩 더 보인다(`IntersectionObserver`).
+  600px 이하 처음 시작하기는 마친 단계를 접는다.
+- 시세표는 거래대금 내림차순으로 시작하고 정렬 기준을 글로 적는다(`describeSort`). 탭은 전체 종목(DB) | 실시간 거래대금 순위(`VolumeRank`, 종목코드가 없어 이름으로 잇는다).
+  머리글과 행이 따로 된 격자라 칸 폭·안 여백을 같이 둔다.
+- **뒤로·앞으로 돌아오면 정렬·행 수·스크롤·탭을 되살린다**(`savedViews`, `location.key`별 메모리, 목록이 온 뒤 `useLayoutEffect`에서). 링크로 오면 처음부터다.
+- **테마별 대표 종목**은 백엔드가 정해 둔 셋이다(전략 결과로 고른 게 아니므로 전략 이름·수익률을 적지 않는다). 칸은 종가·전일 대비 + 1년 그래프(`CardChart` SVG) +
+  "1년 전보다 ±x%". 그래프를 못 그리면 "–"와 안내 — 그 자리에 다른 숫자를 넣지 않는다. 못 받으면 `FALLBACK_THEMES`.
+- **처음 시작하기**(`StartSteps`): 로그인 → 성향 테스트 → 관심종목 담기 → 첫 백테스트. 다 마친 계정은 다음부터 사용설명서 칸(`startStepsDone`, 글은 `src/content/homeGuide.ts`).
 
-사전순 비교가 곧 날짜순 비교라 코드가 이에 기댄다. **한국 시각은 `utils/date.ts`가 읽는다**(`kstNow()` 날짜·요일·자정부터 분,
-`toKoreanDateTime`) — `+ 9시간` 계산을 다른 파일에 다시 적지 않는다(2026-11-03에 증권사 토큰 시각·지수 띠 장중 판단까지 옮겼다).
-**서버는 `YYYY-MM-DD`로 주므로**
-`src/api/*`가 받는 자리에서 `fromDashedYmd()`로 바꿔 넣는다. 화면 코드는 하이픈을 모른다.
-차트만 `toDashedYmd()`로 되돌려 넘긴다(lightweight-charts가 하이픈 형식을 받는다).
+### 종목 상세
 
-## localStorage 소유권
+- **기다림을 줄인다**: 홈·관심종목이 한가할 때 상세 묶음을 미리 받는다(`preloadStockChartPage`, lazy는 반드시 `loadStockChartPage`). 링크는 `toPreviewState`·`toQuotePreviewState`로
+  이름·종가·기준일을 싣고 상세는 `readPreview()`로 흐리게 "N월 N일 종가"를 먼저 그린다. 오는 중인 자리는 "-"가 아니라 같은 크기의 뼈대다.
+- 형식이 틀린 종목코드는 **렌더에서** `isStockCode()`로 막는다(effect면 뉴스 요청이 먼저 나간다).
+- 배치: 머리 띠(이름·가격 | 관심종목·이 종목 백테스트·AI에게 물어보기) + 먹 선, 1600px 이상 정보 | 차트 | 뉴스, 1101~1599px 뉴스가 아래, 1100px 이하 쌓는다.
+  정보 열은 시세 요약(마지막 거래일 시·고·저·거래량)과 기간별 주가 변화(`PeriodStats`, 받은 일봉으로 계산)다.
+- 관심종목 토글은 로그인했으면 관심종목 목록으로 처음 상태를 정하고 받는 중·못 받음은 잠근다. 바로 가기 단추는 비로그인이면 "로그인 필요" 배지 + 로그인으로 보낸다.
+- **종목 넘기기는 `<Link state={toStockHandoff(종목)}>`, 받는 화면이 `useStockHandoff()`로 한 번 읽고 `replace`로 state를 비운다**(새로고침·뒤로 가기에 다시 돌지 않게).
+- 임시 차트(`BackupChart`)는 로그인했고 상세가 실패하면 그린다. 날짜·가격이 틀린 봉은 뺀다. 차트 아래 TradingView 출처 링크(`.credit`)는 라이선스 요건이라 지우지 않는다. 캔버스 색은 `utils/cssToken.ts`로 읽는다.
+- 뉴스 "더 보기"는 거르기 전 받은 개수 누계(`receivedCount`)로 판단한다. "기사 검색하기"(`NewsAsk`)는 누를 때만 보낸다.
 
-키를 직접 만지지 말고 아래 두 파일만 거친다.
+### 관심종목(`/likes`)
 
-- `src/utils/auth.ts` — `accessToken`. 나중에 HttpOnly 쿠키로 옮길 때 이 파일만 고치면 되게 하려는 것이다.
-  refresh token은 이미 백엔드가 HttpOnly 쿠키로 둔다(2026-09-28). 예전에 저장한 `refreshToken` 키는 `clearTokens`가 지우기만 한다.
-  `getAccountId()`는 그 토큰(JWT)의 subject(백엔드 `JwtUtil`이 적는 회원 번호)를 읽는다 — 서명은 검사하지 않는다(누군지 가르는 용도,
-  권한은 서버가 본다). 계정에 딸린 저장값의 주인을 가를 때 쓴다(아래 `recentBacktests`).
-- `src/utils/cache.ts` — 언제 사라져도 되는 값. 읽기·쓰기 실패와 모양이 다른 값은 전부 "없는 셈" 친다.
-  - TTL 캐시(`readCache`/`writeCache`): `leadingStocks`(12h, 홈 카드 첫 그림용), `marketIndices`(4일, 아래 지수 띠 — 예시 값은 담지 않는다).
-  - JSON 한 칸(`readJson`/`writeJson`, 모양은 읽는 쪽이 검사): `cardSeriesYear`(홈 카드 1년 그래프, 항목마다 `savedAt`),
-    `recentBacktests`(최근 본 백테스트 — **주인(토큰의 subject)과 10줄**, `utils/recentBacktests.ts`. 읽을 때 지금 계정의 것만 돌려주고
-    다른 계정이 결과를 보면 덮어쓴다 — 로그아웃 없이 다른 탭·콜백으로 다른 계정이 로그인해도 앞 사람 기록이 안 보인다(2026-10-31, 사용자 "바로 고쳐").
-    로그아웃·탈퇴하면 비우고, 토큰 만료만으로는 안 비운다(2026-10-30 결정 — 같은 사람이 다시 로그인하면 그대로). 아래 "마이페이지"),
-    `startStepsDone`(홈 "처음 시작하기"를 다 마친 계정의 subject 목록 10개까지, `utils/startSteps.ts`, 2026-11-03 — 다 마친 회원은 다음부터 곧바로 사용설명서 칸),
-    `marketCalendar`(받아 둔 휴장일과 받은 때, `api/marketCalendar.ts`), `recentStocks`(최근 본 종목 8개, `utils/recentStocks.ts` —
-    로그인과 상관없는 이 브라우저의 방문 기록이라 로그아웃해도 두고, 검색창의 '기록 지우기'로 비운다),
-    `lastLoginProvider`(이 브라우저에서 마지막으로 로그인한 가입 경로 `KAKAO`·`NAVER`·`GOOGLE`, `utils/lastLogin.ts`, 2026-11-02 — 로그인 화면이
-    그 단추에 "최근 사용"을 단다. 누른 단추가 아니라 콜백이 서버가 준 `socialType`으로 적고, 서버가 못 알려 주면 지운다(지난 단추를 가리키면
-    다른 계정으로 이끈다). 로그아웃해도 두고 탈퇴하면 지운다 — 탈퇴는 `clearSession` 뒤에 따로 부른다(로그아웃은 두는 값이라 그 함수에 넣지 않는다)).
-  - 때 한 칸(`readStamp`/`writeStamp`, 0이면 없음): `stockDetailSentAt`·`kisTokenPrimedAt`·`kisTokenPrimeSkipUntil`·`kisLimitedAt`
-    (증권사 호출 간격·토큰 심기·서버 오류 표시 — 위 "증권사(KIS) 호출"), `marketCalendarSkipUntil`(휴장일을 못 받은 뒤 쉬는 때). 탭끼리 나누려고 localStorage에 두고, 못 쓰면 그 탭의 메모리에 둔다.
-    **localStorage에 값이 있으면 그걸 믿는다** — 예전엔 메모리 값과 큰 쪽을 써서, 한 탭이 표시를 지워도(0) 다른 탭은 옛 값을 믿었다.
-  오늘(2026-10-04) 한때 `stock.ts`·`cardSeries.ts`가 localStorage를 직접 만졌다가 이 파일로 옮겼다.
-  예전 키 `topStocks`·`topThemes`는 더 읽지 않는다(브라우저에 남아 있어도 무해하다).
-  `auth.ts`는 sessionStorage에 로그인 뒤 돌아갈 자리(`loginReturnPath`)도 둔다 — 아래 "로그인 뒤 돌아갈 곳".
-  **캐시를 읽는 쪽이 모양까지 검사한다.** `readCachedLeading`은 테마마다 종목코드·이름·라벨이 문자열이고 수익률·
-  매매 횟수가 null 또는 유한한 숫자인지 보고, 하나라도 틀리면 캐시 전체를 버린다. 예전 카드 캐시는 틀린 모양이면
-  12시간 동안 홈이 오류 화면이었다(새로고침해도 같은 캐시를 읽었다).
+- 요청은 관심종목 목록(공용 조회) + 고른 종목 하나의 뉴스(`GET /api/news`) 1건, 증권사 0건이다. 비로그인은 요청 없이 로그인 안내다.
+- 넓은 화면은 왼쪽 지도(sticky) | 오른쪽 담은 종목·뉴스, 1100px 이하 쌓는다. 지도는 크기 = 거래대금(빈 값도 4%), 색 = 등락률(`--color-heat-*`), `utils/treemap.ts`.
+- 담은 종목은 `sortBy`로 정렬하고 값은 `useLiveRows`·`basisLabel`로 적는다. 하트 해제는 먼저 빼고 실패하면 다시 받아 되돌린다.
 
-**두 파일 모두 저장소 접근을 반드시 감싼다.** 브라우저 설정에서 사이트 데이터를 막으면
-`window.localStorage`에 **손대는 순간** SecurityError가 난다(메서드가 아니라 속성 접근에서).
-`auth.ts`가 이걸 흘려보내면 `isLoggedIn()`이 던지고, 그걸 **렌더 중에** 읽는 `Header`가
-그리다 멈춘다 — 머리글은 `ErrorBoundary` 밖이라 오류 화면조차 못 뜨고 **화면이 통째로
-하얘진다**(실제로 재현했다). 그래서 `auth.ts`는 실패하면 모듈 안의 `Map`에
-토큰을 담아 둔다. 새로고침하면 사라지지만 그 탭에서는 로그인해서 쓸 수 있다.
-`cache.ts`는 없어도 되는 값이라 담아 두지 않고 그냥 없는 셈 친다.
+### 주식 백테스트
 
-**토큰 값도 검사한다.** 앞뒤 공백을 자른 뒤 빈 값·`"null"`·`"undefined"`는 없는
-것으로 본다(`toUsableToken`). 콜백은 그런 값을 저장하지 않고 로그인 실패로 보낸다. 읽는 자리
-(`readToken`)도 같은 규칙이라, 예전에 저장돼 버린 값이 남아 있어도 로그인으로 보지 않고 요청에
-`Bearer null`로 싣지 않는다. `isLoggedIn`만 바꾸면 헤더에는 계속 실려 공개 API까지 401로 막힐 수 있다.
+- **1200px 이상 세 열**: 왼쪽 전략 카드(`components/backtest/StrategyPicker.tsx`) | 가운데 입력·결과(760px) | 오른쪽 도움말(`BacktestHelp` — 지금 단계 글만, 사용설명서 3장에서
+  `utils/guideExcerpt`로 떼어 온다). 1199px 이하 두 열(가운데 | 도움말), 900px 이하 한 열.
+- **전략을 고르는 곳은 카드 하나뿐이다**(넓은 화면은 왼쪽 열, 좁은 화면은 입력 ②칸). 넓은 화면의 ②칸은 고른 전략을 되짚는 글이다. 성향 안내의 단추는 "성향 다시 검사".
+- 성향 → 전략은 1:1(요청에 전략 필드가 없다). 로그인하면 성향에 맞는 전략을 미리 고르고, 로그아웃하면 그 추천 그대로일 때만 거둔다.
+- 결과는 프리셋이 먼저다(AI 답변이 프리셋을 읽는다). `BACKTEST404_5`면 즉석 실행 `/api/backtest/run`, `404_6`·`404_4`는 "일봉이 모자라요". 기간은 `/preset/options` ∩ `utils/backtest.ts`.
+  같은 조합은 화면에 있는 동안 한 번만 받는다(`loadPreset`). 상세에서 오면 종목·추천 전략·1년이 채워진 순간 한 번 실행한다(`autoRunRef`).
+- 화면 점수가 같으면 공동 1위, 일부를 못 받으면 "불러온 N개 성향 중에서". 적합도(`scoreVerdict`)는 화면에 적는 값으로 가른다.
+- **종목명 바로 뒤에 받침 따라 바뀌는 조사(은·는·이·가)를 두지 않는다.**
+- 백엔드 값 메우기(고쳐지면 지운다): 축별 점수는 `calculateAxisScores()`로 되계산하고, 거래 0회인데 낙폭·변동성이 있으면 끝까지 보유한 것이라 보유 안내를 띄운다(`isHeldToEnd`).
+- 결과 아래에서 상세·AI·관심종목 담기(`LikeAddButton`, 409는 "이미 관심종목에 있어요")로 잇고, 결과를 받으면 최근 본 백테스트에 적는다.
 
-## 로그인 상태는 구독한다
+### AI 주가분석
 
-`auth.ts`가 토큰이 생기거나 사라질 때 구독자에게 알리고, 화면은 `useIsLoggedIn()`
-(`src/hooks/`, `useSyncExternalStore`)으로 그 알림을 받는다. 그래서 로그인·탈퇴·토큰 만료에
-**페이지를 통째로 새로 받지 않는다.** 다른 탭에서 로그인·로그아웃하면 `storage` 이벤트로 이 탭도 따라 바뀐다.
+- 구조: `pages/AiPage.tsx`(넘어온 것 처리) + `hooks/useChatRooms`(목록) + `hooks/useConversation`(말풍선·보내기), 부품 `components/ai/ChatPane`·`ChatEmptyState`·`Composer`.
+  **훅 순서가 요청 순서다**(목록을 성향보다 먼저 — `expect/ai-order.json`).
+- **첫 화면**(`ChatEmptyState`): 워터마크 없이 성향 한 줄("지금 투자성향은 ○○이에요" + "성향 다시 검사")과 문답 예시 넷. 질문은 사용설명서 4장 사례의 것, 답은 그 사례의 답이나
+  챗봇이 보는 것이다 — 지어낸 주가 숫자를 적지 않는다. 누르면 입력칸에 채우기만 한다. 글은 모두 '해요'체.
+- 새 대화는 첫 질문 때 `POST /api/chat-sessions`로 방부터 만들고 그 번호로 묻는다(번호를 실어야 앞 대화가 맥락이 된다). 409 `CHAT409_1`은 "앞 질문의 답을 아직 만들고 있어요",
+  404·403 방은 목록에서 빼고 새 대화로, 404 `MEMBER404_2`는 성향 검사 안내. 답이 오면 목록은 제목이 '새 대화'일 때만 다시 받는다.
+- **다시 시도와 그만 기다린 방에 새로 보내기는 방을 먼저 다시 받는다**(끝난 답을 살리고 두 번 저장하지 않게). 목록·방을 받는 중이거나 못 불러온 화면에서는 보내지 않는다.
+- **질문에 종목명을 싣지 않는다**(서버가 찾는다). 예외는 상세의 'AI에게 물어보기' 첫 질문 하나(`handoffAskRef`).
+- 방 이름 바꾸기·지우기는 '⋯'에서 그 줄 아래에 펼친다. **900px 이하 이전 대화는 왼쪽 날개다**(`SessionSidebar`, 닫히면 `inert`, z-index 91 — 띠 위, 모달 아래).
+- 답변(`MarkdownAnswer`)은 마크다운·표·수식으로 그리고 HTML·이미지는 그리지 않는다. 수식은 `$$`만 읽고 `\(`·`$x$`는 `normalizeMath`가 먼저 바꾼다.
+  렌더러는 따로 묶고(`loadMarkdownAnswer` — 화살표 함수라야 knip이 따라간다) 받는 동안은 `PlainAnswer`다.
 
-주의할 곳 둘:
+### 마이페이지
 
-- **`MypageLayout`은 일부러 구독하지 않는다.** 구독하면 토큰이 사라지는 순간 로그인 화면으로
-  밀어내는데, 탈퇴는 홈으로 가야 해서 둘이 싸운다(먼저 그려지는 쪽이 이긴다).
-  도중에 토큰이 만료되는 경우는 다음 요청의 401을 `client.ts`가 받아 처리한다.
-- **`client.ts`는 컴포넌트가 아니라 `navigate`를 못 쓴다.** `src/utils/navigation.ts`가
-  App이 맡겨 둔 navigate를 들고 있다가 `goTo()`로 대신 불러 준다. 맡겨진 게 없으면
-  주소창을 통째로 바꾸는 방식으로 물러선다.
+- 한눈에 보기(`/mypage`)·투자유형 보기·내 정보 확인. 로그인 안 했으면 `MypageLayout`이 렌더 전에 로그인으로 보낸다.
+- **900px 이하 메뉴**는 `MypageLayout.tsx`가 `useMediaQuery`로 공용 `tabs.module.css`의 `tab`·`tabActive`를 그대로 쓴다(값을 베껴 적지 않는다). 폭이 모자라면 탭 줄만 옆으로 밀리고
+  로그아웃(13px 글자 단추)은 오른쪽 끝에 남는다. 넓은 화면 메뉴는 `sideList.module.css` 줄이다.
+- 한눈에 보기는 칸마다 따로 받고 따로 실패한다(`useLoad`). **최근 본 백테스트는 이 브라우저에만 있다**(서버가 결과를 저장하지 않는다).
+- 넘겨주기 state(`hooks/useStockHandoff.ts`): 종목, 백테스트 조건(`plan`), 대화방(`openSession`), 커뮤니티 글.
+- **검사 없이 성향을 바꾸는 저장 단추는 없다**(다섯 성향 둘러보기만). 내 정보 수정은 바꾼 것만 보내고(이름이 그대로면 `name: null`) 생일은 지울 수 없다.
 
-### 로그인 뒤 돌아갈 곳
+### 사용설명서
 
-로그인 화면으로 보내는 곳(머리글 '로그인', 마이페이지 보호, 401 처리)은 `loginPathFrom()`으로 `/login?next=<보던 자리>`를
-만든다. 소셜 로그인은 백엔드·소셜 화면을 거쳐 페이지가 새로 뜨므로, 버튼을 누를 때 그 자리를 sessionStorage에 적어 두고
-(`rememberReturnPath`) 콜백이 토큰을 담은 뒤 꺼내 그리로 보낸다(`takeReturnPath`). 없으면 홈이다.
-**성향테스트를 안 한 회원은 그 전에 검사로 보낸다**(사용자 결정 2026-09-30). 콜백이 `GET /api/members/me`의 `onboarded`를 한 번 묻고
-(`checkAfterLogin`, 5초, 던지지 않는다 — 같은 응답의 `socialType`은 `lastLoginProvider`로 적는다), `false`면 `/personality-test?next=<가려던 자리>`로 보낸다 — 마치면 결과 화면의 '완료'가 그리로 간다.
-값이 빠졌거나 조회가 실패하면 검사 없이 가려던 자리로 간다. 묻는 동안은 "로그인 중"이 보인다.
-**돌아갈 자리는 이 사이트 안의 경로만 받는다**(`toReturnPath`) — `//evil.com`·`https://…`·`/login`·`/oauth…`는 버린다.
-풀어 낸 경로가 `//`로 시작해도 버린다(`/.//evil.com`) — 그 값을 `navigate`에 넣으면 React Router가 `location.assign`으로 바깥에 넘긴다.
-실패 콜백(`/oauth2/error`)도 적어 둔 자리를 꺼내 `/login?next=`에 다시 단다. 콜백은 **한 번만** 처리한다 — 개발 서버(StrictMode)는
-effect를 두 번 돌려, 두 번째가 이미 꺼낸 자리를 못 찾고 홈으로 덮어썼다. 로컬 백엔드는 로그인 뒤 개발 서버 주소로 보낸다.
+- 장 더하기: `src/content/guide/<id>.md` + `guide/index.ts GUIDE_CHAPTERS`의 `markdown`·`action`. 글이 있는 첫 장이 `/guide`다.
+- 받은 글에서 바꾸는 건 그림 주소·대체 글·노션 이름 줄뿐이다. 그림은 `public/guide/<id>/`에 무손실 WebP로 두고 크기를 `GUIDE_IMAGE_SIZES`에 적는다.
+- 1200px 이상 장 목록 | 본문(760px) | "이 장에서". **본문 글 안에는 굵은 먹 선이 없다.** 제목 단계는 다시 매긴다(`readGuideDocument`).
+- 꼭지로 옮길 때 주소는 바꾸지 않고, 꼭지 주소(`/guide/backtest#backtest-1`)로 오면 그 꼭지에서 시작한다. 판정 `guide.mjs`는 기대값을 글 파일에서 짓는다.
 
-## 화면이 죽어도 흰 화면이 안 된다
+### 커뮤니티
 
-`App.tsx`가 `<ErrorBoundary resetKey={pathname}>`로 `Suspense`를 감싼다. **머리글은 경계
-밖**이라 오류 화면에서도 메뉴로 빠져나갈 수 있고, 경로가 바뀌면 오류 상태가 풀린다
-(`getDerivedStateFromProps`. `key`로 갈아끼우면 평소 이동에도 전부 다시 그려진다).
+- 서버가 없어 예시 글로 돈다. 메뉴는 "커뮤니티(예시)"이고 연결하면 "커뮤니티"로 바꾼다.
+- `src/api/community.ts` 한 파일이 서버 자리다. `VITE_COMMUNITY_WS_URL`이 비면 목업, 있으면 STOMP 1.2를 라이브러리 없이 직접 쓴다. 오는 값은 `toCommunityEvent`가 거른다.
+  제안은 [docs/커뮤니티-웹소켓-제안.md](docs/커뮤니티-웹소켓-제안.md).
+- **새 글은 바로 끼우지 않는다** — "새 글 N개 보기"로 모았다가 누르면 맨 위에 선다(`useCommunityFeed`).
+- 목록: **머리에 먹 선이 없고 최신·인기가 알약인 것은 이 화면만의 예외다.** 종목 카드 줄은 옆으로 밀고 앞·뒤 단추는 마우스 화면에서만 띄운다.
+- 글 줄은 어디를 눌러도 글 상세다(줄 전체 링크 `a11y.module.css rowLink` — 줄 안에 따로 눌리는 것을 두지 않는다). 등락률은 `useStockQuotes`(공용 조회). 공감·댓글은 수만 보인다.
+- 글 상세는 실어 온 글(`toCommunityHandoff`) → 처음 목록 → 글 하나 받기 순으로 찾는다.
+- **글쓰기는 실제 연결이 열린 로그인 사용자만** 쓴다. 목업이면 칸을 보이되 잠근다. 떠 있는 "글쓰기"·올리기 줄은 `--index-bar-height` + `env(safe-area-inset-bottom)` 위다.
+- 판정 B16·B19는 웹소켓 주소를 넣은 빌드와 `--ws`가 있어야 돈다.
 
-'다시 시도'는 상태를 되돌리지 않고 페이지를 새로 받는다. 여기 걸리는 흔한 경우가
-**화면 묶음(lazy)을 못 받은 것**인데, 그건 다시 그려서는 안 풀린다.
+### 아래 지수 띠(`components/MarketIndexBar`)
 
-**새로고침은 `reloadPage()` 한 곳으로 한다**(오류 화면의 다시 시도, 상세 미리 받기 실패). 사파리(WebKit)는 받지 못한
-묶음을 메모리 캐시에 남겨 두고 **새로고침한 새 문서에서도 서버에 묻지 않고 그 실패를 되풀이한다** — 새 주소로
-열어도, 손으로 새로고침해도 그 탭에서는 화면이 영영 안 열렸다(2026-09-26, 진짜 서버가 첫 요청에만 500을 준 경우로 확인).
-그래서 받지 못한 묶음을 `fetch(…, { cache: 'reload' })`로 새로 받아 캐시를 바꾼 뒤 새로고침한다. 크롬은 새로고침만으로
-풀리므로 한 번 더 받는 건 무해하다. 어느 묶음을 못 받았는지는 앱이 뜰 때부터 두 갈래로 모은다.
-① Vite가 꽂는 `<link rel="modulepreload">`의 error 이벤트 — 요청이 망에 닿기 전에 막히면 사파리는 자원 기록을
-안 남긴다. ② `PerformanceObserver`로 받는 자원 기록 — 크롬은 상태코드, 사파리는 본문 0바이트로 남는다(기록 버퍼는
-250건 한도라 나중에 꺼내 보면 밀려나 있을 수 있다). 연결이 끊기는 실패는 브라우저가 알아서 다시 요청해 실패가 안 된다.
+- `GET /api/market-indices` → `{ asOf, indices: [{ code, name, currentIndex, changeRate, accTradingValue, realtime }] }`. 포인트 대비는 없다 — 띠는 지수와 대비율만 적는다.
+- `Layout`에 한 번 놓인다. 처음 한 번, 그리고 실시간 연결이 없을 때 장중·탭이 보일 때 1분마다 묻는다(5초, 차단기에 세지 않는다).
+  **장중엔 실시간 값으로 바꾸고 기준 자리에 "실시간"**, 아니면 `asOf`로 "N월 N일 HH:MM 기준". 못 받으면 지난 값(`marketIndices.v2`), 없으면 띠가 없다. **비로그인은 API가 401이라 띠가 없다.**
+- 장 상태·진행 막대(`marketStatus`·`sessionClock`)는 휴장일을 모르면 주말만 휴장으로 보고 평일엔 상태를 적지 않는다. 장 시간은 9:00~15:30 고정(`isMarketHours`는 15:35까지).
+- `position: sticky; bottom: 0`, `z-index: 5`. 높이는 `--index-bar-height`(44px, 600px 이하 40px, 띠가 없으면 `:root:not(:has([data-index-bar]))`로 0) — 띠 위에 뜨는 것이 쓴다.
+- 좁은 폭에서는 1100px 이하 다음 개장일·남은 시간, 900px 이하 막대, 600px 이하 장 상태·기준 시각을 뺀다.
 
-받아내는 건 **그리다가** 난 오류뿐이다. 이벤트 처리·비동기·통신 실패는 각 화면 몫이다.
+## 디자인 규칙
 
-화면 안에는 **구역 경계(`SectionBoundary`)** 가 따로 있다 — 홈 시세표·홈 카드, 종목 상세 가격·차트,
-백테스트 결과, 마이페이지 `Outlet` 안쪽. 그 구역만 "이 부분을 표시하지 못했어요 + 다시 시도"로
-바뀌고 검색·입력 폼·사이드바·뉴스는 남는다. 다시 시도는 페이지를 새로 받지 않고 그 구역의
-데이터를 다시 부른다(`onRetry`). **경계는 자식이 그리다 난 오류만 받아낸다** — 구역의 계산을
-경계를 두른 컴포넌트의 렌더에 두면 경계를 지나친다. 종목 상세의 `PriceSection`을 떼어 둔 이유다.
-**같은 라우트 안에서 대상이 바뀌면(종목 → 종목) 경계에 `resetKey`를 준다** — 안 주면 앞 종목에서 멈춘 구역이
-다음 종목에서도 풀리지 않는다. **다시 시도는 받아 둔 값을 먼저 버리고(불러오는 중) 새로 받는다** — 경계는 누르는 순간
-안쪽을 다시 그리는데, 멈추게 한 옛 값을 들고 있으면 곧바로 또 멈춰 새 값이 와도 안 풀렸다(상세, 2026-09-27 재현).
-**아래 지수 띠는 머리글처럼 화면 경계 밖**(`Layout`)이라 `<SectionBoundary quiet>`로 감싼다 — 멈추면 안내 없이 띠만 빠진다. 없으면 앱 전체가 흰 화면이 된다.
-
-## 종목 상세는 기다림을 줄이고 가린다
-
-상세·뉴스가 늦는 건 계산이 아니라 서버 대기(증권사 현재가, Pinecone 검색)라서 프론트가 응답 자체를
-당길 수는 없다. 대신 요청을 **빨리 출발**시키고, 기다리는 동안 **아는 값과 뼈대**로 자리를 채운다.
-
-- **상세 화면 묶음을 미리 받는다.** 차트 라이브러리가 든 가장 큰 묶음이라, 누른 뒤에 받기 시작하면 상세·뉴스
-  요청이 그만큼 늦게 출발한다(느린 망에서 클릭→요청 1.2초가 0.07초로 줄었다). 홈·관심종목이 한가할 때
-  `preloadStockChartPage()`를 부른다. 미리 받는 건 정적 파일뿐이고 API 요청은 누른 뒤에 보낸다.
-  **미리 받기가 실패하면 들어갈 때 페이지를 새로 받는다.** 크롬은 실패한 import를 페이지가 살아 있는 동안
-  기억해서, 같은 주소로 다시 import하면 요청도 없이 곧바로 실패한다(나중에 망이 돌아와도). 그래서 실패를
-  기억해 두었다가 App.tsx의 lazy가 부르는 `loadStockChartPage`가 새로고침한다(`reloadPage`, 사파리 때문에 받지 못한
-  묶음을 먼저 다시 받는다) — lazy는 반드시 이 함수를 쓴다.
-  새 페이지에서 또 실패하면 오류 화면에서 멈춘다(새로고침이 되풀이되지 않는다).
-- **목록에서 들고 온 값을 먼저 보여준다.** 상세로 가는 링크(홈 표·홈 카드·검색·주식 모아보기의 지도 칸·목록)가
-  `toPreviewState()`로 이름을 싣고, 홈 표·관심종목·홈 카드(시세표가 왔을 때)는 **기준일 종가·등락률·기준일**까지 싣는다.
-  **상세를 못 받아도 실어 온 종가는 남긴다**(2026-10-04) — 안내는 "종목 정보를…"이 아니라 "차트를 불러오지 못했습니다"다.
-  상세는 `readPreview()`로 꺼내 응답 전에 이름과 탭 제목을 채우고, 가격은 **흐리게 "9월 22일 종가"로**
-  적는다(현재가가 아니다). state는 주소 기록에 남아 새로고침에도 살아 있으므로 종목코드가 다르거나 모양이
-  틀리면 버리고, 날짜 없는 가격은 쓰지 않는다. 새로 상세로 가는 링크를 만들면 여기에 맞춰 싣는다 — 시세 한 줄(종가·등락률이 빌 수 있다) + 기준일이면
-  `toQuotePreviewState(종목, 기준일)`(홈 시세표·주식 모아보기 지도·목록·마이페이지 관심종목).
-- **값이 없는 자리는 "-"가 아니라 뼈대다.** 이름·가격·시세 요약·뉴스 카드가 응답 전에 같은 크기의 뼈대로
-  그려진다. "-"는 "값이 없음"에만 쓴다. 글자 자리 뼈대는 글자 줄 안에 들어가는 inline-block이라 값이 와도
-  줄 높이가 같고, 시세 요약 칸도 미리 그려서 **응답이 와도 아래 뉴스가 밀리지 않는다.**
-
-## 종목 상세의 바로 가기 (2026-10-29)
-
-머리 띠의 **관심종목 토글**·**바로 가기 두 단추**와 정보 열의 **시세 요약**이다(`components/StockActions`의 `LikeToggle`·`ActionPanel`,
-`components/StockPriceSection`의 `SummaryCard` — 2026-10-31에 `StockChartPage`에서 나눴다. 상태는 `hooks/useStockDetail`·`useLikeToggle`,
-리디자인 U-3 → 2026-10-30 재정비 B안 → 같은 날 "세 화면이 따로 붙인 느낌"(사용자)으로 세 칸 맞추기).
-- **배치**: 화면 전체 폭의 **머리 띠**(홈으로·종목명·코드 / 큰 가격 | 관심종목·이 종목 백테스트·AI에게 물어보기)가 굵은 먹 선 하나로 끝나고,
-  그 선 바로 아래에서 **정보 열(시세 요약·기간별 주가 변화) | 차트 열(기간 탭·차트) | 뉴스 열**이 같은 높이로 시작한다. 세 칸의 머리 줄
-  (시세 요약 제목·기간 탭·뉴스 제목)은 높이 45px(44px 단추 + 가는 선)·같은 가는 선이고, 칸 사이는 세로 가는 선이다. 정보 열과 차트 열은
-  아래 끝이 맞는다 — 차트가 정보 열 높이를 채운다(넓은 화면 397px, 시안 B 460px보다 낮게. 그래서 목록 줄을 32px로 촘촘히 뒀다).
-  뉴스 열은 둘째 줄과 그 아래 빈 줄(1fr)에 걸쳐, 뉴스가 길어도 차트가 따라 늘지 않는다. 가격 구역(`PriceSection`)은 머리 띠·차트 열·
-  정보 열 세 조각을 내보내고 뉴스 열과 함께 `.layout` 격자 하나에 놓인다(오류 경계 `SectionBoundary`는 감싸는 요소를 만들지 않는다).
-  1101~1599px은 정보 | 차트, 뉴스는 아래(굵은 먹 선으로 연다). 1100px 이하는 머리 띠(이름 | 관심종목, 가격, 두 단추) → 차트 → 시세 요약
-  (·기간별 변화, 601~1100은 둘이 나란히) → 뉴스로 쌓인다. 상세를 못 받으면 실패 상자가 정보 열 자리까지 넓게 쓴다.
-- **임시 차트**(2026-10-31): 로그인했고 상세가 실패했으면(65초 기다리는 중이거나 끝내 실패) 그 종목의 증권사 기간별 시세(`GET /api/market/{code}/daily_itemchartprice`,
-  오늘부터 150일 전까지 — 증권사가 100봉까지 준다)를 한 번 받아 실패 상자 대신 그린다(`BackupChart`). 차트 열 머리는 기간 탭 대신 "최근 N거래일 차트"
-  (임시 차트로 6개월·1년을 고르면 거짓이 된다), 아래에 왜 임시인지와 남은 초 또는 다시 시도. 정보 열은 마지막 봉의 시세 요약, 가격은 실어 온 종가가 없으면
-  마지막 봉의 종가를 흐리게 "N월 N일 종가"로 적는다. 상세가 오면 상세가 먼저다. 백엔드가 이 경로를 **모의투자 토큰**으로 불러, 상세가 실패하는 흔한
-  까닭(실전 토큰 1분 1회 발급)에 함께 걸리지 않는다. 비로그인은 부를 수 없어 예전 흐름 그대로다. 받은 값은 종목코드와 함께 두고 그릴 때 견준다.
-  응답의 숫자는 증권사 문자열이고(`numberFromText`), 날짜가 틀리거나 가격이 비거나 0인 봉은 뺀다.
-- 셋 다 DB·서버 AI만 쓴다 —
-**상세의 기존 요청 수·순서는 그대로이고, 늘어난 건 로그인했을 때의 관심종목 목록 GET 1건뿐이다**(증권사 0회. 뉴스 탭의 "기사 검색하기"는
-누를 때만 보낸다 — 아래 "마이페이지"의 API 표). 형식이 틀린 코드·없는 종목에는
-두지 않고, 상세가 실패해도(대개 증권사 쪽) 실패 상자 옆에 바로 가기 단추가 남는다.
-
-- **관심종목 토글**: 하트 + "관심종목"의 secondary 단추(넓은 화면은 머리 띠 오른쪽 단추 줄 맨 앞, 좁으면 종목명 줄 오른쪽 끝). 외곽선 하트(보조 글자색) ↔ 채운 하트(브랜드 초록) — 빨강은 상승으로 읽혀 쓰지 않는다.
-  `aria-pressed`, 이름 "관심종목 추가"/"관심종목 해제"(홈 시세표는 줄이 많아 "{종목명} 관심종목 추가/해제"를 그대로 둔다).
-  상세 응답에 관심 여부가 없어, 로그인했으면 들어올 때 관심종목 목록을 받아 처음 상태를 정한다(`getLikeStocksOnPublicPage`).
-  받는 중·못 받음은 켜졌는지 모르므로 잠그고, 못 받았으면 "관심종목을 불러오지 못했습니다 + 다시 시도"다. 공개 화면이 들어오자마자
-  부르는 요청이라 401이면 로그인 화면으로 끌고 가지 않고 토큰만 지운다(위 "API 계층"). 누르는 규칙은 홈 하트와 같다 — 먼저 바꾸고 실패하면
-  되돌려 `role="status"`로 알리며(문구도 같다), 진행 중인 종목은 Set으로 연타를 막는다. 비로그인은 홈과 같은 로그인 안내 모달이고 로그인 링크는
-  `loginPathFrom()`이라 이 상세로 돌아온다.
-- **바로 가기 두 단추가 곧 링크다**(이 종목 백테스트 — 주 행동이라 primary 초록 채움, AI에게 물어보기 — secondary 먹 테두리. 한 요소에 둘을 같이
-  달지 않는다 — 뒤에 정의된 secondary가 바탕을 덮어 흰 글자가 사라진다). 설명 한 줄은 화면에서 숨기고 `aria-describedby`로만 읽힌다.
-  **비로그인이면 두 단추에 "로그인 필요" 배지를 달고 `loginPathFrom()`으로 로그인에 보낸다**
-  (로그인하면 이 상세로 돌아온다 — 두 화면 다 결과를 보려면 로그인해야 한다). 로그인했으면 종목을 실어 그 화면으로 간다.
-  종목명을 실어 가야 해서 이름을 알 때만 링크다 — 응답의 이름, 아직이면 목록에서 실어 온 이름(`readPreview`). 응답이 이름을 비워 종목코드로
-  대신했으면 모르는 것으로 본다(AI에 "005930의 주가에 대해서…"로 묻게 된다).
-- **넘기는 길은 `<Link to state={toStockHandoff(종목)}>`이고, 받는 화면이 `useStockHandoff()`로 한 번만 읽는다**(`hooks/useStockHandoff.ts`).
-  모양(종목코드 여섯 자리, 이름은 빈칸 아닌 문자열)이 틀리면 무시하고, 읽자마자 같은 주소로 `replace`하며 state를 비운다 — state는 주소 기록에
-  남아서, 그대로 두면 새로고침·뒤로 갔다 앞으로 오기에 백테스트가 다시 계산되고 AI 방이 또 생긴다. 주소 뒤 조건(`?stock=`)으로 넘기지 않은 것도
-  같은 이유다. 개발 서버(StrictMode)는 effect를 두 번 돌리므로 실행·전송은 ref로 한 번만 한다.
-- **시세 요약**은 마지막 거래일의 시·고·저·거래량과 그 날짜("10월 28일 마감 기준", 머리 줄 오른쪽)다. 예전엔 차트 아래 상자였다. 고가·저가는 등락이 아니라
-  색을 주지 않는다. 머리 가격 옆에는 현재가를 받은 시각("10월 29일 11:00 기준", `StockDetail.receivedAt` — 상세 응답에 시각이 없다)을 적는다.
-- **기간별 주가 변화·1년 최고·최저**(정보 열의 시세 요약 아래, 같은 모양의 목록 — 2026-10-30 사용자 결정, 처음엔 차트 아래 가로 칸이었다): 상세가 이미 받은 전체 일봉(`period=ALL`)으로 계산해 요청은 늘지 않는다.
-  기준은 마지막 일봉의 종가이고, 1주·1개월·3개월·6개월·1년의 시작일은 기간 탭과 같은 `periodStart` 규칙이다(그 날 이후 첫 거래일의 종가와 견준다).
-  1년 최고·최저는 그 1년 일봉의 고가·저가와 날짜다. 계산할 수 없는 칸은 "-"(`PeriodStats`).
-- 백테스트 쪽은 아래 "백엔드 사정 > 백테스트", AI 쪽은 "AI 질문에 종목명을 싣지 않는다"에 적었다.
-
-## 관심종목 (2026-10-30, 2026-11-03까지 이름 "주식 모아보기")
-
-머리글 두 번째 메뉴 "관심종목"(`/likes`, `pages/LikesPage.tsx` — 코드 이름·경로는 그대로 likes다). 사용자가 "좋아요를 누른 주식을 한 번에 보는 화면"을 요청해 만들었고, 마이페이지 관심종목 탭을
-여기로 합쳤다(사용자 결정 — `/mypage/likes`는 `/likes`로 보낸다). **관심종목 목록 `GET /api/members/me/like-stocks` 한 번(DB)으로 그린다 —
-증권사 호출 0건.** 응답에 오는 값(종가·등락률·거래대금·담은 때·기준일)만 쓴다. 종목마다 그래프를 그리려면 상세 API(증권사)를 종목 수만큼 불러야 해
-넣지 않았다(위 "증권사(KIS) 호출은 상세 화면과 홈 카드 그래프뿐이다").
-
-- 맨 위 한 문장("관심종목 N개 중 M개가 올랐어요", 받은 값으로만 짓는다)과 다섯 숫자(담은·오른·내린 종목 수, 가장 많이 오른·내린 종목).
-  다섯 칸은 첫 칸도, 1100px 이하에서 두 줄로 접혀도 안 여백이 같고 바깥 오른쪽 끝에 세로 선이 없다(`judge/feature.mjs` L-5).
-- **배치**(2026-11-02 사용자 "한눈에보기를 아예 왼쪽 전면에 놓고, 담은 종목과 관심종목을 상하분할해서 오른쪽에"): 넓은 화면은 왼쪽 칸 전체가
-  한눈에 보기, 오른쪽 칸에 담은 종목(위)·관심종목 뉴스(아래). 지도는 화면 높이를 채우고(`calc(100dvh - 180px)`, 낮은 창 420px) 오른쪽을 내려 읽는
-  동안 붙어 따라온다(`position: sticky`) — 끝에서는 오른쪽 칸과 함께 끝나며 조금 밀려 올라간다. 지도가 길어 처음엔 칸 아래가 지수 띠 밑이라
-  칸 글(이름·등락률·가격)은 칸 위에 모은다. 1100px 이하는 지도 → 목록 → 뉴스로 쌓고 지도 높이도 화면에 맞추지 않는다(L-7).
-- **한눈에 보기 지도**: 칸 크기는 거래대금, 색은 등락률(빨강·파랑 세 단계 `--color-heat-*`, 보합·모름 회색). 칸 나누기는 `utils/treemap.ts`
-  (squarified, 라이브러리 없이). 거래대금이 비어 온 종목도 칸이 보이게 전체의 4%는 준다. 칸을 누르면 상세로 간다(`toPreviewState`).
-- **담은 종목 목록**: 등락률 높은 순·거래대금 많은 순·최근 담은 순(빈 값은 맨 뒤). 하트를 누르면 먼저 빼고 `DELETE`, 실패하면 목록을 다시 받아
-  되돌리고 `role="status"`로 알린다(예전 마이페이지 관심종목과 같은 규칙, 진행 중인 종목은 Set으로 연타를 막는다). 줄마다 "이 종목 백테스트"·
-  "AI에게 물어보기"로 종목을 실어 간다(상세 바로 가기와 같은 `toStockHandoff`).
-- 비로그인은 요청 없이 로그인 안내다(`useIsLoggedIn`을 구독 — 다른 탭에서 로그인하면 따라 바뀐다). 로그인 링크는 `loginPathFrom()`이라 이 화면으로 돌아온다.
-- **관심종목 뉴스**(2026-10-30 보강): 맨 아래에 종목 이름 밑줄 탭 + 네이버 뉴스 목록(`GET /api/news?query=종목명`, 로그인 필요, 20건 —
-  `api/news.ts searchNews`, `components/KeywordNews`). **고른 종목 하나만 받는다**(처음엔 담은 순서의 첫 종목) — 종목마다 미리 받으면 네이버
-  호출이 종목 수만큼 나간다. 같은 검색어는 10분 메모. 네이버는 정확도순이라 날짜순으로 다시 세우고 같은 링크는 하나만 둔다. "몇 시간 전"은
-  서버가 주지 않아 `utils/date timeAgo`로 짓는다. 429는 "잠시 몰렸어요"로 따로 알린다. 고른 종목을 빼면 첫 종목으로 옮겨 1건 더 받는다.
-  그래서 이 화면의 요청은 관심종목 목록 + 뉴스 1건이다. 6건씩 펼치고, 넓은 칸에서 두 줄로 설 때 **둘씩 짝짓는다**(1·2, 3·4, 5·6 —
-  `NewsList.module.css`, 종목 상세 뉴스도 같다. 첫 기사가 한 줄을 다 쓰던 때는 1 | 2·3 | 4·5 | 6으로 끝이 홀로 남았다, L-6·S-5).
-
-## 마이페이지 (2026-10-30 보강)
-
-사용자 요청("마이페이지가 부실하다, 백엔드 API를 보고 안 넣은 기능을 다 넣고 단추도 다 붙여 달라"). 메뉴는 한눈에 보기 · 투자유형 보기 · 내 정보 확인.
-결과 [docs/마이페이지-보강-결과-2026-10-30.md](docs/마이페이지-보강-결과-2026-10-30.md).
-
-- **한눈에 보기**(`/mypage`, `MypageHomePage`): 내 정보 한 줄(이름·가입 경로·이메일), 내 투자성향(다섯 성향 눈금 `PersonalityScale`·맞는 전략·
-  내 전략으로 백테스트), 관심종목(오늘 크게 움직인 4종목), 최근 본 백테스트, 최근 AI 대화(4개). 요청은 이미 있던 API 넷(내 정보·성향·관심종목·
-  대화방 목록) — 증권사 0건. **칸마다 따로 받고 따로 실패한다**(대화 목록이 죽어도 관심종목은 보인다). 칸 제목 줄 오른쪽 링크가 그 기록이 사는 화면이다.
-- **최근 본 백테스트는 이 브라우저에만 있다.** 서버가 결과를 저장하지 않아서다(`/run`은 저장 안 함, 프리셋은 배치가 덮어씀). 결과를 받을 때마다
-  종목·전략·기간·점수·본 때를 맨 앞에 넣고(같은 조합은 한 줄), 화면이 "이 브라우저에서 본 결과만 남아요"라고 밝힌다. 로그아웃·탈퇴 때 비운다
-  (같은 브라우저의 다른 회원에게 보이지 않게). 토큰 만료로 풀린 것은 지우지 않는다.
-- **넘겨주기(navigate state, `hooks/useStockHandoff.ts`)**: 종목(`handoff`)에 더해 백테스트 조건(`plan` — 전략, 기간 또는 null)과 대화방
-  번호(`openSession`)를 싣는다. 받는 화면은 처음 그릴 때 한 번 읽고 state를 비운다(새로고침·뒤로 가기에 다시 실행되지 않는다).
-  - 최근 본 백테스트 줄 → 백테스트가 그 종목·전략·기간으로 **한 번** 계산한다(기간 목록이 온 뒤, 서버 목록에서 빠진 기간이면 비우고 멈춘다).
-  - "내 전략으로 백테스트"·"이 전략으로 백테스트"(한눈에 보기·투자유형·성향 결과 화면) → 전략만 골라 둔다. 계산하지 않는다.
-  - 최근 AI 대화 줄 → AI 화면이 대화방 목록을 받은 뒤 그 방을 연다(사이드바에서 누른 것과 같은 `handleSelect`, 새 방을 만들지 않는다).
-  - 홈 커뮤니티 글 줄 → 커뮤니티 화면이 그 글을 표시한다(`communityPost`, 아래 "커뮤니티").
-- **투자유형 보기**: 내 성향(그림 | 이름·설명·내 전략으로 백테스트·검사 다시하기) + 다섯 성향 둘러보기(눈금을 누르면 그 성향의 전략·사고파는 때·
-  고를 수 있는 기간·눈여겨보는 지표·점수 비중, 값은 `utils/backtest.ts INVEST_TYPES` 그대로). **검사 없이 성향을 바꾸는 저장 단추는 없다** —
-  아래 "아직 mock인 곳"의 `PATCH /api/members/me/personality`(DB 행 번호만 받음). 다른 성향을 보면 "바꾸려면 검사를 다시" 안내만 둔다.
-- **내 정보 확인**: 머리 줄(사진·이름·가입 경로 | 정보 수정하기) + 계정 정보 표(이름·생년월일·이메일·가입 경로) + 계정 관리(로그아웃·회원 탈퇴).
-  가입 경로(`socialType`)는 서버가 전부터 줬는데 화면에 처음 보인다(`utils/social.ts`, 아이콘은 로그인 단추의 `public/social`).
-- **백테스트 결과 아래 "이 종목으로 이어서"**: 종목 상세 보기 · AI에게 물어보기(`toStockHandoff`) · 관심종목에 담기(`LikeAddButton` — 담겼는지
-  미리 묻지 않고 누를 때 `POST`, 409는 "이미 관심종목에 있어요"). 성향 결과 화면은 완료 다음에 "내 전략으로 백테스트"(보조 단추).
-
-### 백엔드 API 중 붙인 것과 붙이지 않은 것 (2026-10-30, 스웨거 `GET /v3/api-docs` 기준)
-
-| API | 처리 |
-|---|---|
-| `GET /api/news`(네이버 뉴스 검색) | 주식 모아보기 관심종목 뉴스(위) |
-| `GET /api/vectordb/search`(질문과 가까운 뉴스 3건, Pinecone) | 종목 상세 뉴스 탭 "기사 검색하기"(`components/NewsAsk`, 2026-11-04까지 "물어서 찾기"). **누를 때만** 보낸다 — 상세를 열 때 요청 수·순서는 그대로다. 같은 종목·질문 10분 메모 |
-| `GET /api/chat-sessions` | 마이페이지 최근 AI 대화(응답의 `updatedAt`을 대화방에 싣는다) |
-| `PATCH /api/members/me/personality` | **붙이지 않음** — DB 행 번호만 받는다(남은 일 백엔드 8) |
-| `GET /api/market/holiday` | 아래 지수 띠의 장 상태(2026-10-31, 위 "아래 지수 띠") |
-| `GET /api/market/volume-rank` | 홈 '현재 주가 보기'의 '실시간 거래대금 순위' 탭(2026-10-31, 아래 "홈 실시간 거래대금 순위") |
-| `GET /api/market/{code}/daily_itemchartprice` | 종목 상세가 실패했을 때의 임시 차트(2026-10-31, 위 "종목 상세의 바로 가기") |
-| `GET /api/market/{code}/daily-stock` | **붙이지 않음** — 최근 30일 일봉으로, 위 기간별 시세(최대 100일)에 든 값이다. 같은 자리에 둘을 부르지 않는다 |
-| `POST /api/initiate`·`POST /api/vectordb/all`·`GET /api/vectordb`·`/api/token/*` | **붙이지 않음** — 일봉·뉴스 적재, 증권사 토큰 발급 같은 관리용이다(남은 일 백엔드 7) |
-
-## 홈 실시간 거래대금 순위 (2026-10-31)
-
-홈 '현재 주가 보기' 아래 밑줄 탭 둘 — **전체 종목**(JUBY가 다루는 종목의 마감 시세표, DB)과 **실시간 거래대금 순위**(증권사, `components/VolumeRank`).
-기준(마감 값 / 지금 값, JUBY 종목 / 시장 전체)이 달라 한 표에 섞지 않는다. 고른 탭은 홈의 보던 자리(`savedViews`)에 함께 담겨, 순위에서 종목을 눌렀다
-뒤로 오면 순위 탭이다. 시세표의 무한 스크롤 관찰은 탭을 오갈 때 다시 건다(끝 표시가 새로 붙는다).
-- **탭을 열 때만** `GET /api/market/volume-rank`를 묻는다(1분 메모 — 탭을 오갈 때마다 증권사를 부르지 않는다). 로그인해야 열린다. 비로그인은 묻지 않고 로그인 안내.
-- 응답은 증권사 칸 이름·문자열 숫자 그대로다(`hts_kor_isnm` 종목명·`data_rank` 순위·`stck_prpr` 현재가·`avrg_tr_pbmn` 평균 거래대금 — JUBY-BE `TradingVolumeDto`).
-  스웨거는 이름이 같은 응답 모양(`Output`) 셋을 하나로 합쳐 틀리게 보여 준다 — 모양은 백엔드 소스에서 옮겼다.
-- **종목코드가 응답에 없다.** 홈 목록에서 이름(띄어쓰기·대소문자 무시)이 같은 종목을 찾아 상세로 잇고, 못 찾은 종목은 이름만 적는다(화면이 그렇게 알린다).
-  등락률도 없다. 백엔드가 `mksc_shrn_iscd`(코드)·`prdy_ctrt`(등락률)를 옮겨 주면 붙인다(`docs/남은-일.md` 백엔드 14).
-
-## 아래 지수 띠 (2026-10-29)
-
-모든 화면 아래에 붙는 진한 초록 띠에 코스피·코스닥을 적는다(토스증권 아래 띠를 본뜸, 사용자 요청). `components/MarketIndexBar`, 값은 `api/market.ts`.
-**백엔드 지수 API가 아직 없어 예시 값을 그린다**(`USE_SAMPLE`, JUBY-BE dev `b1aedd7`까지 확인). 백엔드에 건넨 응답 제안은
-[docs/지수-API-제안.md](docs/지수-API-제안.md)(`GET /api/stocks/indices`, 로그인 없이 — `/api/market/**`는 로그인해야 열린다).
-
-- **API가 나오면 `api/market.ts` 한 파일만 고친다**: `USE_SAMPLE`을 false로, `INDICES_PATH`를 실제 경로로, 응답이 제안과 다르면
-  `*Response` 타입과 `toMarketIndex`를 맞춘다. 숫자는 문자열("2612.43")로 와도 읽는다(백엔드 증권사 중계 응답 `CurrentPriceRes`가 문자열이다).
-  이름이나 지수가 빈 줄은 빼고, 대비·대비율이 빈 줄은 그 자리만 비운다. 쓸 줄이 하나도 없으면 실패로 본다.
-- **언제 묻나**: `Layout`에 한 번 놓여 화면을 옮겨도 다시 묻지 않는다. 처음 한 번, 그리고 장중(한국 시간 평일 9:00~15:35, `isMarketHours` —
-  받아 둔 휴장일이면 묻지 않는다)이면서 탭이 보일 때만 1분마다(`INDEX_REFRESH_MS`). 5초만 기다리고, 그 시간 초과는 차단기에 세지 않는다.
-- **장 상태**(2026-10-31): 띠 맨 앞에 "장 시작 전 9:00 개장"·"장 중 15:30 마감"·"장 마감 다음 개장 11월 2일(월)"·"오늘 휴장 다음 개장 …"
-  (`marketStatus`, 1분마다 다시 읽는다). 휴장일은 증권사 휴장일 조회(`GET /api/market/holiday`, 응답의 `opnd_yn` 개장일 여부)를 로그인했고 서버 토큰이
-  있을 때(`canSpendKisCall`) 받아 localStorage `marketCalendar`에 담는다 — 응답은 기준일부터 몇 주이고, 오늘과 그 뒤 개장일이 담겨 있고 7일이 안 됐으면
-  다시 묻지 않는다. 못 받으면 401 10분·4xx 6시간·그 밖 30분 쉰다. **모르면 주말만 휴장으로 알고, 평일에는 장 상태를 적지 않는다**(공휴일에 "장 중"은 틀린 말).
-  다음 개장일도 받아 둔 날짜 안에서만 찾는다(월요일이 공휴일일 수 있다). 장 시간은 9:00~15:30 고정이다 — 수능일·새해 첫날처럼 시간이 바뀌는 날은 모른다.
-  폭이 줄면 덜어 낸다 — 1101px 이상 상태 + 다음 개장일, 601~1100 상태 낱말만, 760 이하는 지수의 포인트 대비도 빼고(대비율은 남는다), 600 이하는 장 상태를
-  뺀다. 375px에서 두 줄과 "예시 값"만으로 남는 자리가 10px쯤이라 상태를 넣으면 코스닥 등락률이 띠 밖으로 밀려 안 보였다(지수 띠 판정 S8에서 찾음).
-- **증권사**: 지수 API가 요청마다 증권사를 부르는지 모른다. 그래서 "사용자가 누르지 않은 증권사 호출"로 보고 `canSpendKisCall()`일 때만 묻는다
-  (위 "증권사(KIS) 호출"). 백엔드가 담아 둔 값을 준다고 확인되면 이 검사를 걷는다(제안서에 그렇게 부탁했다).
-- **못 받으면** 지난 값(localStorage `marketIndices`, 4일), 그것도 없으면 띠를 그리지 않는다. 띠는 받은 때를 "10월 29일 11:00 기준"으로 적는다
-  (응답에 시각이 없다). 예시 값은 담지 않는다 — 담으면 API로 갈아탄 첫 그림에 예시 값이 실제 값처럼 뜬다. 처음 받는 동안은 빈 띠로 자리만 잡는다.
-- **배치**: `position: sticky; bottom: 0`(fixed가 아니라 본문 끝을 가리지 않는다). 짧은 화면에서도 맨 아래에 오도록 `App.module.css`의 `.page`가
-  세로 flex이고 `.main`이 남는 높이를 가져간다(flex 항목은 좌우 auto 여백이면 내용 폭으로 줄어 `width: 100%`를 준다). 글자는 로고와 같은 줄
-  (본문 최대 폭 안 좌우 `--page-gutter`). 겹침 순서는 차트 캔버스(1·2)·범례(3) 위, 검색 후보(10)·모달(100) 아래(`z-index: 5`). 높이 44px, 600px 이하 40px.
-- **좁은 폭**: 900px 이하는 "국내 지수" 머리를 빼고, 600px 이하는 대비(포인트)·기준 시각을 빼 이름·지수·대비율만 남긴다. 375px에서 두 줄과
-  "(목업본)"이 한 줄에 들어가고, 더 좁으면(320px) 띠 안에서만 옆으로 밀린다(끝을 흐린다). "(목업본)"은 휴대폰에서도 남긴다.
-  "(목업본)"(2026-11-03 사용자 — 그 전엔 "예시 값 · 실제 지수 아님")은 기준 시각이 설 자리에 같은 모양의 글로만 적는다 — 둥근 바탕을 깐 표시는 "AI가 만든 화면" 같았다(2026-11-02 사용자, `judge/feature.mjs` B-1).
-- 판정은 저장소 밖 Playwright 스크립트로 했다. 예시 빌드와 `USE_SAMPLE`만 false로 바꾼 임시 빌드를 같이 돌린다(17개 — 8화면 표시, 요청 0건,
-  가로 넘침, 본문을 가리지 않음, 대비, 겹침, 숫자·문자열·보합·틀린 줄·실패·지난 값, 일요일엔 묻지 않음, 장중 1분·장 밖·탭 숨김, 화면 이동).
-
-- **장 진행 막대**(2026-11-03 사용자가 시안 비교 4번을 고름): 장 중·장 시작 전이면 상태 글("장 중 15:30 마감" — 그대로 둔다, `flow.mjs` I1~I6이 이 글을 읽는다) 뒤에
-  9:00~15:30 막대와 남은 시간("4시간 30분 남음"·"30분 뒤 개장", `role="progressbar"`). 지난 몫은 `api/marketCalendar sessionClock`이 한국 시각으로 센다(1분마다 다시 그린다 — 띠의 시계).
-  1100px 이하는 남은 시간을 빼고 막대만 짧게, 900px 이하는 막대 대신 띠 위 끝 2px 줄(장 중만). 장 마감·휴장·모름이면 두지 않는다. 판정 `flow.mjs` I12.
+- **흰 바탕 하나, 상자 대신 기준선.** 구역은 제목 줄 아래 **굵은 먹 선**(`2px solid var(--color-rule)`)으로 열고 줄 사이는 가는 선(`--color-border`)이다.
+  묶어 보여야 하는 안내·결론·실패는 옅은 면(`--color-bg-sub`). 테두리는 입력칸(1.5px)·단추·스크롤 대화창·떠 있는 층에만, 그림자는 떠 있는 층의 `--shadow-pop` 하나다.
+  판 안에 상자를 두지 않고, 큰 % + 작은 라벨 타일을 만들지 않는다.
+- **위계는 세 단계다**: 화면 제목 28px(900px 이하 24px) + 먹 선 > 구역 제목 20px(46px 줄 + 먹 선) > 칸 안 작은 제목 16~18px. **아래 단계가 위보다 크거나 같지 않다.**
+  굵은 먹 선은 화면 제목·구역 제목 아래에만(예외: 상세 세 칸 머리). 화면 제목은 모든 화면에서 같은 높이다 — 제목 위에 여백을 더하지 않는다.
+- **글자**: 작은 글자는 네 단계 — xs 12(시각·출처·배지), sm 13(보조 설명), md 14(화면 글자: 목록·탭·단추), lg 16(읽는 글). 굵기는 400·600·700 셋. 숫자 칸은 `tabular-nums`.
+  글꼴은 Pretendard와 Michroma(`--font-wide`, 로고와 32px 이상 숫자만). 서버 자유 글은 `overflow-wrap: anywhere`. 모서리는 `--radius-sm`·`md`·`lg`와 알약·원뿐이다.
+- **색 쓰임**: 브랜드 초록은 행동·선택·활성에만(넓게는 머리글 띠·지수 띠뿐), 흰 글자를 얹는 초록은 700 이상. **초록을 등락의 뜻으로 쓰지 않는다.**
+  빨강·파랑은 등락 전용이다(그림 `--color-up`·`--color-down`, 글자 `-text`, 진한 띠 위 `-on-dark`) — 단추·링크·탭·하트·경고에 쓰지 않는다. 보합·고가·저가는 무색,
+  실패·경고는 본문색. 등락 판정은 `utils/format rateTone` 하나로 한다.
+- **공용 모듈**(`composes`): `components/section.module.css`(`pageTitle`·`head`·`title`·`note`·`more`), `tabs.module.css`, `skeleton.module.css`, `buttons.module.css`,
+  `sideList.module.css`, `a11y.module.css`(`srOnly`·`rowLink`). 바뀌는 값은 변수다(`--tab-*`·`--tabs-margin-left`, `--section-head-height`, `--button-height`·`--button-padding-x`).
+  **등락 글자색(`.up`·`.down`·`.flat`)은 공용 모듈로 모으지 않는다**(함께 붙는 색 클래스와 순서가 뒤집힌다).
+- **밑줄 탭**: 고른 것은 먹 글자 + 아래 2px 브랜드 막대, 클래스 `tabActive`로 그린다. 알약·채운 탭은 쓰지 않는다(예외 커뮤니티). 제목 줄 오른쪽 탭은 제목 `flex-grow: 1` +
+  `--tabs-margin-left: 0`(내려가면 왼쪽부터 선다).
+- **단추는 세 종류뿐이다**: primary(주 행동), secondary(흰 바탕 + 먹 테두리), ghost. 높이 md 40px·lg 48px(600px 이하 md 44px). 화면 CSS는 자리만 정하고
+  색·테두리·높이·`display`·`padding`·`gap`을 덮어쓰지 않는다. 한 요소에 두 종류를 달지 않는다. 되돌릴 수 없는 확정은 primary, 취소는 secondary.
+  제목 줄·줄 끝 글자 동작("+ 새 대화"·"새 글 N")은 상자 없는 초록 굵은 글자다. 카카오만 회사 색이다(가입 경로는 `utils/social.ts SOCIAL_PROVIDERS` 한 표).
+- 기다리는 표시는 셋: 크기를 아는 자리는 뼈대, 글 한 줄 자리는 `Spinner`, 화면 묶음은 머리글 아래 줄.
+- **나란한 두 열의 선은 같은 높이이거나 확실히 떨어져 있다**(홈 subgrid, 백테스트 '전략 고르기' = '도움말' 먹 선, 마이페이지, 사용설명서 — `lines.mjs`).
+  글 길이에 따라 선이 움직이는 열은 선 대신 여백으로 나눈다.
+- 머리글 메뉴 링크는 줄지 않고(`flex-shrink: 0`) 넘치면 메뉴 줄 안에서만 민다. 두 곳 이상에 그리면 부품 하나로 둔다(`NewsCard`·`GuideSteps`·`HeartIcon`·`LoginModal` — 비로그인이 하트를 누르면 홈·상세가 같이 쓴다). 고치기 쉬운 글은 `src/content/`.
+- `Modal`: 포커스는 상자 자체, 닫으면 연 단추로. `onClose`는 ref에 담는다(의존성에 넣으면 칠 때마다 포커스가 튄다). 배경은 배경에서 누르기 시작했을 때만 닫는다.
+- **휴대폰**: 320px까지 가로 넘침이 없다. 누르는 넓이 44px(데스크톱 40px) — 여백 + 음수 margin이나 투명 `::after`(스크롤 상자 안에서는 잘리니 칸을 키운다).
+  입력칸 안내 글은 한 줄 말줄임. 한 열 격자는 `minmax(0, 1fr)`. 대화창 높이는 `dvh`.
 
 ## 예외 처리 규칙
 
-새 화면·새 API도 이걸 따른다.
-
-- **응답 모양은 API 계층에서 검사한다.** 화면이 반드시 쓰는 값이 비면 `malformedResponse()`로 던져
-  화면의 "불러오지 못했어요 + 다시 시도"를 태운다(위 "API 계층"). 목록의 한 행이 빈 건 막지 않는다.
-- **포맷 함수(`utils/format.ts`, `toPercent`)는 유한한 숫자가 아니면 전부 "-"다.** `null`만 거르면
-  서버가 필드를 빼고 보낼 때 `undefined.toFixed()`에서 던져, 시세표 한 줄 때문에 화면 전체가
-  오류 화면이 된다. `toPercent(null)`도 "0.00%"가 아니라 "-"다(값 없음과 0을 가른다).
-- **정렬은 값이 빈 행을 방향과 상관없이 맨 뒤로 보낸다**(`sortStocks`). 빈 값을 그대로 빼면 NaN을 엔진이
-  "같다"로 읽어 값이 있는 행들까지 순서가 틀어진다. 홈 시세표는 처음부터 거래대금 정렬이라 곧바로 드러난다.
-  검색 후보를 세우는 `byTradingValue`도 이 함수를 부른다. 새로 정렬할 곳이 생기면 비교식을 따로 쓰지 않는다 — 시세표가 아닌 목록은
-  같은 규칙의 `sortBy(목록, 값, 방향)`를 쓴다(주식 모아보기 담은 종목, 2026-11-02 — 그 전엔 같은 식을 따로 적고 있었다).
-- **날짜 함수는 빈 값에 던지지 않고 ""를 돌려준다**(`toKoreanDate`는 여덟 자리가 아니면 "",
-  `fromDashedYmd(null)`은 ""). 부르는 쪽은 ""면 **그 줄을 숨긴다**(홈·관심종목 기준일, 상세 "마감 기준").
-  기준일 하나 때문에 멀쩡한 시세표를 통째로 실패시키지 않는다.
-- **실패와 빈 값은 다른 문구로 보이고, 실패에는 다시 할 수단을 준다.** 홈 카드는 실패로 비지 않는다 — 대장주를 못 받으면
-  고정 목록(이름·종가)으로 서고 수익률 자리에 "전략 수익률을 받지 못했어요", 오는 중에는 회색 "–"다(`TopStockCard`).
-  뉴스는 첫 페이지 실패면 상자 안 안내 + 다시 시도, 더 보기 실패면
-  받아 둔 목록을 두고 끝에 안내한다. 빈 시세표는 "표시할 종목이 없어요".
-- **조용히 되돌리지 않는다.** 낙관적 갱신(홈 하트·관심종목 해제)이 실패해 되돌릴 때 `role="status"`로 알린다.
-- **서버 `message`를 화면에 쓰지 않는다.** 아는 코드만 코드별 문구를 쓰고(`hooks/useBacktestRun`의 `describeFailure`)
-  나머지는 고정 문구다. 내 정보 수정의 400도 두 규칙(이름 2~4자, 생일은 오늘 이전)을 적은 고정 문구다(이름 규칙은 서버
-  어노테이션이 지금 돌지 않아 화면만 거른다 — 아래 "백엔드 사정"). 서버 원문은 콘솔에만 남긴다. 참고로 백엔드는 처리 안 된 예외 문자열을 `message`가 아니라
-  `result`에 싣는다(`GeneralExceptionAdvice`).
-- **성향 없음은 실패가 아니다.** 검사하지 않은 회원에게 서버는 404 `MEMBER404_2`를 준다(갓 가입한 회원 전부).
-  `getMyPersonality()`가 이 404만 `null`로 바꾸고 그 밖의 실패는 던진다. 마이페이지는 null이면 검사 안내,
-  실패면 "불러오지 못했습니다 + 다시 시도". AI·백테스트도 실패면 검사를 권하지 않고 "성향을 불러오지 못했어요 +
-  다시 시도"다(다시 검사하면 멀쩡한 성향을 덮어쓴다). AI 질문 POST의 404(`AiPage`)는 다른 요청이다.
-- **저장 실패는 조회 실패와 다른 상태다.** 성향검사 결과 저장(POST)이 실패하면 마지막 문항에 머물러
-  고른 답을 지키고, "결과 보기" 버튼이 "다시 저장"으로 바뀌어 같은 본문을 다시 보낸다. 저장 못 한 성향을
-  결과처럼 보여주지 않는다(마이페이지 성향과 어긋나므로). 401은 전역 처리대로 로그인 화면이다.
-- **로그인 상태에서는 예비 문항으로 물러서지 않는다.** `getQuestions()`가 `{ questions, fallbackReason }`을 돌려주고,
-  로그인 상태에서 서버 문항을 못 받으면 던진다(화면은 실패 안내 + 다시 시도). 보기가 빈 문항이 하나라도
-  오면 못 받은 것과 같다. 비로그인만 예비 문항으로 가되 "임시 문항" 안내를 띄운다. **예비 문항의 결과는 제출할 때 로그인돼 있어도
-  서버에 보내지 않는다**(`submitTest`가 `fallbackReason`을 받는다, 2026-10-31) — 비로그인으로 문항을 받은 뒤 다른 탭에서 로그인하면
-  7문항 점수를 늘린 값이 회원 성향으로 저장됐다.
-- **형식이 틀린 종목코드(`/stocks/abc`)는 요청하지 않는다.** `StockChartPage`가 **렌더에서** `isStockCode()`로
-  보고 곧바로 "목록에 없는 종목"을 돌려준다. effect에서 막으면 늦다 — 첫 렌더에 `NewsList`가 먼저
-  마운트되고 자식 effect가 부모보다 먼저 돌아 뉴스 요청이 나간다.
-- **빈 기사(제목·링크 없음)는 `getStockNews`가 뺀다.** 그래서 "더 보기" 판단은 보여준 개수가 아니라
-  **거르기 전 받은 개수(`receivedCount`)의 누계**와 `totalCount`를 견준다. 거른 개수로 견주면 끝에 닿아도
-  버튼이 남아 빈 페이지를 계속 부른다.
-- **서버가 준 주소로 여는 링크는 http·https만 쓴다**(`utils/link.ts`의 `safeLink` — 뉴스 기사, AI 답변 속 링크). `javascript:`·`data:`·상대 주소는 비워 그 기사를
-  뺀다. 기사 한 건의 글 필드는 `textOf`로 문자열만 받는다 — 한 건의 null이 목록 전체를 실패로 만들지 않게.
-- **차트가 그릴 수 없는 일봉은 `getStockDetail`이 뺀다**(콘솔에 개수를 남긴다). ① 날짜가 여덟 자리가 아닌 봉 — 빈 날짜가
-  차트 라이브러리에 들어가면 기간 탭을 바꾸는 순간 차트 구역이 멈췄다. ② 시·고·저·종 중 하나라도 유한한 숫자가 아닌 봉(`hasPrices`) —
-  라이브러리가 "Value is null"을 던져 차트가 통째로 비고 마우스가 먹지 않았다. 그리는 곳이 React 밖이라 구역 안내도 안 떴다
-  (2026-09-28 발견, 2026-09-30 막음). 빼면 그 날만 빈다. 거래량만 빈 봉·날짜가 겹친 봉은 그대로 그려져 거르지 않는다.
-  범례는 빈 값을 "-"로 적고 등락률은 그 봉과 전 봉의 종가가 둘 다 있을 때만 적는다(`CandleChart`의 `legendPrice`).
-  범례는 봉에 마우스를 올렸을 때만 뜬다(기본 값은 정보 열 시세 요약). 차트 라이브러리가 캔버스를 z-index 1·2로 겹쳐 범례는 3이다 —
-  예전 1이라 늘 캔버스 밑에 깔려 안 보였다(2026-10-29 발견).
-- AI 답이 빈 값·공백·`null`이면 빈 말풍선 대신 "답변을 가져오지 못했어요 + 다시 시도".
-- **AI 답변은 마크다운(표 포함)·수식으로 그린다**(`MarkdownAnswer`, 2026-09-30). 질문 말풍선은 글자 그대로다.
-  - **AI 쪽 말풍선(답·기다리는 점·그만 기다림·실패)은 흰 대화창 위의 옅은 면(`--color-bg-sub`)**, 내 질문은 먹 채움이다(`ChatMessages.module.css .bubble`). 2026-11-03까지
-    페이지 바탕색을 써서 10-30 재정비(바탕 흰색 하나) 뒤로 흰 대화창에 묻혀 글자만 떠 있었다(사용자 "말풍선을 띄워줘", `judge/ai.mjs` A18). 그래서 답 안의 코드·표는
-    흰 면(`--color-surface`)으로 한 겹 띄운다 — 옅은 면을 쓰면 말풍선에 묻힌다. 인용 막대·가는 선은 `--color-border-strong`.
-  - 모델 출력 속 HTML은 그리지 않는다(`rehype-raw`를 쓰지 않는다). 이미지도 그리지 않는다 — 모델이 지은 바깥 주소를 불러오게 된다.
-  - 수식은 `$$…$$`만 remark-math가 읽는다(`singleDollarTextMath: false`). 켜면 "$100에서 $120으로"의 두 달러 사이가 수식이 된다.
-    모델이 쓰는 `\( \)`·`\[ \]`·`$x$`는 마크다운으로 읽기 **전에** `normalizeMath`(`utils/markdownMath.ts`)가 `$$`로 바꾼다 —
-    마크다운이 먼저 읽으면 `\(`의 역슬래시가 지워지고 `P_{peak}`의 `_`가 기울임이 된다. `$x$`는 안에 한글이 없고 앞뒤가 공백이 아니며
-    닫는 `$` 뒤가 숫자가 아닐 때만 수식이다. 코드 안은 건드리지 않는다.
-  - 렌더러는 따로 받는다(`loadMarkdownAnswer` + `ChatMessages`의 `lazy`). 같이 묶으면 AI 화면 묶음이 4KB → 133KB(압축)가 됐다.
-    2026-11-03부터 사용설명서도 같은 `react-markdown`·`remark-gfm`을 써서 둘이 공용 묶음(`lib-*.js`, 46KB)을 나눠 받는다 — 수식(KaTeX)은 답변 묶음에만 있다.
-    받는 동안·못 받았을 때는 예전처럼 글자 그대로 보여 준다(`PlainAnswer`). AI 화면이 뜨자마자 미리 받기 시작한다 — 말풍선 목록이 생길 때
-    받기 시작하면 저장된 방을 열 때 서식 없는 글자가 한순간 보였다. 받는 함수는 화살표 함수로 둔다(함수 선언이면 knip이 동적 import를 못 따라간다).
-  - 넓은 표·긴 수식은 말풍선 안에서 가로로 밀어 본다(페이지는 넘치지 않는다). 표 칸은 `keep-all`로 낱말 단위로만 줄을 바꾸고,
-    600px 이하에서 답변 말풍선은 92%까지 넓어진다(질문은 70% 그대로).
-- **목록 행은 종목코드가 없거나 틀리면 뺀다**(종목 목록·관심종목, 콘솔에 개수). 이름이 비면 종목코드로 적는다(`nameOrCode`).
-  이름 `null` 한 줄에 검색창이 `normalize(null)`로 던져 화면 전체가 오류 화면이 됐다.
-- **성향 문항은 모양까지 본다** — 번호·글·점수가 비었거나 보기 번호가 겹치는 문항이 하나라도 있으면 못 받은 것과 같다.
-  비로그인 채점에서 합이 10~90 밖(NaN 포함)이면 서버처럼 성향을 내지 않는다(`scoreToPersonality`가 null).
-- **성향 저장 응답의 본문·이름이 비어도 저장된 것이다**(200이면 서버가 이미 저장했다). 이름은 같은 구간표로 프론트가 채점한다.
-- 뉴스 `totalCount`가 비면 마지막으로 받은 페이지가 꽉 찼을(10건) 때만 "더 보기"를 둔다.
-- **AI 질문에 종목명(`stockName`)을 싣지 않는다.** 서버가 첫 AI 호출로 질문과 앞 대화에서 종목을 찾고(`OpenAiService.classify`),
-  요청에 실린 값이 있으면 그걸 먼저 쓴다. 예전엔 화면이 질문 글에서 목록 이름을 글자로 찾아 실어(`utils/stockName.ts`, 2026-10-04 지움)
-  "sk하이닉스랑 LG에너지솔루션 중에 뭐가 나아?"가 LG에너지솔루션 하나로 좁혀졌고, "그 종목은?"에는 "종목명을 함께 입력하라"는
-  엉뚱한 안내가 떴다. 스웨거대로 종목이 분명할 때(종목 상세에서 묻는 경우)만 `ask(question, sessionId, stockName)`으로 싣는다.
-  **그 한 곳이 종목 상세의 'AI에게 물어보기'다**(2026-10-29, `AiPage`의 `handoffAskRef`). 새 대화에 "{종목명}의 주가에 대해서 간단하게
-  브리핑을 해줘"를 곧바로 보내고 그 질문에만 종목명을 싣는다. 입력칸과 같은 길(`submit` → `send`: 새 방 만들기, 대화방 목록, 실패·409·404 처리)이고,
-  다시 시도는 실었던 종목명을 그대로 싣는다. 이어지는 질문은 싣지 않는다. **대화방 목록을 받는 중에는 보내지 않고 목록이 오면(못 받았어도) 보낸다** —
-  목록을 받는 사이 방을 만들면 늦게 온 목록이 방금 만든 방을 목록에서 지운다. 상세의 비로그인은 이 화면에 오지 않고 로그인으로 간다(위
-  "종목 상세의 바로 가기"). 그래도 비로그인인 채 종목이 실려 오면(오는 사이 다른 탭에서 로그아웃) 보내지 않고 입력칸에 그 질문을 채운 뒤
-  "로그인하면 질문할 수 있어요."를 띄운다(그 뒤 로그인해도 저절로 보내지 않는다). 성향 없는 회원의 404는 입력칸 질문과 같이 처리된다.
-- AI 답이 오면 대화방 목록은 **그 방 제목이 아직 '새 대화'일 때만** 다시 받는다(서버는 첫 질문으로만 제목을 짓는다). 아니면 그 방을 맨 위로 올리기만 한다.
-- 적합도 등급(`scoreVerdict`)은 화면에 적는 `toFixed(1)` 값으로 가른다. 49.95가 "50.0"으로 보이면 "비교적 잘 맞아요".
-  50점 선은 서버 AI의 추천 기준(50점 이상 "비교적 적합")과 같다. 70점 이상 "잘 맞아요", 50~70 "비교적 잘 맞아요"(2026-10-04까지 "무난해요"), 미만 "잘 안 맞아요".
-- 서버가 준 성향 설명·이미지가 비면(공백만 있어도) 프론트 문구로 대신한다 — `describePersonality()`.
-  모르는 성향 이름이어도 던지지 않는다(대체 문구가 없으면 "설명을 불러오지 못했어요.").
-- 입력 검증은 브라우저 기본 검증에 기댄다(생년월일 `min="1900-01-01"`·`max=오늘`, 이름 2~4자는 화면이 직접).
-- **내 정보 수정은 바꾼 것만 보낸다.** 이름은 앞뒤 공백을 뗀 값이 원래와 같으면 검사하지도 보내지도 않는다(`name: null`) —
-  카카오 닉네임처럼 4자가 넘는 이름으로 가입한 회원이 생일만 고치려 해도 막혔다. 서버는 null을 "바꾸지 않음"으로 본다.
-  그래서 **생일은 지울 수 없다** — 생일이 있던 회원이 칸을 비우면 보내지 않고 "생년월일은 지울 수 없어요"를 띄운다
-  (비워 보내면 성공으로 끝나고 옛 생일이 남았다). 서버가 지우기를 받으면 그 막음을 걷는다.
-
-## 홈으로 돌아오면 보던 자리를 되살린다
-
-뒤로·앞으로 가기로 홈에 돌아오면 떠날 때의 **정렬·보이던 행 수·스크롤**을 되살린다(`HomePage`의 `savedViews`).
-링크(머리글 로고·'홈', 상세의 '홈으로 돌아가기')로 오면 새로 들어온 것이라 처음부터 보여준다 — 브라우저가 스크롤을
-다루는 방식과 같다. 주소 기록 항목(`location.key`)마다 따로 두고, 메모리에만 두므로 새로고침하면 빈다.
-
-- 스크롤은 **움직일 때마다 적어 두고** 떠날 때 담는다. 떠나는 순간에 재면 이미 짧은 상세로 바뀐 화면의
-  눌린 값이 나온다. 같은 이유로 주소가 `/`가 아니게 된 뒤의 스크롤 이벤트는 버린다.
-- 목록은 돌아올 때마다 다시 받는다(DB만 읽음). 행이 다 그려진 직후 `useLayoutEffect`에서 내려 둔다 —
-  effect로 하면 맨 위가 한 번 보였다가 튄다. 목록을 받는 동안의 스크롤은 적지 않는다(그 사이 떠나면 앞 자리를 지킨다).
-- `ScrollToTop`은 경로가 바뀔 때마다 맨 위로 올리고, 브라우저 자체 복원은 짧은 로딩 화면에 눌려
-  엉뚱한 자리(217px)에 선다. 둘 다 목록이 온 뒤의 되살리기가 덮는다.
-- 목록 끝이 보이면 20행씩 더 보여준다(`IntersectionObserver`). **콜백의 마지막 기록으로 판단한다** — 관찰을 걸자마자 끝이 보이면
-  한 콜백에 "안 보임 → 보임"이 같이 온다. 첫 기록만 보던 때는 넘기고 다시 불리지 않아 20행에서 멈췄다(2026-09-29, 5번에 1번꼴).
-  판정은 관찰자를 감싸 첫 "안 보임"을 다음 기록과 묶어 넘기면 매번 재현된다.
-
-## 탭 제목과 공유 미리보기
-
-`useDocumentTitle`은 떠날 때 제목을 되돌리지 않는다. 종목 상세만 종목명을 넣는다(응답 전에는 목록에서
-들고 온 이름).
-
-카카오톡·슬랙 미리보기(og 태그)는 `index.html`에 **한 벌뿐**이고 화면별로 바꿀 수 없다.
-크롤러가 자바스크립트를 실행하지 않기 때문이다. 종목별 미리보기를 하려면 서버 렌더링이 필요하다.
-
-탭 아이콘(`public/favicon.svg`)은 브랜드 초록(brand-700) 둥근 네모에 오르는 캔들 둘(앞 연초록·뒤 흰색)이다(2026-11-03 운영 — 예전 빨강·파랑 캔들 셋은
-투명 바탕이라 16px 탭에서 보라빛 덩어리로 보였다). 같은 그림으로 `apple-touch-icon.png`(180px, 모서리는 iOS가 깎는다)와 `og.png`(1200×630, 흰 바탕에
-아이콘 + Michroma 'JUBY' + 한 줄)를 만들었고, 휴대폰 주소창 색(`theme-color`)은 머리글 띠 초록이다. 색 값은 `index.css`의 토큰과 같은데 파비콘은 문서 밖이라
-직접 적었다 — 바꾸면 둘 다 고친다. PNG 둘은 HTML을 Playwright로 찍어 만들었다(저장소에는 결과 PNG만 있다).
-
-## 사용설명서 (2026-11-03)
-
-사용자가 노션에 장마다 쓴 글을 마크다운으로 내보내 붙여 준다(1 JUBY 소개 · 2 투자성향 · 3 주식 백테스트 · 4 AI 투자 챗봇 — 같은 날 3장, 이어서 1·2·4장을 받았다).
-**받은 글은 그대로 옮긴다.** 바꾸는 건 그림 주소와 대체 글, 노션 쪽 이름 줄(맨 앞 `# 백테스트 설명서`처럼 장 이름과 겹치는 줄)뿐이다.
-**예외 하나**: 2026-11-03 UI 수정 지시서 N-2가 사용설명서 본문도 바꾸라고 해 1장의 "주식 모아보기" 넷을 "관심종목"으로 바꿨다(사용자 지시 — 노션 원문도 사용자가 고친다).
-글이 앱과 어긋나 보이면 고치지 않고 사용자에게 알린다 — 2026-11-03에 알린 것: 3장 "(2장 참고)"가 가리키는 곳이 없음, 1장 "즐겨찾기"(앱은 "관심종목"),
-1·4장 커뮤니티에서 "의견을 나눌 수 있습니다"(지금은 예시 대화·입력 잠김), 2장 "성향을 직접 변경"(검사 없이 바꾸는 단추가 없다, 아래 "아직 mock인 곳"),
-2장 "이동평균선 교차 전략"(앱은 "이동평균 교차 전략"), 4장 "이전 질문에 대한 답변을 생성 중입니다"(앱은 입력칸을 잠그고, 409면 "앞 질문의 답을 아직 만들고 있어요"),
-머리글 메뉴 "AI 주가분석"과 장 이름 "AI 투자 챗봇".
-
-- **장 더하기**: `src/content/guide/<id>.md`에 글, `src/content/guide/index.ts`의 `GUIDE_CHAPTERS`에서 그 장의 `markdown`을 `null`에서 import로 바꾼다.
-  `action`(오른쪽 "이 장에서" 단추 — 그 장의 기능 화면과 이름)도 적는다. 글이 없는 장은 장 목록에 "준비 중"으로만 서고 열리지 않는다(주소로 와도 `/guide`로 보낸다). **글이 있는 첫 장이 `/guide`**, 나머지는 `/guide/<id>`다 —
-  1장이 채워지면 `/guide`가 1장이 되고 `/guide/backtest`는 그대로 열린다. 머리글 '사용설명서'는 `/guide`라 주소를 한 번 더 바꾸지 않는다.
-- **그림**: `public/guide/<id>/`에 두고 글에서 `/guide/<id>/<이름>`으로 부른다. 받은 PNG는 픽셀이 같은 무손실 WebP로 바꾼다(PIL, 3장 다섯 장 311KB → 84KB).
-  크기를 `GUIDE_IMAGE_SIZES`에 적는다 — 그림이 오기 전에 자리를 잡아 아래 글이 밀리지 않는다(`loading="lazy"`). 노션이 붙이는 대체 글(`image.png`)은
-  화면 읽기 프로그램이 그대로 읽으니 그림을 설명하는 글로 바꾼다.
-- **배치**(사용자 "가운데 허전함"·"가로선 이질감"으로 같은 날 다시 짰다): 1200px~ 세 열 — 왼쪽 장 목록(마이페이지 메뉴와 같은 44px 줄·가는 선·고른 줄은 옅은 초록 +
-  왼쪽 막대) | 가운데 본문(760px까지, 남는 폭은 `justify-content: space-between`으로 양옆에 똑같이 — 본문이 두 열 사이 가운데) | 오른쪽 "이 장에서"(꼭지 + 그 장의
-  기능 바로 열기 secondary 단추, `index.ts`의 `action`). 두 옆 열은 읽는 동안 따라온다(격자 칸 안에서 sticky). 901~1199px은 "이 장에서"가 장 목록 아래로,
-  900px 이하는 장 목록 두 칸씩 → 본문 → 단추 → 장 넘기기(꼭지 목록은 뺀다). 처음엔 본문 | 차례 두 열이라 넓은 화면에서 그 사이가 500px 넘게 비었다.
-- **선**: 본문 글 안에는 굵은 먹 선이 없다 — 먹 선은 앱에서 구역(목록·표·칸)의 시작 표시라 글 제목에 두니 장 제목·꼭지마다 겹겹이 서서 다른 화면과 결이 달랐다.
-  제목은 크기·위 여백으로만 나눈다. 선은 길잡이에만: 장 목록 줄 사이 가는 선, "이 장에서" 먹 선(제목 줄 높이를 44px로 받아 왼쪽 첫 줄 선과 같은 높이 — `lines.mjs` A7),
-  장 넘기기 위 가는 선. 장 제목은 선 없이 24px, 높이를 메뉴 한 줄에 맞춰 세 열 첫 줄 글자가 한 눈높이다.
-- **글 읽기**: 맨 앞 `# 제목`은 화면이 가운데 열 맨 위 장 제목(24px)으로 따로 그리고, `## 꼭지`는 "이 장에서"에 걸려 `<장 id>-<순서>` id를 단다
-  (`utils/guideMarkdown.ts readGuideDocument`). 본문 제목은 단계를 건너뛰지 않게 다시 매긴다 — 1장은 `## 1.1` 바로 아래가 `####`다(그대로면 h3 다음 h5).
-  마크다운이 굵게로 못 읽는 `**-18.40%**로`(닫는 별표 앞이 기호, 뒤가 한글 — 4장)는 `remarkLooseStrong`이 굵게로 바꾼다(노션은 굵게 보여 준다).
-  본문은 `components/GuideArticle` — 제목은 한 단계씩 내린다(## → h3 20px, ### → h4 18px, #### → h5 16px). 그림만 있는 문단은 그림 자리, 코드 한 조각뿐인 문단은 식(왼쪽 먹 선), 굵은 글 한 줄뿐인 문단은 아래를 여는 머리말(Q.·매수 조건),
-  인용은 옅은 면, 표는 줄만(두 칸 표의 첫 칸은 꺾지 않는다), 코드 블록(2장 예시 문항)은 옅은 면에 고정폭 글꼴(노션처럼 — 화살표 줄이 맞는다, 좁으면 상자 안에서 민다),
-  가는 선 `---`(4장 사례 사이)은 가는 선. 글 속 HTML은 그리지 않는다. 앱 안 링크(`/…`)는 라우터 링크, 바깥은 http·https만 새 탭.
-- **장 끝**에 이전 장 · 다음 장(`nav aria-label="장 넘기기"`) — 좁은 화면은 장 목록이 본문 맨 앞이라 끝까지 읽은 뒤 다음 장으로 가는 길이 여기다.
-- **꼭지로 옮기기**("이 장에서"): 꼭지를 누르면 그 제목으로 옮겨 포커스를 준다 — 주소는 바꾸지 않는다(꼭지마다 뒤로 가기 기록이 쌓인다). 움직임을 줄인 설정이면 곧바로 옮긴다.
-  꼭지 링크도 넓은 화면 누르는 넓이 40px을 지킨다(처음 33px이라 `ui.mjs` U2-3이 잡았다).
-- **홈 오른쪽 위 칸은 먼저 "처음 시작하기" 진행표다**(2026-11-03 사용자가 시안 비교 1번을 고름 — `HomeRail StartOrGuide`·`components/StartSteps`): 로그인 → 투자성향 테스트 →
-  관심종목 하나 담기 → 내 전략으로 첫 백테스트, 제목 옆 "2 / 4"와 네 칸 막대. 마친 단계는 초록 ✓에 그 값(위험중립형·1개 담았어요·삼성전자 · 적합도 64.0), 남은 단계는 바로 가기
-  (로그인하기·테스트하기·담으러 가기(같은 화면 시세표 제목으로 — 주소는 그대로)·해 보기(내 성향 전략을 실어 /backtest)). **넷 다 마치면 아래 사용설명서 칸**으로 돌아가고
-  그 계정은 다음부터 곧바로 사용설명서다(`utils/startSteps` — 안 적으면 홈에 올 때마다 성향을 받는 사이 진행표가 비쳤다). 새 API는 없다 — 성향은 있는 조회 한 건
-  (로그인 홈에 `GET /api/members/me/personality`가 하나 늘었다, `expect/api-order.json` 다시 적음), 관심종목은 홈 시세표가 받은 하트(`likedCount`), 백테스트는 최근 본 백테스트.
-  줄 틀은 사용설명서 칸(`GuideSteps.module.css`)을 가져다 써 줄 높이·왼쪽 대표 종목 줄에 맞춘 선(`lines.mjs` A2)이 그대로다. 판정 `guide.mjs` U12.
-- **그다음 "사용설명서" 칸은 이 네 장을 한 줄씩 줄인 것이다**(같은 날 사용자 "메인 홈화면 오른쪽 상단의 사용설명서도 간단하게 정리해서 반영해줘").
-  장 번호 · 장 이름 · 꼭지를 줄인 한 줄이고, 누르면 그 장이 열린다(예전엔 투자성향 테스트·종목 찾기·백테스트·AI로 바로 가는 "처음이라면 이 순서로" 단계였다 —
-  그 기능 단추는 이제 각 장의 "이 장에서"에 있다). 글은 `src/content/homeGuide.ts`에 따로 적는다 — 홈이 `guide/index.ts`를 불러오면 네 장 글(38KB)이 첫 묶음에 딸려 온다.
-  그래서 장 이름·주소가 두 곳에 있고, 어긋나면 `judge/guide.mjs` U11이 잡는다. 설명 줄은 넓은 화면에서 한 줄로 둔다 — 늘면 홈 대표 종목 줄이 따라 늘어 `lines.mjs` A2가 어긋난다.
-- 예전 오른쪽의 "처음이라면 이 순서로" 단계는 본문이 "준비중입니다." 한 줄일 때 자리를 채운 것이라 걷었다. 설명서 mock API(`src/api/guide.ts`)도 지웠다 —
-  백엔드에 설명서 API가 생기면 장 목록을 받는 자리를 `src/api`에 다시 둔다.
-- **다듬기**(같은 날 사용자 "노션 그대로인 디자인을 나머지 창들과 비슷하게 깔끔하고 미려하게, AI 티가 나지 않게" — 글은 그대로): 장 첫 인용(이 장이 무엇을 다루는지)은
-  상자 없는 머리글(18px 보조 글자 — 첫 화면에 회색 상자가 먼저 서면 노션 내보내기처럼 보였다), 식은 글 폭만 한 옅은 면(왼쪽 먹 막대를 걷었다), 꼭지 사이 64px,
-  두 칸 표 첫 칸 굵게, 목록 번호 보조 색. "이 장에서"는 **지금 읽는 꼭지**를 먹 글자 + 왼쪽 바깥 초록 막대로 표시한다(`aria-current="location"` —
-  화면 위 30% 선을 지난 마지막 꼭지, 스크롤마다 꼭지 제목 몇 개의 자리만 잰다). 다른 화면이 **꼭지 주소**(`/guide/backtest#backtest-1`)로 보내면 그 꼭지에서 시작한다(백테스트 도움말의 "자세히 보기").
-- 판정은 `judge/guide.mjs`(U1~U11 — U9 세 열 배치·가운데 본문·글 안 먹 선 없음, U10 "이 장에서" 단추, U11 홈 사용설명서 칸). 장 목록은 `index.ts`, 기대값은 각 장의 글 파일에서 짓는다 — 장마다 제목·꼭지·소제목·표·그림·인용·식·코드 블록·가는 선 개수와
-  글의 모든 줄이 화면에 있는지 보므로, 글을 바꾸거나 장을 더해도 판정은 그대로다.
-
-## 커뮤니티 (2026-11-03)
-
-사용자 요청 "토스증권처럼 게시판으로… AI 주가분석과 사용설명서 사이에 '커뮤니티'… 홈 오른쪽 하단에 보이는 게 메인으로… 웹소켓으로 받을 예정이므로 웹소켓을 받을 자리만 남기고 목업을".
-2026-11-02의 홈 채팅창(예시 대화·잠긴 입력칸)을 글 목록으로 되돌리고 화면을 하나 더했다.
-
-- **화면**: 머리글 메뉴 '커뮤니티'(AI 주가분석과 사용설명서 사이) → `/community`(`pages/CommunityPage`). 두 열 — 글(남는 폭을 다 쓰고 글 줄 글자는 760px에서 끊는다) |
-  오른쪽 실시간 연결·이용 안내(`src/content/communityRules.ts` — 제목 줄 하나 아래 작은 제목 둘). 글 열은 위에서부터 **최신 · 인기 알약**(아이콘 + 글, 오른쪽에
-  "새로 올라온 순"/"공감 많은 순") → **옆으로 미는 종목 카드 줄**(전체 + 글 있는 종목, 글 수 많은 순 — 첫 글자 동그라미·이름 두 줄·아래 줄 "글 N" | 그날 등락률(글 머리와 같은 값·색, 전체 카드는 없다), 고른 카드는 옅은 초록 면 + 초록 테두리)
-  → (등락률 기준일 한 줄) → 글 줄. 화면 제목 줄 오른쪽 **"종목 검색"**(상자 없는 초록 글자 단추)이 제목 아래에 홈과 같은 검색창(`SearchBar`의 `onPick` — 고르면 이동 대신 그 종목 글만)을 연다.
-  글이 없는 종목도 고를 수 있고(서버 검색 포함) 그 종목은 "글 0" 카드로 전체 다음에 선다 — "<종목> 이야기는 아직 없어요". 고르면 칸이 닫히고 그 카드에 포커스, Esc 두 번이면 닫고 단추로.
-  2026-11-04 사용자 "왼쪽에 있는 전체/각 종목 선택창을 맨 위에 올려 주고, 좌우로 스크롤해서 종목을 선택하거나 검색 버튼을 통해 종목을 선택… 인기 탭을 만들어서"(토스증권 앱 커뮤니티 캡처 참고) —
-  11-03까지는 사용설명서와 같은 세 열(왼쪽 "종목으로 보기" 줄 목록)에 정렬은 제목 줄 오른쪽 작은 탭 "최신순 · 공감 많은 순"이었다. 인기 = 공감 많은 순(같으면 최신).
-  카드 줄은 스크롤 막대를 숨기고 **마우스 화면에서만 넘치는 쪽 끝에 앞·뒤 단추**(40px 원, Tab 차례 밖 — 키보드는 카드를 따라가면 줄이 밀린다)를 띄운다. 손가락 화면(`hover: none`·`pointer: coarse`)은 숨긴다.
-  끝까지 민 뒤 더 미는 몸짓이 페이지로 번지지 않는다(`overscroll-behavior-x: contain` — 맥 트랙패드는 그게 "뒤로 가기"다). 종목 30개(가짜 서버)로 밀기·끝·세로 밀기·마우스·키보드를 잰다(B19).
-  900px 이하는 한 열(글 → 안내)이고 카드 줄은 화면 끝에서 끝까지 민다(첫 카드는 글과 같은 줄에서 시작). 넓은 화면에서 머리 줄(46px)과 오른쪽 "이용 안내" 제목 줄이 같은 높이에서 시작한다.
-  **머리에 선이 없다 — 이 화면만의 예외**(같은 날 사용자 결정: "검은색 가로줄이 두 개인데 안 어울린다" → 세 안을 375px로 견줘(결과 문서 5·6부) 사용자가 C안을 고름 — 제안한 B안(탭 줄만 가는 선)은 걷었다).
-  화면 제목 "커뮤니티" 아래 먹 선이 없고(`section pageTitle`을 composes하지 않고 같은 글자만 적는다 — 선을 덮어쓰지 않는다), 최신·인기는 밑줄 탭이 아니라 **아이콘 + 글 알약**
-  (시계·불꽃, 40px(600px 이하 44px), 고른 것은 먹 채움(`--color-text`)에 흰 글자, 나머지는 옅은 면). 앱의 "알약 칩·채운 탭을 쓰지 않는다"·"화면 제목 + 먹 선" 규칙의 예외라 다른 화면에 옮기지 않는다.
-  **누름에 답하는 움직임**(같은 날 "모바일에서도 대응되는지 확인하고 유려하게" — 결과 문서 3부): 카드는 누르는 동안 0.97로 들어가고, 화면 끝에 걸친 카드를 누르면 줄이 밀려 다 보인다
-  (줄 안에서만 — 페이지는 움직이지 않는다). 탭·카드·검색으로 바뀐 목록은 0.22초 떠오른다(처음 그릴 때는 없다). 손가락 화면(`hover: none`)은 글 줄·글 상세 종목 줄을 누르는 동안
-  옅은 면(`--color-bg-sub`)으로 물들이고 900px 이하는 본문 좌우 여백만큼 같은 색 그림자로 화면 끝까지 내민다 — 첫 글자 동그라미는 그동안 흰색(면에 묻힌다). 움직임 줄이기면 들어가기·떠오르기·부드러운 밀기가 없다.
-  떠 있는 "글쓰기"와 글쓰기 화면의 취소 | 올리기 줄은 지수 띠 높이에 아이폰 홈 막대 자리(`env(safe-area-inset-bottom)`)를 더한 위에 선다.
-  **당겨서 새로고침**(같은 날 사용자 "글을 위쪽 방향으로 잡아당겼을 때 새로고침이 되어 새 글이 나오는 것", `hooks/usePullToRefresh` — 결과 문서 4부): 손가락 화면에서 맨 위를 끌어내리면
-  본문이 따라 내려오고(손가락 거리의 절반, 112px까지) 아래 화살표 → 64px을 넘으면 위로 뒤집힘 → 놓으면 도는 고리(0.6초 이상) → 곧바로 제자리(놓은 뒤 1초 안). **화면에 "새 글 N개"·"새 글이 없어요"를 띄우지 않는다**(같은 날 사용자 "이런 거 보내지 말고 로딩창만 떴다가 바로 내려오도록" —
-  처음엔 결과 한 줄을 1초 보였다). 새 글은 목록 맨 위에 선 것으로 보이고, 결과는 읽어 주는 쪽에만 알린다(`role="status"` 화면 밖 글).
-  받는 것은 `useCommunityFeed refresh` — 쌓인 새 글 + 연결이 지금 내주는 새 글(`CommunityConnection.pullNow` — **목업은 다음 예시 새 글을 곧바로**, 실제 연결은 빈 목록) + 다시 받은 처음 목록에서 없던 글.
-  처음 8px이 옆(카드 줄)·위(내려 읽기)면 손대지 않고, 페이지 맨 위에서 닿았을 때만 기본 동작을 막는 터치 듣기를 붙인다. 손가락을 따라가는 동안은 CSS 변수(`--pull`·`--pull-progress`, 단계는 `data-pull`)만 바꾼다
-  (React를 다시 그리지 않는다). 가만히 있을 때는 본문에 transform이 없다(옆 열 sticky). 이 화면에 있는 동안 `html`에 `overscroll-behavior-y: contain` — 안드로이드 크롬이 페이지 전체를 다시 읽지 않게.
-  홈 오른쪽 아래는 같은 글의 최신 다섯 줄(별명 · 몇 분 전 / 제목 한 줄 / 종목 · 본문 한 줄) + '전체 보기'.
-- **글은 제목 + 본문 + 사진이다**(같은 날 이어서 사용자가 토스증권 앱 인기 탭 캡처로 "커뮤니티 글쓰기 개념으로 되었는지 확인"을 시켜, 차이를 알리고 고른 셋을 만들었다 —
-  ① 글 머리 종목 등락률 ② 제목·본문 글과 글쓰기 화면 ③ 글 상세. 인기 탭 안 "이번 주 인기글 · 실시간 인기 종목"은 고르지 않았다). 11-03까지는 본문 한 칸에 목록 위 한 줄 입력칸이었다.
-  - 글 줄(`components/CommunityPosts`): 종목 줄(첫 글자 동그라미 · 이름 · **그날 등락률** — `hooks/useStockQuotes`가 `GET /api/stocks`(DB, 증권사 0건, 1분 메모)에서 꺼낸다,
-    등락색 글자, 기준일은 목록 위 "등락률은 N월 N일 종가 기준이에요" 한 번) → 굵은 제목 → 본문 두 줄 + 오른쪽 사진 미리보기(88px) → 공감·댓글 수 | 별명 · 몇 분 전. 카드 없이 가는 선.
-    **줄 어디를 눌러도 글 상세**다(제목 링크의 `::after`가 줄을 덮는다 — 홈 시세표와 같은 방식). 그래서 줄 안에 따로 눌리는 것이 없고 종목 이름도 글자다
-    (11-03 홈에서 17px 종목 링크가 휴대폰에서 조금만 빗나가도 다른 곳으로 갔다, `common` 4·`ui` U2-3). 종목 상세 링크는 글 상세에 있다. 공감·댓글은 서버가 없어 **수만 보이고 단추를 두지 않는다**.
-  - **글 상세** `/community/{postId}`(`pages/CommunityPostPage`): "‹ 커뮤니티로 돌아가기"(종목 상세 "홈으로 돌아가기"와 같은 모양) → 제목이 화면 제목(28px + 먹 선) → 목록과 같은 두 열 틀
-    (`components/communityLayout.module.css` + 오른쪽 `components/CommunitySide`): 먹 선 바로 아래 **종목 이동 줄**(36px 첫 글자 동그라미 | 이름 · 등락률 / "N월 N일 종가 기준" | ›, 가는 선으로 쓴 사람과 가른다,
-    본문과 같은 760px까지 — 링크 이름은 종목 이름만이고 `::after`가 줄을 덮어 줄 어디를 눌러도 종목 상세, 이름을 싣고 간다 `toPreviewState`. 11-04 다듬기 전에는 초록 이름 링크 한 줄이 쓴 사람 줄과 같은 꼴로 겹쳐 섰다) · 쓴 사람 · 본문 전부 · 사진마다 "글에 붙은 사진 N" ·
-    공감·댓글 수 · "댓글 N" 구역(서버가 없어 안내 한 줄). 글은 눌러 온 글(`toCommunityHandoff` — 보고 있는 동안 들어온 새 글은 처음 목록에 없다) → 처음 목록 → 글 하나 받기
-    (`loadCommunityPost`, 지금은 예시 글에서 — 제안 `GET /api/community/posts/{postId}`) 순으로 찾는다. 같은 웹소켓을 들어 보는 사이 지워지면 "지워진 글", 없는 번호·숫자 아닌 주소는 "글을 찾을 수 없어요".
-  - **글쓰기** `/community/write`(`pages/CommunityWritePage`): 목록 오른쪽 아래 **떠 있는 "글쓰기"**(primary lg + 떠 있는 층 그림자, 지수 띠 위, 넓은 화면은 본문 폭 오른쪽 끝)로 온다 —
-    종목 카드를 고른 채면 그 종목 이야기로(`useCommunityWriteHandoff`). 가운데 한 줄 680px: 종목(고르지 않아도 된다 — 홈 검색창 `SearchBar onPick`) · 제목(40자) · 내용(여러 줄 1000자) · 사진 자리(몇 자 썼는지는 칸 이름 줄 오른쪽)
-    (서버에 사진을 받는 곳이 없어 늘 잠김 — 제안 `POST /api/community/images`) · 취소 | 올리기(화면 아래 지수 띠 바로 위에 붙어 따라온다 — 휴대폰에서 내용 칸을 쓰는 동안에도 보인다). 보내기는 `{ title, content, stockCode }`, 보낸 뒤 서버가 되돌려 준 내 글(제목·내용이 같은 `POST_CREATED`)의
-    글 상세로 간다(주소 기록을 바꿔 넣어 뒤로 가면 목록, 8초 안에 안 오면 목록). 세 화면은 한 묶음이다(`pages/communityBundle.ts` — 목록에서 글을 누를 때 묶음 왕복이 끼지 않게).
-- **웹소켓 자리**(`src/api/community.ts`): 처음 목록은 `loadCommunityPosts`(REST 자리 — 지금은 예시 글), 그 뒤는 `connectCommunity`가 새 글·공감 수·지운 글을 받는다.
-  `VITE_COMMUNITY_WS_URL`이 비면 **목업**(예시 새 글을 40초 뒤부터 70초마다 셋 흘린다), 있으면 **STOMP 1.2를 라이브러리 없이 직접**(CONNECT에 토큰, `/topic/community` 구독,
-  `/app/community/posts`로 보내기, 끊기면 1·2·4…30초 뒤 다시). 오는 값은 `toCommunityEvent`가 거른다(모르는 type·틀린 모양은 버린다). 주고받는 모양은
-  [docs/커뮤니티-웹소켓-제안.md](docs/커뮤니티-웹소켓-제안.md) — BE `feature/websocket/#73`은 증권사 시세용이라 커뮤니티 경로는 아직 없다. 서버가 붙으면 이 파일만 고친다.
-- **새 글은 바로 끼우지 않는다** — 읽던 글이 밀린다. "새 글 N개 보기"(커뮤니티)·제목 줄 "새 글 N"(홈)으로 모았다가 누르면 맨 위에 선다(`hooks/useCommunityFeed`).
-  이미 목록에 선 글은 새 글로 세지 않는다.
-- **홈 글 줄을 누르면 그 글 상세로 간다**(11-03 사용자 "홈화면에서 커뮤니티의 글을 클릭하면 커뮤니티로" — 그땐 글 상세가 없어 목록에서 그 글을 표시했다, 11-04부터 글 상세).
-  번호가 아니라 **글을 싣는다**(`toCommunityHandoff` — `hooks/useStockHandoff`의 넘겨주기, 한 번 읽고 비운다) — 홈에서 세운 새 글은 글 상세가 따로 받는 처음 목록에 없어
-  `useCommunityFeed(seed)`가 넣는다. 받은 글은 `toCommunityPost`로 다시 검사한다. 판정 `community.mjs` B10.
-- **글쓰기는 실제 연결이 열린 로그인 사용자만** 열린다. 목업일 때 칸을 열어 두면 써도 갈 곳이 없다(2026-10-30 결정과 같은 까닭) — 글쓰기 화면은 칸을 다 보이되 잠그고(`fieldset disabled`)
-  맨 위에 "커뮤니티 서버가 열리면 여기서 글을 올릴 수 있어요", 실제 연결인데 비로그인이면 "로그인하면 글을 쓸 수 있어요 · 로그인하기".
-- 판정 `judge/community.mjs`(B1~B19 — 메뉴 자리, 홈 다섯 줄, 최신·인기 탭, 종목 카드로 보기, 목업 새 글(Playwright 시계로 40초를 앞당긴다), 잠긴 글쓰기 화면, 두 열 첫 선,
-  좁은 화면(카드 한 줄·옆으로 밂), 커뮤니티를 열 때 글 /api 0건·`GET /api/stocks` 1건, 홈 글 줄에서 글 상세로, 종목 검색(글 있는·없는 종목, Esc), 인기 + 종목, 앞·뒤 단추(손가락 화면은 `open({ touch: true })`),
-  글 상세(본문·사진·종목 링크·없는 글), 등락률 값·색·기준일 한 번(B15b 종목 카드 등락률), 실제 연결 글쓰기, 휴대폰 375(B17 — 넘침·글쓰기 단추와 지수 띠·화면 끝 카드 누름·누르는 동안 물듦
-  (헤드리스 크롬은 손가락 누름에 `:active`를 걸지 않아 개발 도구 규약 `CSS.forcePseudoState`로 건다)·종목 줄 › 자리·붙는 단추 줄. 화면 끝 카드는 `locator.tap()`이 먼저 화면 안으로 밀어 버려 좌표로 누른다), 당겨서 새로고침(B18 — `Input.dispatchTouchEvent`로 끌어내린다),
-  종목 30개 카드 줄(B19 — `--ws` 빌드에 가짜 서버가 글 40개를 밀어 준다, 밀기는 `Input.synthesizeScrollGesture`)). 기대값은 예시 글 파일에서 읽는다. 오는 값 거르기·글 하나 받기는 `unit.test.mjs`.
-  **B16은 웹소켓 주소를 넣고 따로 묶은 빌드가 있어야 돈다**: `VITE_COMMUNITY_WS_URL=ws://community.test/ws node node_modules/vite/bin/vite.js build --outDir <임시>/dist-ws` →
-  `vite.js preview --outDir <임시>/dist-ws --port <다른 포트>` → `node community.mjs <BASE> --ws <그 주소>`. 브라우저의 WebSocket을 가짜 STOMP 서버로 바꿔(CONNECT에 CONNECTED, SEND에 같은 글을 POST_CREATED로)
-  밖으로 나가는 연결 없이 보내기·되돌려 받기·글 상세로 가기를 잰다. `--ws`가 없으면 INFO로 건너뛴다.
+- 목록 행은 종목코드가 없거나 틀리면 빼고(콘솔에 개수), 이름이 비면 종목코드로 적는다(`nameOrCode`).
+- **포맷 함수(`utils/format.ts`)는 유한한 숫자가 아니면 "-"다**(`toPercent(null)`도 "0.00%"가 아니다).
+- **정렬은 빈 값을 방향과 상관없이 맨 뒤로 보낸다** — `sortStocks`·`sortBy`. 비교식을 따로 쓰지 않는다.
+- **실패와 빈 값은 다른 문구이고 실패에는 다시 할 수단을 준다.** 홈 카드는 실패로 비지 않는다(고정 목록). 뉴스 더 보기 실패는 받아 둔 목록을 둔다.
+- **조용히 되돌리지 않는다.** 낙관적 갱신은 실패하면 되돌리고 `role="status"`로 알린다. 진행 중인 항목은 ref의 Set으로 연타를 막는다.
+- 서버 `message` 대신 아는 코드만 코드별 문구(`useBacktestRun describeFailure`), 나머지는 고정 문구, 원문은 콘솔에.
+- **성향 없음(404 `MEMBER404_2`)은 실패가 아니다** — `getMyPersonality()`가 `null`로 바꾼다. 실패면 검사를 권하지 않고 다시 시도만 준다(다시 검사하면 성향을 덮어쓴다).
+- **성향 검사**: 저장 실패는 마지막 문항에 머물러 "다시 저장". 로그인 상태에서는 예비 문항으로 물러서지 않는다. 비로그인 예비 7문항(`MOCK_QUESTIONS`)의 결과는
+  제출할 때 로그인돼 있어도 서버에 보내지 않는다.
+- 서버가 준 주소로 여는 링크는 http·https만(`utils/link.ts safeLink`), 글 필드는 `textOf`로 문자열만 받는다.
 
 ## 백엔드 사정
 
-백엔드가 바뀌면 이 절을 고친다.
+실서버는 `https://api.juby.store`(스웨거 `/swagger-ui/index.html`). 개발 프록시·배포 중계(`vercel.json`)·소셜 로그인·재발급(`API_ORIGIN`)이 이 주소다. 백엔드가 바뀌면 이 절을 고친다.
 
-### 로그인·인증 (JUBY-BE dev `7e5b023` 2026-09-28, `ea18fec` 2026-09-30 소스 확인)
+- 인증: 성공은 `/oauth2/callback#accessToken=<AT>`(해시, 30분), 실패는 `/oauth2/error?error=<코드>`. refresh token은 HttpOnly 쿠키(`Path=/api/auth`, 재발급마다 바뀜)라
+  프론트는 받지도 저장하지도 않는다. 사파리처럼 다른 사이트 쿠키를 막는 브라우저는 프론트가 `juby.store` 아래여야 재발급된다.
+- **공개 경로는 `/api/stocks/**`·`/api/auth/reissue`뿐이다.** 나머지는 토큰 없으면 401 `COMMON401_1`, 틀리면 `AUTH401_1~6`.
+- CORS 허용 출처는 `http://localhost:5173`과 `https://juby-fe.vercel.app`이다. 로컬에서 로그인해도 돌아오는 곳은 배포 사이트다.
 
-**실서버는 `https://api.juby.store`다**(2026-09-30 사용자가 배포를 알림, 스웨거 `/swagger-ui/index.html`). 예전 `http://3.35.191.42:8080`은
-그날 응답이 없었다. 개발 프록시(`vite.config.ts`)·배포 중계(`vercel.json`)·소셜 로그인 이동·토큰 재발급(`client.ts`의 `API_ORIGIN`, `VITE_API_ORIGIN` 기본값)이
-모두 이 주소를 가리킨다. 새 서버의 `GET /v3/api-docs`로 **프론트가 부르는 경로가 전부 있는 것**까지는 확인했다(응답 스키마를 하나하나
-대조하진 않았다). 새 서버에 올라간 소스가 아래 `7e5b023`과 같은지, 실서버로 로그인이 되는지는 아직 모른다.
+쓰는 API는 위 "증권사 호출" 표의 것과 백테스트(`/api/backtest/preset`·`/preset/options`·`/run`), 성향(`GET·POST /api/personality-tests`),
+회원(`/api/members/me`·`/me/personality`·`/me/like-stocks`), AI(`/api/chat-sessions`·`POST /api/open-ai/ask`), 뉴스 검색(`/api/news`·`/api/vectordb/search`)이다.
+붙이지 않은 것: `PATCH /api/members/me/personality`(DB 행 번호만 받는다), `/api/market/{code}/daily-stock`(임시 차트와 겹친다), 관리용(`/api/initiate`·`/api/vectordb/all`·`/api/token/*`).
 
-- 소셜 로그인 성공 → `{FRONTEND_URL}/oauth2/callback#accessToken=<AT>`. AT는 30분. refresh token은 HttpOnly 쿠키
-  `refreshToken`(`Path=/api/auth`, 14일, 재발급 때마다 바뀜)이라 프론트는 받지도 저장하지도 않는다.
-  실패 → `{FRONTEND_URL}/oauth2/error?error=<코드>`(`login_failed` 또는 소셜 쪽 오류 코드). 화면은 코드를 쓰지 않는다.
-  예전에 부탁한 모양(`/oauth/callback?accessToken=&refreshToken=`)과 달라 프론트가 맞췄다(G-1). `/oauth/callback`은 지웠다.
-- `POST /api/auth/reissue` — 쿠키의 RT로 본문 AT + 새 RT 쿠키(재발급마다 바뀐다. 바뀌기 전 RT로 다시 보내면 `AUTH401_2`).
-  프론트는 401 때 쓴다(위 "API 계층"). RT 쿠키는 `ea18fec`부터 `Secure; SameSite=None`이다. `POST /api/auth/logout` — AT로 회원을 찾아
-  AT를 막고(블랙리스트) 서버의 RT를 지운다. 본문과 쿠키는 읽지 않는다.
-- API 중 공개는 `/api/stocks/**`·`/api/auth/reissue`뿐이다. **`/api/backtest/**`·`/api/personality-tests`도 로그인해야 한다**
-  (`d7edec4`, 의도인지 물었다). 토큰이 없으면 401 `COMMON401_1`, 토큰이 틀리면 사유별 `AUTH401_1~6`(만료·무효·검증 오류·RT 없음·
-  블랙리스트·RT 쿠키 없음). 토큰 없는 성향 POST는 더 이상 NPE 500이 아니라 401이다 — `personality.ts`는 여전히 로그인했을 때만 POST한다.
-  비로그인 백테스트 실행은 "로그인하면 결과를 볼 수 있어요" + 로그인 링크(G-5), 비로그인 성향테스트는 문항 GET이 401이라 늘 예비 7문항이다
-  — 그때 안내는 "로그인하면 정식 문항으로 검사하고 결과를 저장해요"(`fallbackReason: 'login'`)이고, 서버가 실패한 때만
-  "서버 문항을 불러오지 못해"다. 백테스트 기간 옵션의 401은 "서버 목록을 받지 못해" 안내를 띄우지 않는다(2026-10-05).
-- CORS가 켜졌고 허용 출처는 `FRONTEND_URL` 하나다. vite 프록시(`changeOrigin`)는 Host만 바꾸고 `Origin: http://localhost:5173`은
-  그대로라, `FRONTEND_URL`이 배포 주소면 로컬 개발의 POST·PATCH·DELETE가 403일 수 있다(`docs/남은-일.md`).
-  `ea18fec`부터 CORS는 `WebMvcConfig`가 정하고 **`http://localhost:5173`을 늘 받은 뒤 `FRONTEND_URL`을 하나 더 받는다** — 그래서
-  `FRONTEND_URL`을 배포 주소로 바꿔도 로컬 개발의 쓰기 요청은 계속 된다(대신 소셜 로그인 뒤 돌아오는 곳도 배포 주소가 된다).
-  2026-09-30 백엔드가 `FRONTEND_URL=https://juby-fe.vercel.app`으로 바꿨다 — 그 주소와 `http://localhost:5173`을 받고 나머지는 403이다
-  (`GET /v3/api-docs`에 `Origin`을 달아 확인). 그래서 소셜 로그인 뒤 돌아오는 곳도 배포 사이트다(로컬에서 로그인해도 배포로 간다).
-  구글 로그인은 된다고 들었다. 카카오·네이버는 확인하지 못했다.
-- 탈퇴는 soft delete이고 RT 쿠키를 지운다. 같은 소셜 계정으로 다시 로그인하면 새 회원이다.
-  `GET /api/members/me`에 온보딩 여부(성향 저장 때 참)가 생겼다 — JSON 키는 `onboarded`다(2026-09-30 스웨거 확인). 로그인 콜백이 쓴다(온보딩).
-- 내 정보 수정(`Member.updateInfo`)은 name·birth가 null이면 바꾸지 않는다. 이름 `@Size(2~4)`는 `javax` 어노테이션이라
-  Boot 3에서 검사되지 않는다 — 이름 규칙은 지금 화면에만 있다.
-
-### AI 대화방 (JUBY-BE dev `0c79ec5`, 2026-09-30 소스 확인)
-
-질문과 대화방 모두 실제 API다(`src/api/ai.ts`). 예전의 가짜 방 6개와 이 탭에서 만든 방을 메모리에 적어 두던 것(`localRoomsRef`)은 걷었다.
-
-**구조(2026-10-31 나눔, 680줄 → 198줄):** `pages/AiPage.tsx`는 종목 상세·마이페이지에서 넘어온 것을 한 번 처리하고 둘을 잇는다 —
-`hooks/useChatRooms`(사이드바 목록: 받기·맨 위로·빼기·이름 바꾸기·지우기)와 `hooks/useConversation`(보던 방·말풍선·보내기·그만 기다리기·
-다시 시도, 늦게 온 것을 버리는 번호 셋 `askSeq`·`roomSeq`·`sessionIdRef`). 부품은 `components/ai/ChatPane`(뼈대 → 못 받음 → 비어 있음 → 말풍선)·
-`ChatEmptyState`(워터마크·성향·예시 질문)·`Composer`(입력칸·보내기). 둘이 만나는 곳은 셋뿐이다: 답 뒤 목록 다시 받기(`rooms.load(true)`)·만든 방
-올리기(`putOnTop`)·없어진 방 빼기(`drop` + `leaveRoom`). **훅 순서가 요청 순서다** — 목록(`useChatRooms`)을 성향(`useMyPersonality`)보다 먼저 부른다.
-판정은 `judge/ai.mjs`(27항목)이고 화면별 요청 순서는 `judge/expect/ai-order.json`과 글자까지 같아야 한다(나누기 전후 같았다).
-
-- **같은 방 번호(`chatSessionId`)를 실어 물어야 서버가 앞 대화를 맥락으로 쓴다**("그 종목은?"). 새 대화는 첫 질문 때
-  `POST /api/chat-sessions`로 방부터 만들고 그 번호로 묻는다 — 방 없이 물으면 서버가 방을 만들어 주지만, 답이 실패하면(502) 질문만 남은
-  그 방의 번호를 몰라 다시 시도가 또 다른 방을 만든다. 만들기 전에는 방이 없다(새 대화를 눌러도 빈 방이 쌓이지 않는다).
-- 제목(첫 질문 앞 30자 + …)과 순서(최근 대화 순)는 서버가 정한다. 답을 받을 때마다 목록을 조용히 다시 받는다(`loadSessions(true)`).
-- 같은 방에서 앞 답을 만드는 중이면 409 `CHAT409_1` — 질문은 저장되지 않는다. "앞 질문의 답을 아직 만들고 있어요" + 다시 시도.
-- **다시 시도는 방을 먼저 다시 받는다.** 그 질문의 답이 이미 방에 있으면(그만 기다린 뒤 서버가 답을 끝냈다) 그걸 보여 주고 끝낸다 —
-  그냥 다시 보내면 같은 질문과 답이 방에 두 번 저장된다. 답이 없으면 다시 보낸다(답 생성이 실패한 방은 질문이 두 번 남는다, 서버 동작).
-- 지웠거나 남의 방(404 `CHAT404_1`·403 `CHAT403_1`)이면 목록에서 빼고 새 대화로 돌린다.
-- 목록은 로그인했을 때만 부르고, 들어오자마자 부르는 요청이라 401로 끌고 가지 않는다(공개 화면 규칙). 못 받으면 "이전 대화가 없습니다"가
-  아니라 "목록을 불러오지 못했어요 + 다시 시도"다. 로그아웃(다른 탭 포함)하면 보던 대화를 거둔다.
-  조용히 다시 받는 요청도 목록을 아직 못 보인 채였으면 실패를 보인다 — 첫 목록이 늦는 사이 답이 와서 다시 받은 목록이 실패하면,
-  밀려난 첫 요청의 응답은 버려지고 이 요청은 조용히 끝나 "불러오는 중"에서 멈췄다(2026-09-30 재현).
-- 질문은 1000자까지다(서버 `AskRequest` 제한, 입력칸 `maxLength`).
-- **제목 바꾸기·지우기는 사이드바의 방마다 있는 '⋯'에서 한다**(`SessionSidebar`, `PATCH`·`DELETE /api/chat-sessions/{id}`).
-  떠 있는 메뉴가 아니라 그 줄 아래에 펼친다 — 휴대폰의 날개(떠 있는 층, 아래) 위에 떠 있는 층을 또 띄우지 않는다.
-- **900px 이하에서 이전 대화는 왼쪽 날개다**(2026-11-04 사용자 "claude처럼 이전 대화를 오른쪽이나 왼쪽에서 날개 형식으로" — 그 전엔 대화창 위에 접히는 목록이라 펼치면 입력칸이 첫 화면 밖으로 밀렸다).
-  대화창 위에는 "☰ 이전 대화 N개 | + 새 대화" 한 줄(`SessionSidebar .bar`)만 두고, 누르면 같은 `<aside>`가 왼쪽에서 밀려 나온다(폭 `min(320px, 86vw)`, 화면 높이 전부, 0.22초 — 움직임 줄이기면 곧바로).
-  뒤는 `--color-backdrop`으로 어둡고 스크롤이 잠긴다. 열면 날개로 포커스, 탭은 안에서 돌고, Esc·뒤 누르기·닫기(×)·왼쪽으로 60px 밀기·방 고르기·새 대화로 닫히며 포커스는 연 단추로 돌아간다.
-  닫힌 날개는 `inert`(탭·읽어 주기에서 빠진다). 겹침은 머리글·지수 띠(5) 위 91, 확인 상자(Modal 100) 아래 — 날개 안에서 연 지우기 확인 상자의 Esc는 상자만 닫는다(날개는 상자가 떠 있는 동안 Esc·탭 가두기를 비켜선다).
-  넓은 화면은 옆 열 그대로다 — 폭은 `hooks/useMediaQuery('(max-width: 900px)')`로 가른다. 넓은 화면의 `align-self: start`가 고정 위치 상자에도 먹어 날개가 내용 높이로 줄었다(그래서 날개에서는 `stretch`). 판정 `ai.mjs` A16b.
-  - 이름은 서버 규칙대로 공백을 정리하고 30자에서 자른다(`normalizeTitle`). 빈 제목은 서버가 400이라 저장 단추를 잠그고, 바뀐 게 없으면
-    보내지 않는다 — 보내면 서버가 바꾼 시각을 최근 대화 시각으로 적어 그 방이 목록 맨 위로 간다(바꾼 방도 그래서 맨 위로 옮긴다).
-    실패하면 이름칸과 쓴 글을 두고 알린다. 다른 곳에서 지운 방(404)이면 목록에서 빼고 목록 위에 한 줄 알린다.
-  - 지우기는 확인 상자를 거친다(방과 메시지가 모두 지워져 되돌릴 수 없다). 이미 없는 방이면 지운 것과 같다. 보던 방이면 새 대화로 돌아간다.
-    답을 기다리는 방도 지울 수 있다 — 서버는 답을 저장하다 실패하고(`docs/남은-일.md` 백엔드 9), 화면은 번호가 올라가 그 실패를 버린다.
-  - 바꾸거나 지운 뒤 목록을 조용히 다시 받는다. 요청 번호가 올라가, 답 뒤에 받기 시작한 옛 목록이 늦게 와서 방금 바꾼 제목이나 지운 방을
-    되살리지 않는다. 기다린 뒤 "보던 방이었나"는 `sessionIdRef`로 가른다(함수가 만들어질 때의 `sessionId`는 낡을 수 있다).
-- 성향 없는 회원의 질문은 서버가 404(MEMBER404_2)로 거절하므로 화면이 성향테스트로 안내한다.
-- 노션 "FE 연동" 표에 `GET·POST /v1/ai/sessions`, `GET·POST /v1/ai/sessions/{sessionId}`가 "BE 변경 중"으로 올라 있다(2026-10-29 확인).
-  백엔드 저장소 어느 브랜치에도 아직 없고 스웨거에도 없다. 올라오면 지금 `/api/chat-sessions`·`/api/open-ai/ask`를 그쪽으로 옮긴다.
-
-### 아직 mock인 곳
-
-- `src/api/personality.ts`의 `MOCK_QUESTIONS`(7문항) — **비로그인 상태에서 서버가 죽었을 때만** 쓴다
-  (로그인 상태는 위 "예외 처리 규칙"대로 물러서지 않는다 — 결과가 서버에 저장되므로).
-  정식 문항은 DB에 10개(보기 5개, 1·3·5·7·9점)가 있고 합계 10~90이 서버 채점 구간과 맞는다.
-  mock으로 물러선 경우엔 합이 그 구간에 못 미쳐 `normalizeScore()`로 늘린다.
-- `PATCH /api/members/me/personality`는 `personalityId`(DB 행 id)를 받는데 프론트가 그 id를
-  알 길이 없어 안 붙였다. 성향 행은 코드로 넣지 않고 DB에 직접 넣은 자동 번호라 순서도 알 수 없다(`ea18fec` 확인).
-  성향은 성향테스트 POST로 바꾼다. 백엔드가 성향 이름으로 받거나 목록(번호 포함)을 주면 붙인다(`docs/남은-일.md`) — 붙일 자리는
-  마이페이지 투자유형의 "다섯 성향 둘러보기"다(다른 성향을 보고 있을 때 "이 성향으로 바꾸기").
-- `home.ts`의 `FALLBACK_THEMES` 3개는 대장주 API(`/api/stocks/leading-stocks`)를 못 받았고 받아 둔 것도 없을 때만 쓴다.
-- `src/api/market.ts`의 `USE_SAMPLE = true` — 아래 지수 띠의 코스피·코스닥은 **예시 값**이다(백엔드가 지수 API를 만드는 중, 위 "아래 지수 띠").
-  띠가 "(목업본)"이라고 밝힌다. **이대로 main에 합치면 운영에도 예시 값이 뜬다.**
-
-### 홈 테마별 대표 종목 (2026-10-04)
-
-한 칸 = 테마·기준일, 종목명, 그래프가 끝나는 날의 종가·전일 대비, **1년 그래프(주 단위)와 그 아래 "1년 전보다 ±x%"(1년간 주가 변화)**.
-2026-10-30 재정비에서 "큰 % + 작은 라벨 + 그래프" 타일(AI가 만든 화면의 흔한 꼴)을 걷고 같은 값을 한 줄씩 적는다 — 상자 없이 세로 선으로 나눈 세 칸이고,
-휴대폰은 한 줄짜리 행(이름 | 작은 그래프 | 1년 변화) 셋이다. **세로 선으로 나눈 칸은 첫 칸·끝 칸도 안 여백이 같다**(2026-11-02 사용자
-"첫번째 박스는 과하게 좌측에, 세번째 박스는 과하게 우측에 붙어있어" — 첫 칸 왼쪽·끝 칸 오른쪽을 0으로 두어 글자가 선 끝에 붙었다. 주식 모아보기
-다섯 숫자 칸도 같다, `judge/feature.mjs` H-6·L-5). 그래프의 꺾은선은 끝점 동그라미만큼 바닥에서 띄운다 — 거래량 막대처럼 바닥까지 쓰던 때는
-끝값이 1년 최저면 끝점이 반쯤 잘렸다(H-7).
-
-- **종목은 전략 결과로 고르지 않는다.** 백엔드가 테마마다 정해 둔 종목이다(JUBY-BE `LeadingStockTheme` — 기술주 SK하이닉스·방산주
-  한화에어로스페이스·바이오주 삼성바이오로직스, dev `3dc3f3a` 확인 2026-10-29). API는 그 셋에 SMA 전략(성향 3) 1년 프리셋을 붙여 주고
-  `strategyName`·`periodLabel`도 내려 주지만 고른 근거가 아니다. 그래서 예전 머리말 "SMA 이동평균선 전략 · 1년 기준으로 뽑은"은
-  사실과 달라 걷었다 — 제목 아래 "테마마다 대표 종목을 하나씩 골라 1년 주가 흐름을 보여드려요"다(리디자인 U-5).
-- 1년인 까닭: 한때 한 달 그래프·"한 달 전 대비"를 크게 적었더니 그 한 달 등락 때문에 뽑힌 것처럼 읽혀 위계가 어긋났다
-  (2026-10-04 사용자 지적, 같은 날 1년으로 맞춤). 1년 변화는 주가 변화이지 전략 수익률이 아니다 — "1년 전보다"가 그렇게 말한다.
-- 1년은 봉이 250개쯤이라 주마다 마지막 종가·거래량 합으로 묶어 52개쯤으로 그린다(`rememberCardSeries`). 등락률은 묶기 전
-  첫날 종가와 마지막 종가로 낸다. 담는 키는 `cardSeriesYear`다(한 달 그래프를 담던 `cardSeries`를 1년으로 읽지 않게).
-
-- 어떤 종목인지는 `GET /api/stocks/leading-stocks`(DB)가 준다(위처럼 백엔드에 정해 둔 셋). 못 받으면 받아 둔 값, 그것도 없으면 `FALLBACK_THEMES`.
-- 그래프는 상세 API(`?period=ONE_YEAR`)의 일봉에서 마지막 1년이다(`CardChart.tsx`, 직접 그린 SVG). 받는 길은 `api/home.ts`
-  `loadCardSeries` — 담아 둔 게 있으면 묻지 않고(`api/cardSeries.ts`, 홈 시세표 기준일까지 닿아 있어야 쓴다. 상세에서 본 종목도
-  담긴다), 로그인했으면 토큰을 심은 뒤, 아니면 `canSpendKisCall()`이 허락할 때만 셋을 한꺼번에 묻는다(위 "증권사(KIS) 호출").
-- **기준일은 구역에 한 번 적는다**(2026-11-03 지시서 N-3): 카드 셋이 같은 날의 종가면 "테마별 대표 종목" 제목 줄에 "N월 N일 종가 기준"을 한 번(375px에도 보인다),
-  다르거나 형식이 틀리면 카드마다 적는다(`utils/date sharedYmd`). 지금은 카드 날짜가 모두 홈 시세표 응답의 `baseDate` 한 칸이라 다를 일이 없다 — "현재 주가 보기"도 제목 옆 한 번이다.
-- **그래프를 못 그린 칸은 1년 변화를 "–"로 비우고 그래프 자리에 "지금은 그래프를 불러올 수 없어요 · 눌러서 차트 보기"를 둔다.**
-  그 자리에 전일 대비 같은 다른 숫자를 넣지 않는다 — 칸마다 같은 자리의 뜻이 달라진다. 전일 대비는 종가 줄에 늘 있다.
-  주말에 비로그인으로 처음 오면 이렇게 선다. 카드가 묻지 않고 남겨 둔 증권사 몫으로 사용자가 누른 상세는 곧바로 뜬다.
-- 한때(5da71f7~e279027) 그래프 대신 전략 수익률을 큰 숫자로 적었다. 그래프를 받는 API가 1분에 1건만 되던 날 2·3번 카드가
-  비어서였다. 토큰 심기와 담아 두기로 그 까닭이 풀려 같은 날 되살렸다(사용자 결정). 전략 수익률은 카드에 적지 않는다 —
-  실서버에서 두 장이 매매 0~1회로 0.0%라 "제자리"로 읽혔다(`docs/남은-일.md` 2번).
-
-### 백테스트 (JUBY-BE 소스에서 확인, dev `3dc3f3a` 2026-10-22까지)
-
-`src/utils/backtest.ts`의 표(전략·최소 기간·가중치)는 전부 JUBY-BE 소스에서 옮긴 값이다.
-
-- **프리셋이 없으면(BACKTEST404_5) 즉석 실행 `GET /api/backtest/run`으로 받는다**(`api/backtest.ts getBacktestResult`, 2026-10-29 연결.
-  백엔드 2026-10-22 추가). 같은 규칙(종료일 = 그 종목의 마지막 일봉, 시작일 = 기간으로 역산)으로 그 자리에서 돌리고 저장하지 않는다.
-  응답에 날짜가 없어 결과의 `source: 'live'`·날짜 null이고, 바닥 글이 "지금 바로 계산했어요"로 바뀐다. 비교 5건도 같은 길을 탄다.
-  프리셋이 있으면 프리셋이 먼저다 — AI 답변이 프리셋을 읽으므로 둘이 같은 값이어야 한다. 기간 선택지는 그대로 `/preset/options` ∩ 로컬 표다.
-  즉석 실행의 거절: `BACKTEST404_6`(시작일 앞 워밍업 일봉 부족)·`BACKTEST404_4`(그 기간에 일봉 없음) → "일봉이 모자라요, 더 짧은 기간".
-- 백엔드가 2026-10-22에 지표 **워밍업 봉**을 넣었다(시작일 앞 N거래일을 지표 계산에만 쓰고 평가는 요청 구간만). 그 전에는 SMA 60 같은
-  지표가 자리 잡기 전 구간의 매매 신호가 없어 "거래 0회"가 잦았다. **기간 끝의 열린 포지션을 청산하지 않는 것은 그대로다**(아래 ①).
-
-- 성향 → 전략은 **1:1**이다(`BacktestService`의 `switch(investType)`). 요청에 전략 필드가 없다.
-  로그인 시 성향에 맞는 전략을 미리 고르는 지금 방식은 유지한다(B-6, 2026-09-27 사용자 결정).
-- **종목 상세의 '이 종목 백테스트'로 오면 그 종목을 고른 채로 시작해, 종목·추천 전략·1년(`QUICK_PERIOD`)이 다 채워진 순간 한 번 실행한다**
-  (2026-10-29, `BacktestPage`의 `autoRunRef`, 위 "종목 상세의 바로 가기"). 손으로 누르는 `handleSubmit`과 같은 길이라 요청도 같다(1년이면 5건).
-  전략은 성향이 와야 골라지고, 1년을 고를 수 있는지는 기간 목록(`/preset/options`)을 받거나 못 받기로 끝난 뒤에 본다(`periodsSettled`) —
-  그 전략의 선택지에 1년이 없으면 기간을 비우고 실행하지 않는다. 검사 안 함·성향을 못 불러옴이면 종목만 채우고 멈춘다(배너는 그대로).
-  상세의 비로그인은 이 화면에 오지 않고 로그인으로 간다. 비로그인인 채 종목이 실려 오면 종목만 채운다.
-  실행 전에 사용자가 종목·전략·기간을 건드리면 거둔다(`clearResult`) — 바꿔 놓은 조건을 덮어 실행하지 않는다.
-- **같은 조합의 프리셋은 화면에 있는 동안 한 번만 받는다**(`hooks/useBacktestRun`의 `loadPreset` — 실행·결과·실패 문구는 2026-10-31에
-  이 훅으로 나눴고 결과 카드·가이드는 `components/backtest/`다) — 1년 실행이면 고른 전략이
-  비교용 다섯 건 중 하나라 6건이 5건, 같은 종목에서 기간만 바꾸면 1건. 실패한 요청은 지워 다시 시도가 새로 받는다.
-  화면을 떠나면 실행 번호를 올려 늦게 온 결과를 버린다(안 그러면 '최근 본 백테스트'에 본 적 없는 결과가 남았다).
-  서버 기간 목록이 늦게 와서 이미 고른 기간이 선택지에서 빠지면 비운다. 수익률 "0.00%"는 보합이라 색을 주지 않는다.
-- 비교에서 화면 점수(소수 첫째 자리)가 같은 1등은 **공동 1위**로 적는다(배지·결론 문장·성향 비교 칸).
-  다섯 중 일부를 못 받으면 결론 문장과 성향 비교 칸을 "불러온 N개 성향 중에서"로 한정한다 — 받은 것만의 1등이다.
-- 로그아웃(다른 탭 포함)하면 내 성향에 맞춰 골라 둔 전략이 그대로일 때만 선택을 거둔다(`recommendedTypeRef`). 사용자가 다른 전략을
-  골랐으면 둔다. 성향을 다시 받는 중에 거두지 않도록 성향이 아니라 로그인 여부로 가른다.
-- **종목명 바로 뒤에 받침 따라 바뀌는 조사(은·는·이·가)를 두지 않는다.** 글자로는 못 가린다 — NAVER는 "는", LS ELECTRIC·KODEX 200은
-  "은". 결론은 "그 결과 {종목}에 가장 잘 맞는 성향은 {성향}이에요", 카드 제목은 "{종목}에 맞는 성향"이다.
-- 축별 점수(안정성·수익성·효율성·성장성)를 서버가 **응답에 안 담는다**(로그로만 찍음).
-  `calculateAxisScores()`가 원시 지표로 되계산한다. 서버가 주기 시작하면 지운다.
-- `/preset/options`는 종목과 무관한 전역 목록이라 특정 종목엔 없을 수 있다 → `BACKTEST404_5`.
-  화면은 "아직 계산되지 않은 조합"으로 안내한다.
-- 거래가 0건이면 MDD·변동성이 0이라 안정성이 100점이 된다. 화면이 `거래횟수 0회` 경고를 먼저 띄운다.
-- **누적·연평균수익률이 0.00%로 뜨는 건 백엔드 값이 0이라서다**(프론트 연결 문제 아님, 2026-09-27 확인).
-  ① 기간 끝까지 팔지 않은 포지션을 청산하지 않는다(`BacktestService`) — 수익률·거래 횟수는 끝난 거래만 세고
-  MDD·변동성은 열린 포지션까지 세서 "거래 0회·수익률 0%·MDD 29%"가 저장된다(실제 프리셋 300건 중 97건).
-  끝난 거래가 있어도 뒤에 들고 있는 포지션만큼 수익률이 덜 잡힌다. **화면은 임시로 알린다**(`isHeldToEnd`):
-  거래 0회인데 낙폭·변동성 중 하나라도 0보다 크면 산 채로 끝난 것이라, "매매 신호가 한 번도 안 나왔다" 경고 대신
-  보유 안내를 띄우고 수익률·거래횟수 설명에 빠진 값이라고 적는다(정말 안 샀으면 셋 다 0 — 300건 중 68건.
-  낙폭만 보면 97건, 변동성까지 보면 99건이다. 낙폭 0.5% 미만이 0.00으로 잘린 2건). 끝난 거래 뒤에 다시 사서 들고 있는
-  경우는 프론트에서 가려낼 수 없다. **백엔드가 끝에 청산하면 `isHeldToEnd`와 그 안내를 지운다.** ② 비율 컬럼이 `DECIMAL(38,2)`라 0.4%가 0.00으로, 29.4%가 29%로 잘려 저장된다.
-  ③ AI 답변용 요약(`OpenAiService`)이 비율에 %만 붙여 MDD 29%를 "0.29%"로 넘기던 것은 백엔드가 2026-09-30에 고쳤다(`46e1ee3`, `toPercent`가 100을 곱한다).
-  백엔드 수정안은 `~/juby-be-backtest-fix`(브랜치 `fix/backtest-open-position-and-scale`, 푸시 안 함)에 있다.
-  2026-10-22 백엔드 PR #110은 워밍업·평가 구간만 고쳤고 ①②는 그대로다(dev `3dc3f3a` 소스 확인, 2026-10-29).
-
-## 잔가지
-
-- 스타일은 CSS Modules(`*.module.css`). **색·모서리·그림자·글자 크기는 `src/index.css`의 토큰만 쓴다**(2026-10-05 정리 — 회색 열여덟 가지,
-  모서리 아홉 가지, 그림자 열한 가지가 섞여 화면마다 버튼과 카드가 조금씩 달랐다). 토큰 파일 밖에 색 리터럴(`#hex`·`rgb()`)을 쓰지 않는다.
-  간격도 토큰(`--space-*`)을 쓴다 — 새로 짜거나 다시 짠 곳은 토큰이고, 그 밖의 옛 px 값은 그 화면을 다시 만질 때 옮긴다.
-  아래는 2026-10-30 디자인 재정비의 규칙이다(결과 [docs/UI-디자인-재정비-결과-2026-10-30.md](docs/UI-디자인-재정비-결과-2026-10-30.md),
-  그 전 10-29 리디자인은 [docs/UI-리디자인-결과-2026-10-29.md](docs/UI-리디자인-결과-2026-10-29.md)).
-  - **흰 바탕 하나, 상자 대신 기준선.** 바탕·면은 흰색(`--color-page-bg`·`--color-surface`)이고 카드를 띄우지 않는다(카드 그림자 토큰은 지웠다).
-    구역은 제목 줄 아래 **굵은 먹 선**(`2px solid var(--color-rule)`)으로 열고, 줄 사이는 가는 선(`--color-border`)이다. 묶어 보여야 하는 안내·결론·
-    실패 자리는 옅은 면(`--color-bg-sub`)에 둔다. 판 안에 테두리 상자를 또 두지 않는다. 테두리는 입력칸(1.5px), 단추, 스크롤되는 대화창, 떠 있는 층
-    (검색 후보·메뉴·모달 — 그림자는 이 층의 `--shadow-pop` 하나뿐)에만 쓴다. 큰 % + 작은 라벨을 담은 타일(AI가 만든 화면의 흔한 꼴)을 만들지 않는다.
-  - **색은 쓰임이 정한다.** 브랜드 초록(`--color-brand-*`, 사용자 결정 "지금 초록이 가장 깔끔")은 행동(주 단추)·선택·활성 상태에만 쓰고 넓게 칠하지 않는다
-    (넓은 건 머리글 띠와 아래 지수 띠 둘). 흰 글자를 얹는 초록은 700 이상(5.0:1). 50·100·300은 틴트·장식·배지에만. **초록을 등락·손익의 뜻으로 쓰지 않는다.**
-  - **빨강·파랑은 등락 전용이다**(`--color-up`·`--color-down`). 단추·링크·탭·포커스·하트·경고·실패 안내에 쓰지 않는다 — 빨강은 상승으로 읽힌다.
-    그림(차트 봉·막대·선)은 기본값, 글자는 대비 4.5:1을 넘는 `--color-up-text`·`--color-down-text`(기본값은 흰 바탕 3.7:1, 사용자 결정 2026-10-29).
-    진한 초록 띠 위 글자는 밝힌 `--color-up-on-dark`·`--color-down-on-dark`. 주식 모아보기 지도 칸은 등락 단계 `--color-heat-*`(진한 단계만 흰 글자)이고
-    칸에 `data-market`을 단다. 고가·저가, 매수·매도처럼 오르내림이 아닌 값은 색을 주지 않는다. 실패·경고 문구는 본문 색이다.
-  - 적합도·점수는 초록 농도 하나로 나타낸다(1위·잘 맞음 진한 초록, 나머지 옅은 초록).
-  - 머리글은 진한 초록 띠(`--color-brand-900`)이고 서비스 메뉴는 로고 바로 옆, 계정 메뉴만 오른쪽 끝이다. 메뉴는 홈 · 관심종목 · 주식 백테스트 ·
-    AI 주가분석 · 커뮤니티(예시) · 사용설명서(+ 마이페이지/로그인) — 커뮤니티는 서버가 붙기 전까지 "(예시)"를 단다(2026-11-04 사용자 결정, 연결하면 "커뮤니티"). 지금 화면은 흰 글자 + 연초록 아래 막대. 800px 이하는 윗줄 로고·계정, 아랫줄 서비스 메뉴(옆으로 민다).
-    **메뉴 링크는 줄어들지 않는다**(`flex-shrink: 0`, 사이 `--space-1`) — 넘치는 만큼은 서비스 메뉴 줄 안에서 가로로 민다(페이지는 밀리지 않는다). 2026-11-03까지 flex 기본값으로
-    min-width 44px까지 눌려 375px에서 글자가 옆 메뉴 위로 겹쳤다(지시서 N-1). 끝까지 밀면 마지막 메뉴가 흐린 자리 밖에 서게 오른쪽 안 여백을 흐림 폭(24px)만큼 두고,
-    지금 화면 메뉴가 줄 밖이면 `Header.tsx`가 그 줄의 `scrollLeft`만 옮겨 가운데로 보인다(`scrollIntoView`는 페이지까지 움직인다).
-    **메뉴 이름은 "관심종목"이다**(경로 `/likes`, 2026-11-03 지시서 N-2 — 그 전 "주식 모아보기"는 전체 종목을 보는 곳으로 읽혔고 같은 기능을 홈·상세는 "관심종목"이라 불렀다).
-  - **본문 폭은 1680px까지**(`--content-max`), 좌우 여백은 `--page-gutter`(16~56px). 1920에서 좌우 빈자리가 각 120px이다 — 1360px일 때 "토스증권에 비해
-    양옆이 너무 비어 보인다"는 말을 들었다(2026-10-30). 넓어진 폭은 두 열(홈 오른쪽 열·백테스트 가이드 `clamp(320px, 24vw, 420px)`), 사용설명서 세 열과
-    상세 세 열이 쓴다. 글 문단은 한 줄이 한글 75자를 넘지 않게 따로 최대 폭을 둔다(뉴스 요약 70em, 사용설명서 본문 760px).
-  - **밑줄 탭**: 정렬·기간·뉴스 정렬은 모두 같은 모양 — 보조 글자색, 고른 것은 먹 글자 + 아래 2px 브랜드 막대(`aria-pressed`·`aria-selected`에 더해
-    클래스 `tabActive`로 그린다 — 속성 선택자로 그리면 아래 공용 모듈을 못 쓴다). 알약 칩·채운 탭을 쓰지 않는다
-    (예외 하나: 커뮤니티 목록 머리의 최신·인기 알약 — 2026-11-04 사용자 결정, 아래 "커뮤니티"). 마이페이지 메뉴도 900px 이하에서는 이 모양이다(아래 "휴대폰에서 지킬 것").
-    **제목 줄 오른쪽의 탭은 제목이 남는 폭을 가져가 밀어낸다**(제목에 `flex-grow: 1`, 탭 묶음 `--tabs-margin-left: 0`) — 좁아서 탭이 다음 줄로 내려가면 왼쪽부터 선다.
-    탭 묶음의 auto 여백으로 밀면 내려간 줄에서도 오른쪽에 붙어 제목과 왼쪽 끝이 어긋났다(2026-11-04, 주식 모아보기 '담은 종목'·상세 뉴스 320px — `consistency.mjs` C8).
-  - **공용 모듈 셋을 `composes`로 가져다 쓴다**(2026-11-03 운영 — 화면마다 복사해 두던 것을 모았다). `components/section.module.css`(화면 제목 `pageTitle` 28px(900px 이하 24px)·
-    줄 높이 1.25·먹 선까지 49px, 구역 제목 줄 `head` `--section-head-height` 46px·글자 바닥선 맞춤, 구역 제목 `title` 20px, 보조 글 `note`, 오른쪽 글자 링크 `more`),
-    `components/tabs.module.css`(밑줄 탭 `tabs`·`tab`·`tabActive`), `components/skeleton.module.css`(뼈대 반짝임 `shimmer` + 키프레임 + 움직임 줄이기).
-    그 전엔 구역 제목 줄이 33·34·46px, 제목 글자가 18·20px, 화면 제목이 28·32px로 섞여 있었다(2026-11-03 시안 비교에서 사용자가 46px·20px·28px로 고름).
-    **가져온 값을 같은 속성으로 덮어쓰지 않는다 — 미디어 쿼리 안에서도.** 단추 모듈과 같은 까닭이다(아래, 나중에 들어온 묶음의 벌이 이긴다). 공용 모듈에 없는 속성(여백·열·`white-space`)만
-    더하고, 바뀌어야 하는 값은 변수로 받는다(`--tab-bar-offset`·`--tab-min-width`·`--tab-gap`·`--tabs-margin-left`, 구역 제목 줄 높이는 `--section-head-height`).
-    화면마다 같은 좁은 화면 크기는 공용 모듈 안에 둔다(화면 제목 900px 이하 24px). 2026-11-03까지 네 화면이 미디어 쿼리로 제목 글자를 다시 적어,
-    AI·마이페이지는 처음부터 28px, 백테스트·사용설명서는 다른 화면에 다녀오면 28px이었다(`judge/repro.mjs` S1~S4). 다시 적는 곳은 리팩토링 결과 문서의 검사 스크립트로 찾는다.
-    **등락 글자색(.up·.down·.flat)은 공용 모듈로 모으지 않는다** — 그 글자에 화면 CSS가 다른 색을 주는 클래스가 함께 붙는 곳이 있어, 공용 모듈이 뒤에 붙으면 색이 뒤집힌다.
-  - **기다리는 표시는 셋이다.** 자리 크기를 아는 곳(목록·카드·표)은 뼈대(`skeleton.module.css`), 크기를 모르거나 글 한 줄뿐인 자리(시세표 "불러오는 중",
-    단추 안 "불러오는 중…", 로그인 중)는 `components/Spinner`(열린 고리, 글자색을 따른다 — 초록 단추 안에서는 흰색)를 글 옆에 둔다. 옆 글이 이미 말하면
-    `aria-hidden`, 혼자면 `label`을 줘 `role="status"`다. 화면 묶음을 받는 동안은 머리글 띠 아래 끝의 흐르는 줄이다(위 "엔트리와 라우팅").
-    움직임을 줄인 설정에서는 돌거나 흐르지 않는다.
-  - **옆 열 줄 목록은 `components/sideList.module.css`**(2026-11-03 리팩토링 — 사용설명서 장 목록·커뮤니티 종목으로 보기(11-04부터 카드 줄이라 빠짐)·백테스트 진행 단계가 같은 줄을 따로 적었다):
-    `list`·`item`·`itemOn`·`number`를 composes로, 줄 높이는 `--side-row`, 글자색은 `--side-color`로 받는다. 마이페이지 메뉴는 900px 이하에서 가로 탭이 되어 따로 둔다.
-    같은 화면 안에서 옮기는 링크의 "그냥 누름" 판정은 `utils/navigation isPlainClick` 하나다.
-  - **두 곳 이상에 같은 것을 그리면 부품 하나로 둔다**(2026-11-03 정리): 뉴스 기사 카드 `NewsCard`(상세 뉴스·기사 검색하기·관심종목 뉴스),
-    번호 단계 목록 `GuideSteps`(홈 오른쪽 위 사용설명서 칸 — 목록 자리는 화면이 className으로. 2026-11-03까지 사용설명서 화면도 썼다), 관심종목 하트 `HeartIcon`(홈 시세표·상세·주식 모아보기).
-    확인 상자 안 제목·글·실패 안내·단추 줄은 `Modal.module.css`의 `title`·`text`·`error`·`buttons`, 없는 주소 화면 틀은 오류 화면(`ErrorBoundary.module.css`),
-    화면 읽기 전용 글은 `a11y.module.css srOnly`를 가져다 쓴다.
-  - **단추는 세 종류뿐이다**(`components/buttons.module.css`를 `composes`로 가져다 쓴다): primary(브랜드 채움, 한 화면의 주 행동), secondary(흰 바탕 +
-    먹 테두리 — 예전 옅은 회색 테두리는 흰 바탕에서 단추로 안 읽혔다), ghost(바탕·테두리 없음). 높이 md 40px·lg 48px(600px 이하 md 44px), 모서리 같음,
-    hover·active·focus-visible·disabled가 다 있다. 화면 CSS는 자리(폭·여백·`position`)만 정하고 색·테두리·높이와 **`display`·`padding`·`gap`을 덮어쓰지
-    않는다** — 이 파일은 그것을 쓰는 화면 묶음마다 같이 들어와, 다른 화면에 다녀오면 나중에 들어온 벌이 같은 우선순위의 화면 규칙을 이긴다
-    (2026-11-02 로그인 단추가 홈에 다녀오면 아이콘이 글자 옆으로 붙었다, `judge/login.mjs` L10). 단추 안 배치가 따로 필요하면 안쪽 요소에 준다.
-    md의 높이·안 여백을 바꿔야 하는 자리는 변수로 준다(`--button-height`·`--button-padding-x` — 종목 상세 바로 가기 단추 1100px 이하 48px·600px 이하 안 여백 8px.
-    2026-11-03까지 미디어 쿼리로 다시 적어 다른 화면에 다녀오면 44px·16px이 됐다, `judge/repro.mjs` S6).
-    한 요소에 두 종류를 같이 달지 않는다(고른 칸은 다른 클래스로 갈아 단다). 되돌릴 수 없는 확정(탈퇴·대화 지우기)은 primary, 취소는 secondary다.
-    **제목 줄·줄 끝의 글자 동작**은 상자 없는 브랜드 초록 굵은 글자다(판정에는 ghost로 잡힌다): AI 이전 대화 "+ 새 대화"(2026-11-03 사용자 — 40px 테두리 단추가 46px 제목 줄 바닥의
-    먹 선에 2px로 붙어 보였다, `consistency.mjs` C4b), 홈 "처음 시작하기" 줄 끝 바로 가기·다시 시도(`StartSteps .action`), 홈·커뮤니티 "새 글 N". 누르는 높이는 40px(좁은 화면 44px)로 지킨다.
-    예외: 카카오 로그인 단추는 회사 지침 색(`--color-kakao`, 마우스·누름 `-hover`·`-active`). 네이버·Google은 secondary에 회사 아이콘이다 —
-    네이버 초록 위 흰 글자는 대비 2.4:1이라 쓰지 않는다(2026-11-02, `public/social/naver.svg`는 초록 N).
-  - 모서리는 `--radius-sm`(6)·`md`(8)·`lg`(12) 세 단계와 알약·원뿐이다(상자를 띄우지 않아 둥근 정도도 작게 뒀다).
-  - **글꼴은 둘**: 본문·숫자 Pretendard(동적 서브셋), 로고와 큰 숫자(상세 가격 48px)는 넓은 글꼴 Michroma(`--font-wide`, 굵기 400 하나라 32px 아래에서는 쓰지
-    않고, %·"원"·한글은 Pretendard로 둔다). 둘 다 `index.html`의 `<link>`로만 받는다.
-  - 키보드 포커스는 어디서나 보인다(`index.css`의 `:focus-visible` — 브랜드 테두리). 입력칸 상자는 상자에 브랜드 테두리 + 옅은 둘레,
-    진한 머리글 띠 위는 흰 테두리를 안쪽으로 그린다.
-  - 글자 크기는 `--font-2xs`(11)부터 `--font-6xl`(40)까지 13단계다. 화면 제목(h1)은 28px + 굵은 먹 선(주식 모아보기 맨 위 문장도 28px), 구역 제목은 20px. 숫자 칸은 `font-variant-numeric: tabular-nums`.
-  - **위계는 세 단계다**(2026-11-03 사용자 "위계가 통일되어 있지 않거나… 찾아서 고쳐줘", 판정 `judge/consistency.mjs`): 화면 제목 28px(900px 이하 24px) + 굵은 먹 선 >
-    구역 제목 20px(46px 줄 + 바로 아래 굵은 먹 선, 그 줄의 단추·탭·링크는 줄 안) > 칸 안 작은 제목 16~18px(가는 선이나 여백으로 나눈다). **아래 단계가 위 단계보다
-    크거나 같지 않다** — 마이페이지 성향 이름 32px이 화면 제목보다 컸고, 성향 칸 제목 24px·결론 줄 20px이 구역 제목과 같거나 컸다. 굵은 먹 선은 화면 제목·구역 제목
-    아래에만 긋는다 — 백테스트 결과 칸들이 2px 먹 선을 위에 이고 있어 24px '백테스트 결과'(선 없음)보다 굵게 읽혔다. 예외는 종목 상세 — 머리(이름·가격) 아래 먹 선 하나에
-    세 칸 머리(시세 요약·차트 기간 탭·뉴스 16px + 가는 선)가 같은 높이로 서는 판이라 그대로 둔다(1600px 이상 세 열, 그 아래는 뉴스가 차트 아래로 내려와 먹 선을 하나 더 인다).
-    화면 제목은 모든 화면에서 같은 높이(넓은 화면 88px, 600px 이하 112px)다 — 화면이 제목 위에 여백을 더하지 않는다(백테스트만 8·28px 아래였다).
-    마이페이지 세 화면 맨 위 한 줄(이름·성향 이름)은 24px(600px 이하 20px)로 같고, 본문 링크는 같은 곳으로 가는 왼쪽 메뉴와 같은 이름이다('투자유형 보기'·'내 정보 확인').
-    구역 제목 줄 안에 탭을 두면 탭 묶음에 `--tabs-align: baseline`을 준다(제목 글자와 탭 글자 바닥선, `tabs.module.css`).
-  - **주식 백테스트는 세 열이다**(2026-11-03 사용자 "메인 화면이 가로로 너무 길어 보여서, 사용설명서의 백테스트 부분을 일부 차용하여 날개 형식으로 도움말을"):
-    왼쪽 날개 **진행 단계**(종목 → 전략 → 기간 → 결과, 고른 값을 줄 오른쪽에, 고르지 않았으면 "미완성"(사용자 — 처음엔 "아직") — `components/backtest/BacktestSteps`, 누르면 그 칸으로) | 가운데 입력·결과(760px까지 —
-    입력칸이 1,200px 넘게 늘었다) | 오른쪽 날개 **도움말**(`BacktestHelp` — 지금 단계 글만: 종목 "백테스트가 뭔가요?", 전략은 사용설명서 3장의 그 전략 아이디어·특징 +
-    고르는 전략 목록, 기간은 자주 묻는 질문 "데이터가 부족합니다", 결과는 "결과는 이 순서로 확인하세요" + 점수 매기는 법, 끝에 그 꼭지로 가는 링크).
-    사용설명서 글은 `utils/guideExcerpt`가 3장 md에서 줄 그대로 떼어 온다(글이 바뀌어 찾는 줄이 없으면 그 조각만 빈다). 단계는 칸에 들어가면(포커스)·전략을 고르면·결과가
-    나오면 바뀐다. 1199px 이하는 두 열(가운데 | 도움말, 단계 줄은 칸 번호가 대신), 900px 이하는 한 열. 화면 제목은 세 열 위를 다 덮는다.
-    클래스 이름 주의: 입력칸 번호 동그라미가 이미 `.step`이라 단계 줄은 `rail*`이다(같은 이름을 새로 적었더니 두 모양이 섞였다).
-  - 마이페이지 투자유형의 **점수 비중은 100% 막대 하나를 넷으로 나눈다**(2026-11-03 사용자 "그래프가 25%가 아닌 거처럼 나오는데, 실제값을 반영해줘" — 값은 원래 백엔드
-    `ScoreCalculator`와 같았지만 따로 둔 막대 넷은 25%가 무엇의 4분의 1인지 안 읽혔다). 칸 폭 = 비중(flex-grow), 먹에서 옅은 회색까지 네 단계, 아래 두 칸씩 이름·%.
-  - 한 가지 일만 하는 화면(로그인·투자성향 테스트·결과·없는 주소·화면 오류)은 가운데 한 줄(로그인·오류 400px, 테스트 600px)에 화면 제목 + 먹 선을 왼쪽 맞춤으로 둔다.
-    투자성향 테스트는 옅은 면 판 안에 보기 칸을 얹던 마지막 화면이었다 — 이제 판 없이 흰 바탕에 보기 칸(입력칸과 같은 1.5px 테두리)이고, 결론인 결과만 옅은 면이다.
-    입력칸 글자는 16px 아래로 내리지 않는다(아래 "휴대폰에서 지킬 것").
-  - 캔버스(`CandleChart`)는 CSS 변수를 못 읽어 그릴 때 `utils/cssToken.ts`로 토큰 값을 꺼낸다. SVG(`CardChart`)는 `style`에 `var(--…)`를 쓴다.
-    색을 코드에 다시 적지 않는다.
-  - 고치기 쉬운 글은 `src/content/`에 둔다: 홈 오른쪽 위 사용설명서 칸(`homeGuide.ts` — 네 장을 한 줄씩), 홈 커뮤니티 예시 대화
-    (`communityPreview.ts` — 커뮤니티 예시 글, 백엔드가 없어 화면이 "예시"라고 밝힌다, 사용자 결정 2026-10-30)과 커뮤니티 이용 안내(`communityRules.ts`), 로그인 화면 아래 세 칸(`loginSteps.ts`),
-    사용설명서 장(`guide/` — 아래 "사용설명서").
-  - 소셜 가입 경로(카카오·네이버·Google)의 순서·이름·아이콘·로그인 주소는 `utils/social.ts`의 `SOCIAL_PROVIDERS` 한 표다 — 로그인 단추, 마이페이지 가입 경로,
-    회원 정보 거르기(`isSocialType`)가 같이 쓴다(2026-11-02, 따로 적던 때는 로그인 "Google"·마이페이지 "구글"로 갈렸다).
-  - 화면 읽기 프로그램만 읽는 글은 `components/a11y.module.css`의 `srOnly`를 `composes`로 쓴다. 구역 제목 줄 높이는 `--section-head-height`(46px)다.
-  - **홈 커뮤니티는 게시판의 최신 글 다섯 줄이다**(2026-11-03 — 11-02엔 채팅창이었다, 아래 "커뮤니티"). 글 줄은 `CommunityPosts`(compact), 종목 이름은 브랜드 초록 글자(등락색을 쓰지 않는다).
-  - **나란한 두 열의 선은 같은 높이이거나 확실히 떨어져 있다**(2026-11-02 사용자 "묘하게 선의 위치가 맞지 않는 것들을 다 정리해줘" —
-    홈 '현재 주가 보기'와 '커뮤니티' 먹 선이 3px 어긋난 캡처). 홈은 오른쪽 열이 왼쪽 세 줄(검색·대표 종목·현재 주가)을 subgrid로 나눠 써서
-    검색창 아래 끝 = 사용설명서 먹 선, 세 칸 아래 선 = 4단계 아래 선, 현재 주가 보기 = 커뮤니티 먹 선이다(제목 줄은 둘 다 46px). 넓은 화면인지는
-    `HomePage .rail` 한 곳에서 가른다 — `HomeRail`은 부모가 격자를 풀면 subgrid가 저절로 꺼져 쌓인다(두 파일이 1100/1101로 따로 가르면 화면 배율로 생기는
-    1100.5px 같은 폭에서 둘 다 안 맞을 수 있다). 백테스트는 세 열(2026-11-03)이라 진행 단계 첫 줄 선 = 도움말 먹 선이다(그 전엔 가이드 제목을
-    한 줄로 화면 제목과 같은 높이에 먹 선을 그었다). 마이페이지 한눈에 보기는 첫 두 칸 먹 선이 왼쪽 메뉴 맨 아래 선(메뉴 한 줄 44px, `--mypage-menu-row` — 2026-11-03 칸 제목 줄을 46px로 키우며 40px에서 늘렸다)이다.
-    글 길이에 따라 선 자리가 바뀌는 열(백테스트 도움말 묶음)은 선 대신 여백으로 나눈다 — 픽셀을 맞춰도 폭이 바뀌면 다시 어긋난다.
-    사용설명서는 본문 글에 가로선이 없고(크기·여백으로 나눈다), 장 목록 첫 줄 선 = "이 장에서" 먹 선이다.
-    판정은 `judge/lines.mjs`(여섯 쌍 + 홈의 다른 상태 + 두 열 화면 전부에서 옆 열 가로선 0.75~8px·먹 선끼리 24px 안 어긋남 0).
-  - 한글은 `body`의 `word-break: keep-all`로 낱말 단위로만 줄을 바꾼다("찾아보/세요", "신호로 삼/는"처럼 음절 사이에서 끊겼다).
-    띄어쓰기 없이 칸보다 긴 덩어리는 `overflow-wrap: break-word`가 끊는다. 서버가 주는 자유 글은 여전히 `anywhere`를 준다(아래).
-- **키보드로 들어오면 첫 Tab이 "본문으로 건너뛰기"다**(`App.tsx`, 2026-10-31). 진한 초록 머리글 위에 흰 보조 단추로 뜨고, 누르면 `main`에 포커스를 준다.
-  `href="#main"`으로 옮기지 않는다 — 주소에 해시가 붙으면 라우터가 새 기록으로 보고 홈의 보던 자리 되살리기가 깨진다.
-- **휴대폰 폭 점검은 320px까지 본다**(2026-10-05: 320·390·768·1024·1440 전 화면). 가로 넘침은 없어야 하고, 누르는 것은
-  44px 가까이 둔다 — 글자가 작은 링크(결과 화면 '검사 다시하기', 성향테스트 '로그인하면')는 여백으로 넓히고 음수 여백으로 자리를
-  지킨다. 상세의 기간 탭은 한 줄에 안 들어가면 두 줄로 접는다(옆으로 밀던 때는 '전체' 탭이 잘려 숨었다).
-  **판 안에 테두리 있는 카드를 또 두지 않는다** — 2026-10-30부터는 판 자체도 두지 않는다(위 "흰 바탕 하나, 상자 대신 기준선").
-  로그인 화면(2026-11-02 다시 디자인, 사용자 "너무나 별로… 최신 환경에 맞춰서 아예 다시")은 가운데 한 줄(400px)에 제목 + 먹 선, 한 줄 안내,
-  글자가 든 소셜 단추 셋(카카오 → 네이버 → Google, 48px), 작은 안내다. 지난번에 로그인한 곳에 "최근 사용"을 달고(소셜 계정마다 JUBY 계정이 따로다 —
-  단추 이름은 "네이버로 로그인" 그대로, 표시는 `aria-describedby` 설명으로 읽힌다. 고대비 모드에서는 테두리로 남는다),
-  `?next=`가 있으면 "보던 화면으로 돌아가요"를 적는다. 아래 "로그인하면 이렇게 시작해요" 세 칸은 가운데 칸 폭이 단추 줄과 같아 칸 사이 선이 단추 양 끝과
-  한 줄이다(900px 이하는 위아래로). 지나온 판: 가운데 흰 판(넓은 화면에서 좌우가 빔) → 글 | 옅은 면 위 아이콘 동그라미 셋(10-30). 판정은 `judge/login.mjs`.
-- 차트 라이브러리는 `lightweight-charts` 하나뿐이고 종목 상세의 캔들에만 쓴다. 차트 안 로고(`attributionLogo`)는 거래량 막대 위에
-  얹혀 막대를 가려 껐고, 라이선스가 요구하는 출처와 TradingView 링크는 차트 바로 아래 `.credit`(`a[target=_blank]`)로 적는다 —
-  뉴스 카드를 셀 때 섞이지 않게 한다. 이 링크를 지우면 라이선스를 어긴다(로고를 다시 켜거나 다른 곳에 링크를 둔다).
-  홈 카드의 1년 그래프는 라이브러리 없이 직접 그린 SVG다(`CardChart.tsx`, 위 "홈 테마별 대표 종목").
-- `logout()`은 화면 이동을 하지 않는다. 부르는 쪽이 `navigate`로 갈 곳을 정한다. 부르는 곳은
-  마이페이지 사이드바와 내 정보의 계정 관리 두 곳이고 둘 다 `hooks/useLogout`으로 홈으로 보낸다. 토큰과 최근 본 백테스트 기록을 지우는 건
-  `api/auth.ts clearSession` 한 곳이고 탈퇴도 같은 함수를 부른다(계정에 딸린 저장값이 늘면 거기에 더한다). 머리글에 두지 않은 이유는
-  좁은 폭에서 오른쪽이 이미 꽉 차서다. 서버 요청은 3초만 기다린다 — 실패해도 토큰은 지우므로
-  결과가 같은데 기본 12초를 기다리면 나가는 길만 막힌다.
-- **등락 글자색은 `utils/format rateTone` 하나로 가른다**(오름·내림·보합/모름 → `styles.up`·`down`·`flat`). 화면마다 같은 판정을
-  따로 적지 않는다 — 여덟 곳에 흩어져 한 곳만 보합 자릿수가 달랐다(2026-10-31). 찍는 자릿수와 같은 `fractionDigits`를 준다.
-- **들어오자마자 받는 값 하나의 상태는 `hooks/useLoad`**(불러오는 중·받음·실패 + 다시 받기, 늦은 응답 버림). 마이페이지 세 화면이 쓴다.
-- **늦게 온 응답이 새 화면을 덮지 않게 하는 방식은 하나로 맞춘다.** effect 안에 `isStale`을
-  두고 `.then`·`.catch` **안에서** 확인한다(`NewsList`, `StockChartPage`). 정리 함수는 이미
-  나간 요청을 취소하지 못하고 표시만 남긴다. 요청을 *거는* 쪽을 감싸는 건 의미가 없다 —
-  그 자리는 effect에서 곧바로 실행돼 검사 시점에 늘 false다.
-  다시 부르는 버튼은 콜백을 직접 부르지 말고 `retryCount` 같은 상태를 올려 effect를 다시 돌린다.
-  버튼이 직접 거는 요청(뉴스 더 보기, AI 대화방·질문, 백테스트 실행)은 번호 ref를 올려 들고 가서 응답 때
-  견준다(`listSeqRef`·`askSeqRef`·`runSeqRef`). **화면을 바꾸는 쪽도 그 번호를 올려야 한다** — 뉴스는 목록을
-  새로 받는 effect가, AI는 새 대화·다른 방 선택이 올린다. 빠뜨리면 최신순 2페이지가 관련도순 목록에 붙고,
-  앞 방의 말풍선이 새 대화를 채운다(2026-09-26 재현). 대화방을 받는 중에는 질문을 보내지 않는다 —
-  보내면 늦게 온 대화 내용이 방금 띄운 질문과 답을 덮는다.
-- `Modal`은 열릴 때 body 스크롤을 잠그고 포커스를 **상자 자체**에 준다(`tabIndex={-1}`).
-  첫 버튼이 아닌 이유는 탈퇴 모달의 첫 버튼이 '탈퇴하기'라서다. 탭은 상자 안에서 돌고,
-  닫으면 열었던 버튼으로 포커스가 돌아간다. 이름은 `label` prop(`aria-label`)로 받는다.
-  **`onClose`는 effect 의존성에 넣지 않는다**(ref에 담아 둔다) — 부르는 세 곳 모두 렌더마다
-  새 함수를 넘겨서, 넣으면 글자 하나 칠 때마다 포커스가 입력칸에서 상자로 튕긴다.
-  배경 클릭은 **배경에서 누르기 시작했을 때만** 닫는다. 상자 안(입력칸 포함)에서 누른 채 끌다 배경에서 떼면
-  크롬이 click을 배경에 보내 쓰던 내용이 날아간다(2026-09-26 재현).
-- 낙관적 갱신(하트·관심종목 해제)은 먼저 바꾸고 실패하면 되돌린다. 진행 중인 종목은 ref의
-  Set으로 막아 연타를 걸러낸다.
-- **서버가 주는 자유 글을 그리는 자리에는 `overflow-wrap: anywhere`를 준다.** 이메일이나
-  긴 주소처럼 띄어쓰기 없는 덩어리는 끊을 곳이 없어 320px에서 상자를 밀어내고 페이지 전체가
-  가로로 스크롤된다(마이페이지 이메일·뉴스 제목에서 실제로 났다).
-  말줄임표나 줄 수 제한으로 잘라내는 자리는 이미 안전하다.
-- **휴대폰에서 지킬 것**(2026-09-26 휴대폰 흉내로 점검 — 아이폰 SE·13·14 Pro Max·가로, 갤럭시 S9+, 픽셀 7):
-  - 입력칸(`input`·`textarea`·`select`) 글자는 **16px 이상**. 아래면 아이폰·아이패드 사파리가 누르는 순간 화면을
-    확대하고 되돌리지 않는다. 좁은 화면이라고 줄이지 않는다(홈 검색창이 600px 이하에서 15px로 줄어 있었다).
-  - 모달은 배경(`.backdrop`)이 스크롤한다. 몸통 스크롤을 잠그므로, 가로로 든 휴대폰(높이 320px)에서 상자가
-    화면보다 길면 위쪽(제목·이름칸)에 닿을 길이 없었다. 가운데 정렬은 `align-items`가 아니라 상자의 `margin: auto`로 한다.
-  - 행 전체가 링크인 표에서 따로 눌리는 버튼(홈 하트)은 칸 높이를 다 채운다. 아이콘 크기로 두면 조금만 빗나가도
-    상세로 넘어간다.
-  - 홈 시세표는 머리글과 행이 **따로 된 격자**라 칸 폭이 모든 행에서 같아야 줄이 맞는다. 둘 다 오른쪽 안 여백(12px, 600px 이하 8px)을 같이 둔다 —
-    맨 오른쪽 숫자가 줄 끝에 붙어 있었다(2026-11-02 사용자, `judge/feature.mjs` H-8). 좁은 화면의 숫자 칸은
-    `auto`가 아니라 고정 폭(가장 긴 값이 한 줄에 들어가는 폭)에 `nowrap`으로 둔다. 주식 모아보기 목록은 행마다 독립이라
-    좁은 화면에서 가격 아래 등락률을 쌓는다(`grid-template-areas`).
-  - 누르는 넓이는 44px(애플 권장)로 맞춘다. 테두리 없는 것은 여백을 늘리고 같은 만큼 음수 margin을 줘 배치를
-    그대로 두고, 테두리 있는 단추는 투명한 `::after`로 넓힌다. 단 **스크롤 상자·`overflow: hidden` 안에서는 `::after`가
-    잘려 안 눌린다**(기간 탭, 관심종목 종목명) — 그땐 칸 자체를 키우거나 여백으로 넓힌다. 머리글 메뉴 링크는 띠 높이를 다 채운다 —
-    넓은 화면 64px, 600px 이하는 윗줄(로고·계정) 52px·아랫줄(서비스 메뉴) 44px이라 두 줄의 누르는 넓이가 겹치지 않는다(2026-10-29까지는 39px).
-    데스크톱도 누르는 것은 40px 이상이다(리디자인 U-2).
-  - 입력칸 안내 글이 칸보다 길면 한 줄에 말줄임표로 끝낸다. 16px로 올린 뒤 AI 질문칸의 안내 글이 두 줄로 넘어가
-    둘째 줄이 잘렸다(크롬은 textarea 안내 글에 말줄임표를 안 붙여 그냥 끊긴다).
-  - 좁은 화면 배치: 머리글은 600px 이하에서 로고·계정(마이페이지·로그인)을 윗줄 양끝에, 서비스 메뉴 다섯을 아랫줄에 두고 그 줄만 옆으로 민다
-    (끝을 흐려 더 있다는 걸 보인다. 넓은 화면은 로고 옆에 서비스 메뉴, 계정은 오른쪽 끝).
-    홈은 정렬 기준을 제목 줄 오른쪽에 글로 적는다(`describeSort` — 좁은 화면에서 거래대금 열이 숨는다). 홈 테마 대표 종목은 600px 이하에서
-    한 줄짜리 행 셋(이름 | 작은 그래프 | 1년 변화)이다 — 옆으로 미는 타일은 시세표를 아래로 밀고 AI 티가 났다(2026-10-30).
-    1100px 이하는 홈 오른쪽 열(사용설명서·커뮤니티)을 시세표 앞에 둔다(시세표는 끝이 보이면 더 불러와 뒤에 두면 닿지 않는다). DOM에서도 시세표 앞이라
-    키보드·읽어 주는 순서가 보이는 순서와 같다(2026-11-02 — 그 전엔 화면 순서만 앞이라 Tab으로 시세표 행을 다 지나야 닿았다). AI는 이전 대화
-    목록을 왼쪽 날개로 연다(`SessionSidebar`, 위 "AI 대화방"), 방을 고르거나 새 대화를 열면 닫는다. 마이페이지 메뉴는 900px 이하에서 가는 선 위 밑줄 탭 한 줄이고
-    로그아웃은 줄 오른쪽 끝의 작은 글자 단추다(13px·보통 굵기 — 탭 꼴이면 네 번째 탭으로 읽힌다. 320px까지 한 줄, 360px 이하는 탭 사이 12px). 네 줄로 쌓던 때는 탭마다 230px을 차지했고,
-    2026-11-04까지는 고른 칸을 초록으로 채워 테두리 상자에 담았다(채운 탭·판 안 상자 — `consistency.mjs` C7). 백테스트 지표 카드는 600px 이하에서 두 칸이다.
-    대화창 높이는 `dvh`(주소창이 보일 때의 실제 높이), 모르는 브라우저는 앞 줄의 `vh`를 쓴다.
-- **좁은 화면에서 한 열로 쌓는 격자는 `minmax(0, 1fr)`로 쓴다.** `1fr`은 칸의 최소 폭 아래로 줄지 않는다.
-  사파리는 입력칸 기본 폭을 크롬보다 넓게 잡아 AI 화면이 320px에서 42px 넘쳤다(크롬은 멀쩡).
-
-## 기록
-
-- 2026-09-23 예외 처리 검사(156항목)와 수정(커밋 13개): [docs/테스트-결과-2026-09-23.md](docs/테스트-결과-2026-09-23.md),
-  [docs/수정-결과-2026-09-23.md](docs/수정-결과-2026-09-23.md). 검사 지시서가 8월 보고서를 기준으로 쓰여 "문서와 다름"
-  판정은 대부분 전제가 낡은 탓이다.
-- 2026-09-27 독립 재검증(A부)과 수정(B부): [docs/재검증-결과-2026-09-27.md](docs/재검증-결과-2026-09-27.md),
-  [docs/수정-결과-2026-09-27.md](docs/수정-결과-2026-09-27.md).
-- 2026-09-28 인증 PR #91 대응과 코드 리뷰 수정(G-1~G-11): [docs/수정-결과-2026-09-28.md](docs/수정-결과-2026-09-28.md).
-- 2026-10-29 UI 리디자인(U-0~U-8, 초록 브랜드 B안): [docs/UI-리디자인-결과-2026-10-29.md](docs/UI-리디자인-결과-2026-10-29.md).
-- 2026-10-30 UI 디자인 재정비(D-0~D-6, 흰 바탕·기준선·본문 1680px, 주식 모아보기): [docs/UI-디자인-재정비-결과-2026-10-30.md](docs/UI-디자인-재정비-결과-2026-10-30.md).
-- 2026-10-30 마이페이지 보강과 안 쓰던 API 붙이기(M-1~M-7): [docs/마이페이지-보강-결과-2026-10-30.md](docs/마이페이지-보강-결과-2026-10-30.md).
-- 2026-10-31 증권사 직통 API 셋 연결과 UI 보강(K-1~K-3, U-1·U-2): [docs/API-연결-UI-보강-결과-2026-10-31.md](docs/API-연결-UI-보강-결과-2026-10-31.md).
-- 2026-10-31 코드 검토·화이트박스·블랙박스 판정으로 찾은 결함 수정과 구조 정리(커밋 6개): [docs/리팩토링-결과-2026-10-31.md](docs/리팩토링-결과-2026-10-31.md).
-  같은 날 2부 — 판정을 저장소 `judge/`에 들이고 묵은 기대값 13건을 맞춤, 최근 본 백테스트 계정별, AI 화면 판정 27항목 위에서 구조 분리: 같은 문서 2부.
-- 2026-11-02 홈 커뮤니티를 글 목록에서 채팅창으로(예시 대화, 입력칸 잠김): [docs/커뮤니티-채팅-결과-2026-11-02.md](docs/커뮤니티-채팅-결과-2026-11-02.md).
-- 2026-11-02 나란한 열의 선 맞추기와 로그인 화면 다시 디자인: [docs/선-맞추기-로그인-결과-2026-11-02.md](docs/선-맞추기-로그인-결과-2026-11-02.md).
-  같은 날 그 셋(커뮤니티 채팅·선·로그인)을 화이트박스·블랙박스로 다시 보고 고친 것: [docs/검토-결과-2026-11-02.md](docs/검토-결과-2026-11-02.md).
-  같은 날 밤 실제 서버에 붙여 비로그인 사용자처럼 둘러본 것(상세 뉴스 짝, 정렬 하나로, 백엔드 15·16): 같은 문서 "같은 날 밤".
-- 2026-11-03 같은 날(11-02) 따로 만든 두 줄기(이 main과 개인 저장소 design/fresh-look)를 시안 비교로 고르고 main 위에 얹음 — 탭 아이콘, 구역 머리 규격·공용 CSS 모듈,
-  한국 시각 하나로, 화면 전환(메뉴 막대·본문·띠 아래 줄)·스피너: [docs/UI-다듬기-결과-2026-11-03.md](docs/UI-다듬기-결과-2026-11-03.md).
-  같은 날 리팩토링 — 공용 CSS를 다시 덮던 결함(휴대폰 화면 제목·상세 단추), 두 곳 이상에 복사돼 있던 부품(뉴스 카드·단계 목록·하트·확인 상자 안·상세로 싣는 시세),
-  안 쓰는 것: [docs/리팩토링-결과-2026-11-03.md](docs/리팩토링-결과-2026-11-03.md).
-  같은 날 사용설명서 네 장(사용자가 노션에서 쓴 글 — 3장 주식 백테스트는 그림 다섯 장)과 차례: [docs/사용설명서-결과-2026-11-03.md](docs/사용설명서-결과-2026-11-03.md).
-  같은 날 전 화면 디자인 점검 — 위계 세 단계로 맞추기, 화면 제목 높이, 백테스트 결과·지표, 투자성향 테스트·없는 주소 틀, 마이페이지 크기·이름:
-  [docs/디자인-점검-결과-2026-11-03.md](docs/디자인-점검-결과-2026-11-03.md).
-  같은 날 커뮤니티 게시판·화면(웹소켓 자리), 사용설명서 다듬기, 백테스트 날개 도움말, 투자유형 비중 막대, 중복 파일 점검, 디자인 제안 시안:
-  [docs/커뮤니티-날개-결과-2026-11-03.md](docs/커뮤니티-날개-결과-2026-11-03.md). 이어서 백테스트 "미완성"·홈 글에서 커뮤니티로·AI 말풍선: 같은 문서 끝.
-  같은 날 밤 UI 수정 지시서(N-1 모바일 머리글 겹침·N-2 "관심종목"·N-3 테마 카드 기준일·N-4 로그인 세 칸, N-5 상세 가격 출처 조사·N-6 로그인 화면 점검)와
-  코드 점검 리팩토링(결함 여덟·규칙 위반), AI "+ 새 대화"가 먹 선에 붙던 것: [docs/UI-수정-결과-2026-11-03.md](docs/UI-수정-결과-2026-11-03.md).
-- 2026-11-04 커뮤니티 종목 카드 줄(옆으로 밀기·앞뒤 단추)·최신/인기 탭·종목 검색(토스증권 앱 캡처 참고): [docs/커뮤니티-카드줄-결과-2026-11-04.md](docs/커뮤니티-카드줄-결과-2026-11-04.md).
-  이어서 글 구조(제목·본문·사진)·글쓰기 화면·글 상세·글 머리 등락률: 같은 문서 2부. 모바일 점검과 다듬기(카드 등락률·누름 답·글 상세 종목 줄·붙는 단추 줄): 3부. 종목이 많을 때 카드 줄 확인·당겨서 새로고침: 4부. 새로고침 알림 걷기·머리 세 안: 5부. 사용자가 C안(선 없음 + 아이콘 알약)을 고름·정리: 6부.
-- 2026-11-04 AI 주가분석 휴대폰의 이전 대화를 왼쪽 날개로: [docs/AI-이전-대화-날개-결과-2026-11-04.md](docs/AI-이전-대화-날개-결과-2026-11-04.md).
-- 2026-11-04 세부 탭 위계 점검 — 마이페이지 휴대폰 메뉴를 밑줄 탭으로, 줄 바뀌는 탭을 왼쪽부터, 뉴스 "물어서 찾기" → "기사 검색하기": [docs/탭-위계-점검-결과-2026-11-04.md](docs/탭-위계-점검-결과-2026-11-04.md).
+| 백엔드 빈틈(프론트에서 못 고친다) | 프론트가 하는 것 |
+| --- | --- |
+| `/api/stream/**`·`/api/market-indices`가 SecurityConfig 공개 목록에 없다(스트림 DTO 주석은 공개 경로를 뜻한다) | 비로그인은 401 — 실시간·지수 띠 없음. 공개로 열면 그대로 붙는다 |
+| 상세가 증권사 토큰을 읽기 전용 트랜잭션에서 저장하지 못해 주말엔 1분 1건만 성공한다 | 실패 뒤 기다림·토큰 심기·`canSpendKisCall` |
+| 백테스트가 끝 포지션을 청산하지 않고 축별 점수를 주지 않는다 | `isHeldToEnd`, `calculateAxisScores` |
+| 성향 변경이 DB 행 번호만 받는다 | 저장 단추 없음 |
+| 이름 `@Size`가 `javax`라 돌지 않고, `null`은 "안 바꿈"이라 생일을 지울 수 없다 | 화면이 이름을 검사, 생일 지우기 막음 |
+| 거래대금 순위 응답에 종목코드·등락률이 없다 | 이름으로 상세를 찾는다 |
+| DB 일봉이 모의투자 시세라 실제와 다를 수 있고, 종목 뉴스에 무관한 기사가 섞인다 | 받은 대로 그린다 |
+| 커뮤니티 서버·설명서 API가 없다 | 목업, 글은 `src/content/` |

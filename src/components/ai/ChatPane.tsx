@@ -17,7 +17,7 @@ interface Props {
   emptyState: ReactNode
 }
 
-/** 대화창 본체(2026-10-31 pages/AiPage.tsx에서 나눔): 받는 중 뼈대 → 못 받음 → 비어 있음 → 말풍선 */
+/** 대화창 본체: 받는 중 뼈대 → 못 받음 → 비어 있음 → 말풍선 */
 export default function ChatPane({ detailState, messages, pending, onRetryDetail, onRetry, onStop, emptyState }: Props) {
   if (detailState === 'loading') {
     return (

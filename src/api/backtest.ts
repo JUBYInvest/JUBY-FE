@@ -5,11 +5,11 @@ import { finiteOrNull } from '../utils/format'
 import type { BacktestPeriod, BacktestPreset, QuantScoring } from '../types/backtest'
 
 /**
- * 백테스트 창구. **로그인해야 한다**(JUBY-BE d7edec4, 2026-09-28부터 토큰 없으면 401) —
+ * 백테스트 창구. **로그인해야 한다**(토큰 없으면 401) —
  * 비로그인 실행은 BacktestPage가 로그인 안내로 바꾼다.
  *
  * - `/preset`·`/preset/options`는 DB만 읽는다 — 새벽 4시 배치가 미리 계산해 둔 값이라 증권사 호출이 없고 응답도 즉시 온다.
- * - `/run`(2026-10-22 추가)은 그 자리에서 전략을 돌린다. DB의 일봉만 쓰므로 역시 증권사 호출은 없고, 결과를 저장하지 않는다.
+ * - `/run`은 그 자리에서 전략을 돌린다. DB의 일봉만 쓰므로 역시 증권사 호출은 없고, 결과를 저장하지 않는다.
  *   프리셋이 아직 없는 조합(BACKTEST404_5)에만 쓴다(getBacktestResult) — 있는 조합은 프리셋이 먼저다. AI 답변도 프리셋을 읽으므로
  *   둘이 같은 값을 보여야 한다.
  */
@@ -108,9 +108,8 @@ interface PresetResponse {
 /**
  * 결과 화면이 반드시 읽는 값이 다 있으면 화면 타입으로 옮기고, 아니면 null.
  * 점수(finalScore)와 네 축의 지표 묶음이다. 하나라도 비면 그리다가 null.필드를 읽어 화면 전체가
- * 오류 화면이 된다(2026-09-23 검사).
- * 묶음 안의 낱개 지표는 유한한 숫자가 아니면 null로 넘긴다 — 화면이 "-"로 적고 그 축 점수를 비운다(F-2).
- * 예전엔 거르지 않고 `as`로 타입만 맞춰 "항상 숫자"라고 거짓말했다(2026-10-31 정리).
+ * 오류 화면이 된다.
+ * 묶음 안의 낱개 지표는 유한한 숫자가 아니면 null로 넘긴다 — 화면이 "-"로 적고 그 축 점수를 비운다.
  */
 function toScoring(scoring: ScoringResponse | null | undefined): QuantScoring | null {
   if (scoring === null || scoring === undefined || typeof scoring !== 'object') return null
@@ -177,7 +176,7 @@ interface PresetOptionsResponse {
  * 그래서 목록에 있어도 특정 종목에는 없을 수 있고, 그때 프리셋이 BACKTEST404_5라 즉석 실행으로 넘어간다(getBacktestResult).
  *
  * 백테스트 화면이 들어오자마자 부르는 요청이라 401이어도 로그인 화면으로 끌고 가지 않는다(공개 화면 규칙, CLAUDE.md "API 계층") —
- * 예전엔 이 요청만 그 규칙을 빠뜨려, 만료된 토큰으로 /backtest를 열면 아무것도 누르기 전에 로그인 화면으로 갔다(2026-10-31).
+ * 안 그러면 만료된 토큰으로 /backtest를 열 때 아무것도 누르기 전에 로그인 화면으로 간다.
  * 모양이 틀린 줄(성향 번호가 없거나 모르는 기간)은 뺀다 — 화면은 로컬 표와 교집합을 낸다.
  */
 export async function getPresetOptions(): Promise<PresetOptions[]> {

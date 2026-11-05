@@ -31,12 +31,10 @@ function authHeaders(token: string | null): Record<string, string> {
 /**
  * 백엔드 호출 차단 스위치. **지금은 꺼져 있다.**
  *
- * 2026-08~09에 켜 뒀던 이유: 홈 한 번에 증권사(KIS) 중계 요청이 108건 나가
- * 계정이 정지될 수 있다는 경고를 받았다. 2026-09-18에 홈을 `GET /api/stocks`
- * (DB만 읽음, 1건)로 갈아타면서 그 원인이 사라져 다시 열었다.
+ * 증권사(KIS) 중계 요청이 몰려 계정 정지 경고를 받는 때처럼 증권사 계정을 보호해야 할 때 켠다.
  * 지금 증권사로 가는 요청의 목록은 CLAUDE.md "증권사(KIS) 호출" 표가 정답이다(여기 적어 두면 금세 낡는다).
  *
- * 다시 켜야 할 일이 생기면 여기 한 곳만 true로 바꾸면 된다. 이 파일의 fetch가
+ * 켜야 할 일이 생기면 여기 한 곳만 true로 바꾸면 된다. 이 파일의 fetch가
  * 앱 전체에서 유일한 통신 창구라 호출부를 하나씩 막을 필요가 없다.
  */
 const API_DISABLED = false
@@ -46,7 +44,7 @@ const API_DISABLED = false
  *
  * fetch는 기본적으로 기다리는 시간에 제한이 없다. 백엔드가 멈춰 서면(응답도 거절도 안 하면)
  * 화면은 로딩 자리 그대로 영원히 앉아 있고, 실패했을 때 쓰라고 만들어 둔 대체 값도
- * 영영 쓰이지 않는다. 실제로 서버가 죽었을 때 홈이 통째로 '-'가 되는 걸 이 방식으로 겪었다.
+ * 영영 쓰이지 않는다.
  *
  * 12초는 가장 느린 요청(일봉 1.5~2.4초)에 맞춘 값이다. 빠른 API를 부르는 쪽은
  * timeoutMs로 훨씬 짧게 잡는다 — 56ms짜리를 12초씩 기다릴 이유가 없다.
@@ -59,7 +57,7 @@ const DEFAULT_TIMEOUT = 12_000
  *
  * 서버가 죽는 방식이 두 가지인데 체감이 전혀 다르다. 연결을 거절(RST)하면 fetch가
  * 즉시 실패하지만, 들어온 연결을 그냥 삼키면(SYN 드롭) 제한 시간까지 매달린다.
- * 실제로 겪은 건 후자였고, 그때 홈 카드 한 장이 실패를 확정하는 데만 36초가 걸렸다.
+ * 후자면 홈 카드 한 장이 실패를 확정하는 데만 36초가 걸리고,
  * 재시도까지 겹치면 102종목 표는 몇 분씩 회색으로 남는다.
  *
  * 연달아 무응답이면 서버가 아픈 것이지 이 요청만의 문제가 아니다.
@@ -150,8 +148,8 @@ interface RequestOptions {
   timeoutMs?: number | null
   /**
    * 일부러 짧게 끊는 요청이면 false. 그 시간 초과를 "서버 무응답"으로 세지 않는다(위 차단기). 연결 실패는 그대로 센다.
-   * 증권사 토큰 심기(api/stock.ts)가 3초에 끊는데, 증권사가 느린 날 이어지는 상세까지 시간을 넘기면 두 번 연달아로 세어
-   * 15초 동안 시세표·뉴스처럼 DB만 읽는 요청까지 막혔다. 서버는 살아 있고 증권사만 느린 것이다.
+   * 증권사 토큰 심기(api/stock.ts)가 3초에 끊는데, 이걸 세면 증권사가 느린 날 이어지는 상세의 시간 초과와 합쳐 두 번 연달아가 되어
+   * 15초 동안 시세표·뉴스처럼 DB만 읽는 요청까지 막힌다. 서버는 살아 있고 증권사만 느린 것이다.
    */
   countsTowardBreaker?: boolean
   /**
@@ -180,7 +178,7 @@ function combineSignals(timeout: AbortSignal | null, external: AbortSignal | nul
  */
 /**
  * 재발급을 기다리는 시간. 로그아웃(3초)처럼 짧게 끊는 요청 앞에서도 돌기 때문에 기본 12초보다 짧게 둔다.
- * 넘기면 재발급 실패로 보고 지금까지처럼 로그인 화면으로 간다.
+ * 넘기면 재발급 실패로 보고 로그인 화면으로 간다.
  */
 const REISSUE_TIMEOUT = 5_000
 
@@ -190,11 +188,11 @@ let reissuing: Promise<string | null> | null = null
 /**
  * access token을 다시 받는다(`POST /api/auth/reissue`). 새 토큰을 담고 돌려준다. 못 받으면 null.
  *
- * refresh token은 백엔드가 소셜 로그인 때 **자기 주소에** 심어 둔 HttpOnly 쿠키다(`Path=/api/auth`, `SameSite=None; Secure`,
- * JUBY-BE dev `ea18fec`). 프록시(`/api` → 백엔드)로 부르면 요청 주소가 프론트라 브라우저가 그 쿠키를 싣지 않는다. 그래서 이것만
+ * refresh token은 백엔드가 소셜 로그인 때 **자기 주소에** 심어 둔 HttpOnly 쿠키다(`Path=/api/auth`, `SameSite=None; Secure`).
+ * 프록시(`/api` → 백엔드)로 부르면 요청 주소가 프론트라 브라우저가 그 쿠키를 싣지 않는다. 그래서 이것만
  * 백엔드를 곧장, 쿠키를 실어(`credentials: 'include'`) 부른다 — 백엔드 CORS가 허용 출처에 한해 자격 증명을 받는다.
- * 다른 사이트 쿠키를 막는 브라우저(사파리 — 2026-09-30 WebKit으로 확인)는 프론트가 백엔드와 같은 사이트(`juby.store` 아래)여야 실린다. 그 전에는
- * 여기서 실패하고 예전처럼 로그인 화면으로 간다.
+ * 다른 사이트 쿠키를 막는 브라우저(사파리)는 프론트가 백엔드와 같은 사이트(`juby.store` 아래)여야 실린다. 아니면
+ * 여기서 실패하고 로그인 화면으로 간다.
  *
  * 백엔드는 재발급할 때마다 refresh token을 바꾼다. 같은 토큰으로 두 번 보내면 뒤의 것은 실패하므로 한 번만 보낸다.
  * 이 요청은 차단기와 상관없다 — 원래 요청이 방금 401을 받았으니 서버는 살아 있다.
@@ -316,7 +314,7 @@ async function requestJson<T>(
 
   /*
    * 토큰을 실어 보냈는데 401이면 대개 30분짜리 access token이 만료된 것이다. 새 토큰을 받아 같은 요청을 한 번 다시 보낸다
-   * — 예전엔 곧장 토큰을 지우고 로그인 화면으로 보내 30분마다 로그인이 풀렸다. ignoreUnauthorized 요청(로그아웃·공개 화면의
+   * — 곧장 로그인 화면으로 보내면 30분마다 로그인이 풀린다. ignoreUnauthorized 요청(로그아웃·공개 화면의
    * 내 성향)도 다시 보낸다. 만료된 토큰으로 로그아웃하면 서버가 refresh token을 못 지운다.
    * 토큰 없이 보낸 요청의 401은 만료가 아니라 재발급할 게 없다.
    */
@@ -365,7 +363,7 @@ async function requestJson<T>(
 
   /*
    * 성공인데 본문이 비었거나 래퍼가 아니다. 그대로 넘기면 unwrap이 null.isSuccess를 읽다
-   * TypeError로 던지고, 래퍼 없는 JSON은 message ""·code undefined인 ApiError가 됐다.
+   * TypeError로 던지고, 래퍼 없는 JSON은 message ""·code undefined인 ApiError가 된다.
    */
   if (!isApiResponse(body)) {
     throw new ApiError(MALFORMED_MESSAGE, response.status, null)
@@ -390,8 +388,7 @@ function unwrap<T>(body: ApiResponse<T>): T {
 }
 
 /**
- * { isSuccess, result } 래퍼를 벗겨 result만 반환한다.
- * 2026-08-11부터 모든 컨트롤러가 이 래퍼를 쓴다. 래퍼 없는 응답은 더 이상 없다.
+ * { isSuccess, result } 래퍼를 벗겨 result만 반환한다. 모든 컨트롤러가 이 래퍼를 쓴다.
  */
 export async function get<T>(path: string, options?: RequestOptions): Promise<T> {
   return unwrap(await requestJson<ApiResponse<T>>(path, undefined, options))

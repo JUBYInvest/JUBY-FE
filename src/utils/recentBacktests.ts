@@ -8,11 +8,11 @@ import type { BacktestPeriod } from '../types/backtest'
  * 최근 본 백테스트. 서버는 실행 결과를 저장하지 않아서(`/api/backtest/run`은 저장하지 않고 프리셋은 배치가 덮어쓴다)
  * **이 브라우저에만** 남긴다 — 다른 기기에서는 보이지 않고, 화면도 그렇게 적는다(마이페이지 한눈에 보기).
  *
- * **계정별이다**(2026-10-31). 저장값에 주인(토큰의 subject — `utils/auth getAccountId`)을 적어 두고, 읽을 때 지금 계정의 것만 돌려준다.
+ * **계정별이다**. 저장값에 주인(토큰의 subject — `utils/auth getAccountId`)을 적어 두고, 읽을 때 지금 계정의 것만 돌려준다.
  * 다른 계정이 결과를 보면 앞 계정의 줄은 버리고 새로 적는다 — 로그아웃 없이 다른 탭·콜백으로 다른 계정이 로그인해도 앞 사람의 기록이
- * 보이지 않는다(예전엔 로그아웃·탈퇴 때만 지워 그 틈이 있었다).
- * 로그아웃·탈퇴하면 지운다(api/auth.ts clearSession). 토큰 만료로 풀린 것은 지우지 않는다 — 같은 사람이 다시 로그인하면 그대로 보인다
- * (사용자 결정 2026-10-30). 계정 번호를 모르는 토큰(JWT가 아님)이면 남기지도 보여 주지도 않는다.
+ * 보이지 않는다.
+ * 로그아웃·탈퇴하면 지운다(api/auth.ts clearSession). 토큰 만료로 풀린 것은 지우지 않는다 — 같은 사람이 다시 로그인하면 그대로 보인다.
+ * 계정 번호를 모르는 토큰(JWT가 아님)이면 남기지도 보여 주지도 않는다.
  */
 interface RecentBacktest {
   stockCode: string
@@ -24,7 +24,7 @@ interface RecentBacktest {
   viewedAt: number
 }
 
-/** 저장 모양. 2026-10-31 전의 배열 모양(주인 없음)은 못 읽는 값으로 버린다 */
+/** 저장 모양. 주인이 없는 옛 배열 모양은 못 읽는 값으로 버린다 */
 interface Stored {
   owner: string
   rows: RecentBacktest[]
@@ -44,7 +44,7 @@ function isRecent(value: unknown): value is RecentBacktest {
     row.stockName.trim() !== '' &&
     typeof row.investType === 'number' &&
     // 전략 표에 없는 번호(손댄 값, 표가 줄어든 뒤)는 읽을 때 버린다 — 받는 쪽(useStockHandoff readPlan)이 버리면 그 줄은
-    // 종목만 실린 채 '내 추천 전략·1년'으로 자동 실행돼 누른 줄과 다른 결과가 떴다
+    // 종목만 실린 채 '내 추천 전략·1년'으로 자동 실행돼 누른 줄과 다른 결과가 뜬다
     findInvestType(row.investType) !== null &&
     PERIODS.some((item) => item.period === row.period) &&
     typeof row.finalScore === 'number' &&

@@ -3,7 +3,7 @@
  *
  * react-router의 navigate는 컴포넌트 안에서만 얻을 수 있다. 그래서 App이 그려질 때
  * 여기에 맡겨 두고, 바깥에서는 `goTo()`로 부른다. 맡겨진 게 없으면(아직 안 그려졌거나
- * 라우터 밖이면) 주소창을 통째로 바꾸는 예전 방식으로 물러선다 — 못 옮기는 것보다 낫다.
+ * 라우터 밖이면) 주소창을 통째로 바꾸는 방식으로 물러선다 — 못 옮기는 것보다 낫다.
  */
 type Navigate = (path: string) => void
 
@@ -46,9 +46,8 @@ export function toReturnPath(value: string | null | undefined): string | null {
 }
 
 /**
- * 지금 자리를 달고 로그인 화면으로 가는 주소(`/login?next=…`). 로그인하면 그 자리로 돌아온다
- * (사용자 결정 2026-09-27 — 예전엔 늘 홈으로 갔다). 홈이거나 돌아갈 수 없는 자리면 그냥 `/login`,
- * 이미 로그인 화면이면 그 주소를 그대로 둔다(달고 온 자리를 잃지 않게).
+ * 지금 자리를 달고 로그인 화면으로 가는 주소(`/login?next=…`). 로그인하면 그 자리로 돌아온다.
+ * 홈이거나 돌아갈 수 없는 자리면 그냥 `/login`, 이미 로그인 화면이면 그 주소를 그대로 둔다(달고 온 자리를 잃지 않게).
  */
 export function loginPathFrom(path: string): string {
   if (path === '/login' || path.startsWith('/login?')) return path

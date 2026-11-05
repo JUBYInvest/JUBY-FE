@@ -49,7 +49,7 @@ function formatVolumeTick(volume: number): string {
 
 /*
  * 범례에 적는 값. 눈금 포맷터와 달리 봉 값이 비면(응답에서 빠지면) "-"다 — Math.round(null)이 0이라
- * 빈 봉이 "시 0 … 종 0"으로 적혔다. 눈금은 라이브러리가 숫자만 넘기므로 위 두 함수를 그대로 쓴다.
+ * 빈 봉이 "시 0 … 종 0"으로 적힌다. 눈금은 라이브러리가 숫자만 넘기므로 위 두 함수를 그대로 쓴다.
  */
 function legendPrice(price: number | null | undefined): string {
   return isFiniteNumber(price) ? formatPriceTick(price) : '-'
@@ -103,7 +103,7 @@ export default function CandleChart({ candles }: Props) {
         fontFamily: "'Pretendard', -apple-system, system-ui, sans-serif",
         fontSize: 12,
         panes: { separatorColor: palette.border, enableResize: false },
-        // 차트 안 로고는 거래량 막대 위에 얹혀 막대를 가렸다. 라이선스가 요구하는 출처·링크는 차트 아래에 적는다(아래 .credit)
+        // 차트 안 로고는 거래량 막대 위에 얹혀 막대를 가려 끈다. 라이선스가 요구하는 출처·링크는 차트 아래에 적는다(아래 .credit)
         attributionLogo: false,
       },
       grid: {
@@ -253,7 +253,7 @@ export default function CandleChart({ candles }: Props) {
 
   /*
    * 범례는 봉에 마우스를 올렸을 때(휴대폰은 누른 동안)만 그 봉 값을 띄운다. 기본 값(마지막 거래일)은 오른쪽 열 시세 요약이
-   * 맡는다 — 한 화면에 같은 값이 두 번, 머리 현재가와 어긋난 종가가 또 하나 보였다(2026-10-29 리디자인).
+   * 맡는다 — 늘 띄우면 한 화면에 같은 값이 두 번, 머리 현재가와 어긋난 종가가 또 하나 보인다.
    * 차트 위에 떠 있는 층이라 생기고 사라져도 차트가 흔들리지 않는다
    */
   return (
@@ -280,7 +280,7 @@ export default function CandleChart({ candles }: Props) {
 function Legend({ point }: { point: Point }) {
   const { candle, prevClose } = point
 
-  // 그 봉과 전 봉의 종가가 둘 다 있어야 적는다. 종가가 비면 (null - 전날) / 전날 = "-100.00%"가 됐다
+  // 그 봉과 전 봉의 종가가 둘 다 있어야 적는다. 종가가 비면 (null - 전날) / 전날 = "-100.00%"가 된다
   const rate =
     !isFiniteNumber(candle.close) || !isFiniteNumber(prevClose) || prevClose === 0
       ? null

@@ -36,8 +36,8 @@ export default function LoginPage() {
    * 넘겨주는 자리이고, 사용자가 그 화면을 직접 보고 아이디를 입력해야 한다.
    * fetch는 배경에서 도는 통신이라 화면을 옮기지 못하므로 주소창 자체를 이동시킨다.
    *
-   * 로그인을 마친 백엔드는 `/oauth2/callback#accessToken=…`(실패면 `/oauth2/error?error=…`)으로 되돌려보낸다
-   * (JUBY-BE dev `7e5b023`, 2026-09-28). 되돌아올 주소는 백엔드 설정(`FRONTEND_URL`)이 정한다 — 이 화면이 아니다.
+   * 로그인을 마친 백엔드는 `/oauth2/callback#accessToken=…`(실패면 `/oauth2/error?error=…`)으로 되돌려보낸다.
+   * 되돌아올 주소는 백엔드 설정(`FRONTEND_URL`)이 정한다 — 이 화면이 아니다.
    */
   function handleSocialLogin(path: string) {
     // 바깥 화면을 거쳐 페이지가 새로 뜨므로 돌아갈 자리를 적어 두고 떠난다. 콜백이 꺼내 쓴다
@@ -47,8 +47,7 @@ export default function LoginPage() {
   }
 
   /*
-   * 2026-11-02 다시 디자인(사용자 "너무나 별론데… 최신 환경에 맞춰서 아예 다시"). 가운데 한 줄에 제목·안내·글자가 든 소셜 단추 셋을 두고,
-   * 아래에 로그인하면 이어지는 세 칸을 둔다. 예전엔 아이콘만 있는 동그라미 셋이 오른쪽 큰 회색 면에 떠 있었다
+   * 가운데 한 줄에 제목·안내·글자가 든 소셜 단추 셋을 두고, 아래에 로그인하면 이어지는 세 칸을 둔다
    */
   return (
     <div className={styles.page}>

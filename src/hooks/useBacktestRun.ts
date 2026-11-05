@@ -50,7 +50,7 @@ type ResultState =
 function describeFailure(error: unknown): { message: string; hint: string | null; needsLogin: boolean } {
   if (error instanceof ApiError) {
     /*
-     * 백엔드가 /api/backtest/**를 로그인한 회원만 쓰게 바꿨다(JUBY-BE dev 7e5b023, 2026-09-28). 비로그인이면 401이라
+     * /api/backtest/**는 로그인한 회원만 쓴다. 비로그인이면 401이라
      * 기다려도 안 풀린다 — 다시 시도 대신 로그인으로 보낸다. 로그인 상태의 401은 client.ts가 이미 로그인 화면으로 보냈다.
      */
     if (error.status === 401) {
@@ -93,10 +93,10 @@ function describeFailure(error: unknown): { message: string; hint: string | null
 }
 
 /**
- * 백테스트 실행(2026-10-31 pages/BacktestPage.tsx에서 나눔) — 고른 조합 하나와 종목 성향을 가릴 다섯 성향(1년 기준)을 함께 받아
+ * 백테스트 실행 — 고른 조합 하나와 종목 성향을 가릴 다섯 성향(1년 기준)을 함께 받아
  * 결과 상태로 둔다. 화면은 조건(종목·전략·기간)을 고르고 run을 부르며, 조건을 건드리면 clear로 거둔다.
  *
- * - 같은 조합은 이 화면에 있는 동안 한 번만 받는다(loadPreset — B-3, 사용자 결정 2026-09-27). 고른 전략이 1년이면 비교용 다섯 건 중
+ * - 같은 조합은 이 화면에 있는 동안 한 번만 받는다(loadPreset). 고른 전략이 1년이면 비교용 다섯 건 중
  *   하나와 같은 요청이라 6건이 5건이 되고, 같은 종목에서 기간만 바꾸면 1건이다. 실패한 요청은 지워 다시 시도가 새로 받는다.
  * - 실행 번호(runSeq)로 늦게 온 결과를 버린다 — 기다리는 사이 조건이 바뀌거나(clear) 화면을 떠나면(언마운트).
  * - 결과를 받으면 '최근 본 백테스트'(이 브라우저)에 남긴다.
@@ -109,7 +109,7 @@ export function useBacktestRun(): {
   const [result, setResult] = useState<ResultState>({ kind: 'idle' })
   /** 실행 번호. 기다리는 사이 조건이 바뀌거나 화면을 떠나면 늦게 온 결과를 버린다 */
   const runSeqRef = useRef(0)
-  // 떠난 뒤 도착한 결과는 버린다 — 화면도 없는데 '최근 본 백테스트'에 본 적 없는 결과가 "본 것"으로 남았다(2026-10-31)
+  // 떠난 뒤 도착한 결과는 버린다 — 안 버리면 '최근 본 백테스트'에 본 적 없는 결과가 "본 것"으로 남는다
   useEffect(
     () => () => {
       runSeqRef.current += 1

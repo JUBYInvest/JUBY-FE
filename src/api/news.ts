@@ -6,7 +6,7 @@ import { safeLink } from '../utils/link'
 import type { NewsItem, NewsPage, NewsSort } from '../types/news'
 
 /*
- * 뉴스 창구 셋(2026-10-31 api/stock.ts에서 나눔). 셋 다 증권사와 무관하다.
+ * 뉴스 창구 셋. 셋 다 증권사와 무관하다.
  * - 종목 뉴스 `GET /api/stocks/{code}/news` — Pinecone에 모아 둔 기사. 서버가 요청마다 검색하고(캐시 없음) 작은 서버라 미리 부르지 않는다.
  * - 네이버 뉴스 검색 `GET /api/news` — 주식 모아보기의 관심종목 뉴스. 로그인 필요, 네이버 하루 한도를 회원 모두가 나눠 쓴다.
  * - 질문으로 찾기 `GET /api/vectordb/search` — 종목 상세 뉴스의 '기사 검색하기'. 로그인 필요.

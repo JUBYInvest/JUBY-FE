@@ -6,8 +6,7 @@ import type { Candle, CardSeries } from '../types/stock'
 /*
  * 홈 카드 그래프(1년 종가·거래량을 주 단위로 묶은 것)를 브라우저에 담아 둔다.
  *
- * 1년인 까닭: 카드가 한 달 등락을 크게 적으면 그 한 달 때문에 뽑힌 것처럼 읽혀 위계가 어긋났다(2026-10-04 사용자 지적,
- * 같은 날 1년으로 맞춤). 카드 종목은 백테스트 결과로 고르지 않는다 — 백엔드가 테마마다 정해 둔 종목이다(LeadingStockTheme).
+ * 1년인 까닭: 카드가 한 달 등락을 크게 적으면 그 한 달 때문에 뽑힌 것처럼 읽힌다. 카드 종목은 백테스트 결과로 고르지 않는다 — 백엔드가 테마마다 정해 둔 종목이다(LeadingStockTheme).
  *
  * 일봉은 평일 16시 배치로 하루 한 번만 바뀐다. 한 번 받은 그래프는 다음 배치까지 그대로 맞으므로, 다시 묻지 않는다.
  * 카드가 받은 것(ONE_YEAR)과 상세 화면이 받은 것(ALL에서 마지막 1년을 잘라)을 같이 담는다 —
@@ -36,7 +35,7 @@ function isNumbers(value: unknown): value is number[] {
   return Array.isArray(value) && value.every((item) => typeof item === 'number' && Number.isFinite(item))
 }
 
-/** 모양이 하나라도 틀리면(예전 판이 다른 모양으로 저장, 사람이 손댄 값) 버린다. 그대로 그리면 카드가 던진다 */
+/** 모양이 하나라도 틀리면(옛 판이 다른 모양으로 저장, 사람이 손댄 값) 버린다. 그대로 그리면 카드가 던진다 */
 function isStored(value: unknown, stockCode: string): value is Stored {
   if (typeof value !== 'object' || value === null) return false
   const entry = value as Partial<Stored>
@@ -75,7 +74,7 @@ function weekOf(date: string): number {
  * 받은 일봉에서 마지막 1년을 잘라 주 단위로 묶어 담는다. 그릴 봉이 없으면 담지 않는다.
  *
  * 1년이면 봉이 250개쯤이라 카드 폭(300px 안팎)에 막대가 1px 남짓이 되어 뭉개진다. 주마다 마지막 종가와 거래량 합으로 묶으면
- * 52개쯤으로 예전 한 달 그래프와 비슷한 밀도가 된다. 등락률은 묶기 전 첫날 종가와 마지막 종가로 낸다 — "1년 전 대비"다.
+ * 52개쯤이 된다. 등락률은 묶기 전 첫날 종가와 마지막 종가로 낸다 — "1년 전 대비"다.
  */
 export function rememberCardSeries(stockCode: string, candles: Candle[]): void {
   const last = candles.at(-1)

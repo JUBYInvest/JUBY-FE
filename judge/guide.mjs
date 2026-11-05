@@ -427,9 +427,9 @@ await j.run('U12', async () => {
     `로그인 ${mid.count}/4 — ${mid.rows.map((r) => `${r.title}: ${r.note}${r.action ? ` [${r.action}]` : ''}`).join(' · ')}`)
   // 해 보기 → 백테스트에 내 전략(위험중립형 → 이동평균 교차 전략)이 골라져 있다
   await t.page.locator(HOME).getByRole('link', { name: '해 보기' }).click()
-  await t.page.waitForSelector('#backtest-strategy', { timeout: 6000 }).catch(() => null)
+  await t.page.waitForSelector('[data-invest-type]', { timeout: 6000 }).catch(() => null)
   await sleep(500)
-  const picked = await t.page.locator('#backtest-strategy').inputValue().catch(() => '')
+  const picked = await t.page.locator('[data-invest-type][aria-pressed="true"]').first().getAttribute('data-invest-type', { timeout: 500 }).catch(() => '').catch(() => '')
   j.report('U12d', picked === '3', `해 보기 → /backtest 전략 칸 ${picked}(기대 3, 이동평균 교차)`)
   await t.close()
 

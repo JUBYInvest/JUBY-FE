@@ -43,14 +43,14 @@ interface Conversation {
 }
 
 /**
- * AI 화면의 대화 한 칸(2026-10-31 pages/AiPage.tsx에서 나눔) — 보고 있는 방의 말풍선과 질문 보내기·그만 기다리기·다시 시도.
+ * AI 화면의 대화 한 칸 — 보고 있는 방의 말풍선과 질문 보내기·그만 기다리기·다시 시도.
  * 사이드바 목록(hooks/useChatRooms)과는 답 뒤 목록 다시 받기·만든 방 올리기·없어진 방 빼기로 만난다.
  *
  * 번호 셋으로 늦게 온 것을 버린다(CLAUDE.md "늦게 온 응답"):
  * - askSeq: 질문마다·방을 바꾸거나 그만 기다릴 때 올라간다. 답·방 내용이 도착했을 때 번호가 다르면 버린다 — 안 그러면 A방에 물은 답이
  *   B방 말풍선 뒤에 붙고, 방을 누르고 곧바로 새 대화를 열면 늦게 온 그 방 말풍선이 새 대화를 채운다.
  * - roomSeq: 보던 자리(방·새 대화)가 바뀔 때만 올라간다. askSeq는 "그만 기다리기"에도 올라가지만 자리는 그대로다 — 방을 만드는 사이
- *   그만 기다렸어도 자리가 그대로면 만든 방을 쓴다(안 그러면 다시 시도가 방을 또 만들어 빈 방이 남았다).
+ *   그만 기다렸어도 자리가 그대로면 만든 방을 쓴다(안 그러면 다시 시도가 방을 또 만들어 빈 방이 남는다).
  * - sessionIdRef: 서버를 기다린 뒤 "보던 방이었나"를 가를 때. 함수가 만들어질 때의 sessionId는 기다리는 사이 낡을 수 있다.
  */
 export function useConversation(loggedIn: boolean, rooms: ChatRooms): Conversation {
@@ -152,7 +152,7 @@ export function useConversation(loggedIn: boolean, rooms: ChatRooms): Conversati
     const wasStopped = pending === 'stopped' && options.synced !== true
     /*
      * 답이 온 뒤 대화방 목록을 다시 받을지. 서버는 방의 첫 질문으로만 제목을 짓는다 — 새로 만든 방이거나 아직 '새 대화'인 방이면
-     * 받아서 지어진 제목을 쓰고, 아니면 그 방을 맨 위로 올리기만 한다(목록은 최근 대화 순). 예전엔 답마다 목록을 통째로 다시 받았다.
+     * 받아서 지어진 제목을 쓰고, 아니면 그 방을 맨 위로 올리기만 한다(목록은 최근 대화 순).
      * 목록에 그 방이 없어도(목록을 못 받았거나 아직 안 왔다) 다시 받는다 — 안 그러면 처음 목록이 실패한 화면은 끝까지 안 채워진다.
      */
     const answeredRoomInList = rooms.rooms.find((item) => item.sessionId === sessionId)
@@ -182,7 +182,7 @@ export function useConversation(loggedIn: boolean, rooms: ChatRooms): Conversati
        * 새 대화면 방부터 만든다. 방 없이 물으면 서버가 방을 만들어 주지만, 답이 실패하면(502) 질문만 남은 그 방의 번호를
        * 몰라 다시 시도가 또 다른 방을 만든다. 만든 방은 곧바로 목록 맨 위에 올린다(제목은 첫 답 뒤에 서버 것으로 바뀐다).
        * 만드는 사이 그만 기다렸어도(askSeq가 올라감) 보던 자리가 새 대화 그대로면(roomSeq) 만든 방을 쓴다 —
-       * 안 그러면 다시 시도가 방을 또 만들어 서버에 빈 '새 대화' 방이 남았다.
+       * 안 그러면 다시 시도가 방을 또 만들어 서버에 빈 '새 대화' 방이 남는다.
        */
       if (roomId === null) {
         const room = await createSession()
@@ -253,7 +253,7 @@ export function useConversation(loggedIn: boolean, rooms: ChatRooms): Conversati
     /*
      * 대화방 내용을 받는 중이거나 못 받았으면 보내지 않는다. 받는 중에 보내면 늦게 온 대화 내용이 방금 띄운
      * 질문과 답을 덮어써 둘 다 사라지고, 못 받은 화면에서 보내면 오류 안내가 먼저라 질문·답·그만 기다리기가 안 보인 채
-     * 서버에만 저장됐다(2026-10-31). 입력칸의 글은 그대로 남는다.
+     * 서버에만 저장된다. 입력칸의 글은 그대로 남는다.
      */
     if (detailState !== 'idle') return false
 
@@ -278,8 +278,8 @@ export function useConversation(loggedIn: boolean, rooms: ChatRooms): Conversati
   }
 
   /**
-   * 그만 기다리기. 답은 제한 없이 기다려서(서버가 영영 안 답하면 입력칸이 잠긴 채 남았다) 사용자가 끊을 수 있게 한다
-   * (사용자 결정 2026-09-27). 번호를 올려 늦게 온 답은 버리고, 같은 질문은 다시 시도로 다시 보낸다.
+   * 그만 기다리기. 답은 제한 없이 기다리므로(서버가 영영 안 답하면 입력칸이 잠긴 채 남는다) 사용자가 끊을 수 있게 한다.
+   * 번호를 올려 늦게 온 답은 버리고, 같은 질문은 다시 시도로 다시 보낸다.
    * 서버는 이미 받은 질문의 답을 계속 만들어 방에 저장한다 — 프론트가 요청을 거둘 방법은 없다.
    */
   function stop() {

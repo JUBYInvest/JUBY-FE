@@ -14,7 +14,7 @@ import { isFiniteNumber } from '../utils/format'
  * 장중이고 탭이 보이고 값을 쓰는 화면이 하나라도 있을 때만 연결한다.
  */
 
-export interface LivePrice {
+interface LivePrice {
   /** 현재가(원) */
   price: number
   /** 전일 대비율(%) */

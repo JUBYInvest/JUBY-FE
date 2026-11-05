@@ -52,7 +52,7 @@ export function normalizeScore(raw: number, questions: Question[]): number {
 
 /**
  * 서버 PersonalityTestService의 구간과 동일하게 맞춘다.
- * 서버처럼 10~90 밖(NaN 포함)이면 성향을 내지 않는다(null) — 예전엔 9는 안정형, 91·NaN은 공격투자형으로 냈다(W-FN-1)
+ * 서버처럼 10~90 밖(NaN 포함)이면 성향을 내지 않는다(null).
  */
 export function scoreToPersonality(score: number): PersonalityType | null {
   if (!(score >= SERVER_MIN && score <= SERVER_MAX)) return null
@@ -65,7 +65,7 @@ export function scoreToPersonality(score: number): PersonalityType | null {
 
 /**
  * 서버가 준 글이 비었으면 대신할 글을 쓴다. null·빈 문자열뿐 아니라 공백만 있는 값도
- * 빈 것으로 본다 — `||`로 고르면 "  "가 참이라 설명이 통째로 빠지고 이미지가 src=" "로 깨졌다.
+ * 빈 것으로 본다 — `||`로 고르면 "  "가 참이라 설명이 통째로 빠지고 이미지가 src=" "로 깨진다.
  */
 function textOr(value: string | null | undefined, fallback: string): string {
   return typeof value === 'string' && value.trim() !== '' ? value : fallback
@@ -87,9 +87,8 @@ export function isPersonalityType(value: unknown): value is PersonalityType {
 /**
  * 화면에 쓸 성향 설명·이미지. 서버 값이 먼저이고, 비면 로컬 표로 받친다.
  *
- * 이름이 다섯 성향이 아니면 로컬 표를 읽지 않는다. 예전엔 `PERSONALITY_INFO[이름].description`을
- * 인자로 먼저 계산해 모르는 이름에서 던졌고, 성향 저장은 서버에서 끝났는데 "저장하지 못했어요"가 떠
- * 다시 저장할 때마다 POST가 또 나갔다. 모르는 이름은 이름 그대로 두고 설명만 대신하며, 이미지는 비운다
+ * 이름이 다섯 성향이 아니면 로컬 표를 읽지 않는다 — `PERSONALITY_INFO[이름]`은 모르는 이름에서 던져,
+ * 성향 저장은 서버에서 끝났는데 "저장하지 못했어요"가 뜨고 다시 저장할 때마다 POST가 또 나간다. 모르는 이름은 이름 그대로 두고 설명만 대신하며, 이미지는 비운다
  * (카드가 `<img>`를 그리지 않는다 — `src=""`는 지금 페이지를 다시 요청한다).
  */
 export function describePersonality(
@@ -107,8 +106,7 @@ export function describePersonality(
 /**
  * 성향별 설명과 이미지.
  *
- * 서버 채점으로 넘어가면 description과 url을 서버가 준다. 그때는 이 표가
- * 서버 값이 비어 있을 때 쓰는 대비책이 된다(personality 테이블도 아직 비어 있다).
+ * 로그인한 회원은 서버가 채점하고 description과 url을 준다. 이 표는 비로그인 채점과, 서버 값이 비어 올 때 쓴다.
  *
  * 설명의 줄바꿈은 화면에서 white-space: pre-line으로 살린다.
  * 서버 문구에 줄바꿈이 없어도 그냥 이어져 나올 뿐 깨지지 않는다.

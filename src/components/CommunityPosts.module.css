@@ -17,8 +17,8 @@
 }
 
 /*
- * 홈: 한 줄 높이를 왼쪽 시세표 두 행(54px × 2)으로 둔다 — 88px이면 줄 선 하나가 시세표 행 선과 2~5px 차이로 나란히 섰다(judge/lines.mjs G home).
- * 두 행 높이면 모든 선이 시세표 선과 19px 떨어진다
+ * 홈: 한 줄 높이를 왼쪽 시세표 두 행(54px × 2)으로 둔다 — 그래야 모든 선이 시세표 선과 19px 떨어져, 몇 px 차이로
+ * 나란히 서는 선이 없다(judge/lines.mjs G home)
  */
 .listCompact .post {
   display: grid;
@@ -98,7 +98,7 @@
   overflow-wrap: anywhere;
 }
 
-/* 본문은 두 줄까지. 760px에서 끊는다 — 글 열이 남는 폭을 다 써 넓은 화면에서 한 줄이 100자를 넘었다 */
+/* 본문은 두 줄까지. 760px에서 끊는다 — 안 끊으면 넓은 화면에서 한 줄이 100자를 넘는다 */
 .text {
   display: -webkit-box;
   max-width: 760px;

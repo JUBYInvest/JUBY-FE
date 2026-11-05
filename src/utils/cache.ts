@@ -15,9 +15,9 @@ export function readCache<T>(key: string, maxAgeMs: number): T | null {
 
     const entry: unknown = JSON.parse(raw)
     /*
-     * 모양부터 확인한다. 예전 버전이 다른 모양으로 저장했거나 사람이 손댄 값이면
+     * 모양부터 확인한다. 옛 판이 다른 모양으로 저장했거나 사람이 손댄 값이면
      * savedAt이 없는데, 그때 Date.now() - undefined 는 NaN이라 "> maxAgeMs"가
-     * 거짓이 되어 만료 검사를 그냥 통과했다. 모양이 다르면 없는 셈 친다.
+     * 거짓이 되어 만료 검사를 그냥 통과한다. 모양이 다르면 없는 셈 친다.
      */
     if (typeof entry !== 'object' || entry === null) return null
     if (!('savedAt' in entry) || !('value' in entry)) return null

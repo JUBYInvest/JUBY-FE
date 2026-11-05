@@ -2,9 +2,9 @@
  * 홈 오른쪽 열. 칸마다 제목 줄이 굵은 먹 선으로 구역을 열고(HomePage .sectionHead와 같은 모양), 줄 사이는 가는 선이다.
  *
  * 홈 격자의 세 줄(검색 · 대표 종목 · 현재 주가)을 그대로 나눠 쓴다(subgrid, HomePage .rail). 사용설명서 제목 줄은 검색 줄,
- * 소개·네 단계는 대표 종목 줄, 커뮤니티는 현재 주가 줄에 놓여 두 열의 선이 같은 높이다(2026-11-02, judge/lines.mjs).
+ * 소개·네 단계는 대표 종목 줄, 커뮤니티는 현재 주가 줄에 놓여 두 열의 선이 같은 높이다(judge/lines.mjs).
  * 넓은 화면인지는 여기서 가르지 않는다 — 홈이 1100px 이하에서 격자를 풀면(HomePage .rail이 block) subgrid가 저절로 꺼져 위아래로 쌓인다.
- * 두 파일이 경계를 따로 가르던 때는(1100px 이하 / 1101px 이상) 화면 배율로 폭이 1100.5px처럼 소수가 되면 둘 다 맞지 않을 수 있었다
+ * 두 파일이 경계를 따로 가르면 화면 배율로 폭이 1100.5px처럼 소수가 될 때 둘 다 맞지 않을 수 있다
  */
 .rail {
   grid-row: 1 / -1;
@@ -94,7 +94,7 @@
   display: grid;
 }
 
-/* 커뮤니티 — 최신 글 다섯 줄(2026-11-03 게시판). 글 줄 모양은 CommunityPosts.module.css */
+/* 커뮤니티 — 최신 글 다섯 줄. 글 줄 모양은 CommunityPosts.module.css */
 .sampleTag {
   padding: 2px 6px;
   border-radius: var(--radius-sm);

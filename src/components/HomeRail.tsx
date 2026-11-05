@@ -18,8 +18,7 @@ import StartSteps, { type StartStep } from './StartSteps'
 import styles from './HomeRail.module.css'
 
 /**
- * 홈 오른쪽 열(2026-10-30 재정비). 위는 사용설명서(네 장을 한 줄씩 — 2026-11-03), 아래는 커뮤니티 최신 글(2026-11-03부터 게시판 모양)이다.
- * 16:9에서 홈 오른쪽이 비어 보인다는 말에 사용자가 정한 자리다. 사용설명서 글은 src/content/homeGuide.ts,
+ * 홈 오른쪽 열. 위는 사용설명서(네 장을 한 줄씩), 아래는 커뮤니티 최신 글이다. 사용설명서 글은 src/content/homeGuide.ts,
  * 커뮤니티 글은 서버가 생기기 전까지 src/content/communityPreview.ts의 예시 글이다(src/api/community.ts가 가른다).
  */
 export default function HomeRail({ likedCount }: { likedCount: number | null }) {
@@ -32,9 +31,9 @@ export default function HomeRail({ likedCount }: { likedCount: number | null }) 
 }
 
 /**
- * 처음 시작하기 진행표(2026-11-03 사용자가 시안 비교 1번을 고름 — "다음에 뭘 하면 되는지"). 로그인 → 투자성향 테스트 → 관심종목 하나 →
+ * 처음 시작하기 진행표 — 다음에 뭘 하면 되는지 보인다. 로그인 → 투자성향 테스트 → 관심종목 하나 →
  * 내 전략으로 첫 백테스트 넷을 다 마치면 사용설명서 칸으로 돌아간다(그 계정은 다음부터 곧바로 — utils/startSteps).
- * 새 API를 만들지 않았다: 성향은 있는 조회 한 건(로그인했을 때만), 관심종목은 홈 시세표가 받은 하트, 백테스트는 최근 본 백테스트 기록이다
+ * 새 API는 없다: 성향은 있는 조회 한 건(로그인했을 때만), 관심종목은 홈 시세표가 받은 하트, 백테스트는 최근 본 백테스트 기록이다
  */
 function StartOrGuide({ likedCount }: { likedCount: number | null }) {
   const loggedIn = useIsLoggedIn()
@@ -54,7 +53,7 @@ function StartOrGuide({ likedCount }: { likedCount: number | null }) {
     {
       title: '투자성향 테스트',
       done: personality.kind === 'found',
-      // 못 받았으면(500) 검사를 권하지 않는다 — 다시 검사하면 멀쩡한 성향을 덮어쓴다(CLAUDE.md "성향 없음은 실패가 아니다", 코드 점검 D2)
+      // 못 받았으면(500) 검사를 권하지 않는다 — 다시 검사하면 멀쩡한 성향을 덮어쓴다(CLAUDE.md "성향 없음은 실패가 아니다")
       note:
         personality.kind === 'found'
           ? personality.name
@@ -151,7 +150,7 @@ function GuideSection() {
 }
 
 /**
- * 커뮤니티 미리보기(2026-11-03 사용자 "토스증권처럼 게시판으로" — 2026-11-02의 채팅창을 글 목록으로 되돌렸다).
+ * 커뮤니티 미리보기.
  * 최신 글 다섯 줄을 보이고 제목 줄 오른쪽 '전체 보기'가 커뮤니티 화면이다. 글 줄을 누르면 그 글 상세로 간다. 글·연결은 커뮤니티 화면과 같은 훅(useCommunityFeed)이다.
  * 보고 있는 동안 웹소켓(지금은 목업)으로 새 글이 오면 바로 끼우지 않고 제목 옆 "새 글 N"으로 알린다 — 누르면 위에 선다.
  * 오른쪽 열은 홈 격자의 줄을 나눠 쓰므로(subgrid) 줄 수를 다섯으로 묶어 높이가 글 수만큼 늘지 않게 한다

@@ -38,7 +38,7 @@ node consistency.mjs http://localhost:4198            # 화면 사이 위계·�
 `--only A,B`로 묶음을 고르고, `flow`·`repro`·`ai`는 `--headed`로 창을 보며 돌린다. 끝줄이 `N PASS / M FAIL`이고 FAIL이 있으면 종료 코드 1이다.
 
 그 밖의 도구: `open.mjs <BASE> [경로]`(가짜 API·가짜 토큰으로 사용자가 직접 둘러보는 창), `shot.mjs`(캡처 — `judge/shots/`는 커밋하지 않는다),
-`overflow-scan.mjs`(폭마다 가로 넘침), `market.mjs`(지수 띠 — 예시 값 빌드와 API 빌드 둘이 필요하다, 머리 주석 참고).
+`overflow-scan.mjs`(폭마다 가로 넘침), `market.mjs`(지수 띠·실시간 시세 — 한 빌드로 돈다, 머리 주석 참고).
 
 ## 규칙
 

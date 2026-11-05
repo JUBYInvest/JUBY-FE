@@ -138,7 +138,7 @@ export default function BacktestPage() {
       .catch((error: unknown) => {
         console.warn('프리셋 기간 조회 실패', error)
         /*
-         * 비로그인은 401이다(/api/backtest/** 는 로그인 전용, JUBY-BE d7edec4). 그건 서버 장애가 아니라서 "서버 목록을
+         * 비로그인은 401이다(/api/backtest/** 는 로그인 전용). 그건 서버 장애가 아니라서 "서버 목록을
          * 받지 못해"라고 알리면 틀린 말이 된다 — 실행하면 결과 자리가 로그인 안내를 하니 여기서는 기본 목록으로 조용히 간다.
          */
         if (error instanceof ApiError && error.status === 401) return
@@ -162,7 +162,7 @@ export default function BacktestPage() {
   }, [recommended])
 
   /*
-   * 로그아웃(다른 탭 포함)하면 성향 문구는 사라지는데 성향에 맞춰 골라 둔 전략은 선택칸에 남아, 이유 없이 골라진 것처럼 보였다.
+   * 로그아웃(다른 탭 포함)하면 성향 문구는 사라지므로, 성향에 맞춰 골라 둔 전략이 선택칸에 남으면 이유 없이 골라진 것처럼 보인다.
    * 그 전략이 그대로면 거둔다. 사용자가 다른 전략을 골랐으면 둔다. 성향을 다시 받는 중(불러오는 중)에는 거두지 않게
    * 성향이 아니라 로그인 여부를 본다.
    */
@@ -227,8 +227,8 @@ export default function BacktestPage() {
   )
 
   /*
-   * 서버 기간 목록이 늦게 와서 이미 고른 기간이 선택지에서 빠지면 비운다. 전략을 바꿀 때(changeStrategy)만 정리하던 때는
-   * 목록 도착 전에 고른 기간이 선택지에 없는 채로 남아 셀렉트는 안내 문구를 보이는데 실행 단추는 켜져 있었다(2026-10-31)
+   * 서버 기간 목록이 늦게 와서 이미 고른 기간이 선택지에서 빠지면 비운다 — 안 비우면 셀렉트는 안내 문구를 보이는데
+   * 실행 단추는 켜져 있다(전략을 바꿀 때의 정리는 changeStrategy가 한다)
    */
   useEffect(() => {
     if (period !== null && !periodChoices.includes(period)) {
@@ -365,7 +365,7 @@ export default function BacktestPage() {
                   ? '투자성향테스트를 아직 안 하셨어요. 먼저 하면 나에게 맞는 전략을 자동으로 골라드려요.'
                   : '로그인하면 백테스트 결과를 볼 수 있어요. 투자성향테스트까지 하면 나에게 맞는 전략도 자동으로 골라드려요.'}
               </p>
-              {/* 비로그인은 다 고른 뒤에야 "로그인하면 결과를 볼 수 있어요"가 떴다. 시작하기 전에 알리고 로그인으로 보낸다 */}
+              {/* 결과 자리의 로그인 안내는 다 고른 뒤에야 보이므로, 비로그인에게는 시작하기 전에 알리고 로그인으로 보낸다 */}
               {loggedIn ? (
                 <Link className={styles.myAction} to={PERSONALITY_TEST_URL}>
                   테스트하러 가기

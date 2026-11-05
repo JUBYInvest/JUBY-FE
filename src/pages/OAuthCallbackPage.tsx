@@ -28,7 +28,7 @@ export default function OAuthCallbackPage({ failed = false }: Props) {
   const navigate = useNavigate()
   /*
    * 한 번만 처리한다. 개발 서버(StrictMode)는 effect를 두 번 돌리는데, 두 번째는 첫 번째가 꺼내 지운 돌아갈 자리를
-   * 못 찾아 홈으로 덮어썼다. 로컬 백엔드는 로그인 뒤 개발 서버 주소로 보낸다.
+   * 못 찾아 홈으로 덮어쓴다. 로컬 백엔드는 로그인 뒤 개발 서버 주소로 보낸다.
    */
   const handledRef = useRef(false)
 
@@ -59,7 +59,7 @@ export default function OAuthCallbackPage({ failed = false }: Props) {
      * 화면만 옮기면 된다 — 주소가 토큰을 달고 있으니 replace로 기록에서 지운다.
      * 로그인 화면으로 오기 전 자리가 있으면 그리로, 없으면 홈으로 간다.
      *
-     * 성향테스트를 아직 안 한 회원(onboarded=false)은 검사부터 한다(사용자 결정 2026-09-30). 마치면 가려던 자리로
+     * 성향테스트를 아직 안 한 회원(onboarded=false)은 검사부터 한다. 마치면 가려던 자리로
      * 돌아간다(`?next=`, PersonalityResultPage). 온보딩 여부를 못 받으면 그냥 가려던 자리로 간다 — 검사는 권하는 것일 뿐이다.
      * 묻는 동안은 "로그인 중"이 그대로 보인다. 같은 응답의 가입 경로는 다음 로그인 화면의 "최근 사용"으로 적어 둔다 —
      * 못 받았으면 지난 기록을 지운다(이번에 어디로 들어왔는지 모르는데 지난 단추를 가리키면 다른 계정으로 이끈다).

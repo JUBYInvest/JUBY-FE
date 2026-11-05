@@ -39,7 +39,7 @@ const ORDERS: { key: ListOrder; label: string }[] = [
 ]
 
 /**
- * 주식 모아보기(2026-10-30 사용자 요청 — 관심종목을 한 번에 보는 화면. 마이페이지 관심종목 탭을 여기로 합쳤다).
+ * 관심종목(`/likes`) — 담은 종목을 한 번에 보는 화면.
  * 관심종목 목록(GET /api/members/me/like-stocks, DB) 한 번으로 그린다 — 증권사를 부르지 않는다.
  * 맨 위 한 문장과 다섯 숫자, "한눈에 보기" 지도(칸 크기 거래대금, 색 등락률), 담은 종목 목록(해제·바로 가기).
  * 비로그인은 요청 없이 로그인 안내다.
@@ -96,7 +96,7 @@ function LikesBoard() {
   // 홈과 같은 이유로 상세 화면 묶음을 미리 받아 둔다
   useEffect(() => preloadStockChartPage(), [])
 
-  /** 먼저 지우고 서버에 알린다. 실패하면 목록을 다시 받아 원래대로 돌린다(예전 마이페이지 관심종목과 같다) */
+  /** 먼저 지우고 서버에 알린다. 실패하면 목록을 다시 받아 원래대로 돌린다 */
   async function handleUnlike(stockCode: string) {
     if (pending.current.has(stockCode)) return
     pending.current.add(stockCode)
@@ -267,7 +267,7 @@ function LikesBoard() {
 }
 
 /**
- * 관심종목 뉴스(2026-10-30). 종목을 고르면 그 이름으로 네이버 뉴스를 찾는다(`GET /api/news`, 로그인 필요, KeywordNews).
+ * 관심종목 뉴스. 종목을 고르면 그 이름으로 네이버 뉴스를 찾는다(`GET /api/news`, 로그인 필요, KeywordNews).
  * 처음엔 담은 순서의 첫 종목 하나만 받는다 — 종목마다 미리 받으면 네이버 호출이 종목 수만큼 나간다.
  * 고른 종목을 관심종목에서 빼면 첫 종목으로 돌아간다.
  */

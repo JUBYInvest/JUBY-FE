@@ -458,7 +458,7 @@ async function u5() {
 async function u6() {
   {
     const s = await open('/ai')
-    const chips = s.page.locator('[class*="_exampleChip_"]')
+    const chips = s.page.locator('[class*="_exampleQuestion_"]')
     const n = await chips.count()
     let filled = null
     if (n > 0) {

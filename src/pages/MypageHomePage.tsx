@@ -19,11 +19,11 @@ import type { LikeStock, LikeStockList, MemberInfo, PersonalityInfo } from '../t
 import { basisLabel } from '../utils/priceBasis'
 import styles from './MypageHomePage.module.css'
 
-/** 칸마다 보여 주는 줄 수. 전부는 각 화면(주식 모아보기·AI 주가분석)에서 본다 */
+/** 칸마다 보여 주는 줄 수. 전부는 각 화면(관심종목·AI 주가분석)에서 본다 */
 const ROWS = 4
 
 /**
- * 마이페이지 첫 화면(2026-10-30). 흩어진 내 기록을 한 화면에 모으고, 칸마다 그 기록이 사는 화면으로 가는 단추를 하나씩 둔다.
+ * 마이페이지 첫 화면. 흩어진 내 기록을 한 화면에 모으고, 칸마다 그 기록이 사는 화면으로 가는 단추를 하나씩 둔다.
  * 요청은 이미 있는 API 넷(내 정보·성향·관심종목·대화방 목록)이고 증권사 호출은 없다. 최근 본 백테스트는 서버에 기록이 없어
  * 이 브라우저에 남긴 것을 읽는다(utils/recentBacktests.ts).
  * 칸마다 따로 받고 따로 실패한다(hooks/useLoad) — 대화 목록이 실패해도 관심종목은 보인다.

@@ -5,8 +5,8 @@ import type { VolumeRankItem } from '../types/market'
 import type { Candle } from '../types/stock'
 
 /*
- * 증권사 직통 API 중 화면이 쓰는 둘(2026-10-31 연결, 휴장일은 api/marketCalendar.ts).
- * 둘 다 요청마다 증권사를 부른다(JUBY-BE MarketService, dev b1aedd7). 그래서 **사용자가 무언가 한 뒤에만** 부른다.
+ * 증권사 직통 API 중 화면이 쓰는 둘(휴장일은 api/marketCalendar.ts).
+ * 둘 다 요청마다 증권사를 부른다(JUBY-BE MarketService). 그래서 **사용자가 무언가 한 뒤에만** 부른다.
  * - 실시간 거래대금 순위 `GET /api/market/volume-rank` — 홈 '현재 주가 보기'의 '실시간 거래대금 순위' 탭을 누를 때. 1분 메모.
  * - 기간별 시세 `GET /api/market/{code}/daily_itemchartprice` — 들어온 종목 상세가 실패했을 때 그 종목 하나의 임시 차트.
  *   백엔드가 **모의투자 토큰**으로 부른다(getPeriodStockPrice) — 상세가 실패하는 흔한 까닭(실전 토큰 "1분 1회 발급")과 겹치지 않는다.

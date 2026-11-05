@@ -4,10 +4,10 @@
  * 접근이 이 파일에만 있으면 그때 이 파일만 고치면 된다.
  *
  * 브라우저에 두는 건 access token 하나다. refresh token은 백엔드가 로그인 때 HttpOnly 쿠키(`Path=/api/auth`)로
- * 따로 두고 자바스크립트는 읽을 수 없다(2026-09-28 JUBY-BE dev `7e5b023`부터).
+ * 따로 두고 자바스크립트는 읽을 수 없다.
  *
- * 로그인 여부가 바뀌면 구독자에게 알린다(subscribeAuth). 예전에는 알릴 곳이 없어
- * 로그인·탈퇴·토큰 만료 때마다 페이지를 통째로 새로 받아야 헤더가 갱신됐다.
+ * 로그인 여부가 바뀌면 구독자에게 알린다(subscribeAuth). 그래서 로그인·탈퇴·토큰 만료에
+ * 페이지를 새로 받지 않아도 헤더가 바뀐다.
  */
 const ACCESS_TOKEN_KEY = 'accessToken'
 /** 예전(쿠키로 옮기기 전)에 저장해 둔 refresh token 키. 더 쓰지 않고 지우기만 한다 */
@@ -30,9 +30,9 @@ const fallback = new Map<string, string>()
 /**
  * 토큰으로 쓸 수 있는 값을 다듬어 돌려준다. 못 쓰면 null.
  *
- * 앞뒤 공백을 자르고, 빈 값과 "null"·"undefined" 글자는 없는 것으로 본다. 콜백 주소에
- * 빈 값이 달려 오면 그대로 저장돼 머리글이 로그인 상태로 바뀌었고, 요청에는
- * "Bearer null"이 실렸다. 콜백(저장 전)과 읽는 자리(이미 저장된 값) 모두 이 규칙을 쓴다.
+ * 앞뒤 공백을 자르고, 빈 값과 "null"·"undefined" 글자는 없는 것으로 본다. 안 그러면 콜백 주소에
+ * 빈 값이 달려 올 때 그대로 저장돼 머리글이 로그인 상태로 바뀌고, 요청에
+ * "Bearer null"이 실린다. 콜백(저장 전)과 읽는 자리(이미 저장된 값) 모두 이 규칙을 쓴다.
  */
 export function toUsableToken(value: string | null | undefined): string | null {
   if (typeof value !== 'string') return null
@@ -125,7 +125,7 @@ export function isLoggedIn(): boolean {
 }
 
 /**
- * 지금 로그인한 계정의 번호. access token(JWT)의 subject다 — 백엔드 `JwtUtil`이 회원 번호를 적는다(2026-10-31 소스 확인).
+ * 지금 로그인한 계정의 번호. access token(JWT)의 subject다 — 백엔드 `JwtUtil`이 회원 번호를 적는다.
  * 토큰이 없거나 JWT 모양이 아니면 null. 계정에 딸린 브라우저 저장값(최근 본 백테스트, `utils/recentBacktests.ts`)의 주인을
  * 가르는 데 쓴다 — 로그아웃 없이 다른 계정으로 로그인해도 앞 사람의 기록이 보이지 않게.
  * 서명은 검사하지 않는다. 누구인지 가르는 용도일 뿐이고 권한은 서버가 본다.

@@ -25,7 +25,7 @@ const CHAPTERS: Chapter[] = GUIDE_CHAPTERS.map((source, index) => ({
   document: source.markdown === null ? null : readGuideDocument(source.id, source.markdown),
 }))
 
-/** 글이 있는 첫 장이 `/guide`다. 다른 장이 먼저 채워져 있던 때의 주소(`/guide/backtest`)도 그대로 열린다 */
+/** 글이 있는 첫 장이 `/guide`다. 다른 장은 제 주소(`/guide/backtest`)로 열린다 */
 const READY = CHAPTERS.filter((chapter) => chapter.document !== null)
 const FIRST_READY = READY[0]
 const pathOf = (chapter: Chapter) => (chapter === FIRST_READY ? '/guide' : `/guide/${chapter.id}`)
@@ -43,7 +43,7 @@ function jumpTo(id: string) {
 }
 
 /**
- * 지금 읽는 꼭지(2026-11-03). 화면 위 30% 선을 지난 마지막 꼭지 제목이다 — 첫 꼭지 전이면 null.
+ * 지금 읽는 꼭지. 화면 위 30% 선을 지난 마지막 꼭지 제목이다 — 첫 꼭지 전이면 null.
  * 스크롤마다 제목 몇 개의 자리만 재고(그리는 때에 한 번), 오른쪽 "이 장에서"가 그 꼭지를 표시한다
  */
 function useReadingSection(ids: string[]): string | null {
@@ -103,9 +103,9 @@ function Pager({ chapter }: { chapter: Chapter }) {
 }
 
 /**
- * 사용설명서(2026-11-03 — 사용자가 노션에 쓴 글을 장마다 옮긴다, src/content/guide).
+ * 사용설명서(노션에 쓴 글을 장마다 옮긴 것, src/content/guide).
  * 넓은 화면(1200px~)은 세 열이다: 왼쪽 장 목록(마이페이지 메뉴와 같은 줄) | 가운데 본문 | 오른쪽 "이 장에서"(꼭지 + 그 기능 바로 열기).
- * 본문 760px을 두 열 사이 가운데에 세운다 — 본문 | 차례 두 열일 때 넓은 화면에서 그 사이가 500px 넘게 비었다(사용자 "허전함").
+ * 본문 760px을 두 열 사이 가운데에 세운다 — 한쪽에 붙이면 넓은 화면에서 본문과 옆 열 사이가 500px 넘게 빈다.
  * 두 옆 열은 읽는 동안 위에 붙어 따라온다. 901~1199px은 오른쪽 열이 장 목록 아래로, 900px 이하는 장 목록(두 칸씩) → 본문 → 단추 → 장 넘기기.
  * 선은 다른 화면처럼 길잡이에만 둔다(메뉴 줄 사이 가는 선, "이 장에서" 먹 선 — 왼쪽 첫 줄 선과 같은 높이). 본문 글 사이에는 굵은 선을 두지 않는다.
  */
@@ -127,7 +127,7 @@ function GuideView({ chapter, content }: { chapter: Chapter | undefined; content
   const { hash } = useLocation()
   useEffect(() => {
     if (hash === '') return
-    // 꼭지 id는 ASCII("backtest-1")다. 깨진 주소(#%)를 풀다 던지면 사용설명서 전체가 오류 화면이 됐다(코드 점검 D4, judge/repro.mjs R3)
+    // 꼭지 id는 ASCII("backtest-1")다. 깨진 주소(#%)를 풀다 던지면 사용설명서 전체가 오류 화면이 된다(judge/repro.mjs R3)
     let id = hash.slice(1)
     try {
       id = decodeURIComponent(id)

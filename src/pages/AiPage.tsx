@@ -20,7 +20,7 @@ function briefingQuestion(stockName: string): string {
 
 /**
  * AI 주가분석. 사이드바 목록은 hooks/useChatRooms, 대화 한 칸(말풍선·보내기·그만 기다리기·다시 시도)은 hooks/useConversation이
- * 들고 있고(2026-10-31 나눔), 이 화면은 둘을 잇고 종목 상세·마이페이지에서 넘어온 것을 한 번 처리한다.
+ * 들고 있고, 이 화면은 둘을 잇고 종목 상세·마이페이지에서 넘어온 것을 한 번 처리한다.
  * 훅 순서가 요청 순서다 — 대화방 목록(useChatRooms)을 성향(useMyPersonality)보다 먼저 부른다.
  */
 export default function AiPage() {
@@ -35,7 +35,7 @@ export default function AiPage() {
 
   /*
    * 답변 렌더러(마크다운·수식)를 화면이 뜨자마자 받기 시작한다. 말풍선 목록이 생길 때 받기 시작하면 저장된 방을 열거나
-   * 첫 답이 올 때 서식 없는 글자가 한순간 보였다
+   * 첫 답이 올 때 서식 없는 글자가 한순간 보인다
    */
   useEffect(() => {
     void loadMarkdownAnswer()

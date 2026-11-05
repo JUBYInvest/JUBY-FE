@@ -321,7 +321,7 @@ async function toBacktest(opts = {}, login = true, base = BASE) {
 }
 const formOf = (page) => page.evaluate(() => ({
   stock: document.querySelector('#backtest-stock')?.value ?? null,
-  strategy: document.querySelector('#backtest-strategy')?.value ?? null,
+  strategy: document.querySelector('[data-invest-type][aria-pressed="true"]')?.getAttribute('data-invest-type') ?? '',
   period: document.querySelector('#backtest-period')?.value ?? null,
 }))
 
@@ -330,7 +330,7 @@ async function backtestGroup() {
   let manual = []
   {
     const { context, page, log } = await setup(chrome, { path: '/backtest' })
-    await until(() => page.locator('#backtest-strategy').inputValue().then((v) => v === '3'), 6000)
+    await until(() => page.locator('[data-invest-type][aria-pressed="true"]').first().getAttribute('data-invest-type', { timeout: 500 }).catch(() => '').then((v) => v === '3'), 6000)
     await page.locator('#backtest-stock').fill('삼성전자')
     await page.getByRole('button', { name: /삼성전자\s*005930/ }).first().click()
     await page.locator('#backtest-period').selectOption('ONE_YEAR')
@@ -399,7 +399,7 @@ async function backtestGroup() {
 
   // QB7 실행 전에 사용자가 전략·종목을 건드리면 자동 실행은 취소한다
   for (const [id, touch] of [
-    ['QB7 전략', (page) => page.locator('#backtest-strategy').selectOption('1')],
+    ['QB7 전략', (page) => page.locator('[data-invest-type="1"]').first().click()],
     ['QB7 종목', (page) => page.locator('#backtest-stock').fill('SK')],
   ]) {
     const s = await setup(chrome, { opts: { personalityDelay: 2500 } })

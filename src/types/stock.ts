@@ -62,7 +62,7 @@ export interface StockDetail extends StockInfo {
   /** 오름차순 */
   candles: Candle[]
   /**
-   * 응답을 받은 때(ms). 상세 응답에는 시각이 없어(StockDetailRes, 2026-10-29 스웨거) 머리 가격이 언제 값인지는
+   * 응답을 받은 때(ms). 상세 응답에는 시각이 없어(StockDetailRes) 머리 가격이 언제 값인지는
    * 받은 시각으로 적는다. 1분 캐시에서 꺼내도 처음 받은 때다
    */
   receivedAt: number
@@ -85,7 +85,7 @@ export interface StockPreview extends StockInfo {
  * 홈 상단 테마별 대표 종목 카드 한 장. GET /api/stocks/leading-stocks 의 한 행이다.
  *
  * 어떤 종목을 카드에 올릴지는 이 API가 정하고, 그래프(CardSeries)와 종가(CardQuote)는 따로 받는다.
- * 전략 수익률·매매 횟수는 카드에 적지 않아 받지도 않는다(2026-10-04 사용자 결정, api/stock.ts getLeadingStocks).
+ * 전략 수익률·매매 횟수는 카드에 적지 않아 받지도 않는다(api/stock.ts getLeadingStocks).
  */
 export interface TopTheme extends StockInfo {
   /** "기술주 대장" 같은 테마 라벨 */

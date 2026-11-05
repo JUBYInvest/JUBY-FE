@@ -36,7 +36,7 @@ await run('B', async () => {
   await t.goto('/backtest', 800)
   await t.page.locator('#backtest-stock').fill('삼성전자')
   await t.page.getByRole('button', { name: /삼성전자\s*005930/ }).first().click()
-  await t.page.locator('#backtest-strategy').selectOption('1')
+  await t.page.locator('[data-invest-type="1"]').first().click()
   await t.page.locator('#backtest-period').selectOption('ONE_MONTH')
   const picked = await t.page.locator('#backtest-period').inputValue()
   await sleep(3000)
@@ -62,7 +62,7 @@ await run('B', async () => {
   // B5 배너는 고른 전략이 추천과 다르면 "골라 뒀어요"라고 하지 않는다
   t = await open()
   await t.goto('/backtest', 1200)
-  await t.page.locator('#backtest-strategy').selectOption('1')
+  await t.page.locator('[data-invest-type="1"]').first().click()
   await sleep(200)
   const banner = (await t.page.getByText(/내 투자성향은/).innerText()).replace(/\s+/g, ' ')
   report('B5', !/골라 뒀어요/.test(banner), `전략을 바꾼 뒤 배너: "${banner}"`)
@@ -254,10 +254,10 @@ await run('S', async () => {
     path: '/guide', away: [toCommunity], label: '휴대폰 사용설명서 "이 장에서" 제목(숨김)', expect: 'none',
     measure: () => { const h = [...document.querySelectorAll('main h2')].find((x) => x.textContent?.trim() === '이 장에서'); return h ? getComputedStyle(h).display : 'no-element' },
   })
-  // S9 AI 예시 질문 칩 글자 굵기 — secondary 단추를 가져다 쓰고 같은 규칙에서 font-weight를 다시 적어 다른 화면에 다녀오면 굵기가 바뀌었다(코드 점검 D6)
+  // S9 AI 문답 예시 질문 글자 굵기 — secondary 단추를 가져다 쓰고 같은 규칙에서 font-weight를 다시 적어 다른 화면에 다녀오면 굵기가 바뀌었다(코드 점검 D6)
   await roundTrip('S9', {
-    path: '/ai', width: 1440, height: 900, away: [toBacktest], label: 'AI 예시 질문 칩 글자 굵기(비로그인 빈 화면)', loggedIn: false,
-    measure: () => { const b = document.querySelector('[class*="_exampleChip_"]'); return b ? getComputedStyle(b).fontWeight : null },
+    path: '/ai', width: 1440, height: 900, away: [toBacktest], label: 'AI 문답 예시 질문 글자 굵기(비로그인 빈 화면)', loggedIn: false,
+    measure: () => { const b = document.querySelector('[class*="_exampleQuestion_"]'); return b ? getComputedStyle(b).fontWeight : null },
   })
   await roundTrip('S7', {
     path: '/likes', width: 1440, height: 900, away: [toAi], label: '주식 모아보기 담은 종목 줄의 작은 단추 글자',

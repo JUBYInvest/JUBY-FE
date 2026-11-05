@@ -6,7 +6,7 @@ import { forgetRecentBacktests } from '../utils/recentBacktests'
  * 로그아웃. 서버에 알리고 브라우저에 남은 토큰을 지운다.
  *
  * 서버는 본문을 읽지 않고 요청에 실린 access token으로 처리한다 — 그 토큰을 막고(블랙리스트) 서버에 둔
- * refresh token을 지운 뒤 refresh token 쿠키를 지우라고 응답한다(`POST /api/auth/logout`, JUBY-BE dev `7e5b023`).
+ * refresh token을 지운 뒤 refresh token 쿠키를 지우라고 응답한다(`POST /api/auth/logout`).
  *
  * 토큰이 만료됐으면 client.ts가 재발급해 한 번 다시 보낸다 — 만료된 토큰으로는 서버가 누구의 refresh token을 지울지 몰라
  * 14일짜리 refresh token이 서버에 남는다.
@@ -45,7 +45,7 @@ export async function logout(): Promise<void> {
 
 /**
  * 이 브라우저의 로그인 자취를 지운다 — 토큰과 계정에 딸린 값(최근 본 백테스트). 로그아웃과 탈퇴(MypageProfilePage)가 같이 쓴다.
- * 계정에 딸린 저장값이 늘면 여기에 더한다(예전엔 두 곳에 따로 적혀 있어 어긋날 자리였다).
+ * 계정에 딸린 저장값이 늘면 여기에 더한다.
  */
 export function clearSession(): void {
   clearTokens()

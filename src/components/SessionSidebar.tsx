@@ -60,7 +60,7 @@ export default function SessionSidebar({
   isLoggedIn,
 }: Props) {
   /*
-   * 좁은 화면(900px 이하)은 목록이 왼쪽에서 밀려 나오는 날개다(Claude 앱처럼) — 대화창 위에 쌓으면 펼친 만큼 입력칸이 첫 화면 밖으로 밀렸다.
+   * 좁은 화면(900px 이하)은 목록이 왼쪽에서 밀려 나오는 날개다 — 대화창 위에 쌓으면 펼친 만큼 입력칸이 첫 화면 밖으로 밀린다.
    * 대화창 위에는 "이전 대화 N개 | + 새 대화" 한 줄만 두고, 누르면 날개가 열린다. 넓은 화면은 옆 열에 늘 서므로 이 값과 상관없다
    */
   const narrow = useMediaQuery('(max-width: 900px)')
@@ -177,7 +177,7 @@ export default function SessionSidebar({
     if (title === '') return
     /*
      * 바뀐 게 없으면 보내지 않는다(보내면 제목은 그대로인데 그 방이 목록 맨 위로 간다). 30자로 자르기 전의 글로도 견준다 —
-     * 첫 질문으로 지은 제목은 30자 + '…'라, 손대지 않고 저장해도 자른 값과는 달라 '…'만 떨어진 채 보내졌다
+     * 첫 질문으로 지은 제목은 30자 + '…'라, 손대지 않고 저장해도 자른 값과는 달라 '…'만 떨어진 채 보내진다
      */
     const current = sessions.find((session) => session.sessionId === sessionId)?.title
     if (current === title || current === value.trim().replace(/\s+/g, ' ')) {

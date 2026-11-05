@@ -44,7 +44,7 @@ export function isFlatRate(
 
 /**
  * 등락 글자색의 뜻. 오르면 'up'(빨강), 내리면 'down'(파랑), 보합·모름은 'flat'(기본 글자색).
- * 화면은 `styles[rateTone(rate)]`처럼 쓴다 — 같은 판정이 여덟 곳에 따로 적혀 있어 보합 기준 자릿수가 한 곳만 달랐다(2026-10-31).
+ * 화면은 `styles[rateTone(rate)]`처럼 쓴다 — 화면마다 판정을 따로 적으면 보합 기준 자릿수가 갈린다.
  * fractionDigits는 화면에 찍는 자릿수와 같게 준다(isFlatRate).
  */
 export function rateTone(

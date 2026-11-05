@@ -10,7 +10,7 @@ import type { Candle, Period, StockDetail, StockPreview } from '../types/stock'
 import styles from '../pages/StockChartPage.module.css'
 
 /*
- * 종목 상세의 가격 구역(2026-10-31 pages/StockChartPage.tsx에서 나눔) — 머리 띠(이름·가격·바로 가기) | 차트 열(기간 탭·차트) | 정보 열
+ * 종목 상세의 가격 구역 — 머리 띠(이름·가격·바로 가기) | 차트 열(기간 탭·차트) | 정보 열
  * (시세 요약·기간별 변화)과 실패·임시 차트 상자. 상태(무엇을 받았나·기다리나)는 화면(StockChartPage)과 hooks/useStockDetail이 정하고
  * 여기는 받은 값을 그리기만 한다. 스타일은 화면의 모듈(StockChartPage.module.css)을 그대로 쓴다 — 격자 칸 이름이 거기 있다.
  */
@@ -132,15 +132,15 @@ export default function PriceSection({
 }: PriceSectionProps) {
   /*
    * 렌더마다 새 배열을 만들면 CandleChart가 "봉이 바뀌었다"고 보고 setData + fitContent를 다시 해, 하트를 누르거나 관심종목
-   * 목록이 늦게 올 때마다 확대해 둔 차트가 전체 보기로 돌아가고 범례가 사라졌다(2026-10-31). 일봉·기간이 바뀔 때만 자른다
+   * 목록이 늦게 올 때마다 확대해 둔 차트가 전체 보기로 돌아가고 범례가 사라진다. 일봉·기간이 바뀔 때만 자른다
    */
   const shown = useMemo(() => (detail === null ? [] : sliceByPeriod(detail.candles, period)), [detail, period])
   const lastCandle = shown.at(-1) ?? null
   const displayName = detail === null ? null : nameOrCode(detail.stockName, stockCode ?? '')
 
   /*
-   * 실패는 이 구역 안에서만 알린다. 예전엔 화면 전체를 안내 한 줄로 바꿔, 따로 받는 뉴스까지 사라지고
-   * 안내가 왼쪽 위에 붙었다. 이름 줄(모르면 종목코드)과 홈 링크는 두고, 탭·차트 자리를 정상 차트 카드와
+   * 실패는 이 구역 안에서만 알린다 — 화면 전체를 안내로 바꾸면 따로 받는 뉴스까지 사라진다.
+   * 이름 줄(모르면 종목코드)과 홈 링크는 두고, 탭·차트 자리를 정상 차트 카드와
    * 같은 높이의 상자 하나로 바꿔 가운데에 알린다. 다시 시도는 종목 정보만 다시 받는다(뉴스는 그대로).
    */
   /*
@@ -182,7 +182,7 @@ export default function PriceSection({
      * 목록에서 들고 온 기준일 종가가 있으면 그거라도 적는다.
      *
      * 상세 응답은 현재가(증권사)와 일봉(DB)을 함께 담는데, 증권사 쪽이 흔들리면 응답 전체가 500이라
-     * 일봉까지 못 받는다(2026-10-04 확인). 그때 화면을 통째로 "불러오지 못했습니다"로 두면,
+     * 일봉까지 못 받는다. 그때 화면을 통째로 "불러오지 못했습니다"로 두면,
      * 바로 앞 목록에서 이미 보고 온 종가조차 사라져 아무것도 모르는 화면이 된다.
      *
      * 이 값은 현재가가 아니라 기준일 종가다. PriceLines가 날짜를 함께 적어 구분해 준다.
@@ -231,14 +231,14 @@ export default function PriceSection({
 
   /*
    * 세 조각을 내보낸다 — 머리 띠(이름·가격·바로 가기) | 차트 열 | 정보 열(시세 요약·기간별 변화). 뉴스 열과 함께 바깥 격자
-   * (StockChartPage.module.css .layout) 하나에 놓여, 머리 띠 아래 굵은 먹 선 하나에서 세 칸이 같은 높이로 시작한다(2026-10-30 사용자
-   * 요청 "세 화면이 따로 붙인 느낌"). 순서는 휴대폰에서 쌓이는 순서(머리 띠 → 차트 → 시세 요약)이고, 넓은 화면은 격자 칸 이름으로 정보 열을
+   * (StockChartPage.module.css .layout) 하나에 놓여, 머리 띠 아래 굵은 먹 선 하나에서 세 칸이 같은 높이로 시작한다.
+   * 순서는 휴대폰에서 쌓이는 순서(머리 띠 → 차트 → 시세 요약)이고, 넓은 화면은 격자 칸 이름으로 정보 열을
    * 차트 왼쪽에 둔다. 정보 열에는 누를 것이 없어 Tab 순서는 보이는 순서와 어긋나지 않는다
    */
   return (
     <>
       <header className={styles.band}>
-        {/* 뒤로 가기 말고는 목록으로 돌아갈 길이 없었다 */}
+        {/* 뒤로 가기 말고도 목록으로 돌아갈 길이다 */}
         <Link to="/" className={styles.back}>
           <span aria-hidden="true">‹</span> 홈으로 돌아가기
         </Link>
@@ -317,7 +317,7 @@ const STAT_PERIODS: { period: Period; label: string }[] = PERIOD_TABS.filter(
 )
 
 /**
- * 기간별 주가 변화와 1년 최고·최저(2026-10-30 사용자 결정 — 16:9에서 차트 아래가 비었다).
+ * 기간별 주가 변화와 1년 최고·최저.
  * 상세가 이미 받은 전체 일봉(period=ALL)으로 계산해 요청은 늘지 않는다. 기준은 마지막 일봉의 종가이고,
  * 시작일은 기간 탭과 같은 규칙(periodStart)이다 — 그 날 이후 첫 거래일의 종가와 견준다.
  * 계산할 수 없는 칸(그 기간에 일봉이 없거나 종가가 0)은 "-"다
@@ -463,7 +463,7 @@ function RetryCountdown({ until }: { until: number }) {
 /**
  * 가격 두 줄. 응답이 오면 현재가·전일 대비, 오기 전엔 목록에서 들고 온 기준일 종가를
  * 흐리게 날짜와 함께 적고(현재가로 읽히면 안 된다), 그것도 없으면 뼈대를 둔다.
- * 예전엔 오기 전에도 "-"를 적어 값이 없는 것과 오는 중인 것을 가를 수 없었다.
+ * 오는 중에 "-"를 적으면 값이 없는 것과 가를 수 없다.
  */
 function PriceLines({
   detail,
@@ -526,7 +526,7 @@ function PriceLines({
 }
 
 /**
- * 큰 가격. 숫자는 로고와 같은 넓은 글꼴(--font-wide), "원"은 본문 글꼴로 작게 적는다(시안 B).
+ * 큰 가격. 숫자는 로고와 같은 넓은 글꼴(--font-wide), "원"은 본문 글꼴로 작게 적는다.
  * 넓은 글꼴의 % 기호·한글은 어색해 숫자만 넓은 글꼴로 둔다. 값이 없으면 "-" 그대로다
  */
 function PriceText({ value }: { value: number | null | undefined }) {

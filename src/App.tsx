@@ -24,8 +24,7 @@ import styles from './App.module.css'
  * 홈만 미리 넣어 두고 나머지는 들어갈 때 받는다.
  *
  * 홈은 첫 화면이라 늦게 받으면 흰 화면이 한 번 더 생긴다.
- * 반면 상세(lightweight-charts)와 AI는 홈에서 쓰지 않는데도 같은 묶음에 들어 있어
- * 홈 첫 로딩을 통째로 늦추고 있었다.
+ * 상세(lightweight-charts)와 AI는 홈에서 쓰지 않으므로 같은 묶음에 넣으면 홈 첫 로딩만 늦어진다.
  *
  * 묶음을 부르는 함수는 trackRouteChunk로 감싼다 — 받는 동안 머리글 띠 아래 끝에 줄이 흐른다(utils/routeLoading.ts, Header).
  */
@@ -38,7 +37,7 @@ const OAuthCallbackPage = lazy(trackRouteChunk(() => import('./pages/OAuthCallba
 /*
  * 마이페이지는 껍데기(사이드바)와 안쪽 세 화면(한눈에 보기·투자유형·내 정보)을 **한 묶음**으로 받는다(pages/mypageBundle.ts).
  * 셋을 따로 lazy로 두면 껍데기 묶음이 온 뒤에야 안쪽 화면 묶음을 받기 시작해, 들어올 때마다
- * 왕복이 하나 더 끼었다(껍데기 → 안쪽 → 요청, 2026-10-05 측정). 셋을 합쳐도 압축 20KB 남짓이다.
+ * 왕복이 하나 더 낀다(껍데기 → 안쪽 → 요청). 셋을 합쳐도 압축 20KB 남짓이다.
  */
 const mypageBundle = trackRouteChunk(() => import('./pages/mypageBundle'))
 const MypageLayout = lazy(() => mypageBundle().then((m) => ({ default: m.MypageLayout })))
@@ -61,7 +60,7 @@ const NotFoundPage = lazy(trackRouteChunk(() => import('./pages/NotFoundPage')))
 
 /**
  * 로그인 화면은 회색 배경을 가장자리까지 채워야 해서 공통 좌우 여백을 쓰지 않는다.
- * useLocation은 BrowserRouter 안에서만 쓸 수 있어 App에서 한 겹 분리했다.
+ * useLocation은 BrowserRouter 안에서만 쓸 수 있어 App에서 한 겹 나눈다.
  */
 function Layout() {
   const { pathname } = useLocation()
@@ -78,8 +77,8 @@ function Layout() {
   }, [navigate])
 
   /*
-   * 새 화면으로 가면 본문이 8px 아래에서 떠오르며 나타난다(220ms, 2026-11-03). 머리글 메뉴의 막대가 누른 메뉴로 미끄러지는 것(Header)과
-   * 같은 때·같은 감속 곡선이라, 누른 곳과 바뀐 곳이 한 동작으로 읽힌다. 예전엔 내용이 한순간에 바뀌어 눌렀는지 알기 어려웠다.
+   * 새 화면으로 가면 본문이 8px 아래에서 떠오르며 나타난다(220ms). 머리글 메뉴의 막대가 누른 메뉴로 미끄러지는 것(Header)과
+   * 같은 때·같은 감속 곡선이라, 누른 곳과 바뀐 곳이 한 동작으로 읽힌다.
    * **뒤로·앞으로 가기에는 걸지 않는다** — 돌아가는 길은 떠났던 자리(홈은 스크롤까지 되살린다)로 바로 서는 게 맞다.
    * 본문 요소 하나에 Web Animations로 건다 — CSS 키프레임을 key로 다시 거는 방식은 같은 화면 안에서 종목만 바뀔 때(/stocks/A → /stocks/B)
    * 화면을 통째로 다시 만들어 받아 둔 상태가 날아간다. 처음 들어올 때와 움직임을 줄인 설정에서는 걸지 않는다.
@@ -111,7 +110,7 @@ function Layout() {
   return (
     <div className={styles.page}>
       {/*
-        키보드로 들어오면 첫 Tab이 여기다. 머리글 메뉴(여섯)를 건너 본문으로 간다(2026-10-31).
+        키보드로 들어오면 첫 Tab이 여기다. 머리글 메뉴(여섯)를 건너 본문으로 간다.
         주소 뒤 #main으로 옮기지 않고 본문에 포커스만 준다 — 해시가 붙으면 라우터가 새 주소 기록으로 보고 홈이 보던 자리를 잃는다
       */}
       <a
@@ -141,11 +140,11 @@ function Layout() {
               <Route path="/" element={<HomePage />} />
               <Route path="/ai" element={<AiPage />} />
               <Route path="/stocks/:stockCode" element={<StockChartPage />} />
-              {/* 주식 모아보기(관심종목을 한 번에). 예전 마이페이지 관심종목 탭(/mypage/likes)이 여기로 합쳐졌다(2026-10-30) */}
+              {/* 주식 모아보기(관심종목을 한 번에) */}
               <Route path="/likes" element={<LikesPage />} />
               {/* 사이드바는 MypageLayout이 들고, 오른쪽 내용만 자식 라우트가 갈아끼운다 */}
               <Route path="/mypage" element={<MypageLayout />}>
-                {/* 첫 화면은 한눈에 보기(2026-10-30). 예전엔 투자유형으로 보냈다 */}
+                {/* 첫 화면은 한눈에 보기 */}
                 <Route index element={<MypageHomePage />} />
                 <Route path="personality" element={<MypagePersonalityPage />} />
                 {/* 옛 주소. 북마크·뒤로 가기로 와도 주식 모아보기로 보낸다 */}
@@ -174,7 +173,7 @@ function Layout() {
               />
 
               <Route path="/login" element={<LoginPage />} />
-              {/* 백엔드가 로그인을 마치고 보내는 두 자리(성공·실패). 예전 /oauth/callback은 더 오지 않아 지웠다 */}
+              {/* 백엔드가 로그인을 마치고 보내는 두 자리(성공·실패) */}
               <Route path="/oauth2/callback" element={<OAuthCallbackPage />} />
               <Route path="/oauth2/error" element={<OAuthCallbackPage failed />} />
               <Route path="*" element={<NotFoundPage />} />

@@ -58,7 +58,7 @@ export interface QuantScoring {
  *
  * - `preset`: GET /api/backtest/preset — 매일 새벽 4시 배치가 미리 채워 둔 값. startDate/endDate가 요청한 날짜가
  *   아니라 **계산에 실제로 쓰인 날짜**다(updatedAt은 받아만 두고 화면에는 아직 안 쓴다 — 바닥 글은 배치 규칙을 적는다).
- * - `live`: GET /api/backtest/run — 프리셋이 아직 없을 때(BACKTEST404_5) 그 자리에서 돌린 값(2026-10-22 백엔드 추가).
+ * - `live`: GET /api/backtest/run — 프리셋이 아직 없을 때(BACKTEST404_5) 그 자리에서 돌린 값.
  *   같은 규칙(종료일 = 그 종목의 마지막 일봉, 시작일 = 기간으로 역산)인데 응답에 날짜가 없어 셋 다 null이다.
  */
 export interface BacktestPreset {

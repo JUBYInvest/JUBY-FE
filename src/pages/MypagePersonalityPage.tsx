@@ -15,7 +15,7 @@ import styles from './MypagePersonalityPage.module.css'
 const TEST_URL = '/personality-test?from=mypage'
 
 /**
- * 투자유형(2026-10-30 보강). 위는 내 성향, 아래는 다섯 성향 둘러보기 — 눈금에서 성향을 고르면 그 성향의 전략·사고파는 때·
+ * 투자유형. 위는 내 성향, 아래는 다섯 성향 둘러보기 — 눈금에서 성향을 고르면 그 성향의 전략·사고파는 때·
  * 고를 수 있는 기간·점수 비중을 보여 주고 "이 전략으로 백테스트"로 보낸다. 값은 백테스트 화면이 쓰는 표(utils/backtest.ts) 그대로다.
  *
  * **성향을 검사 없이 바꾸는 단추는 없다.** 서버에 `PATCH /api/members/me/personality`가 있지만 성향 이름이 아니라 DB 행 번호를 받고,
@@ -59,7 +59,7 @@ export default function MypagePersonalityPage() {
           </p>
           {/*
             앱 안에서 옮긴다. <a href>는 앱을 통째로 다시 받아, 사이트 데이터를 막은 브라우저에서는 메모리에만 있던
-            토큰이 사라져 로그인이 풀린 채 검사하게 됐다(결과가 저장되지 않는다)
+            토큰이 사라져 로그인이 풀린 채 검사하게 된다(결과가 저장되지 않는다)
           */}
           <Link className={styles.primary} to={TEST_URL}>
             검사하러 가기
@@ -170,8 +170,8 @@ function Browse({ mine }: { mine: PersonalityType | null }) {
 
           {/*
             비중은 넷을 더해 100%다(백엔드 ScoreCalculator.calculateTotalScore의 성향별 가중치와 같은 표 — utils/backtest INVEST_TYPES).
-            그래서 막대 넷을 따로 두지 않고 100% 막대 하나를 넷으로 나눈다(2026-11-03 사용자 "그래프가 25%가 아닌 거처럼 나오는데" —
-            따로 둔 막대는 25%가 칸의 4분의 1이라도 무엇의 25%인지 안 읽혔다). 위험중립형은 네 칸이 같고, 안정형은 안정성 칸이 가장 넓다
+            그래서 막대 넷을 따로 두지 않고 100% 막대 하나를 넷으로 나눈다 —
+            따로 둔 막대는 25%가 칸의 4분의 1이라도 무엇의 25%인지 안 읽힌다. 위험중립형은 네 칸이 같고, 안정형은 안정성 칸이 가장 넓다
           */}
           <div>
             <p className={styles.weightsTitle}>점수를 매길 때 보는 비중</p>

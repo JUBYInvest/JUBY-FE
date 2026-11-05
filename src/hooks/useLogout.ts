@@ -3,8 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { logout } from '../api/auth'
 
 /**
- * 로그아웃 단추의 상태와 동작. 마이페이지 사이드바(MypageLayout)와 내 정보의 계정 관리(MypageProfilePage)가 같이 쓴다 —
- * 예전엔 둘에 같은 함수가 복사돼 있어 돌아갈 곳·안내를 바꿀 때 한쪽만 바뀔 자리였다(2026-10-31).
+ * 로그아웃 단추의 상태와 동작. 마이페이지 사이드바(MypageLayout)와 내 정보의 계정 관리(MypageProfilePage)가 같이 쓴다.
  *
  * logout()은 던지지 않는다 — 서버 호출이 실패해도 토큰은 지운다. 그래서 실패 안내가 없다. 나가겠다고 누른 사람을 로그인 상태로
  * 두는 편이 더 위험하다. 끝나면 탈퇴와 같이 홈으로 보낸다. replace는 방금까지 있던 마이페이지를 기록에 남기지 않는다

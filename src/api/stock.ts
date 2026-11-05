@@ -8,12 +8,10 @@ import { finiteOrNull } from '../utils/format'
 import type { Candle, LeadingStocks, Period, Stock, StockDetail, TopTheme } from '../types/stock'
 
 /**
- * 종목 창구(목록·대장주·상세와 증권사 호출 게이팅). 2026-09-18에 백엔드 `/api/stocks/**`로 갈아탔다.
- * 뉴스 셋은 api/news.ts, 검색(가진 목록·서버·순위)은 api/search.ts다 — 한 파일에 850줄이 있어 나눴다(2026-10-31).
+ * 종목 창구(목록·대장주·상세와 증권사 호출 게이팅). 백엔드 `/api/stocks/**`를 부른다.
+ * 뉴스 셋은 api/news.ts, 검색(가진 목록·서버·순위)은 api/search.ts다.
  *
- * 예전에는 `/api/market/**`가 증권사를 종목마다 한 번씩 중계해서 홈 한 번에 108건이
- * 나갔고, 그걸 버티려고 chunk·retry·캐시·prefetch가 잔뜩 붙어 있었다.
- * 지금은 목록이 DB에서 한 번에 오고, 상세도 일봉은 DB라 그 장치들이 전부 필요 없다.
+ * 목록은 DB에서 한 번에 오고 상세도 일봉은 DB라, 요청을 쪼개거나 다시 보내는 장치(chunk·retry·prefetch)를 두지 않는다.
  * 증권사로 가는 요청의 목록은 CLAUDE.md "증권사(KIS) 호출" 표가 정답이다 — 이 파일에서는 상세의 현재가, 토큰 심기(primeKisToken),
  * 홈 카드 그래프(api/home.ts가 getStockDetail을 부른다)이고, 휴장일·거래대금 순위·임시 차트는 api/marketCalendar.ts·api/kisMarket.ts다.
  */
@@ -76,8 +74,8 @@ async function fetchStockList(): Promise<StockList> {
 
 /**
  * 종목 한 행이 쓸 만하면 [행], 아니면 []. 종목코드가 없거나 틀린 행은 뺀다 — 상세 링크(`/stocks/null`)도 하트도
- * 걸 수 없고, 검색에서 `null.includes`로 던져 화면 전체가 오류 화면이 됐다(2026-09-27 확인).
- * 이름이 비면 종목코드로 대신한다(`null.replace`로 똑같이 멈췄다). 값 칸이 빈 건 포맷 함수가 "-"로 적고
+ * 걸 수 없고, 검색이 `null.includes`로 던져 화면 전체가 오류 화면이 된다.
+ * 이름이 비면 종목코드로 대신한다(`null.replace`로 똑같이 멈춘다). 값 칸이 빈 건 포맷 함수가 "-"로 적고
  * 정렬이 맨 뒤로 보낸다(sortStocks).
  */
 function toStock(row: StockRowResponse | null): Stock[] {
@@ -117,13 +115,12 @@ interface LeadingStockResponse {
 /**
  * 홈 카드에 올릴 테마별 대장주.
  *
- * 어떤 종목이 대장인지를 서버가 정한다. 예전에는 종목 셋을 프론트에 박아 두어, 대장이 바뀌면
- * 코드를 고쳐 배포해야 했다. 서버는 매일 새벽 백테스트 배치를 돌려 테마마다 성적이 가장 좋은
- * 종목을 올려 준다.
+ * 어떤 종목이 대장인지를 서버가 정한다(테마마다 정해 둔 목록, JUBY-BE LeadingStockTheme) — 프론트에 박아 두면 대장이 바뀔 때마다
+ * 코드를 고쳐 배포해야 한다.
  *
  * 홈 카드가 이 응답에서 쓰는 건 종목·테마 라벨뿐이다. 전략 수익률(returnPercentage)·매매 횟수(tradeCount)·전략 이름·기간은
- * 카드에 적지 않는다(2026-10-04 사용자 결정 — 실서버에서 매매 0~1회 종목이 0.0%라 "제자리"로 읽혔고, 종목은 전략 결과로 고른 것도
- * 아니다. CLAUDE.md "홈 테마별 대표 종목"). 그래서 받기만 하고 옮기지 않는다 — 예전엔 옮겨 두고 캐시 모양 검사까지 했다(2026-10-31 정리).
+ * 카드에 적지 않는다 — 매매 0~1회 종목은 0.0%라 "제자리"로 읽히고, 종목은 전략 결과로 고른 것도
+ * 아니다(CLAUDE.md "홈 테마별 대표 종목"). 그래서 받기만 하고 옮기지 않는다.
  * 그래프(1년 일봉)는 따로 받는다(api/home.ts loadCardSeries).
  */
 export async function getLeadingStocks(): Promise<LeadingStocks> {
@@ -167,7 +164,7 @@ export function nameOrCode(name: unknown, stockCode: string): string {
 }
 
 /*
- * 같은 탭에서 방금 받은 상세는 잠깐 다시 쓴다(사용자 결정 2026-09-27, api/memo.ts). 같은 종목을 다시 열 때 증권사 현재가를
+ * 같은 탭에서 방금 받은 상세는 잠깐 다시 쓴다(api/memo.ts). 같은 종목을 다시 열 때 증권사 현재가를
  * 또 기다리지 않게 한다. 현재가가 실시간이라 1분. 뉴스의 10분 메모는 api/news.ts에 있다.
  */
 const DETAIL_MEMO_AGE = 60 * 1000
@@ -176,9 +173,8 @@ const detailMemo = new Map<string, Memo<StockDetail>>()
 /*
  * 상세를 실패한 뒤 다시 부를 간격. **임시다 — 백엔드가 docs/남은-일.md 백엔드 10번을 고치면 이 장치를 걷는다.**
  *
- * 2026-10-04(일) 상세가 1분에 1건만 성공했다. 앞 요청 뒤 1분 안에 보내면 다른 종목이든 같은 종목이든 500이라,
- * 종목 하나를 본 뒤 곧바로 다른 종목을 누르면 "차트를 불러오지 못했습니다"가 떴다. 0.4초 뒤 다시 부르던
- * 재시도도 같은 1분 안이라 반드시 실패했다. 70초 간격으로는 늘 성공했다.
+ * 서버에 증권사 토큰이 없으면(주말) 상세가 1분에 1건만 성공한다. 앞 요청 뒤 1분 안에 보내면 다른 종목이든 같은 종목이든 500이고,
+ * 곧바로 다시 부르는 재시도도 같은 1분 안이라 반드시 실패한다. 70초 간격이면 늘 성공한다.
  * 백엔드 소스로 보면 증권사 토큰이 DB에 살아 있으면(평일 16시 일봉 배치가 받아 둔다) 한도가 없고, 토큰이 끝난
  * 주말에는 상세가 새 토큰을 저장하지 못해 요청마다 발급을 받으려다 증권사의 "1분에 1회 발급"에 걸린다.
  *
@@ -210,7 +206,7 @@ export function detailWaitMs(): number {
  * 받는다). 그런데 /api/market/** 은 읽기 전용이 아니라 거기서 받은 토큰은 저장된다. 그래서 로그인한 사용자가
  * 상세를 열기 전에 GET /api/market/{code}/price 를 한 번 부르면, 그 뒤 24시간 동안은 **모든 사용자**의 상세가
  * 저장된 토큰을 써서 발급 없이 바로 된다. 평일 16시 일봉 배치가 하는 일을 프론트가 대신 하는 셈이다.
- * docs/남은-일.md 백엔드 7번("프론트는 /api/market 을 부르지 않는다")을 깨는 우회다 — 사용자 결정(2026-10-04).
+ * docs/남은-일.md 백엔드 7번("프론트는 /api/market 을 부르지 않는다")을 깨는 우회다.
  *
  * - 로그인해야 부를 수 있다(/api/market 은 인증 경로). 비로그인은 심지 못하고 위 간격만 지킨다.
  * - 되면 6시간 동안 다시 심지 않는다(토큰은 24시간 가고 평일 16시에 배치가 갈아 끼운다). 탭끼리 나누려고 localStorage(utils/cache.ts).
@@ -241,7 +237,7 @@ function isKisTokenPrimed(now: number = Date.now()): boolean {
 
 /**
  * 심어 둔 표시를 지운다. 상세가 서버 오류를 내면 부른다 — 심을 때 남이 받아 둔 곧 끝날 토큰을 그대로 썼으면
- * 표시는 6시간인데 토큰은 먼저 끝난다. 그대로 두면 남은 시간 내내 심기를 건너뛰어 다시 1분에 1건이 됐다.
+ * 표시는 6시간인데 토큰은 먼저 끝난다. 그대로 두면 남은 시간 내내 심기를 건너뛰어 다시 1분에 1건이 된다.
  */
 function forgetKisTokenPrime(): void {
   writeStamp(PRIME_OK_KEY, 0)
@@ -338,7 +334,7 @@ export function peekStockDetail(stockCode: string, period: Period = 'ALL'): Stoc
 
 /**
  * 지금 서버에 묻고 있는 상세. 같은 종목을 또 부르면 새로 보내지 않고 이 답을 같이 기다린다.
- * 없으면 개발 모드(StrictMode)는 effect를 두 번 돌려 처음 연 종목에도 요청이 둘 나갔고, 1분에 1건만 되는 날엔 둘째가 실패했다.
+ * 없으면 개발 모드(StrictMode)가 effect를 두 번 돌려 처음 연 종목에도 요청이 둘 나가고, 1분에 1건만 되는 날엔 둘째가 실패한다.
  * A를 부르는 중에 B로 갔다가 A로 돌아와도 같다.
  */
 const detailInFlight = new Map<string, Promise<StockDetail>>()
@@ -428,10 +424,10 @@ async function fetchStockDetail(stockCode: string, period: Period, memoKey: stri
   /*
    * 차트가 그릴 수 없는 봉은 뺀다.
    * - 날짜가 여덟 자리가 아닌 봉: 날짜가 null이면 ""가 되어 차트 라이브러리가 던지고, 기간 탭을 바꾸는 순간
-   *   차트 구역이 "이 부분을 표시하지 못했어요"가 됐다 — 다시 시도해도 같은 데이터라 안 풀린다.
+   *   차트 구역이 "이 부분을 표시하지 못했어요"가 된다 — 다시 시도해도 같은 데이터라 안 풀린다.
    * - 시·고·저·종 중 하나라도 유한한 숫자가 아닌 봉: 라이브러리가 "Value is null"을 던져 캔들·시간축이 안 그려지고
-   *   마우스를 올려도 범례가 안 바뀌었다. 그리는 곳이 React 밖이라 구역 안내도 안 떴다(2026-09-28 발견). 빼면 그 날만 빈다.
-   * 거래량만 빈 봉·날짜가 겹친 봉은 그대로 그려져(2026-09-27 확인) 거르지 않는다. 범례가 거래량을 "-"로 적는다.
+   *   마우스를 올려도 범례가 안 바뀐다. 그리는 곳이 React 밖이라 구역 안내도 안 뜬다. 빼면 그 날만 빈다.
+   * 거래량만 빈 봉·날짜가 겹친 봉은 그대로 그려져 거르지 않는다. 범례가 거래량을 "-"로 적는다.
    */
   const candles = response.dailyPrices.map(toCandle)
   const datedCandles = candles.filter((candle) => /^\d{8}$/.test(candle.date))

@@ -42,7 +42,7 @@ function ymdToDate(ymd: string): Date {
 
 /**
  * months달 거슬러 올라간 날. 그달에 같은 날이 없으면 그달 말일로 맞춘다(Java `LocalDate.minusMonths`와 같다).
- * `Date.setMonth`는 넘쳐서 다음 달로 간다 — 7월 31일의 한 달 전이 6월 31일 → 7월 1일이 됐다.
+ * `Date.setMonth`는 넘쳐서 다음 달로 간다 — 7월 31일의 한 달 전이 6월 31일 → 7월 1일이 된다.
  */
 function minusMonths(date: Date, months: number): Date {
   const year = date.getFullYear()
@@ -105,7 +105,7 @@ export function toKoreanDate(
 
 /**
  * 기준일(YYYYMMDD)이 모두 같으면 그 날, 하나라도 다르거나 비었거나 여덟 자리가 아니면 null. 홈 테마 카드 셋이 같은 날의 종가면 구역 제목 줄에
- * 한 번만 적고, 아니면 카드마다 적는다(2026-11-03 지시서 N-3 — 카드 셋마다 "11월 3일 종가"가 되풀이됐다)
+ * 한 번만 적고, 아니면 카드마다 적는다
  */
 export function sharedYmd(dates: readonly string[]): string | null {
   const first = dates[0]
@@ -117,7 +117,7 @@ const KST_OFFSET_MS = 9 * 60 * 60 * 1000
 
 /**
  * 한국 시각의 벽시계를 UTC 칸에 담은 Date(getUTCHours()가 한국 시). Date가 담지 못하는 값(NaN, ±8.64e15 밖)이면 null —
- * Number.isFinite만 보면 1e16 같은 값이 "오후 NaN:NaN"으로 새어 나갔다
+ * Number.isFinite만 보면 1e16 같은 값이 "오후 NaN:NaN"으로 새어 나간다
  */
 function kstClock(ms: number): Date | null {
   const kst = new Date(ms + KST_OFFSET_MS)
