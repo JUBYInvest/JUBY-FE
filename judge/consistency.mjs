@@ -15,6 +15,8 @@
 //     로그아웃은 같은 줄 오른쪽 끝의 글자 단추. 320px까지 한 줄에 서고 넘치지 않는다(2026-11-04 — 초록으로 채운 칸을 테두리 상자에 담고 있었다)
 //  C8 탭이 선 제목 줄(주식 모아보기 '담은 종목', 종목 상세 '뉴스 모아보기'): 넓으면 탭이 제목 줄 오른쪽 끝, 좁아서 다음 줄로 내려가면 제목과 왼쪽 끝이 같다
 //     (320px에서 오른쪽에 붙어 '담은 종목' 18px, 뉴스는 '기사 검색하기'로 이름이 길어져 내려간 뒤 오른쪽에 붙었다)
+//  C9 밑줄 탭의 고른 막대는 놓인 선(가는 선 1px·굵은 먹 선 2px)을 그 두께만큼 덮는다 — 막대 아래 끝 = 선 아래 끝, 막대 두께 ≥ 선 두께.
+//     선 바로 위에 얹으면 2px 막대와 2px 먹 선이 두 줄로 겹쳐 보였다(2026-11-05 주식 모아보기 '담은 종목')
 // node consistency.mjs <BASE> [--only C1,C2] [--headed]
 import { cli, judge, sleep } from './lib.mjs'
 
@@ -277,6 +279,29 @@ await j.run('C8', async () => {
         : `탭이 제목 줄 — 오른쪽 끝 탭 ${Math.round(r.tabsRight)}·줄 ${Math.round(r.headRight)}px`}, 넘침 ${r.overflow}px`)
       await t.close()
     }
+  }
+})
+
+await j.run('C9', async () => {
+  for (const [path, width] of [['/likes', 1440], ['/likes', 390], ['/stocks/005930', 1440], ['/', 1440], ['/mypage', 390]]) {
+    const t = await j.open({ width })
+    await t.goto(path, 1800)
+    await t.page.evaluate(() => document.fonts.ready)
+    const bars = await t.page.evaluate(() => [...document.querySelectorAll('main button, main a')].flatMap((el) => {
+      const after = getComputedStyle(el, '::after')
+      if (after.content === 'none' || after.position !== 'absolute' || parseFloat(after.height) !== 2 || after.left !== '0px' || after.right !== '0px') return []
+      const r = el.getBoundingClientRect()
+      const barBottom = r.bottom - parseFloat(after.bottom)
+      // 막대가 놓인 선: 탭에서 위로 올라가며 아래 테두리가 있는 첫 조상
+      let line = el.parentElement
+      while (line && line.tagName !== 'MAIN' && parseFloat(getComputedStyle(line).borderBottomWidth) === 0) line = line.parentElement
+      if (!line || line.tagName === 'MAIN') return [{ name: el.textContent.trim(), line: null }]
+      const lr = line.getBoundingClientRect()
+      return [{ name: el.textContent.trim(), gap: Math.round((lr.bottom - barBottom) * 10) / 10, thick: parseFloat(getComputedStyle(line).borderBottomWidth) }]
+    }))
+    const bad = bars.filter((b) => b.line === null || Math.abs(b.gap) > 0.5)
+    j.report(`C9${path}-${width}`, bars.length > 0 && bad.length === 0, bars.length === 0 ? '고른 탭 막대 없음' : bars.map((b) => `'${b.name}' 선 ${b.thick}px, 막대 아래 끝과 ${b.gap}px`).join(' · '))
+    await t.close()
   }
 })
 

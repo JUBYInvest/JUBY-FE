@@ -42,28 +42,34 @@
   text-align: center;
 }
 
-/* 말풍선이 없을 때 — 성향 한 줄과 문답 예시. 넘치면 이 칸 안에서 내린다 */
+/* 말풍선이 없을 때 — 제목·성향 한 줄·문답 예시. 남는 세로 공간의 한가운데, 넘치면 이 칸 안에서 내린다 */
 .emptyArea {
   flex: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  gap: var(--space-6);
   min-height: 0;
   overflow-y: auto;
-  padding: var(--space-6) var(--space-4);
+  padding: var(--space-8) var(--space-6);
 }
 
+/* 성향이 없거나 못 불러왔을 때 — 안내 글 아래 단추 */
 .personality {
-  text-align: center;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-3);
+}
+
+.personality .personalityText {
+  margin: 0;
 }
 
 .personalityText {
-  margin: 0 0 var(--space-3);
+  margin: 0;
   font-size: var(--font-md);
+  line-height: 1.6;
   color: var(--color-text-sub);
-  text-align: center;
 }
 
 .personalityText b {
@@ -220,6 +226,10 @@
     min-height: 44px;
   }
 
+  .emptyArea {
+    padding: var(--space-5) var(--space-4);
+  }
+
   .chat {
     /*
      * 휴대폰에서는 대화창 위에 "이전 대화 | 새 대화" 한 줄이 선다(목록은 날개, SessionSidebar). 그 줄까지 쳐서
@@ -238,15 +248,76 @@
   text-decoration: underline;
 }
 
-/* 문답 예시 — 가는 선으로 나눈 줄. 질문(먹 글자)과 답(보조 글자 두 줄까지). 누르면 입력칸에 질문이 채워진다 */
+/*
+ * 문답 예시 — 왼쪽 정렬 한 열(600px). 세로로는 남는 자리의 가운데(위아래 auto 여백 — 넘치면 위부터 보인다).
+ * 첫 예시는 실제 대화의 말풍선 한 쌍을 한 단계 작게(14px) — 질문은 진한 면 오른쪽, 답은 옅은 면 왼쪽(ChatMessages.module.css와 같은 색).
+ * 나머지는 가는 선으로 나눈 질문 줄. 끝의 화살표가 "입력칸에 넣기"다
+ */
 .examples {
   width: 100%;
-  max-width: 560px;
+  max-width: 600px;
+  margin: auto 0;
 }
 
 .examplesTitle {
+  margin: 0 0 var(--space-1);
+  font-size: var(--font-xl);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--color-text);
+}
+
+.demo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  width: 100%;
+  margin: var(--space-5) 0 var(--space-8);
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-lg);
+  background: none;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.demo:focus-visible {
+  outline: 2px solid var(--color-brand-700);
+  outline-offset: 6px;
+}
+
+.demoAsk {
+  align-self: flex-end;
+  max-width: 80%;
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-lg) 4px var(--radius-lg) var(--radius-lg);
+  background: var(--color-primary);
+  transition: background-color 0.15s ease;
+}
+
+.demo:hover .demoAsk {
+  background: var(--color-primary-hover);
+}
+
+.demoAsk .exampleQuestion {
+  color: var(--color-surface);
+}
+
+.demoAnswer {
+  align-self: flex-start;
+  max-width: 88%;
+  padding: var(--space-3) var(--space-4);
+  border-radius: 4px var(--radius-lg) var(--radius-lg) var(--radius-lg);
+  background: var(--color-bg-sub);
+  font-size: var(--font-md);
+  line-height: 1.6;
+  color: var(--color-text);
+}
+
+.moreTitle {
   margin: 0 0 var(--space-2);
-  font-size: var(--font-sm);
+  font-size: var(--font-md);
   font-weight: 600;
   color: var(--color-text-sub);
 }
@@ -264,8 +335,8 @@
 
 .example {
   display: flex;
-  flex-direction: column;
-  gap: var(--space-1);
+  align-items: center;
+  gap: var(--space-4);
   width: 100%;
   padding: var(--space-3) 0;
   border: 0;
@@ -275,27 +346,45 @@
   cursor: pointer;
 }
 
-.example:hover .exampleQuestion {
-  color: var(--color-brand-700);
-}
-
 .example:focus-visible {
   outline: 2px solid var(--color-brand-700);
   outline-offset: 2px;
 }
 
+.exampleText {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
 .exampleQuestion {
   font-size: var(--font-md);
   font-weight: 600;
+  line-height: 1.5;
   color: var(--color-text);
 }
 
+.example:hover .exampleQuestion {
+  color: var(--color-brand-700);
+}
+
 .exampleAnswer {
-  display: -webkit-box;
   overflow: hidden;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
   font-size: var(--font-sm);
   line-height: 1.5;
   color: var(--color-text-sub);
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
+
+.exampleIcon {
+  flex-shrink: 0;
+  color: var(--color-text-sub);
+}
+
+.example:hover .exampleIcon {
+  color: var(--color-brand-700);
+}
+

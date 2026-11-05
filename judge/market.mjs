@@ -11,6 +11,8 @@
 //  A7 실시간 연결이 없으면 장중 61초 뒤 지수 요청 2건. 장 밖(목 20:00)은 61초 뒤에도 1건
 //  A8 화면을 옮겨도(홈 → 상세 → 백테스트, 링크로) 지수 요청 1건·스트림 연결 1건
 //  A9 비로그인: 띠 없음(지수 API가 401), 스트림은 한 번 401을 받고 3초 동안 다시 붙지 않는다
+//  A10 비로그인으로 연 탭에서 로그인(장 밖 목 20:00 — 소셜 로그인은 앱 안에서 끝난다): 띠가 뜬다, 지수 요청 2건(로그인 전 401 + 로그인 뒤)
+//  A11 목 15:50(증권사 토큰이 끝나 있을 때)·지난 값 없음: 지수를 1건 묻고 띠를 띄운다 — 지난 값이 없으면 띠가 통째로 비므로
 //  R1 스트림 값이 띠를 바꾼다: 코스피 "2,620.50" "+0.78%", 기준 자리에 "실시간"
 //  R2 홈 시세표: 삼성전자 "72,400원" "+1.97%" (둘째 묶음까지 반영), 머리 "실시간"
 //  R3 값이 바뀌어 거래대금 순서가 달라져도 줄 순서는 그대로(정렬을 다시 누르면 바뀐다)
@@ -24,7 +26,7 @@
 //  S5 띠 높이 1440: 44px, 375: 40px. 띠 글자 왼쪽 끝 = 머리글 로고 왼쪽 끝
 //  S6 띠 글자 대비 전부 ≥ 4.5:1 (REST·실시간)
 //  S8 375에서 두 줄이 띠 안에서 잘리지 않음
-import { cli, judge, kst, noOverflow, sleep } from './lib.mjs'
+import { cli, judge, kst, noOverflow, sleep, tokenFor } from './lib.mjs'
 
 const j = await judge(cli())
 const BAR = 'aside[aria-label="국내 지수"]'
@@ -121,6 +123,24 @@ await j.run('A', async () => {
   await t.goto('/', 1500)
   await sleep(3000)
   j.report('A9', (await barText(t.page)) === null && n(t.log, STREAM) === 1 && n(t.log, IDX) === 1, `띠 ${await barText(t.page)}, 지수 ${n(t.log, IDX)}건, 스트림 ${n(t.log, STREAM)}건`)
+  await t.close()
+
+  t = await j.open({ loggedIn: false, at: THU_20 })
+  await t.goto('/', 1500)
+  const before = await barText(t.page)
+  await t.page.evaluate((token) => {
+    localStorage.setItem('accessToken', token)
+    window.dispatchEvent(new StorageEvent('storage', { key: 'accessToken', newValue: token }))
+  }, tokenFor())
+  await sleep(1500)
+  const after = await barText(t.page)
+  j.report('A10', before === null && /코스피 2,612\.43/.test(after ?? '') && n(t.log, IDX) === 2, `로그인 전 띠 ${before}, 뒤 "${after}", 지수 ${n(t.log, IDX)}건`)
+  await t.close()
+
+  t = await j.open({ at: kst(2026, 10, 29, 15, 50), seed: { kisTokenPrimedAt: '0' } })
+  await t.goto('/', 1800)
+  const expired = await barText(t.page)
+  j.report('A11', n(t.log, IDX) === 1 && /코스피 2,612\.43/.test(expired ?? ''), `지수 요청 ${n(t.log, IDX)}건, 띠 "${expired}"`)
   await t.close()
 })
 

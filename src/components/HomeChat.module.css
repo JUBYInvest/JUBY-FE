@@ -31,12 +31,17 @@
   color: var(--color-text-sub);
 }
 
-/* 대화창 — 상자 없이 높이만 정하고 안에서 내린다. 412px이면 쓰는 줄 위 선이 왼쪽 시세표 행 선과 같은 높이에 온다(judge/lines.mjs G home) */
+/*
+ * 대화창 — 상자 없이 높이만 정하고 안에서 내린다. 412px이면 쓰는 줄 위 선이 왼쪽 시세표 행 선과 같은 높이에 온다(judge/lines.mjs G home).
+ * 위로 밀려 올라간 말은 먹 선에 칼로 자른 듯 잘리면 깨진 화면처럼 보여, 위 여백(16px) 안에서 흐려지며 사라지게 한다(아래도 여백 12px 안에서).
+ * 가림막은 불투명한 정도만 쓰므로 색 값은 아무것이나 된다(글자색 토큰)
+ */
 .log {
   height: 412px;
   overflow-y: auto;
   overscroll-behavior: contain;
-  padding: var(--space-3) 0;
+  padding: var(--space-4) 0 var(--space-3);
+  mask-image: linear-gradient(to bottom, transparent, var(--color-text) var(--space-4), var(--color-text) calc(100% - var(--space-3)), transparent);
 }
 
 .log:focus-visible {
@@ -54,9 +59,8 @@
   list-style: none;
 }
 
-/* 다른 사람 말: 첫 글자 동그라미 | 이름 / 말풍선 · 시각. 이어 말하면 이름 없이 바짝 붙는다 */
-.message,
-.continued {
+/* 다른 사람 말: 첫 글자 동그라미 | 이름·시각 / 말풍선. 이어 말하면(3분 안) 이름·시각 없이 바짝 붙는다 */
+.message {
   display: grid;
   grid-template-columns: 28px minmax(0, 1fr);
   gap: var(--space-2);
@@ -66,7 +70,7 @@
   margin-top: calc(var(--space-2) * -1);
 }
 
-/* 내 말은 오른쪽 */
+/* 내 말은 오른쪽 — 시각만 말풍선 위 오른쪽 끝에 */
 .mine {
   display: flex;
   justify-content: flex-end;
@@ -89,12 +93,32 @@
 }
 
 .body {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
   min-width: 0;
 }
 
+.mine .body {
+  align-items: flex-end;
+  max-width: 85%;
+}
+
+/* 이름 줄 — 동그라미(28px)와 가운데가 맞는 높이 */
 .meta {
-  margin: 0 0 var(--space-1);
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  min-height: 28px;
+  margin: 0;
+  padding-top: 3px;
   font-size: var(--font-sm);
+}
+
+.mine .meta {
+  min-height: 0;
+  margin-bottom: var(--space-1);
+  padding-top: 0;
 }
 
 .meta strong {
@@ -102,21 +126,11 @@
   color: var(--color-text);
 }
 
-.line {
-  display: flex;
-  align-items: flex-end;
-  gap: var(--space-1);
-  margin: 0;
-}
-
-.mine .line {
-  flex-direction: row-reverse;
-}
-
 .bubble {
-  max-width: 85%;
+  max-width: 100%;
+  margin: 0;
   padding: var(--space-2) var(--space-3);
-  border-radius: var(--radius-lg);
+  border-radius: 4px var(--radius-lg) var(--radius-lg) var(--radius-lg);
   background: var(--color-bg-sub);
   font-size: var(--font-md);
   line-height: 1.5;
@@ -124,15 +138,25 @@
   overflow-wrap: anywhere;
 }
 
+/* 묶음 둘째 말부터는 모서리를 접지 않는다 — 꼬리는 묶음 첫 말에만 */
+.continued .bubble {
+  border-radius: var(--radius-lg);
+}
+
 .mine .bubble {
+  border-radius: var(--radius-lg) 4px var(--radius-lg) var(--radius-lg);
   background: var(--color-brand-50);
 }
 
+.mine.continued .bubble {
+  border-radius: var(--radius-lg);
+}
+
 .time {
-  flex-shrink: 0;
   font-size: var(--font-xs);
   color: var(--color-text-sub);
   white-space: nowrap;
+  font-variant-numeric: tabular-nums;
 }
 
 /* 쓰는 줄 — 입력칸 | 보내기 */

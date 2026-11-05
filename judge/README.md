@@ -27,12 +27,12 @@ node quick.mjs http://localhost:4198 --only layout,heart,backtest,ai,regress,ext
 node ui.mjs http://localhost:4198                     # UI 규칙(10-29 리디자인 + 10-30 재정비)
 node backtest.mjs http://localhost:4198               # 백테스트 즉석 실행
 node feature.mjs http://localhost:4198                # 10-30 재정비 화면별(홈·상세·주식 모아보기)
-node community.mjs http://localhost:4198              # 커뮤니티(백엔드 /api/community/** — 가짜 서버 저장소): 카드·최신/인기·더 보기·종목 거름·닉네임 창·글쓰기/고치기/지우기·좋아요·댓글·비로그인·좁은 폭(B1–B17), 홈 전체 채팅 목업(C1–C4)
+node community.mjs http://localhost:4198              # 커뮤니티(백엔드 /api/community/** — 가짜 서버 저장소): 카드·최신/인기·더 보기·종목 거름·닉네임 창·글쓰기/고치기/지우기·좋아요·댓글·비로그인·좁은 폭(B1–B17), 홈 전체 채팅 목업(C1–C5 — C5 좁은 열의 시각 자리·위아래 흐림)
 node lines.mjs http://localhost:4198                  # 나란한 열의 선(11-02): 홈·백테스트·마이페이지 다섯 쌍 + 홈의 다른 상태가 같은 높이, 두 열 화면 전부 옆 열 선 어긋남 0
 node motion.mjs http://localhost:4198                 # 화면 전환(11-03): 메뉴 막대 미끄러짐·본문 떠오름(같은 때·곡선)·뒤로 가기·움직임 줄이기·줄이 다른 메뉴·묶음 받는 동안 띠 아래 줄
 node login.mjs http://localhost:4198                  # 로그인 화면(11-02): 글자 든 단추 셋·가운데 한 줄·떠나는 주소·최근 사용(적기·지우기)·실패 안내·좁은 폭·다른 화면에 다녀온 뒤·고대비
 node guide.mjs http://localhost:4198                  # 사용설명서(11-03): 글 파일과 같은 글·그림 다섯 장(WebP·자리·대체 글)·네 장 차례·꼭지로 옮기기·따라오는 차례·주소·넘침·홈 사용설명서 칸
-node consistency.mjs http://localhost:4198            # 화면 사이 위계·세부(11-03): 화면 제목 크기·높이·먹 선, 백테스트 결과 머리·칸 선·지표 칸, 모아보기 제목 바닥선·하트, AI 머리, 마이페이지 크기·이름, 테스트 판, 마이페이지 휴대폰 메뉴 밑줄 탭·줄 바뀌는 탭(11-04 C7·C8)
+node consistency.mjs http://localhost:4198            # 화면 사이 위계·세부(11-03): 화면 제목 크기·높이·먹 선, 백테스트 결과 머리·칸 선·지표 칸, 모아보기 제목 바닥선·하트, AI 머리, 마이페이지 크기·이름, 테스트 판, 마이페이지 휴대폰 메뉴 밑줄 탭·줄 바뀌는 탭(11-04 C7·C8), 고른 탭 막대가 놓인 선을 덮는다(11-05 C9)
 ```
 
 `--only A,B`로 묶음을 고르고, `flow`·`repro`·`ai`는 `--headed`로 창을 보며 돌린다. 끝줄이 `N PASS / M FAIL`이고 FAIL이 있으면 종료 코드 1이다.

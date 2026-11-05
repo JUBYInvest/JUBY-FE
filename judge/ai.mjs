@@ -499,5 +499,36 @@ await run('A18', async () => {
   await r.close()
 })
 
+/* A19 첫 화면(2026-11-05 사용자 "안내 디자인이 미려하지 않아"): 가운데 맞춘 성향 줄과 왼쪽 맞춘 예시 표가 따로 놀았다.
+   제목·성향 줄·답 말풍선·예시 줄이 한 왼쪽 끝에 서고, 첫 예시는 대화와 같은 말풍선 한 쌍(질문은 진한 면 오른쪽 끝, 답은 옅은 면, 내 성향으로 적힘).
+   예시는 넷, 누르면 그 질문이 채워진다. 1440·390 넘침 없음 */
+await run('A19', async () => {
+  for (const width of [1440, 390]) {
+    const t = await open({ width, height: width > 600 ? 900 : 844 })
+    await t.goto('/ai', 1500)
+    const r = await t.page.evaluate(() => {
+      const area = document.querySelector('[class*="_emptyArea_"]')
+      const box = (sel) => area.querySelector(sel)?.getBoundingClientRect() ?? null
+      const title = box('h2'), line = box('p'), ask = box('[class*="_demoAsk_"]'), answer = box('[class*="_demoAnswer_"]'), row = box('[class*="_example_"]')
+      const column = area.querySelector('section').getBoundingClientRect()
+      const bg = (sel) => getComputedStyle(area.querySelector(sel)).backgroundColor
+      return {
+        lefts: [title, line, answer, row].map((b) => Math.round(b.left - column.left)),
+        askRight: Math.round(column.right - ask.right), askAbove: ask.bottom <= answer.top,
+        askBg: bg('[class*="_demoAsk_"]'), answerBg: bg('[class*="_demoAnswer_"]'),
+        mine: /위험중립형/.test(area.querySelector('[class*="_demoAnswer_"]').textContent),
+        examples: area.querySelectorAll('[class*="_exampleQuestion_"]').length,
+      }
+    })
+    const chips = t.page.locator('[class*="_exampleQuestion_"]')
+    const last = (await chips.last().innerText()).trim()
+    await chips.last().click(); await sleep(100)
+    const filled = (await box(t.page).inputValue()) === last
+    report(`A19-${width}`, r.lefts.every((x) => x === 0) && r.askRight === 0 && r.askAbove && r.askBg !== r.answerBg && r.mine && r.examples === 4 && filled && (await noOverflow(t.page)),
+      `왼쪽 끝(제목·성향·답·예시 줄) ${r.lefts.join('/')}px, 질문 오른쪽 끝 ${r.askRight}px, 질문이 답 위 ${r.askAbove}, 면 ${r.askBg} / ${r.answerBg}, 내 성향 답 ${r.mine}, 예시 ${r.examples}, 마지막 예시 채움 ${filled}`)
+    await t.close()
+  }
+})
+
 if (RECORD) { writeFileSync(ORDER_FILE, JSON.stringify(orders, null, 1) + '\n'); console.log(`요청 순서 기록 → ${ORDER_FILE.pathname}`) }
 await j.finish()

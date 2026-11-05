@@ -9,10 +9,13 @@ import styles from './HomeChat.module.css'
 
 /** 대화창 바닥에서 이만큼 안이면 "맨 아래를 보는 중" — 새 말이 오면 따라 내린다. 위로 올려 읽는 중이면 그대로 둔다 */
 const STICK_PX = 48
+/** 같은 사람이 이 안에 이어 말하면 한 묶음이다 — 이름·시각을 묶음 첫 말에만 적는다 */
+const GROUP_MS = 3 * 60_000
 
 /**
  * 홈 맨 아래 전체 채팅 — 누구나 읽고, 로그인하면 말한다. 채팅 서버가 없어 지금은 예시다(src/api/chat.ts).
- * 대화창 안에서만 내리고(오래된 말이 위), 이어 말하면 이름을 한 번만 적는다. 내 말은 오른쪽.
+ * 대화창 안에서만 내리고(오래된 말이 위), 이어 말하면 이름·시각을 한 번만 적는다. 내 말은 오른쪽.
+ * 시각은 말풍선 옆이 아니라 이름 줄에 둔다 — 홈 오른쪽 열은 320px 남짓이라 옆에 두면 말풍선이 그만큼 좁아져 두 줄로 꺾인다.
  * 보내는 이름은 커뮤니티 닉네임, 없으면 이름, 그것도 없으면 "나"다
  */
 export default function HomeChat() {
@@ -71,28 +74,33 @@ export default function HomeChat() {
         <ol className={styles.messages}>
           {messages.map((message, index) => {
             const previous = messages[index - 1]
-            const continued = previous !== undefined && previous.author === message.author && previous.mine === message.mine
+            const continued =
+              previous !== undefined && previous.author === message.author && previous.mine === message.mine && message.at - previous.at < GROUP_MS
+            const who = message.mine ? '내 말' : message.author
+            const time = (
+              <time className={continued ? styles.srOnly : styles.time} dateTime={new Date(message.at).toISOString()}>
+                {toKoreanClock(message.at)}
+              </time>
+            )
             return (
-              <li key={message.id} className={message.mine ? styles.mine : continued ? styles.continued : styles.message}>
+              <li key={message.id} className={`${message.mine ? styles.mine : styles.message} ${continued ? styles.continued : ''}`}>
                 {!message.mine && (
                   <span className={styles.avatar} aria-hidden="true">
                     {continued ? '' : Array.from(message.author)[0]}
                   </span>
                 )}
                 <div className={styles.body}>
-                  {continued || message.mine ? (
-                    <span className={styles.srOnly}>{message.mine ? '내 말' : message.author}</span>
+                  {continued ? (
+                    <span className={styles.srOnly}>
+                      {who} {time}
+                    </span>
                   ) : (
                     <p className={styles.meta}>
-                      <strong>{message.author}</strong>
+                      {message.mine ? <span className={styles.srOnly}>{who}</span> : <strong>{who}</strong>}
+                      {time}
                     </p>
                   )}
-                  <p className={styles.line}>
-                    <span className={styles.bubble}>{message.text}</span>
-                    <time className={styles.time} dateTime={new Date(message.at).toISOString()}>
-                      {toKoreanClock(message.at)}
-                    </time>
-                  </p>
+                  <p className={styles.bubble}>{message.text}</p>
                 </div>
               </li>
             )

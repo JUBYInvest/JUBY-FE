@@ -39,56 +39,76 @@ interface Props {
 
 /**
  * 말풍선이 하나도 없을 때의 대화창 — 무엇을 물을 수 있는지 문답 예시로 보인다.
- * 위에는 성향 상태를 한 줄로 둔다. 성향이 없는 회원의 질문은 서버가 거절하므로 검사를 먼저 권하고, 못 불러왔으면 다시 시도만 준다
- * (검사를 권하면 멀쩡한 성향을 덮어쓸 수 있다). 불러오는 중에는 그 줄을 비워 둔다.
+ * 첫 예시는 실제 대화와 같은 말풍선 한 쌍(내 질문 오른쪽, 답 왼쪽)으로 크게 — 답이 내 성향으로 적혀 "내 성향에 맞춰 답한다"를 보여 준다.
+ * 나머지는 질문 줄 목록이다. 어느 것이든 누르면 입력칸에 질문을 채우기만 한다(보내는 건 사용자다).
+ * 제목 아래에 성향 상태를 한 줄로 둔다. 성향이 없는 회원의 질문은 서버가 거절하므로 검사를 먼저 권하고, 못 불러왔으면 다시 시도만 준다
+ * (검사를 권하면 멀쩡한 성향을 덮어쓸 수 있다). 불러오는 중·비로그인에는 그 줄을 비워 둔다.
  */
 export default function ChatEmptyState({ loggedIn, personality, onRetryPersonality, onPickExample }: Props) {
   // 첫 예시의 답은 내 성향이 있으면 그 성향으로 적는다
   const mine = personality.kind === 'found' && isPersonalityType(personality.name) ? personality.name : null
-  const examples =
-    mine === null
-      ? EXAMPLES
-      : [{ ...EXAMPLES[0], answer: `회원님은 ${mine}이에요. ${PERSONALITY_INFO[mine].description.replace(/\n/g, ' ')}이에요.` }, ...EXAMPLES.slice(1)]
+  const [first, ...rest] = EXAMPLES
+  const featured = mine === null ? first : { ...first, answer: `회원님은 ${mine}이에요. ${PERSONALITY_INFO[mine].description.replace(/\n/g, ' ')}이에요.` }
   return (
     <div className={styles.emptyArea}>
-      {personality.kind === 'found' ? (
-        <p className={styles.personalityText}>
-          지금 투자성향은 <b>{personality.name}</b>이에요. 이 성향에 맞춰 답해요.
-          <Link className={styles.personalityLink} to={PERSONALITY_TEST_URL}>
-            성향 다시 검사
-          </Link>
-        </p>
-      ) : personality.kind === 'error' ? (
-        <div className={styles.personality}>
-          <p className={styles.personalityText}>성향을 불러오지 못했어요.</p>
-          <button type="button" className={styles.darkButton} onClick={onRetryPersonality}>
-            다시 시도
-          </button>
-        </div>
-      ) : loggedIn && personality.kind === 'none' ? (
-        <div className={styles.personality}>
-          <p className={styles.personalityText}>투자성향을 정하면 질문할 수 있어요. 답도 내 성향에 맞춰 나와요.</p>
-          <Link className={styles.darkButton} to={PERSONALITY_TEST_URL}>
-            투자성향 검사하기
-          </Link>
-        </div>
-      ) : null}
-
       <section className={styles.examples} aria-labelledby="ai-examples-title">
         <h2 id="ai-examples-title" className={styles.examplesTitle}>
           이렇게 물으면 이렇게 답해요
         </h2>
+        {personality.kind === 'found' ? (
+          <p className={styles.personalityText}>
+            지금 투자성향은 <b>{personality.name}</b>이에요. 답도 이 성향에 맞춰요.
+            <Link className={styles.personalityLink} to={PERSONALITY_TEST_URL}>
+              성향 다시 검사
+            </Link>
+          </p>
+        ) : personality.kind === 'error' ? (
+          <div className={styles.personality}>
+            <p className={styles.personalityText}>성향을 불러오지 못했어요.</p>
+            <button type="button" className={styles.darkButton} onClick={onRetryPersonality}>
+              다시 시도
+            </button>
+          </div>
+        ) : loggedIn && personality.kind === 'none' ? (
+          <div className={styles.personality}>
+            <p className={styles.personalityText}>투자성향을 정하면 질문할 수 있어요. 답도 내 성향에 맞춰 나와요.</p>
+            <Link className={styles.darkButton} to={PERSONALITY_TEST_URL}>
+              투자성향 검사하기
+            </Link>
+          </div>
+        ) : null}
+
+        <button type="button" className={styles.demo} onClick={() => onPickExample(featured.question)}>
+          <span className={styles.demoAsk}>
+            <span className={styles.exampleQuestion}>{featured.question}</span>
+          </span>
+          <span className={styles.demoAnswer}>{featured.answer}</span>
+        </button>
+
+        <h3 className={styles.moreTitle}>이런 것도 물어볼 수 있어요</h3>
         <ul className={styles.exampleList}>
-          {examples.map((example) => (
+          {rest.map((example) => (
             <li key={example.question}>
               <button type="button" className={styles.example} onClick={() => onPickExample(example.question)}>
-                <span className={styles.exampleQuestion}>{example.question}</span>
-                <span className={styles.exampleAnswer}>{example.answer}</span>
+                <span className={styles.exampleText}>
+                  <span className={styles.exampleQuestion}>{example.question}</span>
+                  <span className={styles.exampleAnswer}>{example.answer}</span>
+                </span>
+                <InsertIcon />
               </button>
             </li>
           ))}
         </ul>
       </section>
     </div>
+  )
+}
+
+/** 입력칸에 넣는다(줄 끝에서 왼쪽 아래로 꺾인 화살표) — 누르면 보내지 않고 채우기만 한다는 표시 */
+function InsertIcon() {
+  return (
+    <svg className={styles.exampleIcon} width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M20 5v7a3 3 0 0 1-3 3H6m0 0 4-4m-4 4 4 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
   )
 }

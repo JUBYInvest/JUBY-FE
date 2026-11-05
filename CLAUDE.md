@@ -93,7 +93,7 @@ npx knip@5               # 안 쓰는 파일·내보내기(judge/는 뺀다)
 | `GET /api/stocks/{code}?period=ALL` 상세 | 1 | 기간 탭은 화면에서 자른다(`periodStart`) |
 | `?period=ONE_YEAR` 홈 카드 그래프 | 담아 둔 게 없는 카드만 | 토큰을 심었거나 `canSpendKisCall`일 때(`api/cardSeries.ts`) |
 | `GET /api/market/{code}/price` 토큰 심기(임시) | 1 | 로그인 때 홈·상세에서 6시간에 1회(`primeKisToken`) |
-| `GET /api/market-indices` 지수 띠 | 장 밖 값은 서버가 증권사(1분 캐시) | 처음 + 실시간이 없을 때 장중 1분마다, `canSpendKisCall`일 때 |
+| `GET /api/market-indices` 지수 띠 | 장 밖 값은 서버가 증권사(1분 캐시) | 처음·로그인 뒤 + 실시간이 없을 때 장중 1분마다. 장 밖에 `canSpendKisCall`이 아니면 지난 값(없으면 묻는다) |
 | `GET /api/market/holiday` 휴장일 | 1("하루 한 번" API) | 받아 둔 날짜가 오늘과 다음 개장일을 못 덮을 때(로그인) |
 | `GET /api/market/volume-rank` 순위 | 1 | 홈 순위 탭을 열 때만(1분 메모, 로그인) |
 | `GET /api/market/{code}/daily_itemchartprice` | 1(모의투자 토큰) | 로그인했고 상세가 실패했을 때 그 종목만 |
@@ -165,8 +165,9 @@ npx knip@5               # 안 쓰는 파일·내보내기(judge/는 뺀다)
 
 - 구조: `pages/AiPage.tsx`(넘어온 것 처리) + `hooks/useChatRooms`(목록) + `hooks/useConversation`(말풍선·보내기), 부품 `components/ai/ChatPane`·`ChatEmptyState`·`Composer`.
   **훅 순서가 요청 순서다**(목록을 성향보다 먼저 — `expect/ai-order.json`).
-- **첫 화면**(`ChatEmptyState`): 워터마크 없이 성향 한 줄("지금 투자성향은 ○○이에요" + "성향 다시 검사")과 문답 예시 넷. 질문은 사용설명서 4장 사례의 것, 답은 그 사례의 답이나
-  챗봇이 보는 것이다 — 지어낸 주가 숫자를 적지 않는다. 누르면 입력칸에 채우기만 한다. 글은 모두 '해요'체.
+- **첫 화면**(`ChatEmptyState`): 왼쪽 맞춘 한 열(600px) — 제목 "이렇게 물으면 이렇게 답해요" → 성향 한 줄("지금 투자성향은 ○○이에요" + "성향 다시 검사") →
+  첫 예시를 대화와 같은 말풍선 한 쌍(질문 진한 면 오른쪽, 답 옅은 면 — 답은 내 성향으로) → "이런 것도 물어볼 수 있어요" 질문 줄 셋(끝 화살표 = 입력칸에 넣기).
+  질문은 사용설명서 4장 사례의 것, 답은 그 사례의 답이나 챗봇이 보는 것이다 — 지어낸 주가 숫자를 적지 않는다. 누르면 입력칸에 채우기만 한다. 글은 모두 '해요'체(judge ai A19).
 - 새 대화는 첫 질문 때 `POST /api/chat-sessions`로 방부터 만들고 그 번호로 묻는다(번호를 실어야 앞 대화가 맥락이 된다). 409 `CHAT409_1`은 "앞 질문의 답을 아직 만들고 있어요",
   404·403 방은 목록에서 빼고 새 대화로, 404 `MEMBER404_2`는 성향 검사 안내. 답이 오면 목록은 제목이 '새 대화'일 때만 다시 받는다.
 - **다시 시도와 그만 기다린 방에 새로 보내기는 방을 먼저 다시 받는다**(끝난 답을 살리고 두 번 저장하지 않게). 목록·방을 받는 중이거나 못 불러온 화면에서는 보내지 않는다.
@@ -210,11 +211,15 @@ npx knip@5               # 안 쓰는 파일·내보내기(judge/는 뺀다)
 - 채팅 서버가 아직 없어 목업이다(`src/api/chat.ts` 한 파일 — `loadChatHistory`·`connectChat`의 모양을 두고 속만 바꾼다, 예시 대화는 `src/content/chatPreview.ts`).
   예시 말이 몇십 초마다 들어오고, 보낸 말은 그 화면에만 붙는다. 칸 제목 옆 "예시"와 아래 안내 한 줄로 밝힌다.
 - 누구나 읽고 로그인하면 말한다(보내는 이름은 닉네임 → 이름 → "나"). 대화창 안에서만 내리고, 맨 아래를 보는 중일 때만 새 말을 따라 내린다. 내 말은 오른쪽.
+- 시각은 이름 줄에(말풍선 옆이 아니라 — 오른쪽 열이 320px 남짓이라 말풍선이 꺾인다). 같은 사람이 3분 안에 이어 말하면 이름·시각을 한 번만 적는다.
+  대화창 위아래 여백은 `mask-image`로 흐려 먹 선에 잘린 말이 깨져 보이지 않게 한다(judge community C5).
 
 ### 아래 지수 띠(`components/MarketIndexBar`)
 
 - `GET /api/market-indices` → `{ asOf, indices: [{ code, name, currentIndex, changeRate, accTradingValue, realtime }] }`. 포인트 대비는 없다 — 띠는 지수와 대비율만 적는다.
-- `Layout`에 한 번 놓인다. 처음 한 번, 그리고 실시간 연결이 없을 때 장중·탭이 보일 때 1분마다 묻는다(5초, 차단기에 세지 않는다).
+- `Layout`에 한 번 놓인다. 처음 한 번, **로그인하면 다시 한 번**(소셜 로그인은 앱 안에서 끝나 띠가 로그인 전의 401을 들고 있다), 그리고 실시간 연결이 없을 때
+  장중·탭이 보일 때 1분마다 묻는다(5초, 차단기에 세지 않는다). 로그인했는데 값이 없으면 장 밖에도 1분마다 묻는다. `canSpendKisCall`이 아니어도 지난 값이 없으면 묻는다
+  (judge market A10·A11).
   **장중엔 실시간 값으로 바꾸고 기준 자리에 "실시간"**, 아니면 `asOf`로 "N월 N일 HH:MM 기준". 못 받으면 지난 값(`marketIndices.v2`), 없으면 띠가 없다. **비로그인은 API가 401이라 띠가 없다.**
 - 장 상태·진행 막대(`marketStatus`·`sessionClock`)는 휴장일을 모르면 주말만 휴장으로 보고 평일엔 상태를 적지 않는다. 장 시간은 9:00~15:30 고정(`isMarketHours`는 15:35까지).
 - `position: sticky; bottom: 0`, `z-index: 5`. 높이는 `--index-bar-height`(44px, 600px 이하 40px, 띠가 없으면 `:root:not(:has([data-index-bar]))`로 0) — 띠 위에 뜨는 것이 쓴다.
@@ -236,7 +241,8 @@ npx knip@5               # 안 쓰는 파일·내보내기(judge/는 뺀다)
   `sideList.module.css`, `a11y.module.css`(`srOnly`·`rowLink`). 바뀌는 값은 변수다(`--tab-*`·`--tabs-margin-left`, `--section-head-height`, `--button-height`·`--button-padding-x`).
   **등락 글자색(`.up`·`.down`·`.flat`)은 공용 모듈로 모으지 않는다**(함께 붙는 색 클래스와 순서가 뒤집힌다).
 - **밑줄 탭**: 고른 것은 먹 글자 + 아래 2px 브랜드 막대, 클래스 `tabActive`로 그린다. 알약·채운 탭은 쓰지 않는다(예외 커뮤니티). 제목 줄 오른쪽 탭은 제목 `flex-grow: 1` +
-  `--tabs-margin-left: 0`(내려가면 왼쪽부터 선다).
+  `--tabs-margin-left: 0`(내려가면 왼쪽부터 선다). **막대는 놓인 선을 그 두께만큼 덮는다**(`--tab-bar-offset` 가는 선 -1px 기본, 굵은 먹 선 머리 안 -2px) —
+  선 바로 위에 얹으면 막대와 선이 두 줄로 겹쳐 보인다(judge consistency C9).
 - **단추는 세 종류뿐이다**: primary(주 행동), secondary(흰 바탕 + 먹 테두리), ghost. 높이 md 40px·lg 48px(600px 이하 md 44px). 화면 CSS는 자리만 정하고
   색·테두리·높이·`display`·`padding`·`gap`을 덮어쓰지 않는다. 한 요소에 두 종류를 달지 않는다. 되돌릴 수 없는 확정은 primary, 취소는 secondary.
   제목 줄·줄 끝 글자 동작("+ 새 대화"·"새 글 N")은 상자 없는 초록 굵은 글자다. 카카오만 회사 색이다(가입 경로는 `utils/social.ts SOCIAL_PROVIDERS` 한 표).

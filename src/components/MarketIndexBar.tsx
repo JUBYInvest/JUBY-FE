@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { INDEX_REFRESH_MS, isMarketHours, loadMarketIndices, readCachedIndices } from '../api/market'
 import { loadMarketCalendar, marketStatus, sessionClock } from '../api/marketCalendar'
 import { useRealtime, type LiveIndex } from '../api/realtime'
+import { useIsLoggedIn } from '../hooks/useIsLoggedIn'
 import { toKoreanDateTime, toKoreanDateWithDay } from '../utils/date'
 import { formatChangeRate, formatPoint, rateTone } from '../utils/format'
 import type { MarketIndex, MarketIndices, MarketStatus } from '../types/market'
@@ -10,6 +11,7 @@ import styles from './MarketIndexBar.module.css'
 /**
  * 화면 아래에 붙는 국내 지수 띠(코스피·코스닥). App의 Layout에 한 번 놓여 화면을 옮겨도 다시 묻지 않는다.
  * 처음 한 번 REST로 받고, 장중에는 실시간 연결(api/realtime.ts)의 값으로 바꿔 그린다. 실시간 연결이 없으면 장중에 1분마다 다시 묻는다.
+ * 로그인하면 다시 묻는다 — 소셜 로그인은 앱 안에서 끝나 띠가 로그인 전에 받은 401을 들고 있다. 로그인했는데 값이 없으면 장 밖에도 1분마다 다시 묻는다.
  * 보여줄 값이 없으면(못 받았고 지난 값도 없음 — 비로그인은 지수 API가 401이다) 띠를 그리지 않는다.
  *
  * 맨 앞에 장 상태(장 시작 전·장 중·장 마감·오늘 휴장)와 오늘 장 진행 막대를 둔다 — 초보자는 지금 가격이 움직이는 때인지 모른다.
@@ -22,32 +24,39 @@ export default function MarketIndexBar() {
   /** 장 상태를 다시 읽는 때. 1분마다, 그리고 휴장일을 받은 뒤 바꾼다 */
   const [now, setNow] = useState(() => Date.now())
   const realtime = useRealtime()
+  const loggedIn = useIsLoggedIn()
   const liveRef = useRef(false)
   liveRef.current = realtime.live && realtime.indices.size > 0
 
   useEffect(() => {
     let isStale = false
+    let empty = true
     const refresh = () => {
       void loadMarketIndices().then((next) => {
         if (isStale) return
         setSettled(true)
         // 못 받았으면 지난 값이 온다. 그것도 없으면 지금 보이는 값을 지우지 않는다
-        if (next !== null) setData(next)
+        if (next !== null) {
+          empty = false
+          setData(next)
+        }
       })
     }
     refresh()
+    // 휴장일은 로그인해야 받는다 — 로그인하면 이 effect가 다시 돌아 받는다
     void loadMarketCalendar().then(() => {
       if (!isStale) setNow(Date.now())
     })
     const timer = setInterval(() => {
       setNow(Date.now())
-      if (document.visibilityState === 'visible' && isMarketHours() && !liveRef.current) refresh()
+      if (document.visibilityState !== 'visible' || liveRef.current) return
+      if (isMarketHours() || (loggedIn && empty)) refresh()
     }, INDEX_REFRESH_MS)
     return () => {
       isStale = true
       clearInterval(timer)
     }
-  }, [])
+  }, [loggedIn])
 
   const live = liveRef.current
   const indices = live ? withLive(data?.indices ?? [], realtime.indices) : (data?.indices ?? [])

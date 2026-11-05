@@ -24,6 +24,7 @@
 //  C2 말 보내기: 입력 → 보내기 → 오른쪽 "내 말" 줄, 입력칸 비움, 요청은 보내는 이름을 위한 회원 정보뿐(채팅은 목업)
 //  C3 비로그인: 입력칸 대신 로그인 링크(/login — 홈은 돌아올 자리를 적지 않는다)
 //  C4 390: 시세표 → 처음 시작하기 → 채팅 순, 가로 넘침 없음
+//  C5 1280(좁은 오른쪽 열): 이름 있는 말마다 시각이 이름 줄(말풍선 위), 가장 넓은 말풍선이 열 폭의 90% 넘게 쓴다, 대화창 위아래가 흐려진다(mask)
 import { cli, judge, noOverflow, sleep } from './lib.mjs'
 
 const j = await judge(cli())
@@ -231,6 +232,25 @@ await j.run('C', async () => {
   const link = await t.page.locator(CHAT).getByRole('link', { name: '로그인' }).getAttribute('href')
   const input = await t.page.locator(CHAT).getByLabel('채팅에 보낼 말').count()
   j.report('C3', link === '/login' && input === 0, `로그인 링크 ${link}, 입력칸 ${input}`)
+  await t.close()
+
+  // C5 좁은 오른쪽 열(1280 — 320px 남짓): 시각은 이름 줄에(말풍선 옆에 두면 말풍선이 그만큼 좁아져 꺾였다), 말풍선은 열 폭을 다 쓸 수 있고,
+  // 대화창 위아래는 흐려지며 사라진다(먹 선에 잘린 말이 깨진 듯 보였다)
+  t = await j.open({ width: 1280, height: 800 })
+  await t.goto('/', 2000)
+  const c5 = await t.page.evaluate((sel) => {
+    const log = document.querySelector(`${sel} [role="log"]`)
+    const heads = [...log.querySelectorAll('li')].filter((li) => li.querySelector('strong'))
+    const bad = heads.filter((li) => {
+      const time = li.querySelector('time'), bubble = li.querySelector('p:last-child'), name = li.querySelector('strong')
+      const tr = time.getBoundingClientRect(), br = bubble.getBoundingClientRect(), nr = name.getBoundingClientRect()
+      return !(tr.bottom <= br.top + 1 && Math.abs(tr.bottom - nr.bottom) < 4)
+    }).map((li) => li.querySelector('strong').textContent)
+    const body = heads[0]?.querySelector('p:last-child')?.parentElement.getBoundingClientRect().width ?? 0
+    const widest = Math.max(...heads.map((li) => li.querySelector('p:last-child').getBoundingClientRect().width))
+    return { heads: heads.length, bad, body: Math.round(body), widest: Math.round(widest), mask: getComputedStyle(log).maskImage !== 'none' }
+  }, CHAT)
+  j.report('C5', c5.heads >= 4 && c5.bad.length === 0 && c5.widest > c5.body * 0.9 && c5.mask, JSON.stringify(c5))
   await t.close()
 
   t = await j.open({ width: 390, height: 844 })

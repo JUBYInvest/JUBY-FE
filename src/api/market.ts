@@ -71,7 +71,8 @@ let inflight: Promise<MarketIndices | null> | null = null
 /**
  * 지수를 받는다. **던지지 않는다** — 못 받으면 지난 값, 그것도 없으면 null(띠를 숨긴다).
  * 장 밖의 값은 서버가 증권사를 불러 만든다. 서버에 증권사 토큰이 없을 때 부르면 서버 전체의 "1분 1회 발급"을 써 버려
- * 사용자가 누른 상세가 기다리므로 그때는 묻지 않는다(canSpendKisCall).
+ * 사용자가 누른 상세가 기다리므로 그때는 지난 값을 쓴다(canSpendKisCall). 지난 값도 없으면 띠가 통째로 비므로 그래도 묻는다.
+ * 장중 값은 서버가 실시간 체결로 만들어 증권사를 부르지 않는다.
  */
 export function loadMarketIndices(): Promise<MarketIndices | null> {
   inflight ??= fetchIndices().finally(() => {
@@ -81,7 +82,10 @@ export function loadMarketIndices(): Promise<MarketIndices | null> {
 }
 
 async function fetchIndices(): Promise<MarketIndices | null> {
-  if (!canSpendKisCall()) return readCachedIndices()
+  if (!canSpendKisCall() && !isMarketHours()) {
+    const cached = readCachedIndices()
+    if (cached !== null) return cached
+  }
   try {
     // 띠는 없어도 되는 값이라 짧게 끊는다. 일부러 끊은 시간 초과는 서버 무응답으로 세지 않는다(client.ts 차단기)
     const response = await get<MarketIndicesResponse | null>(INDICES_PATH, {

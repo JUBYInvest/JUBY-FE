@@ -250,10 +250,13 @@
   flex-grow: 1;
 }
 
-/* 정렬·종목 탭(tabs.module.css). 굵은 먹 선 머리 안이라 막대는 먹 선 바로 위(0), 글자는 제목과 바닥선을 맞춘다 */
+/*
+ * 정렬·종목 탭(tabs.module.css). 굵은 먹 선 머리 안이라 막대가 먹 선을 그 폭만큼 덮는다(-2px) — 먹 선 바로 위에 얹으면
+ * 2px 막대와 2px 먹 선이 두 줄로 겹쳐 보인다. 글자는 제목과 바닥선을 맞춘다
+ */
 .tabs {
   composes: tabs from '../components/tabs.module.css';
-  --tab-bar-offset: 0;
+  --tab-bar-offset: -2px;
   --tabs-align: baseline;
   --tabs-margin-left: 0;
 }
