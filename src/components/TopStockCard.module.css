@@ -53,7 +53,7 @@
 .quote {
   grid-area: quote;
   margin: 2px 0 0;
-  font-size: var(--font-base);
+  font-size: var(--font-lg);
   font-weight: 600;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
@@ -80,7 +80,7 @@
 }
 
 .rate {
-  font-size: var(--font-base);
+  font-size: var(--font-lg);
   font-weight: 700;
   font-variant-numeric: tabular-nums;
 }
@@ -150,7 +150,7 @@
 
   .quote {
     font-size: var(--font-md);
-    font-weight: 500;
+    font-weight: 600;
   }
 
   .chart {
@@ -160,7 +160,7 @@
   }
 
   .chartMessage {
-    font-size: var(--font-2xs);
+    font-size: var(--font-xs);
   }
 
   .chartHint {

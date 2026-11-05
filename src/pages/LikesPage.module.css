@@ -186,7 +186,7 @@
 }
 
 .tileSmall .tileRate {
-  font-size: var(--font-base);
+  font-size: var(--font-md);
 }
 
 .tileSmall .tilePrice {
@@ -336,7 +336,7 @@
 
 .price,
 .rate {
-  font-size: var(--font-base);
+  font-size: var(--font-md);
   font-weight: 700;
   text-align: right;
   font-variant-numeric: tabular-nums;
@@ -396,9 +396,7 @@
 }
 
 .hint {
-  margin: 0;
-  font-size: var(--font-md);
-  color: var(--color-text-sub);
+  composes: note from '../components/section.module.css';
 }
 
 .primary {

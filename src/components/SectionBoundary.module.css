@@ -11,9 +11,7 @@
 }
 
 .text {
-  margin: 0;
-  font-size: var(--font-base);
-  color: var(--color-text-sub);
+  composes: note from './section.module.css';
 }
 
 .retry {

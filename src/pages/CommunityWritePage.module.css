@@ -192,11 +192,11 @@
   font-size: var(--font-md);
 }
 
-/* 취소 | 올리기 — 지수 띠(44px, 600px 이하 40px, 아이폰은 홈 막대 자리만큼 더) 바로 위에 붙어 따라온다. 글 칸이 밑으로 지나가므로 흰 바탕 */
+/* 취소 | 올리기 — 지수 띠(--index-bar-height, 아이폰은 홈 막대 자리만큼 더) 바로 위에 붙어 따라온다. 글 칸이 밑으로 지나가므로 흰 바탕 */
 .actions {
   position: sticky;
   z-index: 2;
-  bottom: calc(44px + env(safe-area-inset-bottom));
+  bottom: calc(var(--index-bar-height) + env(safe-area-inset-bottom));
   display: flex;
   justify-content: flex-end;
   gap: var(--space-2);
@@ -225,7 +225,6 @@
   }
 
   .actions {
-    bottom: calc(40px + env(safe-area-inset-bottom));
     padding: var(--space-3) 0;
   }
 

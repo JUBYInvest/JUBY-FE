@@ -1,11 +1,16 @@
 import { NavLink, Navigate, Outlet, useLocation } from 'react-router-dom'
 import SectionBoundary from './SectionBoundary'
+import { useMediaQuery } from '../hooks/useMediaQuery'
 import { useLogout } from '../hooks/useLogout'
 import { isLoggedIn } from '../utils/auth'
 import { loginPathFrom } from '../utils/navigation'
 import styles from './MypageLayout.module.css'
+import tabs from './tabs.module.css'
 
 /** end: 하위 주소에서는 켜지지 않는다 — '/mypage'는 모든 마이페이지 주소의 앞부분이다 */
+/** 메뉴가 밑줄 탭 한 줄로 접히는 폭 */
+const NARROW = '(max-width: 900px)'
+
 const MENU = [
   { to: '/mypage', label: '한눈에 보기', end: true },
   { to: '/mypage/personality', label: '투자유형 보기', end: false },
@@ -13,18 +18,14 @@ const MENU = [
 ]
 
 /**
- * 마이페이지 세 화면이 함께 쓰는 껍데기(관심종목은 2026-10-30에 머리글의 주식 모아보기로 옮겼다). 사이드바 + 오른쪽 내용(Outlet).
- *
- * 사이드바 생김새는 AI 주가분석 화면과 거의 같지만 컴포넌트를 공용화하지 않았다.
- * 그쪽 목록은 서버에서 오는 대화 세션이라 개수가 계속 변하고, 이쪽은 고정 셋에
- * 현재 경로로 선택을 판단한다. 억지로 합치면 양쪽 조건이 한 파일에 뒤엉킨다.
- *
- * 로그아웃 버튼이 여기 있는 이유: 마이페이지 세 화면 어디서나 닿고, 머리글은
- * 좁은 폭에서 이미 꽉 차 있어 항목을 더 넣을 자리가 없다.
+ * 마이페이지 세 화면이 함께 쓰는 껍데기 — 메뉴 + 오른쪽 내용(Outlet).
+ * 넓은 화면의 메뉴는 옆 열 줄이고, 900px 이하에서는 가는 선 위 밑줄 탭 한 줄이다(공용 tabs.module.css를 그대로 쓴다).
+ * 로그아웃은 메뉴 끝에 둔다 — 마이페이지 어디서나 닿고, 머리글은 좁은 폭에서 자리가 없다.
  */
 export default function MypageLayout() {
   const { pathname } = useLocation()
   const { isLoggingOut, logOut } = useLogout()
+  const narrow = useMediaQuery(NARROW)
 
   /*
    * 세 경로 모두 로그인이 필요하다. 렌더 전에 막아야 아래 화면들이
@@ -53,9 +54,7 @@ export default function MypageLayout() {
                 <NavLink
                   to={item.to}
                   end={item.end}
-                  className={({ isActive }) =>
-                    isActive ? `${styles.item} ${styles.itemOn}` : styles.item
-                  }
+                  className={({ isActive }) => (narrow ? (isActive ? tabs.tabActive : tabs.tab) : isActive ? styles.itemOn : styles.item)}
                 >
                   {item.label}
                 </NavLink>

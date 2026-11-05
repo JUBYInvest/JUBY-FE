@@ -1,0 +1,15 @@
+.message {
+  composes: title from './Modal.module.css';
+}
+
+.buttons {
+  composes: buttons from './Modal.module.css';
+}
+
+.primary {
+  composes: primary lg from './buttons.module.css';
+}
+
+.secondary {
+  composes: ghost lg from './buttons.module.css';
+}

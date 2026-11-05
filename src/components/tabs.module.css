@@ -22,6 +22,9 @@
 .tab,
 .tabActive {
   position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   min-width: var(--tab-min-width, 44px);
   min-height: 44px;
   padding: 0;

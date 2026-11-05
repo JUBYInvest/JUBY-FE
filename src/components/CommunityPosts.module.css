@@ -106,7 +106,7 @@
   overflow: hidden;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
-  font-size: var(--font-base);
+  font-size: var(--font-md);
   line-height: 1.6;
   color: var(--color-text-sub);
   overflow-wrap: anywhere;
@@ -212,25 +212,13 @@
   color: var(--color-text);
 }
 
-.postLink::after {
-  content: '';
-  position: absolute;
-  inset: 0;
+.postLink {
+  composes: rowLink from './a11y.module.css';
 }
 
 .post:hover .postLink {
   text-decoration: underline;
   text-underline-offset: 3px;
-}
-
-.postLink:focus-visible {
-  outline: none;
-}
-
-.postLink:focus-visible::after {
-  outline: 2px solid var(--color-brand-700);
-  outline-offset: -2px;
-  border-radius: var(--radius-sm);
 }
 
 /*

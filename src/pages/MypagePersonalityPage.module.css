@@ -282,6 +282,11 @@
 }
 
 @media (max-width: 600px) {
+  /* 설명이 둘째 줄로 내려가면 먹 선에 붙지 않게 아래를 띄운다(홈 구역 제목 줄과 같다) */
+  .sectionHead {
+    padding-bottom: var(--space-2);
+  }
+
   .mine {
     grid-template-columns: minmax(0, 1fr);
     gap: var(--space-3);

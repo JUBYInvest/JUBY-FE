@@ -83,7 +83,7 @@
   padding: var(--space-4) var(--space-5);
   border-radius: var(--radius-md);
   background: var(--color-bg-sub);
-  font-size: var(--font-base);
+  font-size: var(--font-lg);
   line-height: 1.7;
 }
 
@@ -159,7 +159,7 @@
 .body table {
   width: 100%;
   border-collapse: collapse;
-  font-size: var(--font-base);
+  font-size: var(--font-md);
   line-height: 1.6;
 }
 

@@ -69,3 +69,10 @@
 .srOnly {
   composes: srOnly from './a11y.module.css';
 }
+
+/* 휴대폰은 마친 단계를 접는다(위 진행 막대가 몇 단계 마쳤는지 보인다) */
+@media (max-width: 600px) {
+  .list .itemDone {
+    display: none;
+  }
+}

@@ -1,8 +1,7 @@
 /*
- * 홈(2026-10-30 재정비). 왼쪽 열은 검색 → 테마별 대표 종목 → 현재 주가 보기, 오른쪽 열은 사용설명서·커뮤니티(HomeRail).
+ * 홈. 왼쪽 열은 검색 → 테마별 대표 종목 → 현재 주가 보기, 오른쪽 열은 처음 시작하기(또는 사용설명서)·커뮤니티(HomeRail).
  * 상자·그림자 없이 구역마다 제목 줄이 굵은 먹 선을 긋고, 그 아래는 가는 선으로 나눈다.
- * 좁은 화면(1100px 이하)은 한 열이다. 오른쪽 열을 시세표 앞에 둔다 — 시세표는 끝이 보이면 20행씩 더 불러와서
- * 뒤에 두면 100행을 다 내려야 닿는다
+ * 좁은 화면(1100px 이하)은 한 열이고 시세표가 오른쪽 열보다 먼저다 — 시세표는 10행만 보이고 "종목 더 보기"로 늘린다(끝까지 내려도 저절로 늘지 않는다)
  */
 .home {
   display: grid;
@@ -102,7 +101,14 @@
   height: 288px;
   margin: 20px 0 0;
   color: var(--color-text-sub);
-  font-size: var(--font-base);
+  font-size: var(--font-md);
+}
+
+/* 좁은 화면의 "종목 더 보기". 목록과 같은 폭이라 목록의 일부로 읽힌다(뉴스 더 보기와 같다) */
+.moreRows {
+  composes: secondary lg from '../components/buttons.module.css';
+  width: 100%;
+  margin-top: var(--space-4);
 }
 
 .sentinel {
@@ -112,27 +118,6 @@
   justify-content: center;
   color: var(--color-text-sub);
   font-size: var(--font-md);
-}
-
-.modalMessage {
-  margin: 0;
-  font-size: var(--font-xl);
-  font-weight: 600;
-}
-
-.modalButtons {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin-top: 24px;
-}
-
-.modalPrimary {
-  composes: primary lg from '../components/buttons.module.css';
-}
-
-.modalSecondary {
-  composes: ghost lg from '../components/buttons.module.css';
 }
 
 /* 테마 대표 종목 세 칸. 칸 사이는 세로 선, 아래는 가는 선 */
@@ -158,8 +143,8 @@
     grid-template-areas:
       'search'
       'themes'
-      'rail'
-      'list';
+      'list'
+      'rail';
   }
 
   .rail {

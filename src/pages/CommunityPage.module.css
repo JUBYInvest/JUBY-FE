@@ -132,7 +132,7 @@
   background: var(--color-bg-sub);
   color: var(--color-text-sub);
   font: inherit;
-  font-size: var(--font-base);
+  font-size: var(--font-md);
   font-weight: 600;
   white-space: nowrap;
   cursor: pointer;
@@ -264,7 +264,7 @@
   overflow: hidden;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
-  font-size: var(--font-base);
+  font-size: var(--font-md);
   font-weight: 600;
   line-height: 1.35;
   word-break: normal;
@@ -397,7 +397,7 @@
   align-items: center;
   gap: var(--space-2);
   margin: var(--space-8) 0;
-  font-size: var(--font-base);
+  font-size: var(--font-md);
   color: var(--color-text-sub);
 }
 
@@ -409,7 +409,7 @@
 }
 
 /*
- * 떠 있는 "글쓰기" — 아래 지수 띠(44px, 600px 이하 40px, 아이폰은 홈 막대 자리만큼 더) 위, 넓은 화면은 본문 폭 오른쪽 끝.
+ * 떠 있는 "글쓰기" — 아래 지수 띠(--index-bar-height, 아이폰은 홈 막대 자리만큼 더) 위, 넓은 화면은 본문 폭 오른쪽 끝.
  * 마지막 글 줄이 단추 밑에 깔리지 않게 글 열 아래를 비워 둔다(.feedEnd)
  */
 .write {
@@ -417,7 +417,7 @@
   position: fixed;
   z-index: 6;
   right: max(var(--page-gutter), calc((100vw - var(--content-max)) / 2 + var(--page-gutter)));
-  bottom: calc(44px + var(--space-4) + env(safe-area-inset-bottom));
+  bottom: calc(var(--index-bar-height) + var(--space-4) + env(safe-area-inset-bottom));
   box-shadow: var(--shadow-pop);
 }
 
@@ -464,6 +464,6 @@
   }
 
   .write {
-    bottom: calc(40px + var(--space-3) + env(safe-area-inset-bottom));
+    bottom: calc(var(--index-bar-height) + var(--space-3) + env(safe-area-inset-bottom));
   }
 }

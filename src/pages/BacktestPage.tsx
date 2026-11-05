@@ -7,20 +7,20 @@ import { getStockList } from '../api/stock'
 import { STOCK_LIST } from '../api/stockList'
 import BacktestHelp, { type BacktestStep } from '../components/backtest/BacktestHelp'
 import BacktestResult from '../components/backtest/BacktestResult'
-import BacktestSteps from '../components/backtest/BacktestSteps'
+import StrategyPicker from '../components/backtest/StrategyPicker'
 import SectionBoundary from '../components/SectionBoundary'
 import Spinner from '../components/Spinner'
 import { COMPARE_PERIOD, useBacktestRun } from '../hooks/useBacktestRun'
 import { useIsLoggedIn } from '../hooks/useIsLoggedIn'
 import { useMyPersonality } from '../hooks/useMyPersonality'
 import { useDocumentTitle } from '../hooks/useDocumentTitle'
+import { useMediaQuery } from '../hooks/useMediaQuery'
 import { useBacktestHandoff } from '../hooks/useStockHandoff'
 import type { StockInfo } from '../types/stock'
 import type { BacktestPeriod } from '../types/backtest'
-import { prefersReducedMotion } from '../utils/motion'
 import { loginPathFrom } from '../utils/navigation'
 import { isPersonalityType } from '../utils/personality'
-import { INVEST_TYPES, PERIODS, findByPersonality, findInvestType, periodLabel, supportedPeriods } from '../utils/backtest'
+import { PERIODS, findByPersonality, findInvestType, periodLabel, supportedPeriods } from '../utils/backtest'
 import styles from './BacktestPage.module.css'
 
 /**
@@ -46,6 +46,8 @@ function availablePeriods(
 
 /** 성향테스트를 하러 가는 곳. 끝나면 doneRoute가 홈으로 보낸다(from 없음) */
 const PERSONALITY_TEST_URL = '/personality-test'
+/** 세 열(전략 | 입력·결과 | 도움말)이 서는 폭 */
+const WIDE = '(min-width: 1200px)'
 
 export default function BacktestPage() {
   useDocumentTitle('주식 백테스트')
@@ -317,35 +319,25 @@ export default function BacktestPage() {
     })
   }, [result.kind])
 
-  const chosenStrategy = investType === null ? null : findInvestType(investType)
-  const steps = [
-    { key: 'stock' as const, label: '종목', value: stock?.stockName ?? null },
-    { key: 'strategy' as const, label: '전략', value: chosenStrategy?.strategyName ?? null },
-    { key: 'period' as const, label: '기간', value: period === null ? null : periodLabel(period) },
-    {
-      key: 'result' as const,
-      label: '결과',
-      value: result.kind === 'ready' ? `적합도 ${result.preset.result.finalScore.toFixed(1)}` : result.kind === 'loading' ? '계산 중' : null,
-    },
-  ]
-
-  /** 왼쪽 단계 줄에서 고르면 그 칸으로 옮긴다(결과는 결과 자리로) */
-  function pickStep(next: BacktestStep) {
-    setStep(next)
-    if (next === 'result') {
-      resultRef.current?.scrollIntoView({ behavior: prefersReducedMotion() ? 'auto' : 'smooth', block: 'start' })
-      resultRef.current?.focus({ preventScroll: true })
-      return
-    }
-    document.getElementById(`backtest-${next}`)?.focus()
-  }
+  /** 넓은 화면은 전략 카드를 왼쪽 열에, 좁은 화면은 입력 ②칸에 둔다(한 곳에만 그린다) */
+  const wide = useMediaQuery(WIDE)
+  const picker = <StrategyPicker investType={investType} savedPersonality={savedPersonality} onSelect={changeStrategy} />
 
   return (
     <>
       <h1 className={styles.title}>주식 백테스트 이용하기</h1>
 
       <div className={styles.layout}>
-      <BacktestSteps steps={steps} active={step} onPick={pickStep} />
+      {wide && (
+        <aside className={styles.strategies} aria-labelledby="backtest-strategies-title" onFocus={() => setStep('strategy')}>
+          <div className={styles.strategiesHead}>
+            <h2 id="backtest-strategies-title" className={styles.strategiesTitle}>
+              전략 고르기
+            </h2>
+          </div>
+          {picker}
+        </aside>
+      )}
 
       <div className={styles.content}>
 
@@ -405,7 +397,7 @@ export default function BacktestPage() {
                 )}
               </p>
               <Link className={styles.myAction} to={PERSONALITY_TEST_URL}>
-                다시 테스트
+                성향 다시 검사
               </Link>
             </>
           )}
@@ -469,58 +461,25 @@ export default function BacktestPage() {
             </div>
           </div>
 
-          {/* 투자전략 선택 ------------------------------------------------ */}
+          {/* 투자전략 — 넓은 화면은 왼쪽 열에서 고르고 여기는 고른 것을 되짚는다. 좁은 화면은 여기서 카드로 고른다 */}
           <div className={styles.field} onFocus={() => setStep('strategy')}>
-            <label className={styles.label} htmlFor="backtest-strategy">
+            <p className={styles.label} id="backtest-strategy-label">
               <span className={styles.step}>2</span>
               투자전략 선택
-            </label>
-
-            <div className={styles.control}>
-              <select
-                id="backtest-strategy"
-                className={styles.select}
-                value={investType ?? ''}
-                onChange={(event) =>
-                  changeStrategy(
-                    event.target.value === ''
-                      ? null
-                      : Number(event.target.value),
-                  )
-                }
-              >
-                <option value="">투자전략을 선택해주세요.</option>
-                {INVEST_TYPES.map((item) => (
-                  <option key={item.investType} value={item.investType}>
-                    {item.strategyName}
-                  </option>
-                ))}
-              </select>
-
-              {investType !== null &&
-                recommended !== null &&
-                recommended.investType !== investType && (
-                  <button
-                    type="button"
-                    className={styles.reset}
-                    onClick={() => changeStrategy(recommended.investType)}
-                  >
-                    재설정
-                  </button>
-                )}
-            </div>
-
-            {/*
-              좁은 화면에서는 가이드가 오른쪽이 아니라 아래로 내려간다.
-              방향을 말하면 절반은 틀린 말이 되므로 위치를 가리키지 않는다.
-              고른 전략이 무엇인지도 여기서 한 줄로 되짚어 준다 —
-              가이드까지 눈을 옮기지 않아도 무엇을 골랐는지 알 수 있어야 한다.
-            */}
-            <p className={styles.hint}>
-              {selected === null
-                ? '백테스트 가이드에서 전략을 눌러 골라도 돼요.'
-                : selected.strategySummary}
             </p>
+            {wide ? (
+              <p className={styles.chosen} aria-labelledby="backtest-strategy-label">
+                {selected === null ? (
+                  '왼쪽 목록에서 전략을 눌러 골라 주세요.'
+                ) : (
+                  <>
+                    <b>{selected.strategyName}</b> {selected.strategySummary}
+                  </>
+                )}
+              </p>
+            ) : (
+              picker
+            )}
           </div>
 
           {/* 투자기간 선택 ------------------------------------------------ */}
@@ -652,7 +611,7 @@ export default function BacktestPage() {
         </div>
       </div>
 
-      <BacktestHelp step={step} investType={investType} savedPersonality={savedPersonality} onSelect={changeStrategy} />
+      <BacktestHelp step={step} investType={investType} />
       </div>
     </>
   )

@@ -11,6 +11,7 @@
    * 제목 줄이 들어가지 않아 먹 선이 10px 내려갔다 — 메뉴를 44px로 늘려 133px에 맞춘다
    */
   --mypage-menu-row: 44px;
+  --side-row: var(--mypage-menu-row);
   --mypage-menu-height: calc(var(--mypage-menu-row) * 3 + 1px);
   --mypage-content-top: 8px;
 
@@ -33,29 +34,17 @@
   border-bottom: 1px solid var(--color-border);
 }
 
+/* 옆 열 줄(sideList.module.css — 사용설명서 장 목록·커뮤니티와 같은 줄, 고른 것은 옅은 초록 + 왼쪽 초록 막대) */
 .item {
-  display: flex;
-  align-items: center;
-  min-height: var(--mypage-menu-row);
-  padding: 0 16px;
-  border-bottom: 1px solid var(--color-border);
-  font-size: var(--font-md);
+  composes: item from './sideList.module.css';
 }
 
-.list li:last-child .item {
+.itemOn {
+  composes: itemOn from './sideList.module.css';
+}
+
+.list li:last-child > * {
   border-bottom: 0;
-}
-
-.item:hover {
-  background: var(--color-bg-hover);
-}
-
-.itemOn,
-.itemOn:hover {
-  background: var(--color-brand-50);
-  box-shadow: inset 3px 0 0 var(--color-brand-700);
-  font-weight: 700;
-  color: var(--color-brand-800);
 }
 
 /*
@@ -103,11 +92,9 @@
   }
 
   /*
-   * 쌓으면 메뉴 네 줄이 탭마다 내용 위를 230px 넘게 차지했다. 가는 선 위 밑줄 탭 한 줄로 접는다 — 홈 '현재 주가 보기'·관심종목 뉴스와 같은 모양
-   * (tabs.module.css: 14px·600 보조 글자, 고른 것은 먹 글자 + 2px 초록 막대가 선을 덮는다). 넓은 화면에서는 옆 열 줄이라 composes하지 않고 같은 값을 적는다 —
-   * 가져온 값을 미디어 쿼리에서 덮어쓰지 않는다. 2026-11-04까지는 고른 칸을 초록으로 채워 테두리 상자에 담았다(채운 탭·판 안 상자).
-   * 로그아웃은 탭이 아니라 줄 오른쪽 끝의 작은 글자 단추다(13px·보통 굵기 — 탭과 같은 14px·600이면 네 번째 탭으로 읽힌다).
-   * 320px에서도 한 줄이다: 안쪽 288px = 탭 셋 207px + 사이 12px 둘 + 로그아웃 45px + 앞 여백 8px, 남는 4px
+   * 쌓으면 메뉴가 내용 위를 230px 넘게 차지한다. 가는 선 위 밑줄 탭 한 줄로 접는다(탭 모양은 MypageLayout.tsx가 tabs.module.css를 쓴다).
+   * 로그아웃은 탭이 아니라 줄 오른쪽 끝의 작은 글자 단추다 — 탭과 같은 꼴이면 네 번째 탭으로 읽힌다.
+   * 폭이 모자라면 탭 줄만 옆으로 민다(로그아웃은 제자리)
    */
   .sidebar {
     display: flex;
@@ -116,52 +103,27 @@
     background: none;
   }
 
+  /* 옆으로 미는 줄은 넘치는 막대를 자른다 — 아래 1px을 넓혀 고른 탭의 막대(-1px)가 선을 덮게 둔다 */
   .list {
     display: flex;
     gap: var(--space-4);
+    min-width: 0;
+    margin-bottom: -1px;
+    padding-bottom: 1px;
+    overflow-x: auto;
     border-bottom: 0;
+    scrollbar-width: none;
   }
 
-  .item,
-  .list li:last-child .item {
-    position: relative;
-    min-height: 44px;
-    padding: 0;
-    border: 0;
-    font-size: var(--font-md);
-    font-weight: 600;
-    color: var(--color-text-sub);
-    white-space: nowrap;
-  }
-
-  .item:hover {
-    background: none;
-    color: var(--color-text);
-  }
-
-  .itemOn,
-  .itemOn:hover {
-    background: none;
-    box-shadow: none;
-    font-weight: 600;
-    color: var(--color-text);
-  }
-
-  .itemOn::after {
-    content: '';
-    position: absolute;
-    right: 0;
-    bottom: -1px;
-    left: 0;
-    height: 2px;
-    background: var(--color-brand-700);
+  .list::-webkit-scrollbar {
+    display: none;
   }
 
   .logout {
     flex: none;
     width: auto;
     margin-left: auto;
-    padding: 0 0 0 var(--space-2);
+    padding: 0 0 0 var(--space-3);
     font-size: var(--font-sm);
     white-space: nowrap;
   }

@@ -30,13 +30,14 @@ function jumpWithin(id: string) {
 /**
  * 홈 오른쪽 위 "처음 시작하기" 줄(2026-11-03, HomeRail). 사용설명서 칸과 같은 줄 모양(GuideSteps.module.css — 번호 동그라미 · 제목/한 줄 · 오른쪽)이라
  * 칸이 바뀌어도 줄 높이와 왼쪽 대표 종목 줄에 맞춘 선이 그대로다. 마친 단계는 초록 동그라미에 ✓, 남은 단계는 번호와 바로 가기.
- * 순서가 정말 있는 일(로그인 → 성향 → 관심종목 → 백테스트)이라 번호를 단다
+ * 순서가 정말 있는 일(로그인 → 성향 → 관심종목 → 백테스트)이라 번호를 단다.
+ * 휴대폰에서는 마친 단계를 접는다 — 위 진행 막대가 몇 단계를 마쳤는지 보여 주고, 남은 단계만 한 줄씩 선다
  */
 export default function StartSteps({ steps, className }: { steps: StartStep[]; className: string }) {
   return (
     <ol className={`${styles.list} ${className}`}>
       {steps.map((step, index) => (
-        <li key={step.title}>
+        <li key={step.title} className={step.done ? styles.itemDone : undefined}>
           <div className={styles.step}>
             <span className={step.done ? styles.markDone : styles.mark} aria-hidden="true">
               {step.done ? '✓' : index + 1}

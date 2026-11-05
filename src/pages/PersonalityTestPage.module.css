@@ -80,8 +80,8 @@
   border: 1.5px solid var(--color-border);
   border-radius: var(--radius-md);
   background: var(--color-surface);
-  font-size: var(--font-base);
-  font-weight: 500;
+  font-size: var(--font-lg);
+  font-weight: 400;
   line-height: 1.45;
   color: var(--color-text);
   text-align: left;
@@ -127,7 +127,7 @@
 
 .message {
   margin: 120px 0;
-  font-size: var(--font-base);
+  font-size: var(--font-md);
   color: var(--color-text-sub);
   text-align: center;
 }

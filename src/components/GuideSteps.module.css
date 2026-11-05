@@ -45,7 +45,7 @@
 
 .text strong {
   display: block;
-  font-size: var(--font-base);
+  font-size: var(--font-md);
 }
 
 .text small {

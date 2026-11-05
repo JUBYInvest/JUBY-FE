@@ -42,31 +42,39 @@
   text-align: center;
 }
 
-.watermark {
-  margin: 0;
-  font-family: 'Michroma', sans-serif;
-  font-size: var(--font-display);
-  font-weight: 400;
-  letter-spacing: 0.02em;
-  /* 배경 장식이라 본문보다 훨씬 연하게 둔다 */
-  color: var(--color-bg-sub);
-  line-height: 1.1;
-}
-
-.watermarkSub {
-  margin: 6px 0 0;
-  font-size: var(--font-md);
-  color: var(--color-text-sub);
+/* 말풍선이 없을 때 — 성향 한 줄과 문답 예시. 넘치면 이 칸 안에서 내린다 */
+.emptyArea {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-6);
+  min-height: 0;
+  overflow-y: auto;
+  padding: var(--space-6) var(--space-4);
 }
 
 .personality {
-  margin-top: 44px;
+  text-align: center;
 }
 
 .personalityText {
-  margin: 0 0 14px;
-  font-size: var(--font-base);
+  margin: 0 0 var(--space-3);
+  font-size: var(--font-md);
   color: var(--color-text-sub);
+  text-align: center;
+}
+
+.personalityText b {
+  color: var(--color-text);
+}
+
+.personalityLink {
+  margin-left: var(--space-2);
+  font-weight: 600;
+  color: var(--color-brand-700);
+  white-space: nowrap;
 }
 
 .darkButton {
@@ -75,7 +83,7 @@
 
 .errorText {
   margin: 0 0 14px;
-  font-size: var(--font-base);
+  font-size: var(--font-md);
   color: var(--color-text-sub);
 }
 
@@ -212,10 +220,6 @@
     min-height: 44px;
   }
 
-  .watermark {
-    font-size: var(--font-6xl);
-  }
-
   .chat {
     /*
      * 휴대폰에서는 대화창 위에 "이전 대화 | 새 대화" 한 줄이 선다(목록은 날개, SessionSidebar). 그 줄까지 쳐서
@@ -234,29 +238,64 @@
   text-decoration: underline;
 }
 
-/* 비로그인 첫 화면의 예시 질문 */
+/* 문답 예시 — 가는 선으로 나눈 줄. 질문(먹 글자)과 답(보조 글자 두 줄까지). 누르면 입력칸에 질문이 채워진다 */
 .examples {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--space-3);
-  margin-top: var(--space-6);
-  padding: 0 var(--space-4);
+  width: 100%;
+  max-width: 560px;
 }
 
 .examplesTitle {
-  margin: 0;
+  margin: 0 0 var(--space-2);
   font-size: var(--font-sm);
+  font-weight: 600;
   color: var(--color-text-sub);
 }
 
 .exampleList {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--color-border);
 }
 
-.exampleChip {
-  composes: secondary md from '../components/buttons.module.css';
+.exampleList li {
+  border-bottom: 1px solid var(--color-border);
+}
+
+.example {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  width: 100%;
+  padding: var(--space-3) 0;
+  border: 0;
+  background: none;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.example:hover .exampleQuestion {
+  color: var(--color-brand-700);
+}
+
+.example:focus-visible {
+  outline: 2px solid var(--color-brand-700);
+  outline-offset: 2px;
+}
+
+.exampleQuestion {
+  font-size: var(--font-md);
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.exampleAnswer {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  font-size: var(--font-sm);
+  line-height: 1.5;
+  color: var(--color-text-sub);
 }

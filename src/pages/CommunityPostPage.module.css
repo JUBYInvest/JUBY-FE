@@ -25,7 +25,7 @@
   align-items: center;
   gap: var(--space-2);
   margin: 0;
-  font-size: var(--font-base);
+  font-size: var(--font-md);
   color: var(--color-text-sub);
 }
 
@@ -34,7 +34,7 @@
   padding: var(--space-5);
   border-radius: var(--radius-md);
   background: var(--color-bg-sub);
-  font-size: var(--font-base);
+  font-size: var(--font-md);
 }
 
 .missing p {
@@ -89,29 +89,14 @@
 }
 
 .stockLink {
+  composes: rowLink from '../components/a11y.module.css';
   font-weight: 700;
   color: var(--color-text);
-}
-
-.stockLink::after {
-  content: '';
-  position: absolute;
-  inset: 0;
 }
 
 .stock:hover .stockLink {
   text-decoration: underline;
   text-underline-offset: 3px;
-}
-
-.stockLink:focus-visible {
-  outline: none;
-}
-
-.stockLink:focus-visible::after {
-  outline: 2px solid var(--color-brand-700);
-  outline-offset: -2px;
-  border-radius: var(--radius-sm);
 }
 
 /* 등락 글자색(공용 모듈로 모으지 않는다 — CLAUDE.md "공용 모듈 셋") */
@@ -252,7 +237,7 @@
 
 @media (max-width: 600px) {
   .content {
-    font-size: var(--font-base);
+    font-size: var(--font-lg);
   }
 
   .toList {

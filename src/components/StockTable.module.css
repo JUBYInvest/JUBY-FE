@@ -50,7 +50,7 @@
    */
   min-height: 54px;
   border-bottom: 1px solid var(--color-border);
-  font-size: var(--font-base);
+  font-size: var(--font-md);
   transition: background 0.12s;
 }
 
@@ -161,20 +161,8 @@
  * 행을 통째로 <a>로 감싸면 안에 든 하트 <button>이 HTML 규칙 위반이 되므로,
  * 링크는 종목명 하나만 두고 그 링크의 클릭 영역만 행 크기로 넓힌다.
  */
-.nameLink::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-}
-
-.nameLink:focus-visible {
-  outline: none;
-}
-
-.nameLink:focus-visible::after {
-  outline: 2px solid var(--color-brand-700);
-  outline-offset: -2px;
-  border-radius: var(--radius-sm);
+.nameLink {
+  composes: rowLink from './a11y.module.css';
 }
 
 /* 금액·비율은 오른쪽에 붙여야 자릿수를 위아래로 견주기 좋다 */
@@ -250,7 +238,7 @@
 .empty {
   margin: 0;
   padding: 40px 16px;
-  font-size: var(--font-base);
+  font-size: var(--font-md);
   color: var(--color-text-sub);
   text-align: center;
 }

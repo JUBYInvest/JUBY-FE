@@ -1,7 +1,4 @@
-/*
- * 화면에는 안 보이고 화면 읽기 프로그램만 읽는 글. 화면 CSS가 `composes: srOnly from '…/a11y.module.css'`로 가져다 쓴다
- * (2026-11-02 — 세 화면이 조금씩 다른 벌을 따로 적고 있었다)
- */
+/* 화면에는 안 보이고 화면 읽기 프로그램만 읽는 글. 화면 CSS가 `composes: srOnly from '…/a11y.module.css'`로 가져다 쓴다 */
 .srOnly {
   position: absolute;
   width: 1px;
@@ -12,4 +9,24 @@
   clip-path: inset(50%);
   white-space: nowrap;
   border: 0;
+}
+
+/*
+ * 줄 전체를 누르게 하는 링크. 줄을 통째로 <a>로 감싸면 안의 단추(하트 등)가 HTML 규칙 위반이라, 링크는 글자 하나에 두고
+ * 누르는 자리만 줄(가장 가까운 position: relative 조상) 크기로 넓힌다. 키보드 포커스 테두리도 줄 크기로 그린다
+ */
+.rowLink::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+}
+
+.rowLink:focus-visible {
+  outline: none;
+}
+
+.rowLink:focus-visible::after {
+  outline: 2px solid var(--color-brand-700);
+  outline-offset: -2px;
+  border-radius: var(--radius-sm);
 }

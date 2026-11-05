@@ -22,7 +22,7 @@
   /* 누르는 넓이는 아래로만 넓힌다(44px). 위로 넓히면 시간축 아래를 덮어 그 자리를 끌 수 없었다 */
   padding: 8px 0 25px;
   margin: 0 0 -25px;
-  font-size: var(--font-2xs);
+  font-size: var(--font-xs);
   line-height: 1;
   color: var(--color-text-sub);
 }
@@ -81,6 +81,6 @@
 
   .legend {
     gap: 4px 8px;
-    font-size: var(--font-2xs);
+    font-size: var(--font-xs);
   }
 }

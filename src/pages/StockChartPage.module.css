@@ -19,7 +19,7 @@
 .backLink {
   display: inline-block;
   margin-top: var(--space-3);
-  font-size: var(--font-base);
+  font-size: var(--font-md);
   color: var(--color-text-sub);
   text-decoration: underline;
 }
@@ -232,7 +232,7 @@
 }
 
 .code {
-  font-size: var(--font-base);
+  font-size: var(--font-md);
   color: var(--color-text-sub);
   font-variant-numeric: tabular-nums;
 }
@@ -455,7 +455,7 @@
 }
 
 .summaryLabel {
-  font-size: var(--font-base);
+  font-size: var(--font-md);
   color: var(--color-text-sub);
   white-space: nowrap;
 }
@@ -468,7 +468,7 @@
 
 .summaryValue {
   margin: 0;
-  font-size: var(--font-base);
+  font-size: var(--font-md);
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
@@ -538,9 +538,7 @@
 }
 
 .chartMessage {
-  margin: 0;
-  font-size: var(--font-base);
-  color: var(--color-text-sub);
+  composes: note from '../components/section.module.css';
 }
 
 /*
@@ -575,14 +573,13 @@
   gap: var(--space-2) var(--space-4);
 }
 
-.backupText,
-.backupCountdown {
-  margin: 0;
-  font-size: var(--font-md);
-  color: var(--color-text-sub);
+.backupText {
+  composes: note from '../components/section.module.css';
 }
 
 .backupCountdown {
+  margin: 0;
+  font-size: var(--font-md);
   font-weight: 600;
   color: var(--color-text);
   font-variant-numeric: tabular-nums;
@@ -685,23 +682,3 @@
 
 /* ── 로그인 안내(홈 하트와 같은 모양) ──────────────────────────────── */
 
-.modalMessage {
-  margin: 0;
-  font-size: var(--font-xl);
-  font-weight: 600;
-}
-
-.modalButtons {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-  margin-top: var(--space-6);
-}
-
-.modalPrimary {
-  composes: primary lg from '../components/buttons.module.css';
-}
-
-.modalSecondary {
-  composes: ghost lg from '../components/buttons.module.css';
-}

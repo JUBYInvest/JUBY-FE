@@ -1,17 +1,15 @@
-import { useId, type ReactNode } from 'react'
+import type { ReactNode } from 'react'
 import { Link } from 'react-router-dom'
-import { INVEST_TYPES, findInvestType, periodLabel } from '../../utils/backtest'
+import { findInvestType, periodLabel } from '../../utils/backtest'
 import { faqAnswer, resultSteps, splitBold, strategyExcerpt } from '../../utils/guideExcerpt'
 import styles from '../../pages/BacktestPage.module.css'
 
-/** 지금 하는 단계. 왼쪽 단계 줄(BacktestSteps)과 오른쪽 도움말이 같이 따른다 */
+/** 지금 하는 단계(입력칸에 포커스가 들어오면 바뀐다). 도움말이 그 단계 글을 보인다 */
 export type BacktestStep = 'stock' | 'strategy' | 'period' | 'result'
 
 interface HelpProps {
   step: BacktestStep
   investType: number | null
-  savedPersonality: string | null
-  onSelect: (investType: number) => void
 }
 
 /** "**굵게**"가 섞인 사용설명서 글 조각 */
@@ -37,12 +35,10 @@ function MoreLink({ anchor, children }: { anchor: string | null; children: React
 }
 
 /**
- * 오른쪽 날개 도움말(2026-11-03 사용자 "메인 화면이 가로로 너무 길어 보여서, 사용설명서의 백테스트 부분을 일부 차용하여 날개 형식으로").
- * 지금 하는 단계(종목 → 전략 → 기간 → 결과)에 맞는 글만 보인다 — 다섯 묶음을 한꺼번에 쌓던 "JUBY의 백테스트 가이드"는 길어서 아무도 끝까지 안 읽었다.
- * 전략·기간·결과 글은 사용설명서 3장에서 그대로 떼어 오고(utils/guideExcerpt), 끝에 그 꼭지로 가는 링크를 둔다.
- * 전략 단계에서는 목록을 그대로 단추로 둬 읽다가 그 자리에서 고른다(예전 가이드와 같다)
+ * 오른쪽 날개 도움말. 지금 하는 단계(종목 → 전략 → 기간 → 결과)에 맞는 글만 보인다 — 한꺼번에 쌓으면 길어서 아무도 끝까지 안 읽는다.
+ * 전략·기간·결과 글은 사용설명서 3장에서 그대로 떼어 오고(utils/guideExcerpt), 끝에 그 꼭지로 가는 링크를 둔다
  */
-export default function BacktestHelp({ step, investType, savedPersonality, onSelect }: HelpProps) {
+export default function BacktestHelp({ step, investType }: HelpProps) {
   const chosen = investType === null ? null : findInvestType(investType)
   return (
     <aside className={styles.help} aria-labelledby="backtest-help-title">
@@ -72,10 +68,6 @@ export default function BacktestHelp({ step, investType, savedPersonality, onSel
         {step === 'period' && <PeriodHelp strategyName={chosen?.strategyName ?? null} minPeriod={chosen?.minPeriod ?? null} />}
 
         {step === 'result' && <ResultHelp />}
-
-        {(step === 'strategy' || step === 'stock') && (
-          <StrategyPicker investType={investType} savedPersonality={savedPersonality} onSelect={onSelect} />
-        )}
       </div>
     </aside>
   )
@@ -153,107 +145,5 @@ function ResultHelp() {
         </dl>
       </section>
     </>
-  )
-}
-
-interface PickerProps {
-  investType: number | null
-  savedPersonality: string | null
-  onSelect: (investType: number) => void
-}
-
-/**
- * 전략 설명을 왼쪽 선택칸과 따로 두면 아무도 안 읽는다. 목록을 그대로 **버튼**으로 만들어,
- * 설명을 읽다가 마음에 들면 그 자리에서 고르게 한다.
- * 다섯 개를 모두 펼치면 글이 너무 길어 훑기 어렵다. 고른 것만 펼쳐서 매수·매도 조건까지 보이고 나머지는 한 줄 요약으로 접어 둔다.
- */
-function StrategyPicker({ investType, savedPersonality, onSelect }: PickerProps) {
-  const idBase = useId()
-  return (
-    <section className={styles.guideSection}>
-        <h3 className={styles.guideHeading}>
-          전략 고르기
-          <span className={styles.guideTip}>눌러서 선택</span>
-        </h3>
-
-        <ul className={styles.strategyList}>
-          {INVEST_TYPES.map((item) => {
-            const isActive = item.investType === investType
-            const isRecommended =
-              savedPersonality !== null &&
-              item.personality === savedPersonality
-            /*
-             * 이름은 전략 이름 하나다. 단추 안 글 전체가 이름이 되면 "위험도 1단계 (5단계 중) RSI 역추세 전략 너무 많이 팔려…"처럼
-             * 길어 무엇을 고르는지 늦게 들렸다. 위험도·맞음 표시·요약은 설명으로 읽힌다
-             */
-            const id = (part: string) => `${idBase}-${part}-${item.investType}`
-
-            return (
-              <li key={item.investType}>
-                <button
-                  type="button"
-                  className={
-                    isActive ? styles.strategyOn : styles.strategyOff
-                  }
-                  aria-pressed={isActive}
-                  aria-labelledby={id('name')}
-                  aria-describedby={[id('risk'), isRecommended ? id('fit') : '', id('desc')].filter(Boolean).join(' ')}
-                  onClick={() => onSelect(item.investType)}
-                >
-                  <span className={styles.strategyTop}>
-                    <RiskDots level={item.investType} id={id('risk')} />
-                    {isRecommended && (
-                      <span id={id('fit')} className={styles.badge}>
-                        나에게 맞음
-                      </span>
-                    )}
-                  </span>
-
-                  <span id={id('name')} className={styles.strategyName}>
-                    {item.strategyName}
-                  </span>
-                  <span id={id('desc')} className={styles.strategyDesc}>
-                    {item.strategySummary}
-                  </span>
-
-                  {/* 고른 전략만 자세히 편다 */}
-                  {isActive && (
-                    <span className={styles.detail}>
-                      <span className={styles.detailRow}>
-                        <b className={styles.buy}>매수</b>
-                        {item.entryRule}
-                      </span>
-                      <span className={styles.detailRow}>
-                        <b className={styles.sell}>매도</b>
-                        {item.exitRule}
-                      </span>
-                      <span className={styles.detailRow}>
-                        <b className={styles.term}>기간</b>
-                        {periodLabel(item.minPeriod)} 이상
-                      </span>
-                    </span>
-                  )}
-                </button>
-              </li>
-            )
-          })}
-        </ul>
-      </section>
-  )
-}
-
-
-/** 위험도를 점 다섯 개로. 전략 번호가 곧 위험도 순서다(1 안정 → 5 공격) */
-function RiskDots({ level, id }: { level: number; id: string }) {
-  return (
-    <span id={id} className={styles.dots} role="img" aria-label={`위험도 ${level}단계 (5단계 중)`}>
-      {[1, 2, 3, 4, 5].map((step) => (
-        <i
-          key={step}
-          className={step <= level ? styles.dotOn : styles.dotOff}
-          aria-hidden="true"
-        />
-      ))}
-    </span>
   )
 }

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, useLocation, useParams } from 'react-router-dom'
-import Modal from '../components/Modal'
+import LoginModal from '../components/LoginModal'
 import NewsList from '../components/NewsList'
 import SectionBoundary from '../components/SectionBoundary'
 import { ActionPanel, LikeToggle } from '../components/StockActions'
@@ -183,17 +183,7 @@ export default function StockChartPage() {
       </div>
 
       {/* 홈 하트와 같은 안내. 로그인하면 이 상세로 돌아온다 */}
-      <Modal isOpen={isLoginModalOpen} onClose={() => setIsLoginModalOpen(false)} label="로그인 안내">
-        <p className={styles.modalMessage}>로그인 후 이용 가능한 기능입니다</p>
-        <div className={styles.modalButtons}>
-          <Link to={loginPath} className={styles.modalPrimary}>
-            로그인
-          </Link>
-          <button type="button" className={styles.modalSecondary} onClick={() => setIsLoginModalOpen(false)}>
-            닫기
-          </button>
-        </div>
-      </Modal>
+      <LoginModal isOpen={isLoginModalOpen} onClose={() => setIsLoginModalOpen(false)} />
     </>
   )
 }

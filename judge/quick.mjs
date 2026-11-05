@@ -284,7 +284,7 @@ async function heartGroup() {
     await page.keyboard.press('Escape')
     await sleep(200)
     const closed = (await page.getByRole('dialog').count()) === 0
-    report('H6', /로그인 후 이용 가능한 기능입니다/.test(text) && href === '/login?next=%2Fstocks%2F005930' && count(log, LIKE_ANY) === 0 && pressed === 'false' && closed,
+    report('H6', /로그인하면 쓸 수 있는 기능이에요/.test(text) && href === '/login?next=%2Fstocks%2F005930' && count(log, LIKE_ANY) === 0 && pressed === 'false' && closed,
       `모달 "${text.replace(/\s+/g, ' ')}", 로그인 링크 ${href}, 관심종목 요청 ${count(log, LIKE_ANY)}, 닫힘 ${closed}`)
     await context.close()
   }
