@@ -25,7 +25,7 @@ npm run dev
 | `/ai` | AI 주가분석 |
 | `/personality-test` | 투자성향 테스트 |
 | `/mypage/personality`·`/likes`·`/profile` | 마이페이지 |
-| `/community` | 커뮤니티(글 목록 — 서버가 생기기 전까지 예시 글, `docs/커뮤니티-웹소켓-제안.md`) |
+| `/community` | 커뮤니티(글 목록·인기·종목 카드, `/community/{id}` 글 상세·댓글, `/community/write` 글쓰기) |
 | `/guide`·`/guide/:장` | 사용설명서(글이 있는 첫 장이 `/guide`) |
 | `/login`·`/oauth2/callback`·`/oauth2/error` | 로그인(뒤의 둘은 백엔드가 로그인을 마치고 보내는 자리) |
 

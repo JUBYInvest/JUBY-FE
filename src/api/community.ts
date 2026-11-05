@@ -1,258 +1,292 @@
-import { COMMUNITY_PREVIEW_LIVE, COMMUNITY_PREVIEW_POSTS, type CommunityPreviewPost } from '../content/communityPreview'
-import { getAccessToken } from '../utils/auth'
-import { toIsoTime } from '../utils/date'
-import { numberFromText } from '../utils/format'
-import { safeLink } from '../utils/link'
+import { ApiError, get, malformedResponse, patch, post, remove } from './client'
+import { isStockCode } from './stock'
+import { fromKstDateTime, toIsoTime } from '../utils/date'
+import { finiteOrNull } from '../utils/format'
 
 /*
- * 커뮤니티. 처음 목록은 한 번 받고(지금은 예시 글 — REST 자리), 그 뒤 새 글·공감 수·지운 글은 웹소켓으로 받는다. 화면은 이 파일만 부른다.
- * 백엔드에 아직 커뮤니티가 없어 스프링이 기본으로 주는 STOMP(웹소켓 위)로 짓는다 — 라이브러리 없이 프레임 몇 개만 직접 쓴다.
- * 주고받는 모양은 docs/커뮤니티-웹소켓-제안.md. VITE_COMMUNITY_WS_URL이 있으면 목업 대신 실제로 붙는다.
+ * 커뮤니티 — 백엔드 `/api/community/**`. 화면은 이 파일만 부른다.
+ * 글 조회(목록·인기·상세·종목 카드)는 로그인 없이 되고, 토큰을 실으면 likedByMe·isMine이 채워진다. 댓글은 보기도 로그인이 필요하다.
+ * 글·댓글 쓰기는 닉네임까지 있어야 한다(없으면 403 COMMUNITY403_1). 목록은 커서로 넘긴다.
  */
 
-export interface CommunityPost {
+/** 제목·본문·댓글 길이 한도(서버 검증과 같다). 글쓰기 칸의 maxLength다 */
+export const COMMUNITY_LIMITS = { title: 40, content: 1000, comment: 500 } as const
+/** 한 번에 받는 글·댓글 수 */
+const PAGE_SIZE = 20
+
+interface PostBase {
   postId: number
-  author: string
   stockCode: string | null
   stockName: string | null
-  /** 제목 없이 오면 null — 화면은 본문을 제목 자리에 둔다 */
-  title: string | null
-  content: string
-  /** 붙인 사진 주소(http·https만) */
-  imageUrls: string[]
-  /** ISO 시각 */
-  createdAt: string
+  title: string
+  /** 쓴 사람 닉네임. 탈퇴했으면 "탈퇴한 회원" */
+  author: string
   likeCount: number
   commentCount: number
+  likedByMe: boolean
+  isMine: boolean
+  isEdited: boolean
+  /** ISO 시각 */
+  createdAt: string
 }
 
-/** 쓴 글. 서버로 보내는 모양(SEND /app/community/posts) */
-export interface CommunityDraft {
-  title: string
+/** 목록의 글 한 건 */
+export interface PostSummary extends PostBase {
+  /** 전일 대비 등락률(%). 종목 없는 글이거나 시세를 못 받았으면 null */
+  changeRate: number | null
+  /** 본문 앞 100자 */
+  preview: string
+}
+
+/** 글 상세 — 본문 전체. 등락률·미리보기는 없다(목록에서 실어 온 값을 쓴다) */
+export interface PostDetail extends PostBase {
   content: string
-  stockCode: string | null
 }
 
-/** 제목·본문 길이 한도. 글쓰기 칸의 maxLength이고 서버에 건넨 제안과 같다 */
-export const COMMUNITY_LIMITS = { title: 40, content: 1000 } as const
-
-/** 웹소켓으로 오는 일. 모르는 type·모양이 틀린 값은 버린다(서버 글은 구역 경계 밖이라 던지지 않는다) */
-export type CommunityEvent =
-  | { type: 'POST_CREATED'; post: CommunityPost }
-  | { type: 'POST_UPDATED'; postId: number; likeCount: number; commentCount: number }
-  | { type: 'POST_DELETED'; postId: number }
-
-/** mock: 서버 주소가 없어 예시 글을 흘려보내는 중. 나머지는 실제 연결의 상태 */
-export type CommunityStatus = 'mock' | 'connecting' | 'open' | 'reconnecting'
-
-export interface CommunityConnection {
-  /** 새 글을 보낸다(서버가 POST_CREATED로 되돌려 준다). 연결이 열리지 않았으면 false */
-  sendPost: (draft: CommunityDraft) => boolean
-  /** 당겨서 새로고침이 지금 받아 가는 새 글. 목업은 다음 예시 새 글, 실제 연결은 서버가 밀어 주므로 빈 목록 */
-  pullNow: () => CommunityPost[]
-  close: () => void
+export interface CommunityComment {
+  commentId: number
+  postId: number
+  content: string
+  author: string
+  likeCount: number
+  likedByMe: boolean
+  isMine: boolean
+  isEdited: boolean
+  createdAt: string
 }
 
-interface Handlers {
-  onEvent: (event: CommunityEvent) => void
-  onStatus: (status: CommunityStatus) => void
+export type PostOrder = 'latest' | 'popular'
+
+/** 다음 쪽을 받을 커서. 최신·댓글은 cursor 하나, 인기는 좋아요 수와 글 번호를 함께 보낸다 */
+export type PageCursor = { cursor: number } | { cursorLikeCount: number; cursorId: number }
+
+interface Page<T> {
+  items: T[]
+  /** 마지막 쪽이면 null */
+  next: PageCursor | null
 }
 
-const SOCKET_URL: string = import.meta.env.VITE_COMMUNITY_WS_URL ?? ''
-
-/** 처음 그릴 때의 연결 상태 — "연결하는 중"으로 시작하면 목업인데도 첫 그림에 그 안내가 비친다 */
-export const initialCommunityStatus = (): CommunityStatus => (SOCKET_URL === '' ? 'mock' : 'connecting')
-/** 구독·보내기 주소(스프링 STOMP 관례 — 서버가 다르게 정하면 여기만 바꾼다) */
-const TOPIC = '/topic/community'
-const SEND_TO = '/app/community/posts'
-
-function fromPreview(post: CommunityPreviewPost, createdAt: number): CommunityPost {
-  return {
-    postId: post.id,
-    author: post.author,
-    stockCode: post.stock?.code ?? null,
-    stockName: post.stock?.name ?? null,
-    title: post.title,
-    content: post.text,
-    imageUrls: post.images ?? [],
-    createdAt: toIsoTime(createdAt),
-    likeCount: post.likes,
-    commentCount: post.comments,
-  }
+export interface StockCard {
+  stockCode: string
+  stockName: string
+  postCount: number
+  changeRate: number | null
 }
 
-/** 처음 목록(제안 `GET /api/community/posts` 자리). 실제 연결이면 예시 글을 섞지 않는다 — 어느 글이 진짜인지 모르게 된다 */
-export async function loadCommunityPosts(now: number = Date.now()): Promise<CommunityPost[]> {
-  if (SOCKET_URL !== '') return []
-  return COMMUNITY_PREVIEW_POSTS.map((post) => fromPreview(post, now - post.minutesAgo * 60_000))
+export interface StockCards {
+  /** 전체 글 수(종목 없는 글 포함) */
+  totalPostCount: number
+  /** 글이 많은 순 최대 10개 */
+  stocks: StockCard[]
+  /** 등락률 기준 시각(ms). 하나도 못 받았으면 null */
+  priceAsOf: number | null
 }
 
-/** 글 하나(제안 `GET /api/community/posts/{postId}` 자리) — 글 상세를 주소로 열었을 때. 실제 연결이면 받을 길이 아직 없어 null */
-export async function loadCommunityPost(postId: number, now: number = Date.now()): Promise<CommunityPost | null> {
-  if (SOCKET_URL !== '') return null
-  const post = [...COMMUNITY_PREVIEW_POSTS, ...COMMUNITY_PREVIEW_LIVE].find((item) => item.id === postId)
-  return post === undefined ? null : fromPreview(post, now - post.minutesAgo * 60_000)
+/* ── 응답 거르기 ── */
+
+type Raw = Record<string, unknown>
+const isRaw = (value: unknown): value is Raw => typeof value === 'object' && value !== null
+const text = (value: unknown): string => (typeof value === 'string' ? value : '')
+const count = (value: unknown): number => Math.max(0, finiteOrNull(value) ?? 0)
+const stockOf = (row: Raw): { stockCode: string | null; stockName: string | null } => {
+  const code = typeof row.stockCode === 'string' && isStockCode(row.stockCode) ? row.stockCode : null
+  return { stockCode: code, stockName: code !== null && typeof row.stockName === 'string' && row.stockName !== '' ? row.stockName : code === null ? null : code }
+}
+/** 서버 시각 글자(한국 시각, 시간대 없음) → ISO. 못 읽으면 "" */
+const timeOf = (value: unknown): string => {
+  const ms = fromKstDateTime(typeof value === 'string' ? value : null)
+  return ms === null ? '' : toIsoTime(ms)
 }
 
-/** 서버가 준 글 하나를 검사해 화면 모양으로. 틀리면 null */
-export function toCommunityPost(raw: unknown): CommunityPost | null {
-  if (typeof raw !== 'object' || raw === null) return null
-  const value = raw as Record<string, unknown>
-  const postId = numberFromText(value.postId)
-  const createdAt = typeof value.createdAt === 'string' ? Date.parse(value.createdAt) : NaN
-  if (postId === null || typeof value.author !== 'string' || typeof value.content !== 'string' || Number.isNaN(createdAt)) return null
-  const text = (key: string) => (typeof value[key] === 'string' && (value[key] as string).trim() !== '' ? (value[key] as string) : null)
-  const images = Array.isArray(value.imageUrls) ? value.imageUrls.map(safeLink).filter((url) => url !== '') : []
+function toBase(row: Raw): PostBase | null {
+  const postId = finiteOrNull(row.postId)
+  if (postId === null) return null
   return {
     postId,
-    author: value.author,
-    stockCode: text('stockCode'),
-    stockName: text('stockName'),
-    title: text('title'),
-    content: value.content,
-    imageUrls: images,
-    createdAt: toIsoTime(createdAt),
-    likeCount: Math.max(0, numberFromText(value.likeCount) ?? 0),
-    commentCount: Math.max(0, numberFromText(value.commentCount) ?? 0),
+    ...stockOf(row),
+    title: text(row.title),
+    author: text(row.writerNickname) || '알 수 없음',
+    likeCount: count(row.likeCount),
+    commentCount: count(row.commentCount),
+    likedByMe: row.likedByMe === true,
+    isMine: row.isMine === true,
+    isEdited: row.isEdited === true,
+    createdAt: timeOf(row.createdAt),
   }
 }
 
-/**
- * 웹소켓 메시지 본문 하나를 일로. 틀리면 null.
- * @public 이 파일 밖에서는 판정(judge/unit.test.mjs)만 부른다 — 오는 값 거르기를 함수 단위로 잰다
- */
-export function toCommunityEvent(raw: unknown): CommunityEvent | null {
-  if (typeof raw !== 'object' || raw === null) return null
-  const value = raw as Record<string, unknown>
-  if (value.type === 'POST_CREATED') {
-    const post = toCommunityPost(value.post)
-    return post === null ? null : { type: 'POST_CREATED', post }
-  }
-  const postId = numberFromText(value.postId)
-  if (postId === null) return null
-  if (value.type === 'POST_DELETED') return { type: 'POST_DELETED', postId }
-  if (value.type === 'POST_UPDATED') {
-    const likeCount = numberFromText(value.likeCount)
-    const commentCount = numberFromText(value.commentCount)
-    if (likeCount === null || commentCount === null) return null
-    return { type: 'POST_UPDATED', postId, likeCount: Math.max(0, likeCount), commentCount: Math.max(0, commentCount) }
-  }
-  return null
+/** @public 판정(judge/unit.test.mjs)도 부른다 */
+export function toPostSummary(raw: unknown): PostSummary | null {
+  if (!isRaw(raw)) return null
+  const base = toBase(raw)
+  if (base === null) return null
+  return { ...base, changeRate: base.stockCode === null ? null : finiteOrNull(raw.changeRate), preview: text(raw.preview) }
 }
 
-/** 연결한다. 서버 주소가 없으면 목업(예시 글을 띄엄띄엄 흘려보낸다) */
-export function connectCommunity(handlers: Handlers): CommunityConnection {
-  return SOCKET_URL === '' ? connectMock(handlers) : connectStomp(SOCKET_URL, handlers)
+function toPostDetail(raw: unknown): PostDetail | null {
+  if (!isRaw(raw)) return null
+  const base = toBase(raw)
+  return base === null ? null : { ...base, content: text(raw.content) }
 }
 
-/** 목업에서 첫 새 글까지·글 사이 간격(판정은 Playwright 시계로 앞당긴다 — judge/community.mjs) */
-const MOCK_LIVE_DELAY_MS = { first: 40_000, between: 70_000 }
-
-function connectMock({ onEvent, onStatus }: Handlers): CommunityConnection {
-  onStatus('mock')
-  let index = 0
-  let timer = 0
-  /** 다음 예시 새 글(다 흘렸으면 null). 그다음 글은 이때부터 다시 센다 */
-  const take = (): CommunityPost | null => {
-    window.clearTimeout(timer)
-    const post = COMMUNITY_PREVIEW_LIVE[index]
-    if (post === undefined) return null
-    index += 1
-    timer = window.setTimeout(next, MOCK_LIVE_DELAY_MS.between)
-    return fromPreview(post, Date.now())
-  }
-  function next() {
-    const post = take()
-    if (post !== null) onEvent({ type: 'POST_CREATED', post })
-  }
-  timer = window.setTimeout(next, MOCK_LIVE_DELAY_MS.first)
+function toComment(raw: unknown): CommunityComment | null {
+  if (!isRaw(raw)) return null
+  const commentId = finiteOrNull(raw.commentId)
+  const postId = finiteOrNull(raw.postId)
+  if (commentId === null || postId === null) return null
   return {
-    sendPost: () => false,
-    pullNow: () => {
-      const post = take()
-      return post === null ? [] : [post]
-    },
-    close: () => window.clearTimeout(timer),
+    commentId,
+    postId,
+    content: text(raw.content),
+    author: text(raw.writerNickname) || '알 수 없음',
+    likeCount: count(raw.likeCount),
+    likedByMe: raw.likedByMe === true,
+    isMine: raw.isMine === true,
+    isEdited: raw.isEdited === true,
+    createdAt: timeOf(raw.createdAt),
   }
 }
 
-/* ── STOMP 1.2(웹소켓 위). 쓰는 프레임은 CONNECT·SUBSCRIBE·SEND·DISCONNECT를 보내고 CONNECTED·MESSAGE·ERROR를 받는 것뿐이다 ── */
-
-function frame(command: string, headers: Record<string, string>, body = ''): string {
-  const lines = Object.entries(headers).map(([key, value]) => `${key}:${value.replace(/[\r\n:]/g, ' ')}`)
-  return `${command}\n${lines.join('\n')}\n\n${body}\0`
+function listOf<T>(rows: unknown, to: (raw: unknown) => T | null): T[] {
+  if (!Array.isArray(rows)) throw malformedResponse()
+  return rows.flatMap((row) => {
+    const item = to(row)
+    return item === null ? [] : [item]
+  })
 }
 
-function parseFrames(data: string): { command: string; body: string }[] {
-  return data
-    .split('\0')
-    .map((chunk) => chunk.replace(/^\n+/, ''))
-    .filter((chunk) => chunk !== '')
-    .map((chunk) => {
-      const split = chunk.indexOf('\n\n')
-      const head = split === -1 ? chunk : chunk.slice(0, split)
-      return { command: head.split('\n')[0], body: split === -1 ? '' : chunk.slice(split + 2) }
-    })
+function query(params: Record<string, string | number | null | undefined>): string {
+  const search = new URLSearchParams()
+  for (const [key, value] of Object.entries(params)) if (value !== null && value !== undefined) search.set(key, String(value))
+  return search.toString()
 }
 
-function connectStomp(url: string, { onEvent, onStatus }: Handlers): CommunityConnection {
-  let socket: WebSocket | null = null
-  let ready = false
-  let closed = false
-  let retry = 0
-  let retryTimer = 0
+/* ── 조회(로그인 없이 된다 — 토큰이 있으면 싣고, 만료돼도 로그인 화면으로 끌고 가지 않는다) ── */
 
-  const open = () => {
-    onStatus(retry === 0 ? 'connecting' : 'reconnecting')
-    socket = new WebSocket(url)
-    socket.onopen = () => {
-      const token = getAccessToken()
-      socket?.send(frame('CONNECT', { 'accept-version': '1.2', 'heart-beat': '0,0', ...(token ? { Authorization: `Bearer ${token}` } : {}) }))
-    }
-    socket.onmessage = (message) => {
-      if (typeof message.data !== 'string') return
-      for (const { command, body } of parseFrames(message.data)) {
-        if (command === 'CONNECTED') {
-          ready = true
-          retry = 0
-          socket?.send(frame('SUBSCRIBE', { id: 'community-0', destination: TOPIC }))
-          onStatus('open')
-        } else if (command === 'MESSAGE') {
-          let parsed: unknown = null
-          try {
-            parsed = JSON.parse(body)
-          } catch {
-            continue
-          }
-          const event = toCommunityEvent(parsed)
-          if (event !== null) onEvent(event)
-        }
-      }
-    }
-    // 끊기면 1·2·4…30초 뒤 다시 붙는다. ERROR 프레임 뒤에는 서버가 끊으므로 같은 길로 온다
-    socket.onclose = () => {
-      ready = false
-      socket = null
-      if (closed) return
-      retry += 1
-      onStatus('reconnecting')
-      retryTimer = window.setTimeout(open, Math.min(30_000, 1000 * 2 ** (retry - 1)))
-    }
-  }
-  open()
+const PUBLIC = { ignoreUnauthorized: true } as const
 
-  return {
-    pullNow: () => [],
-    sendPost: ({ title, content, stockCode }) => {
-      if (!ready || socket === null) return false
-      socket.send(frame('SEND', { destination: SEND_TO, 'content-type': 'application/json' }, JSON.stringify({ title, content, stockCode })))
-      return true
-    },
-    close: () => {
-      closed = true
-      window.clearTimeout(retryTimer)
-      if (socket !== null && ready) socket.send(frame('DISCONNECT', {}))
-      socket?.close()
-    },
+/** 종목 카드 줄(`GET /api/community/stocks`) */
+export async function getCommunityStocks(): Promise<StockCards> {
+  const result = await get<Raw | null>('/api/community/stocks', PUBLIC)
+  if (!isRaw(result)) throw malformedResponse()
+  const stocks = listOf(result.stocks, (raw): StockCard | null => {
+    if (!isRaw(raw)) return null
+    const { stockCode, stockName } = stockOf(raw)
+    return stockCode === null || stockName === null ? null : { stockCode, stockName, postCount: count(raw.postCount), changeRate: finiteOrNull(raw.changeRate) }
+  })
+  return { totalPostCount: count(result.totalPostCount), stocks, priceAsOf: fromKstDateTime(typeof result.priceAsOf === 'string' ? result.priceAsOf : null) }
+}
+
+/** 최신(`/api/community/posts`)·이번 주 인기(`/popular`) 목록 한 쪽. 종목을 주면 그 종목 글만 */
+export async function getPosts(order: PostOrder, stockCode: string | null, cursor: PageCursor | null = null): Promise<Page<PostSummary>> {
+  const path = order === 'latest' ? '/api/community/posts' : '/api/community/posts/popular'
+  const result = await get<Raw | null>(`${path}?${query({ stockCode, size: PAGE_SIZE, ...(cursor ?? {}) })}`, PUBLIC)
+  if (!isRaw(result)) throw malformedResponse()
+  const items = listOf(result.posts, toPostSummary)
+  let next: PageCursor | null = null
+  if (result.hasNext === true) {
+    const cursorValue = finiteOrNull(result.nextCursor)
+    const likes = finiteOrNull(result.nextCursorLikeCount)
+    const id = finiteOrNull(result.nextCursorId)
+    next = order === 'latest' ? (cursorValue === null ? null : { cursor: cursorValue }) : likes === null || id === null ? null : { cursorLikeCount: likes, cursorId: id }
   }
+  return { items, next }
+}
+
+/** 글 상세. 없거나 지운 글이면 null(404 COMMUNITY404_1) */
+export async function getPost(postId: number): Promise<PostDetail | null> {
+  try {
+    const detail = toPostDetail(await get<unknown>(`/api/community/posts/${postId}`, PUBLIC))
+    if (detail === null) throw malformedResponse()
+    return detail
+  } catch (error: unknown) {
+    if (error instanceof ApiError && error.code === 'COMMUNITY404_1') return null
+    throw error
+  }
+}
+
+/** 댓글 한 쪽(오래된 순). 로그인해야 부른다 */
+export async function getComments(postId: number, cursor: number | null = null): Promise<Page<CommunityComment>> {
+  const result = await get<Raw | null>(`/api/community/posts/${postId}/comments?${query({ cursor, size: PAGE_SIZE })}`)
+  if (!isRaw(result)) throw malformedResponse()
+  const next = result.hasNext === true ? finiteOrNull(result.nextCursor) : null
+  return { items: listOf(result.comments, toComment), next: next === null ? null : { cursor: next } }
+}
+
+/* ── 쓰기(로그인 필요). 글 수가 바뀌는 일 뒤에는 종목 카드를 다시 받게 한다 ── */
+
+interface PostDraft {
+  title: string
+  content: string
+}
+
+export async function createPost(draft: PostDraft & { stockCode: string | null }): Promise<PostDetail> {
+  // 종목이 없으면 칸을 뺀다 — 빈 문자열은 400이다
+  const body = draft.stockCode === null ? { title: draft.title, content: draft.content } : draft
+  const created = toPostDetail(await post<unknown>('/api/community/posts', body))
+  if (created === null) throw malformedResponse()
+  return created
+}
+
+export async function updatePost(postId: number, draft: PostDraft): Promise<PostDetail> {
+  const updated = toPostDetail(await patch<unknown>(`/api/community/posts/${postId}`, draft))
+  if (updated === null) throw malformedResponse()
+  return updated
+}
+
+export async function deletePost(postId: number): Promise<void> {
+  await remove<unknown>(`/api/community/posts/${postId}`)
+}
+
+interface LikeState {
+  liked: boolean
+  likeCount: number
+}
+
+function toLike(raw: unknown): LikeState {
+  if (!isRaw(raw) || typeof raw.liked !== 'boolean') throw malformedResponse()
+  return { liked: raw.liked, likeCount: count(raw.likeCount) }
+}
+
+/** 좋아요 토글 — 누른 뒤의 상태를 준다 */
+export async function togglePostLike(postId: number): Promise<LikeState> {
+  return toLike(await post<unknown>(`/api/community/posts/${postId}/likes`, null))
+}
+
+export async function toggleCommentLike(commentId: number): Promise<LikeState> {
+  return toLike(await post<unknown>(`/api/community/comments/${commentId}/likes`, null))
+}
+
+export async function createComment(postId: number, content: string): Promise<CommunityComment> {
+  const created = toComment(await post<unknown>(`/api/community/posts/${postId}/comments`, { content }))
+  if (created === null) throw malformedResponse()
+  return created
+}
+
+export async function updateComment(commentId: number, content: string): Promise<CommunityComment> {
+  const updated = toComment(await patch<unknown>(`/api/community/comments/${commentId}`, { content }))
+  if (updated === null) throw malformedResponse()
+  return updated
+}
+
+export async function deleteComment(commentId: number): Promise<void> {
+  await remove<unknown>(`/api/community/comments/${commentId}`)
+}
+
+/** 닉네임이 없어 쓰지 못했는가(403 COMMUNITY403_1) — 화면이 닉네임 창을 띄운다 */
+export const needsNickname = (error: unknown): boolean => error instanceof ApiError && error.code === 'COMMUNITY403_1'
+
+
+/** 주소 기록(넘겨주기 state)에 남은 목록 글이 모양이 맞는가 — 글 상세가 등락률·미리보기를 이어 쓴다 */
+export function isPostSummary(value: unknown): value is PostSummary {
+  if (!isRaw(value)) return false
+  return (
+    typeof value.postId === 'number' &&
+    typeof value.title === 'string' &&
+    typeof value.author === 'string' &&
+    typeof value.preview === 'string' &&
+    typeof value.createdAt === 'string' &&
+    (value.changeRate === null || typeof value.changeRate === 'number') &&
+    (value.stockCode === null || (typeof value.stockCode === 'string' && isStockCode(value.stockCode)))
+  )
 }

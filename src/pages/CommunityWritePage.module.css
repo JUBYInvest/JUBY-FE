@@ -155,43 +155,7 @@
   text-underline-offset: 3px;
 }
 
-/* 사진 자리 — 점선 칸. 사진을 받는 곳이 없어 늘 잠겨 있다 */
-.photo {
-  display: inline-flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-1);
-  width: 96px;
-  height: 96px;
-  border: 1.5px dashed var(--color-border-strong);
-  border-radius: var(--radius-md);
-  background: var(--color-surface);
-  font: inherit;
-  font-size: var(--font-sm);
-  color: var(--color-text-sub);
-}
-
-.photo:disabled {
-  cursor: not-allowed;
-}
-
-.hint {
-  margin: 0;
-  font-size: var(--font-sm);
-  line-height: 1.6;
-  color: var(--color-text-sub);
-}
-
 .error,
-.sending {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  margin: var(--space-5) 0 0;
-  font-size: var(--font-md);
-}
-
 /* 취소 | 올리기 — 지수 띠(--index-bar-height, 아이폰은 홈 막대 자리만큼 더) 바로 위에 붙어 따라온다. 글 칸이 밑으로 지나가므로 흰 바탕 */
 .actions {
   position: sticky;

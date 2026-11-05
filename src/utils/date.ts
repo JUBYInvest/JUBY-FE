@@ -136,6 +136,15 @@ export function toKoreanDateTime(ms: number): string {
   return `${kst.getUTCMonth() + 1}월 ${kst.getUTCDate()}일 ${hours}:${minutes}`
 }
 
+/** 한국 시각으로 "오전 10:56"·"오후 3:05" — 채팅 말 옆 시각. 시각이 아니면 "" */
+export function toKoreanClock(ms: number): string {
+  const kst = kstClock(ms)
+  if (kst === null) return ''
+  const hours = kst.getUTCHours()
+  const minutes = String(kst.getUTCMinutes()).padStart(2, '0')
+  return `${hours < 12 ? '오전' : '오후'} ${hours % 12 === 0 ? 12 : hours % 12}:${minutes}`
+}
+
 /** 서버가 주는 한국 시각 글자("2026-11-04T10:15:30", 시간대 없음) → ms. 모양이 틀리면 null */
 export function fromKstDateTime(text: string | null | undefined): number | null {
   if (typeof text !== 'string') return null

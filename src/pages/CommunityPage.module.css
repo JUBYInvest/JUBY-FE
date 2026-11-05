@@ -350,33 +350,15 @@
   }
 }
 
-/* 보고 있는 동안 들어온 새 글 — 누르면 위에 세운다 */
-.fresh {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-2);
+/* 다음 쪽(20개씩) — 목록과 같은 폭이라 목록의 일부로 읽힌다 */
+.more {
+  composes: secondary lg from '../components/buttons.module.css';
   width: 100%;
-  min-height: 44px;
-  margin-top: var(--space-3);
-  border: 0;
-  border-radius: var(--radius-md);
-  background: var(--color-brand-50);
-  color: var(--color-brand-800);
-  font-size: var(--font-md);
-  font-weight: 700;
+  margin-top: var(--space-4);
 }
 
-.fresh::before {
-  content: '';
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: currentColor;
-}
-
-.fresh:hover {
-  background: var(--color-brand-100);
+.retry {
+  composes: secondary md from '../components/buttons.module.css';
 }
 
 /* 바뀐 목록이 잠깐 떠오른다(화면 전환과 같은 곡선) */

@@ -79,50 +79,23 @@ describe('utils/date', async () => {
 })
 
 /* ── utils/format ───────────────────────────────────────────────────── */
-describe('api/community — 웹소켓으로 오는 값 거르기(2026-11-03 커뮤니티 게시판)', async () => {
-  test('글 하나: 모양이 맞으면 화면 모양으로, 틀리면 null(던지지 않는다)', async () => {
-    const { toCommunityPost } = await src('api/community.ts')
-    const post = toCommunityPost({ postId: 7, author: '가', content: '글', createdAt: '2026-10-29T02:00:00Z', stockCode: '005930', stockName: '삼성전자', likeCount: -3, commentCount: '2' })
-    assert.deepEqual(post, { postId: 7, author: '가', stockCode: '005930', stockName: '삼성전자', title: null, content: '글', imageUrls: [], createdAt: '2026-10-29T02:00:00.000Z', likeCount: 0, commentCount: 2 })
-    assert.equal(toCommunityPost({ postId: 7, author: '가', content: '글', createdAt: '어제' }), null)
-    assert.equal(toCommunityPost({ author: '가', content: '글', createdAt: '2026-10-29T02:00:00Z' }), null)
-    assert.equal(toCommunityPost(null), null)
-    assert.equal(toCommunityPost({ postId: 1, author: '가', content: '글', createdAt: '2026-10-29T02:00:00Z', stockCode: '' }).stockCode, null)
+describe('api/community — 서버 글 거르기', async () => {
+  test('목록 글: 한국 시각 글자 → ISO, 빈 닉네임·틀린 종목코드 처리, 종목 없는 글은 등락률 null', async () => {
+    const { toPostSummary } = await src('api/community.ts')
+    const post = toPostSummary({ postId: 12, stockCode: '005930', stockName: '삼성전자', changeRate: -5.05, title: '제목', preview: '미리', writerNickname: '주린이', likeCount: -1, commentCount: '4', likedByMe: true, isMine: false, isEdited: false, createdAt: '2026-11-05T11:18:40.112233' })
+    assert.deepEqual(post, { postId: 12, stockCode: '005930', stockName: '삼성전자', changeRate: -5.05, title: '제목', preview: '미리', author: '주린이', likeCount: 0, commentCount: 0, likedByMe: true, isMine: false, isEdited: false, createdAt: '2026-11-05T02:18:40.000Z' })
+    assert.equal(toPostSummary({ postId: 1, stockCode: null, stockName: null, changeRate: 3, title: 't', writerNickname: '' }).changeRate, null)
+    assert.equal(toPostSummary({ postId: 1, stockCode: 'abc', title: 't' }).stockCode, null)
+    assert.equal(toPostSummary({ postId: 1, title: 't', writerNickname: '' }).author, '알 수 없음')
+    assert.equal(toPostSummary({ title: 't' }), null)
+    assert.equal(toPostSummary(null), null)
   })
-  test('글 하나(2026-11-04 제목 + 사진): 제목은 빈 글이면 null, 사진은 http·https 주소만 남긴다', async () => {
-    const { toCommunityPost } = await src('api/community.ts')
-    const base = { postId: 1, author: '가', content: '글', createdAt: '2026-10-29T02:00:00Z' }
-    assert.equal(toCommunityPost({ ...base, title: '제목' }).title, '제목')
-    assert.equal(toCommunityPost({ ...base, title: '  ' }).title, null)
-    assert.equal(toCommunityPost({ ...base, title: 3 }).title, null)
-    assert.deepEqual(toCommunityPost({ ...base, imageUrls: ['https://img.example.com/a.png', 'javascript:alert(1)', '/b.png', null, 'http://x.kr/c.jpg'] }).imageUrls,
-      ['https://img.example.com/a.png', 'http://x.kr/c.jpg'])
-    assert.deepEqual(toCommunityPost({ ...base, imageUrls: 'https://img.example.com/a.png' }).imageUrls, [])
-  })
-  test('일: 새 글·공감 수·지운 글만, 모르는 type·빠진 값은 버린다', async () => {
-    const { toCommunityEvent } = await src('api/community.ts')
-    const created = toCommunityEvent({ type: 'POST_CREATED', post: { postId: 1, author: '가', content: '글', createdAt: '2026-10-29T02:00:00Z' } })
-    assert.equal(created.type, 'POST_CREATED')
-    assert.equal(created.post.postId, 1)
-    assert.deepEqual(toCommunityEvent({ type: 'POST_UPDATED', postId: '3', likeCount: 5, commentCount: 1 }), { type: 'POST_UPDATED', postId: 3, likeCount: 5, commentCount: 1 })
-    assert.deepEqual(toCommunityEvent({ type: 'POST_DELETED', postId: 3 }), { type: 'POST_DELETED', postId: 3 })
-    assert.equal(toCommunityEvent({ type: 'POST_UPDATED', postId: 3 }), null)
-    assert.equal(toCommunityEvent({ type: 'POST_CREATED', post: { postId: 1 } }), null)
-    assert.equal(toCommunityEvent({ type: 'HELLO', postId: 1 }), null)
-    assert.equal(toCommunityEvent('글'), null)
-  })
-  test('서버 주소가 없으면 처음 목록은 예시 글(지금 시각 기준)', async () => {
-    const { loadCommunityPosts } = await src('api/community.ts')
-    const posts = await loadCommunityPosts(THU_11)
-    assert.ok(posts.length >= 5)
-    assert.ok(posts.every((post) => Date.parse(post.createdAt) <= THU_11 && typeof post.content === 'string' && typeof post.title === 'string'))
-  })
-  test('글 하나 받기(글 상세를 주소로 열 때): 예시 글·예시 새 글에서 찾고, 없으면 null', async () => {
-    const { loadCommunityPost, loadCommunityPosts } = await src('api/community.ts')
-    const [first] = await loadCommunityPosts(THU_11)
-    assert.deepEqual(await loadCommunityPost(first.postId, THU_11), first)
-    assert.equal((await loadCommunityPost(101, THU_11))?.createdAt, new Date(THU_11).toISOString())
-    assert.equal(await loadCommunityPost(424242, THU_11), null)
+  test('넘겨주기 글 검사(isPostSummary)', async () => {
+    const { isPostSummary } = await src('api/community.ts')
+    const ok = { postId: 1, title: 't', author: 'a', preview: '', createdAt: '', changeRate: null, stockCode: null }
+    assert.equal(isPostSummary(ok), true)
+    assert.equal(isPostSummary({ ...ok, stockCode: '12' }), false)
+    assert.equal(isPostSummary({ ...ok, postId: '1' }), false)
   })
 })
 
@@ -698,10 +671,10 @@ describe('api/kisMarket·member·stock — 응답 모양 거르기', async () =>
   })
   test('getMemberInfo — 이름·이메일이 비면 "", 생일 비면 null, 모르는 가입 경로는 null', async () => {
     responder = () => ok({ name: null, email: 'a@b.c', birth: '', socialType: 'APPLE', onboarded: true })
-    assert.deepEqual(await member.getMemberInfo(), { name: '', email: 'a@b.c', birth: null, socialType: null })
+    assert.deepEqual(await member.getMemberInfo(), { name: '', nickname: null, email: 'a@b.c', birth: null, socialType: null })
     fresh()
-    responder = () => ok({ name: '허광엽', email: 'a@b.c', birth: '2002-05-07', socialType: 'KAKAO' })
-    assert.deepEqual(await member.getMemberInfo(), { name: '허광엽', email: 'a@b.c', birth: '2002-05-07', socialType: 'KAKAO' })
+    responder = () => ok({ name: '허광엽', nickname: null, email: 'a@b.c', birth: '2002-05-07', socialType: 'KAKAO' })
+    assert.deepEqual(await member.getMemberInfo(), { name: '허광엽', nickname: null, email: 'a@b.c', birth: '2002-05-07', socialType: 'KAKAO' })
     fresh()
     responder = () => ok(null)
     await assert.rejects(member.getMemberInfo(), /서버 응답을 읽을 수 없습니다/)

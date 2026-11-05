@@ -1,118 +1,147 @@
-import { useEffect, useMemo, useRef, useState, type Ref } from 'react'
-import { Link } from 'react-router-dom'
-import type { CommunityPost } from '../api/community'
+import { useCallback, useEffect, useMemo, useRef, useState, type Ref } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { getCommunityStocks, getPosts, type PageCursor, type PostOrder, type PostSummary, type StockCards } from '../api/community'
 import { STOCK_LIST } from '../api/stockList'
 import CommunityPosts from '../components/CommunityPosts'
 import CommunitySide from '../components/CommunitySide'
 import layout from '../components/communityLayout.module.css'
 import SearchBar from '../components/SearchBar'
 import Spinner from '../components/Spinner'
-import { useCommunityFeed } from '../hooks/useCommunityFeed'
 import { useDocumentTitle } from '../hooks/useDocumentTitle'
 import { usePullToRefresh } from '../hooks/usePullToRefresh'
 import { toStockHandoff } from '../hooks/useStockHandoff'
-import { useStockQuotes, type StockQuote } from '../hooks/useStockQuotes'
+import { useWriteGate } from '../hooks/useWriteGate'
+import { toKoreanDateTime } from '../utils/date'
 import { formatChangeRate, rateTone } from '../utils/format'
 import { prefersReducedMotion } from '../utils/motion'
 import type { StockInfo } from '../types/stock'
 import styles from './CommunityPage.module.css'
 
-type Order = 'latest' | 'popular'
-
 /** 정렬 알약. 무엇 순인지는 머리 오른쪽에 글로도 적는다 */
-const ORDERS: { key: Order; label: string; note: string }[] = [
-  { key: 'latest', label: '최신', note: '새로 올라온 순' },
-  { key: 'popular', label: '인기', note: '공감 많은 순' },
+const ORDERS: { key: PostOrder; label: string; note: string; empty: string }[] = [
+  { key: 'latest', label: '최신', note: '새로 올라온 순', empty: '아직 올라온 글이 없어요.' },
+  { key: 'popular', label: '인기', note: '이번 주 좋아요 순', empty: '이번 주에 올라온 글이 없어요.' },
 ]
 
 interface StockChoice {
   code: string
   name: string
   count: number
+  changeRate: number | null
 }
 
-/** 당겨서 새로고침 결과 — 화면에는 띄우지 않고 읽어 주는 쪽에만 알린다(새 글은 목록 맨 위에 선 것으로 보인다) */
-function pullMessage(incoming: CommunityPost[]): string {
-  return incoming.length === 0 ? '새 글이 없어요' : `새 글 ${incoming.length}개를 위에 올렸어요`
-}
+type ListState =
+  | { kind: 'loading' }
+  | { kind: 'error' }
+  | { kind: 'ready'; items: PostSummary[]; next: PageCursor | null; more: 'idle' | 'loading' | 'error' }
 
-const byLatest = (a: CommunityPost, b: CommunityPost) => Date.parse(b.createdAt) - Date.parse(a.createdAt)
-const byPopular = (a: CommunityPost, b: CommunityPost) => b.likeCount - a.likeCount || byLatest(a, b)
-
-/** 글이 있는 종목을 글 수 많은 순으로(같으면 이름순) */
-function stocksOf(posts: CommunityPost[]): StockChoice[] {
-  const counts = new Map<string, StockChoice>()
-  for (const post of posts) {
-    if (post.stockCode === null || post.stockName === null) continue
-    const item = counts.get(post.stockCode) ?? { code: post.stockCode, name: post.stockName, count: 0 }
-    item.count += 1
-    counts.set(post.stockCode, item)
-  }
-  return [...counts.values()].sort((a, b) => b.count - a.count || a.name.localeCompare(b.name, 'ko'))
-}
+const withoutDuplicates = (list: PostSummary[]) => list.filter((post, index) => list.findIndex((other) => other.postId === post.postId) === index)
 
 /**
  * 커뮤니티 목록. 머리(제목 · 종목 검색 → 최신 · 인기 알약) → 종목 카드 줄 → 글 줄, 넓은 화면은 오른쪽에 이용 안내(글 상세와 같은 두 열 틀).
- * 글은 웹소켓으로 받는다(src/api/community.ts). 보고 있는 동안 온 새 글은 바로 끼우지 않고(읽던 글이 밀린다) "새 글 N개 보기"로 모았다가 세운다 —
- * 손가락 화면은 맨 위를 끌어내려도 받는다(hooks/usePullToRefresh)
+ * 종목 카드는 `GET /api/community/stocks`, 글은 고른 탭·종목으로 한 쪽(20개)씩 받는다. 손가락 화면은 맨 위를 끌어내려 다시 받는다.
+ * 글쓰기는 로그인·닉네임을 확인한 뒤 연다(useWriteGate)
  */
 export default function CommunityPage() {
   useDocumentTitle('커뮤니티')
-  const { posts, pending, status, revealPending, refresh } = useCommunityFeed()
-  const quotes = useStockQuotes()
+  const navigate = useNavigate()
+  const gate = useWriteGate()
   const stripRef = useRef<HTMLElement>(null)
   const searchToggleRef = useRef<HTMLButtonElement>(null)
   /** 검색으로 고른 종목 — 그려진 뒤 그 카드로 포커스를 옮긴다 */
   const focusCodeRef = useRef<string | null>(null)
-  const [order, setOrder] = useState<Order>('latest')
+  const [order, setOrder] = useState<PostOrder>('latest')
   const [stockCode, setStockCode] = useState<string | null>(null)
-  /** 검색으로 고른 종목. 글이 없어도 카드 줄(전체 다음)에 세운다 — 카드가 보여야 다시 풀 수 있다 */
+  /** 검색으로 고른 종목. 카드 줄에 없어도(글이 적어 열 개 안에 못 든 종목) 전체 다음에 세운다 — 카드가 보여야 다시 풀 수 있다 */
   const [searched, setSearched] = useState<{ code: string; name: string } | null>(null)
   const [searchOpen, setSearchOpen] = useState(false)
+  const [cards, setCards] = useState<StockCards | null>(null)
+  const [list, setList] = useState<ListState>({ kind: 'loading' })
+  const [turn, setTurn] = useState(0)
   /** 사람이 목록을 바꾼 횟수 — 바뀐 목록만 떠오른다(처음 그릴 때는 걸지 않는다) */
   const [feedTurn, setFeedTurn] = useState(0)
+  /** 늦게 온 앞 요청(탭·종목을 바꾼 뒤)을 버리는 번호 */
+  const requestRef = useRef(0)
+
+  const loadCards = useCallback(() => {
+    getCommunityStocks()
+      .then(setCards)
+      .catch((error: unknown) => console.warn('커뮤니티 종목 카드를 받지 못했습니다', error))
+  }, [])
+
+  useEffect(loadCards, [loadCards])
+
+  useEffect(() => {
+    const id = ++requestRef.current
+    setList({ kind: 'loading' })
+    getPosts(order, stockCode)
+      .then((page) => {
+        if (id === requestRef.current) setList({ kind: 'ready', items: page.items, next: page.next, more: 'idle' })
+      })
+      .catch((error: unknown) => {
+        console.warn('커뮤니티 글을 받지 못했습니다', error)
+        if (id === requestRef.current) setList({ kind: 'error' })
+      })
+  }, [order, stockCode, turn])
+
+  const loadMore = () => {
+    if (list.kind !== 'ready' || list.next === null || list.more === 'loading') return
+    const id = requestRef.current
+    setList({ ...list, more: 'loading' })
+    getPosts(order, stockCode, list.next)
+      .then((page) => {
+        if (id !== requestRef.current) return
+        setList((current) => (current.kind === 'ready' ? { kind: 'ready', items: withoutDuplicates([...current.items, ...page.items]), next: page.next, more: 'idle' } : current))
+      })
+      .catch((error: unknown) => {
+        console.warn('커뮤니티 글을 더 받지 못했습니다', error)
+        if (id === requestRef.current) setList((current) => (current.kind === 'ready' ? { ...current, more: 'error' } : current))
+      })
+  }
+
   const pullRef = useRef<HTMLDivElement>(null)
   const pull = usePullToRefresh(pullRef, async () => {
-    const incoming = await refresh()
-    if (incoming.length > 0) setFeedTurn((turn) => turn + 1)
+    const before = new Set(list.kind === 'ready' ? list.items.map((post) => post.postId) : [])
+    loadCards()
+    const page = await getPosts(order, stockCode)
+    requestRef.current += 1
+    setList({ kind: 'ready', items: page.items, next: page.next, more: 'idle' })
+    const incoming = page.items.filter((post) => !before.has(post.postId))
+    if (incoming.length > 0) setFeedTurn((value) => value + 1)
     return incoming
   })
-  // "N분 전"은 목록이 바뀔 때마다 새로 센다 — 새 글을 세웠는데 앞 글이 "방금"에 멈춰 있지 않게
+  // "N분 전"은 다시 그릴 때마다 지금 시각으로 센다
   const now = Date.now()
 
-  const all = posts ?? []
-  const withPosts = stocksOf(all)
+  const fromCards: StockChoice[] = (cards?.stocks ?? []).map((card) => ({ code: card.stockCode, name: card.stockName, count: card.postCount, changeRate: card.changeRate }))
   const stocks: StockChoice[] =
-    searched !== null && !withPosts.some((stock) => stock.code === searched.code) ? [{ ...searched, count: 0 }, ...withPosts] : withPosts
+    searched !== null && !fromCards.some((stock) => stock.code === searched.code) ? [{ ...searched, count: 0, changeRate: null }, ...fromCards] : fromCards
   const picked = stocks.find((stock) => stock.code === stockCode) ?? null
-  const shown = all.filter((post) => picked === null || post.stockCode === picked.code).sort(order === 'latest' ? byLatest : byPopular)
-  const orderNote = ORDERS.find((item) => item.key === order)?.note ?? ''
-  // 등락률이 언제 값인지 — 보이는 글의 종목이 모두 같은 날 종가면 목록 위에 한 번 적는다
-  const quoted = new Set(shown.flatMap((post) => (post.stockCode === null ? [] : [quotes.get(post.stockCode)?.basis ?? ''])))
-  const quoteBasis = quoted.size === 1 ? [...quoted][0] : ''
+  const orderInfo = ORDERS.find((item) => item.key === order) ?? ORDERS[0]
+  const asOf = cards?.priceAsOf != null ? toKoreanDateTime(cards.priceAsOf) : ''
 
-  // 검색 후보: 글이 있는 종목이 같은 일치 순위 안에서 앞선다(rankStocks), 그 뒤 시총 상위 사본
+  // 검색 후보: 카드 줄 종목이 같은 일치 순위 안에서 앞선다(rankStocks), 그 뒤 시총 상위 사본
   const searchable = useMemo(() => {
     const seen = new Set<string>()
-    const own: StockInfo[] = stocksOf(posts ?? []).map((stock) => ({ stockCode: stock.code, stockName: stock.name }))
+    const own: StockInfo[] = (cards?.stocks ?? []).map((card) => ({ stockCode: card.stockCode, stockName: card.stockName }))
     return [...own, ...STOCK_LIST].filter((stock) => !seen.has(stock.stockCode) && seen.add(stock.stockCode))
-  }, [posts])
+  }, [cards])
 
   const closeSearch = () => {
     setSearchOpen(false)
     searchToggleRef.current?.focus()
   }
 
-  const pickOrder = (next: Order) => {
+  const pickOrder = (next: PostOrder) => {
     if (next === order) return
     setOrder(next)
-    setFeedTurn((turn) => turn + 1)
+    setFeedTurn((value) => value + 1)
   }
 
   const pickStock = (code: string | null) => {
     if (code === stockCode) return
     setStockCode(code)
-    setFeedTurn((turn) => turn + 1)
+    setFeedTurn((value) => value + 1)
   }
 
   const pickSearched = (stock: StockInfo) => {
@@ -132,7 +161,10 @@ export default function CommunityPage() {
     card?.scrollIntoView({ block: 'nearest', inline: 'nearest' })
   }, [stockCode, searchOpen])
 
-  const pulled = pull.result === null ? '' : pullMessage(pull.result)
+  // 고른 종목이 있으면 그 종목 이야기로 쓴다
+  const write = () => gate.ensure(() => navigate('/community/write', { state: picked === null ? undefined : toStockHandoff({ stockCode: picked.code, stockName: picked.name }) }))
+
+  const pulled = pull.result === null ? '' : pull.result.length === 0 ? '새 글이 없어요' : `새 글 ${pull.result.length}개를 위에 올렸어요`
 
   return (
     <>
@@ -190,35 +222,41 @@ export default function CommunityPage() {
                     </button>
                   ))}
                 </div>
-                <span className={styles.orderNote}>{orderNote}</span>
+                <span className={styles.orderNote}>{orderInfo.note}</span>
               </div>
 
-              <StockStrip ref={stripRef} stocks={stocks} total={all.length} quotes={quotes} pickedCode={picked?.code ?? null} onPick={pickStock} />
+              <StockStrip ref={stripRef} stocks={stocks} total={cards?.totalPostCount ?? null} pickedCode={picked?.code ?? null} onPick={pickStock} />
 
-              {quoteBasis !== '' && <p className={styles.asOf}>{quoteBasis} 등락률이에요</p>}
+              {asOf !== '' && <p className={styles.asOf}>{asOf} 기준 등락률이에요</p>}
 
-              {pending.length > 0 && (
-                <button type="button" className={styles.fresh} onClick={revealPending}>
-                  새 글 {pending.length}개 보기
-                </button>
-              )}
-
-              {posts === null ? (
+              {list.kind === 'loading' ? (
                 <p className={styles.message}>
                   <Spinner size={16} /> 글을 불러오는 중…
                 </p>
-              ) : shown.length === 0 ? (
-                <p className={styles.message}>{picked === null ? '아직 올라온 글이 없어요.' : `${picked.name} 이야기는 아직 없어요.`}</p>
+              ) : list.kind === 'error' ? (
+                <div className={styles.message}>
+                  <p>글을 불러오지 못했어요.</p>
+                  <button type="button" className={styles.retry} onClick={() => setTurn((value) => value + 1)}>
+                    다시 시도
+                  </button>
+                </div>
+              ) : list.items.length === 0 ? (
+                <p className={styles.message}>{picked === null ? orderInfo.empty : `${picked.name} 이야기는 아직 없어요.`}</p>
               ) : (
                 // 바뀐 목록은 새로 그려 잠깐 떠오른다 — 누른 곳 아래에서 바뀌어 눈이 따라가게
                 <div key={feedTurn} className={feedTurn > 0 ? styles.feedTurn : undefined}>
-                  <CommunityPosts posts={shown} now={now} quotes={quotes} />
+                  <CommunityPosts posts={list.items} now={now} />
+                  {list.next !== null && (
+                    <button type="button" className={styles.more} onClick={loadMore} disabled={list.more === 'loading'}>
+                      {list.more === 'loading' ? '불러오는 중…' : list.more === 'error' ? '못 불러왔어요 — 다시 시도' : '글 더 보기'}
+                    </button>
+                  )}
                 </div>
               )}
               <div className={styles.feedEnd} />
             </section>
 
-            <CommunitySide status={status} className={layout.side} />
+            <CommunitySide className={layout.side} />
           </div>
         </div>
       </div>
@@ -226,11 +264,11 @@ export default function CommunityPage() {
         {pulled}
       </p>
 
-      {/* 고른 종목이 있으면 그 종목 이야기로 쓴다 */}
-      <Link to="/community/write" state={picked === null ? undefined : toStockHandoff({ stockCode: picked.code, stockName: picked.name })} className={styles.write}>
+      <button type="button" onClick={write} className={styles.write}>
         <PencilIcon />
         글쓰기
-      </Link>
+      </button>
+      {gate.modals}
     </>
   )
 }
@@ -238,19 +276,17 @@ export default function CommunityPage() {
 interface StockStripProps {
   ref: Ref<HTMLElement>
   stocks: StockChoice[]
-  /** 전체 글 수 */
-  total: number
-  /** 종목별 그날 등락률 */
-  quotes: Map<string, StockQuote>
+  /** 전체 글 수(종목 없는 글 포함). 못 받았으면 null */
+  total: number | null
   pickedCode: string | null
   onPick: (code: string | null) => void
 }
 
 /**
- * 종목 카드 줄 — 전체 + 글이 있는 종목을 옆으로 밀어 고른다. 마우스는 세로 휠로 줄을 밀 수 없어 넘치는 쪽 끝에 앞·뒤 단추를 띄운다.
+ * 종목 카드 줄 — 전체 + 글이 많은 종목(서버가 열 개까지)을 옆으로 밀어 고른다. 마우스는 세로 휠로 줄을 밀 수 없어 넘치는 쪽 끝에 앞·뒤 단추를 띄운다.
  * 키보드는 Tab으로 카드를 따라가면 줄이 밀리므로 단추를 Tab 차례에 넣지 않는다(손가락 화면에서는 CSS로 숨긴다)
  */
-function StockStrip({ ref, stocks, total, quotes, pickedCode, onPick }: StockStripProps) {
+function StockStrip({ ref, stocks, total, pickedCode, onPick }: StockStripProps) {
   const listRef = useRef<HTMLUListElement>(null)
   const [edges, setEdges] = useState({ start: false, end: false })
 
@@ -289,9 +325,8 @@ function StockStrip({ ref, stocks, total, quotes, pickedCode, onPick }: StockStr
     if (shift !== 0) list.scrollBy({ left: shift, behavior: prefersReducedMotion() ? 'auto' : 'smooth' })
   }
 
-  const card = (code: string | null, name: string, count: number) => {
+  const card = (code: string | null, name: string, count: number | null, fluctuate: number | null) => {
     const on = pickedCode === code
-    const fluctuate = code === null ? null : (quotes.get(code)?.fluctuate ?? null)
     return (
       <li key={code ?? 'all'}>
         <button
@@ -309,7 +344,7 @@ function StockStrip({ ref, stocks, total, quotes, pickedCode, onPick }: StockStr
           </span>
           <span className={styles.cardName}>{name}</span>{' '}
           <span className={styles.cardFoot}>
-            <span className={styles.count}>글 {count}</span>
+            {count !== null && <span className={styles.count}>글 {count}</span>}
             {fluctuate !== null && (
               <>
                 {' '}
@@ -325,8 +360,8 @@ function StockStrip({ ref, stocks, total, quotes, pickedCode, onPick }: StockStr
   return (
     <nav ref={ref} className={styles.strip} aria-label="종목으로 보기">
       <ul ref={listRef} className={styles.stockList}>
-        {card(null, '전체', total)}
-        {stocks.map((stock) => card(stock.code, stock.name, stock.count))}
+        {card(null, '전체', total, null)}
+        {stocks.map((stock) => card(stock.code, stock.name, stock.count, stock.changeRate))}
       </ul>
       {edges.start && (
         <button type="button" className={styles.slidePrev} tabIndex={-1} aria-hidden="true" onClick={() => slide(-1)}>

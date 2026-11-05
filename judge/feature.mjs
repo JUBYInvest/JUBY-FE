@@ -1,7 +1,7 @@
 // 디자인 재정비 화면별 판정(결과 보고서 1절 H-1~5, S-1~4, L-1~4). /api는 전부 가짜(mock.mjs).
 // S-1·S-3·S-4·L-2는 그 뒤 바뀐 것(M-8 한 판·휴장일·관심종목 뉴스)에 맞춰 2026-10-31에 기대값을 고쳤다.
 // S-2는 2026-11-02 뉴스를 6건씩 펼치게 되어(S-5) 첫 화면 뉴스 5건 → 6건(펼친 것이 다 보인다).
-// H-1·H-4는 커뮤니티가 채팅이 되어(2026-11-02) 글 5개 대신 대화창·입력칸, 말마다 "예시 글" 대신 칸의 "예시" 표시를 본다.
+// H-1·H-4: 홈 맨 아래는 전체 채팅(예시) — 대화창의 말과 칸의 "예시" 표시를 본다.
 // 2026-11-03 커뮤니티가 다시 게시판이 되어 H-1은 첫 화면의 글 줄(세 줄 이상), H-4는 "지금 보이는 글은 예시" 안내를 본다. L-1은 메뉴에 '커뮤니티'가 더해졌다(AI와 사용설명서 사이).
 // H-6·L-5(2026-11-02 사용자 "첫번째 박스는 과하게 좌측에, 세번째 박스는 과하게 우측에 붙어있어"): 세로 선으로 나눈 칸은 첫 칸·끝 칸도 안 여백이 같다.
 // H-7(같은 날, 그 캡처에서 찾음): 1년 그래프의 끝점·선이 그래프 판 밖으로 잘리지 않는다(가짜 한화에어로스페이스는 끝값이 1년 최저다).
@@ -64,10 +64,10 @@ const evenInsets = (cells) => cells.length > 1 && cells.every(([l]) => l >= 12 &
     themes: await inView(page, '[class*="_cards_"] > a'),
     rows: await inView(page, '[class*="_body_"] > li'),
     steps: await inView(page, '[class*="_steps_"] li'),
-    // 커뮤니티는 2026-11-03부터 게시판의 최신 글 다섯 줄이다. 글 하나하나는 community.mjs가 본다
-    posts: await inView(page, '[aria-labelledby="home-community-title"] li'),
+    // 홈 맨 아래는 전체 채팅(예시 대화). 말 하나하나는 community.mjs C*가 본다
+    posts: await inView(page, '[aria-labelledby="home-chat-title"] li'),
   }
-  report('H-1', h1.search === 1 && h1.themes === 3 && h1.rows >= 6 && h1.steps === 4 && h1.posts >= 3, `1920×1080 첫 화면 — 검색 ${h1.search}, 테마 ${h1.themes}, 시세표 ${h1.rows}행, 사용설명서 ${h1.steps}단계, 커뮤니티 글 ${h1.posts}줄`)
+  report('H-1', h1.search === 1 && h1.themes === 3 && h1.rows >= 6 && h1.steps === 4 && h1.posts >= 3, `1920×1080 첫 화면 — 검색 ${h1.search}, 테마 ${h1.themes}, 시세표 ${h1.rows}행, 사용설명서 ${h1.steps}단계, 채팅 말 ${h1.posts}개`)
   const h2 = await page.evaluate(() => {
     const cards = [...document.querySelectorAll('[class*="_cards_"] > a')]
     const boxed = cards.filter((c) => { const cs = getComputedStyle(c); return cs.boxShadow !== 'none' || ['Top', 'Right', 'Bottom'].every((s) => parseFloat(cs[`border${s}Width`]) > 0) })
@@ -79,15 +79,15 @@ const evenInsets = (cells) => cells.length > 1 && cells.every(([l]) => l >= 12 &
   await sleep(300)
   const firstRate = await page.locator('[class*="_body_"] > li').first().locator('span').nth(4).textContent()
   report('H-3', ranks.length >= 13 && ranks.slice(0, 3).join(',') === '1,2,3' && /^\+2\.10%$/.test(firstRate?.trim() ?? ''), `순번 ${ranks.length}개(${ranks.slice(0, 3)}), 등락률 정렬 뒤 첫 줄 ${firstRate?.trim()}`)
-  // 채팅이 된 뒤(2026-11-02)로는 말마다가 아니라 칸 제목 옆 "예시"와 칸 아래 안내 한 줄로 밝힌다
-  const community = page.locator('section[aria-labelledby="home-community-title"]')
-  const samples = (await community.getByText('예시', { exact: true }).count()) + (await community.getByText(/지금 보이는 글은 예시/).count())
+  // 채팅은 말마다가 아니라 칸 제목 옆 "예시"와 칸 아래 안내 한 줄로 예시임을 밝힌다
+  const community = page.locator('section[aria-labelledby="home-chat-title"]')
+  const samples = (await community.getByText('예시', { exact: true }).count()) + (await community.getByText(/지금 대화는 예시예요/).count())
   const files = []
   const walk = (d) => { for (const f of readdirSync(d)) { const p = join(d, f); if (statSync(p).isDirectory()) walk(p); else if (/\.(ts|tsx)$/.test(f)) files.push(p) } }
   walk(join(REPO, 'src'))
   const holders = (needle) => files.filter((f) => readFileSync(f, 'utf8').includes(needle)).map((f) => f.replace(REPO + '/', ''))
   const postFiles = holders('주린이공부중'), stepFiles = holders('10문항 테스트와 성향별 추천 전략')
-  report('H-4', samples === 2 && postFiles.join() === 'src/content/communityPreview.ts' && stepFiles.join() === 'src/content/homeGuide.ts', `"예시" 표시(칸 제목·안내) ${samples}, 대화가 있는 파일 — 커뮤니티 ${JSON.stringify(postFiles)}, 사용설명서 단계 ${JSON.stringify(stepFiles)}`)
+  report('H-4', samples === 2 && postFiles.join() === 'src/content/chatPreview.ts' && stepFiles.join() === 'src/content/homeGuide.ts', `"예시" 표시(칸 제목·안내) ${samples}, 대화가 있는 파일 — 채팅 ${JSON.stringify(postFiles)}, 사용설명서 단계 ${JSON.stringify(stepFiles)}`)
   const width = await page.evaluate(() => { const m = document.querySelector('main'); const cs = getComputedStyle(m); return m.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight) })
   report('H-5', Math.round(width) === 1680, `1920 본문 폭 ${Math.round(width)}px(좌우 빈자리 각 ${Math.round((1920 - width) / 2)}px)`)
   await context.close()
@@ -194,7 +194,7 @@ for (const [width, height, least] of [[1920, 1080, 8], [1440, 900, 8], [390, 844
   const { context, page, raw } = await open('/likes')
   const live = () => raw.filter((l) => !l.startsWith('BLOCKED') && !/^GET \/api\/(stream\/|market-indices)/.test(l))
   const nav = await page.$$eval('nav[aria-label="서비스"] a', (as) => as.map((a) => a.textContent.trim()))
-  report('L-1', JSON.stringify(nav) === JSON.stringify(['홈', '관심종목', '주식 백테스트', 'AI 주가분석', '커뮤니티(예시)', '사용설명서']), `머리글 메뉴 ${JSON.stringify(nav)}`)
+  report('L-1', JSON.stringify(nav) === JSON.stringify(['홈', '관심종목', '주식 백테스트', 'AI 주가분석', '커뮤니티', '사용설명서']), `머리글 메뉴 ${JSON.stringify(nav)}`)
   const m = await page.evaluate(() => ({ h1: document.querySelector('h1')?.textContent, stats: document.querySelectorAll('[class*="_stats_"] > div').length, tiles: document.querySelectorAll('[data-market]').length, rows: document.querySelectorAll('[class*="_row_"]').length, handoff: document.querySelectorAll('[class*="_go_"] a').length }))
   const before = live()
   await page.getByRole('button', { name: '삼성전자 관심종목 해제' }).click()

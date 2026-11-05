@@ -1,72 +1,89 @@
-import { useEffect, useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
-import { loadCommunityPost, type CommunityPost } from '../api/community'
-import { PostCounts } from '../components/CommunityPosts'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { Link, useNavigate, useParams } from 'react-router-dom'
+import { deletePost, getPost, togglePostLike, type PostDetail } from '../api/community'
+import CommunityComments from '../components/CommunityComments'
+import { PostByline } from '../components/CommunityPosts'
 import CommunitySide from '../components/CommunitySide'
 import layout from '../components/communityLayout.module.css'
+import HeartIcon from '../components/HeartIcon'
+import Modal from '../components/Modal'
 import Spinner from '../components/Spinner'
-import { useCommunityFeed } from '../hooks/useCommunityFeed'
 import { useDocumentTitle } from '../hooks/useDocumentTitle'
 import { useCommunityHandoff } from '../hooks/useStockHandoff'
-import { useStockQuotes } from '../hooks/useStockQuotes'
-import { timeAgo } from '../utils/date'
+import { useWriteGate } from '../hooks/useWriteGate'
 import { formatChangeRate, rateTone } from '../utils/format'
 import { toPreviewState } from '../utils/stockPreview'
 import styles from './CommunityPostPage.module.css'
 
-/** 주소 기록에서 따로 받아 온 글(목록에 없을 때). 그 사이 다른 글로 옮겼으면 버린다 */
-interface Loaded {
-  postId: number
-  post: CommunityPost | null
-}
+/** undefined: 받는 중, null: 없거나 지운 글, 'error': 못 받음 */
+type Loaded = PostDetail | null | undefined | 'error'
 
 /**
- * 커뮤니티 글 상세(`/community/{postId}`). 글은 ① 눌러 온 글(보고 있는 동안 들어온 새 글은 처음 목록에 없다) ② 처음 목록
- * ③ 목록에 없으면 글 하나 받기 순으로 찾는다. 같은 웹소켓을 들어 공감·댓글 수를 따라가고, 보는 사이 지워지면 "지워진 글"로 바꾼다.
- * 먹 선 바로 아래 첫 줄이 글의 종목(줄 어디를 눌러도 그 종목 상세), 그 아래 쓴 사람 → 본문. 댓글은 서버 경로가 없어 수와 자리만 있다
+ * 커뮤니티 글 상세(`/community/{postId}`). 본문은 `GET /api/community/posts/{postId}`, 등락률은 상세 응답에 없어 목록에서 실어 온 값을 쓴다.
+ * 먹 선 바로 아래 첫 줄이 글의 종목(줄 어디를 눌러도 그 종목 상세), 그 아래 쓴 사람 → 본문 → 좋아요(누르는 단추)·댓글 수 → 내 글이면 수정·삭제 → 댓글
  */
 export default function CommunityPostPage() {
   const { postId: param = '' } = useParams()
   const postId = /^\d{1,9}$/.test(param) ? Number(param) : null
+  const navigate = useNavigate()
   const carried = useCommunityHandoff()
-  // 렌더마다 새 값을 넘기면 다시 연결한다 — 한 번 읽은 값(useCommunityHandoff)을 그대로 넘긴다
-  const [seed] = useState(() => (carried !== null && carried.postId === postId ? carried : null))
-  const { posts, status } = useCommunityFeed(seed)
-  const quotes = useStockQuotes()
-  const [loaded, setLoaded] = useState<Loaded | null>(null)
-  /** 목록에서 한 번 본 글. 그 뒤 목록에서 빠지면 지워진 것이다(POST_DELETED) */
-  const [seenId, setSeenId] = useState<number | null>(null)
+  const gate = useWriteGate()
+  const [post, setPost] = useState<Loaded>(postId === null ? null : undefined)
+  const [turn, setTurn] = useState(0)
+  const [confirmDelete, setConfirmDelete] = useState(false)
+  const [notice, setNotice] = useState('')
+  const liking = useRef(false)
   const now = Date.now()
 
-  const inList = postId === null || posts === null ? null : (posts.find((post) => post.postId === postId) ?? null)
-  const listReady = posts !== null
-  // 글 번호가 아닌 주소는 seenId도 null이라 postId를 먼저 본다 — 안 보면 "지워진 글"이 된다
-  const deleted = postId !== null && listReady && inList === null && seenId === postId
-  const fetched = loaded !== null && loaded.postId === postId ? loaded.post : undefined
-  /** undefined: 아직 모름(불러오는 중), null: 없는 글 */
-  const post = postId === null ? null : (inList ?? (deleted ? null : fetched))
+  const reload = useCallback(() => setTurn((value) => value + 1), [])
 
   useEffect(() => {
-    if (inList !== null) setSeenId(inList.postId)
-  }, [inList])
-
-  // 목록에 없으면 글 하나를 따로 받는다(주소로 바로 연 예시 새 글). 지워진 글은 다시 받지 않는다
-  useEffect(() => {
-    if (postId === null || !listReady || inList !== null || seenId === postId) return
+    if (postId === null) return
     let isStale = false
-    loadCommunityPost(postId).then((found) => {
-      if (!isStale) setLoaded({ postId, post: found })
-    })
+    getPost(postId)
+      .then((found) => {
+        if (!isStale) setPost(found)
+      })
+      .catch((error: unknown) => {
+        console.warn('커뮤니티 글을 받지 못했습니다', error)
+        if (!isStale) setPost((current) => (current === undefined ? 'error' : current))
+      })
     return () => {
       isStale = true
     }
-  }, [postId, listReady, inList, seenId])
+  }, [postId, turn])
 
-  useDocumentTitle(post?.title ?? '커뮤니티 글')
+  const shown = typeof post === 'object' ? post : null
+  useDocumentTitle(shown?.title ?? '커뮤니티 글')
+  // 등락률은 목록에서 실어 온 같은 글의 값(없으면 비운다)
+  const changeRate = carried !== null && carried.postId === postId ? carried.changeRate : null
 
-  const quote = post?.stockCode != null ? quotes.get(post.stockCode) : undefined
-  const fluctuate = quote?.fluctuate ?? null
-  const asOf = fluctuate !== null && quote !== undefined ? quote.basis : ''
+  const like = () =>
+    gate.requireLogin(() => {
+      if (shown === null || liking.current) return
+      liking.current = true
+      setNotice('')
+      togglePostLike(shown.postId)
+        .then((state) => setPost((current) => (typeof current === 'object' && current !== null ? { ...current, likedByMe: state.liked, likeCount: state.likeCount } : current)))
+        .catch((error: unknown) => {
+          console.warn('좋아요를 반영하지 못했습니다', error)
+          setNotice('좋아요를 반영하지 못했어요. 잠시 후 다시 시도해 주세요.')
+        })
+        .finally(() => {
+          liking.current = false
+        })
+    })
+
+  const remove = () => {
+    if (shown === null) return
+    deletePost(shown.postId)
+      .then(() => navigate('/community', { replace: true }))
+      .catch((error: unknown) => {
+        console.warn('글을 지우지 못했습니다', error)
+        setConfirmDelete(false)
+        setNotice('글을 지우지 못했어요. 잠시 후 다시 시도해 주세요.')
+      })
+  }
 
   return (
     <>
@@ -75,7 +92,7 @@ export default function CommunityPostPage() {
         <span aria-hidden="true">‹</span> 커뮤니티로 돌아가기
       </Link>
       <h1 id="community-post-title" className={styles.title}>
-        {post === undefined ? '커뮤니티 글' : post === null ? (deleted ? '지워진 글' : '글을 찾을 수 없어요') : (post.title ?? '커뮤니티 글')}
+        {shown !== null ? shown.title : post === null ? '삭제된 게시물이에요' : (carried?.title ?? '커뮤니티 글')}
       </h1>
 
       <div className={layout.layout}>
@@ -84,9 +101,16 @@ export default function CommunityPostPage() {
             <p className={styles.message}>
               <Spinner size={16} /> 글을 불러오는 중…
             </p>
+          ) : post === 'error' ? (
+            <div className={styles.missing}>
+              <p>글을 불러오지 못했어요.</p>
+              <button type="button" className={styles.retry} onClick={reload}>
+                다시 시도
+              </button>
+            </div>
           ) : post === null ? (
             <div className={styles.missing}>
-              <p>{deleted ? '쓴 사람이 이 글을 지웠어요.' : '지워졌거나 주소가 틀린 글이에요.'}</p>
+              <p>지워졌거나 주소가 틀린 글이에요.</p>
               <Link to="/community" className={styles.toList}>
                 커뮤니티 글 목록으로
               </Link>
@@ -107,14 +131,13 @@ export default function CommunityPostPage() {
                     >
                       {post.stockName}
                     </Link>
-                    {fluctuate !== null && (
+                    {changeRate !== null && (
                       <>
                         {' '}
-                        <span className={styles[rateTone(fluctuate)]}>{formatChangeRate(fluctuate)}</span>
+                        <span className={styles[rateTone(changeRate)]}>{formatChangeRate(changeRate)}</span>
                       </>
                     )}
                   </p>
-                  {asOf !== '' && <p className={styles.asOf}>{asOf}</p>}
                   <ChevronIcon />
                 </div>
               )}
@@ -122,38 +145,64 @@ export default function CommunityPostPage() {
                 <span className={styles.avatar} aria-hidden="true">
                   {Array.from(post.author)[0] ?? ''}
                 </span>
-                <strong>{post.author}</strong> <time dateTime={post.createdAt}>{timeAgo(Date.parse(post.createdAt), now)}</time>
+                <PostByline author={post.author} createdAt={post.createdAt} edited={post.isEdited} now={now} />
               </p>
               <p className={styles.content}>{post.content}</p>
-              {post.imageUrls.length > 0 && (
-                <div className={styles.images}>
-                  {post.imageUrls.map((url, index) => (
-                    <img key={url} src={url} alt={`글에 붙은 사진 ${index + 1}`} loading="lazy" className={styles.image} />
-                  ))}
-                </div>
-              )}
-              <div className={styles.counts}>
-                <PostCounts post={post} />
+              <div className={styles.actions}>
+                <button
+                  type="button"
+                  className={post.likedByMe ? styles.likeOn : styles.like}
+                  aria-pressed={post.likedByMe}
+                  onClick={like}
+                >
+                  <HeartIcon filled={post.likedByMe} />
+                  좋아요 {post.likeCount}
+                </button>
+                <span className={styles.commentCount}>댓글 {post.commentCount}</span>
+                {post.isMine && (
+                  <span className={styles.mine}>
+                    <Link to={`/community/${post.postId}/edit`} className={styles.textAction}>
+                      수정
+                    </Link>
+                    <button type="button" className={styles.textAction} onClick={() => setConfirmDelete(true)}>
+                      삭제
+                    </button>
+                  </span>
+                )}
               </div>
+              <p className={styles.notice} role="status">
+                {notice}
+              </p>
 
-              <section className={styles.comments} aria-labelledby="community-comments-title">
-                <div className={styles.commentsHead}>
-                  <h2 id="community-comments-title" className={styles.commentsTitle}>
-                    댓글 {post.commentCount}
-                  </h2>
-                </div>
-                <p className={styles.commentsNote}>
-                  {status === 'mock'
-                    ? '지금 보이는 글은 예시라 댓글이 없어요. 커뮤니티 서버가 열리면 댓글을 읽고 쓸 수 있어요.'
-                    : '댓글 읽기·쓰기는 준비 중이에요.'}
-                </p>
-              </section>
+              <CommunityComments
+                postId={post.postId}
+                count={post.commentCount}
+                loggedIn={gate.loggedIn}
+                ensure={gate.ensure}
+                nicknameNow={gate.nicknameNow}
+                requireLogin={gate.requireLogin}
+                onChanged={reload}
+              />
             </>
           )}
         </article>
 
-        <CommunitySide status={status} className={layout.side} />
+        <CommunitySide className={layout.side} />
       </div>
+
+      <Modal isOpen={confirmDelete} onClose={() => setConfirmDelete(false)} label="글 지우기">
+        <p className={styles.modalTitle}>이 글을 지울까요?</p>
+        <p className={styles.modalText}>지우면 댓글도 함께 사라지고 되돌릴 수 없어요.</p>
+        <div className={styles.modalButtons}>
+          <button type="button" className={styles.danger} onClick={remove}>
+            지우기
+          </button>
+          <button type="button" className={styles.cancel} onClick={() => setConfirmDelete(false)}>
+            취소
+          </button>
+        </div>
+      </Modal>
+      {gate.modals}
     </>
   )
 }

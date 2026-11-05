@@ -1,9 +1,5 @@
-/*
- * 커뮤니티 글 줄 — 상자 없이 가는 선으로 나눈다. 커뮤니티 화면: 종목 줄 → 제목 → 본문 두 줄(+ 사진) → 공감·댓글 | 별명 · 시각.
- * 홈 오른쪽 칸(compact): 첫 글자 동그라미 | 별명 · 시각 / 제목 한 줄 / 종목 · 본문 한 줄
- */
-.list,
-.listCompact {
+/* 커뮤니티 글 줄 — 상자 없이 가는 선으로 나눈다. 종목 줄 → 제목 → 미리보기 두 줄 → 좋아요·댓글 | 닉네임 · 시각 */
+.list {
   margin: 0;
   padding: 0;
   list-style: none;
@@ -14,19 +10,6 @@
   position: relative;
   padding: var(--space-5) 0;
   border-bottom: 1px solid var(--color-border);
-}
-
-/*
- * 홈: 한 줄 높이를 왼쪽 시세표 두 행(54px × 2)으로 둔다 — 그래야 모든 선이 시세표 선과 19px 떨어져, 몇 px 차이로
- * 나란히 서는 선이 없다(judge/lines.mjs G home)
- */
-.listCompact .post {
-  display: grid;
-  grid-template-columns: 28px minmax(0, 1fr);
-  align-content: center;
-  gap: var(--space-2) var(--space-3);
-  min-height: 108px;
-  padding: var(--space-3) 0;
 }
 
 /* 글 머리 종목 줄 — 첫 글자 동그라미 · 이름 · 등락률 */
@@ -77,18 +60,6 @@
   min-width: 0;
 }
 
-.mainWithImage {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 88px;
-  grid-template-rows: auto 1fr;
-  column-gap: var(--space-4);
-}
-
-.mainWithImage .thumb {
-  grid-column: 2;
-  grid-row: 1 / span 2;
-}
-
 .title {
   margin: 0;
   font-size: var(--font-lg);
@@ -113,16 +84,7 @@
   white-space: pre-line;
 }
 
-.thumb {
-  width: 88px;
-  height: 88px;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  background: var(--color-bg-sub);
-  object-fit: cover;
-}
-
-/* 공감·댓글 | 별명 · 몇 분 전 */
+/* 좋아요·댓글 | 닉네임 · 몇 분 전 · 수정됨 */
 .foot {
   display: flex;
   flex-wrap: wrap;
@@ -144,71 +106,6 @@
 
 .metaRight strong {
   font-weight: 600;
-  color: var(--color-text);
-}
-
-/* 홈: 이름 첫 글자 동그라미 */
-.avatar {
-  display: grid;
-  place-items: center;
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  background: var(--color-bg-sub);
-  color: var(--color-text-sub);
-  font-size: var(--font-sm);
-  font-weight: 700;
-}
-
-.body {
-  min-width: 0;
-}
-
-.meta {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: 0 var(--space-2);
-  margin: 0;
-  font-size: var(--font-sm);
-  color: var(--color-text-sub);
-}
-
-.meta strong {
-  font-size: var(--font-md);
-  font-weight: 700;
-  color: var(--color-text);
-}
-
-/* 홈: 제목 한 줄, 종목 · 본문 한 줄(말줄임표) */
-.titleCompact,
-.textCompact {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.titleCompact {
-  margin: var(--space-1) 0 0;
-  font-size: var(--font-md);
-  font-weight: 700;
-  line-height: 1.55;
-}
-
-.textCompact {
-  margin: 0;
-  font-size: var(--font-md);
-  line-height: 1.55;
-  color: var(--color-text-sub);
-}
-
-.textCompact:empty {
-  display: none;
-}
-
-/* 홈 글 줄 안의 종목 이름 — 링크가 아니라 초록을 쓰지 않는다 */
-.stockText {
-  font-weight: 700;
   color: var(--color-text);
 }
 
@@ -235,7 +132,7 @@
   }
 
   /* 첫 글자 동그라미가 같은 면에 묻히지 않게 */
-  .post:has(.postLink:active) :is(.stockBadge, .avatar) {
+  .post:has(.postLink:active) .stockBadge {
     background: var(--color-surface);
   }
 }
@@ -272,14 +169,11 @@
   composes: srOnly from './a11y.module.css';
 }
 
-@media (max-width: 600px) {
-  .mainWithImage {
-    grid-template-columns: minmax(0, 1fr) 72px;
-    column-gap: var(--space-3);
-  }
+/* 내가 누른 좋아요 — 채운 하트와 먹 글자(초록 하트는 HeartIcon) */
+.likedCount {
+  color: var(--color-text);
+}
 
-  .thumb {
-    width: 72px;
-    height: 72px;
-  }
+.edited {
+  white-space: nowrap;
 }

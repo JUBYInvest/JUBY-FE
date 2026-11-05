@@ -22,6 +22,7 @@ import type {
 /** GET /api/members/me. 스웨거에 필수 표시가 없어 전부 비어 올 수 있게 적는다 */
 interface MemberInfoResponse {
   name?: string | null
+  nickname?: string | null
   email?: string | null
   /** "2002-05-07". 소셜에서 생일을 못 받은 계정은 null */
   birth?: string | null
@@ -47,6 +48,7 @@ async function fetchMemberInfo(): Promise<MemberInfo> {
 function toMemberInfo(row: MemberInfoResponse): MemberInfo {
   return {
     name: typeof row.name === 'string' ? row.name : '',
+    nickname: typeof row.nickname === 'string' && row.nickname.trim() !== '' ? row.nickname : null,
     email: typeof row.email === 'string' ? row.email : '',
     birth: typeof row.birth === 'string' && row.birth !== '' ? row.birth : null,
     socialType: isSocialType(row.socialType) ? row.socialType : null,
@@ -85,6 +87,24 @@ export async function checkAfterLogin(): Promise<{ needsOnboarding: boolean; soc
  */
 export async function updateMemberInfo(update: MemberUpdate): Promise<void> {
   await patch<{ modifiedDate: string }>('/api/members/me', update)
+  forget('member')
+}
+
+/* ── 닉네임(커뮤니티) ─────────────────────────────────────────────────── */
+
+/** 닉네임 규칙 — 한글·영문·숫자 2~10자(공백·특수문자 없음). 서버 검증과 같다 */
+export const NICKNAME_PATTERN = /^[가-힣a-zA-Z0-9]{2,10}$/
+
+/** 쓸 수 있는 닉네임인가(`GET /api/members/nickname/check`). 지금 내 닉네임과 같으면 true */
+export async function isNicknameAvailable(nickname: string): Promise<boolean> {
+  const result = await get<{ available?: unknown } | null>(`/api/members/nickname/check?nickname=${encodeURIComponent(nickname)}`)
+  if (typeof result !== 'object' || result === null || typeof result.available !== 'boolean') throw malformedResponse()
+  return result.available
+}
+
+/** 닉네임을 정하거나 바꾼다. 그새 다른 사람이 가져갔으면 409 MEMBER409_2 */
+export async function saveNickname(nickname: string): Promise<void> {
+  await patch<unknown>('/api/members/me/nickname', { nickname })
   forget('member')
 }
 

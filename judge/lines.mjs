@@ -55,7 +55,7 @@ await j.run('A2', () => pairs('A2', '/', '홈: 대표 종목 세 칸 아래 선 
 await j.run('A3', () => pairs('A3', '/', '홈: 현재 주가 보기 먹 선 = 커뮤니티 먹 선(사용자 캡처)', new Function(`
   const bottom = ${BOTTOM}
   const list = [...document.querySelectorAll('main h2')].find((h) => h.textContent.trim() === '현재 주가 보기')
-  return [['현재 주가 보기', bottom(list?.parentElement)], ['커뮤니티', bottom(document.getElementById('home-community-title')?.parentElement)]]`)))
+  return [['현재 주가 보기', bottom(list?.parentElement)], ['채팅', bottom(document.getElementById('home-chat-title')?.parentElement)]]`)))
 
 /** 홈 세 쌍(A1~A3)을 한 번에 */
 const HOME_PAIRS = new Function(`
@@ -68,7 +68,7 @@ const HOME_PAIRS = new Function(`
   const pairs = [
     [['검색창', bottom(box)], ['사용설명서 머리', bottom(document.getElementById('home-guide-title')?.parentElement)]],
     [['세 칸', bottom(cards)], ['4단계', bottom(document.querySelector('section[aria-labelledby="home-guide-title"] ol > li:last-child'))]],
-    [['현재 주가 보기', bottom(list?.parentElement)], ['커뮤니티', bottom(document.getElementById('home-community-title')?.parentElement)]],
+    [['현재 주가 보기', bottom(list?.parentElement)], ['채팅', bottom(document.getElementById('home-chat-title')?.parentElement)]],
   ]
   // 세 쌍의 아래 끝 차이 중 가장 큰 것 하나로 돌려준다(pairs는 돌려받은 값들의 최대·최소 차이를 본다)
   const diffs = pairs.map(([a, b]) => (a[1] === null || b[1] === null ? null : Math.abs(b[1] - a[1])))

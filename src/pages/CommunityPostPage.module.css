@@ -115,11 +115,6 @@
   font-weight: 600;
 }
 
-.asOf {
-  composes: note from '../components/section.module.css';
-  grid-column: 2;
-}
-
 .chevron {
   grid-column: 3;
   grid-row: 1 / span 2;
@@ -194,45 +189,91 @@
   white-space: pre-line;
 }
 
-.images {
-  display: grid;
-  gap: var(--space-3);
-  max-width: 640px;
-  margin-top: var(--space-5);
-}
-
-.image {
-  display: block;
-  width: 100%;
-  height: auto;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  background: var(--color-bg-sub);
-}
-
-/* 공감·댓글 수 줄(PostCounts) */
-.counts {
-  margin-top: var(--space-5);
-}
-
-/* 댓글 구역 — 구역 제목 줄(20px + 먹 선) 아래 안내 한 줄 */
-.comments {
-  margin-top: var(--space-10);
-}
-
-.commentsHead {
-  composes: head from '../components/section.module.css';
-}
-
-.commentsTitle {
-  composes: title from '../components/section.module.css';
-}
-
-.commentsNote {
-  margin: var(--space-4) 0 0;
+/* 좋아요(누르는 글자 단추) · 댓글 수 · 내 글이면 수정·삭제 */
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-5);
+  margin-top: var(--space-6);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--color-border);
   font-size: var(--font-md);
-  line-height: 1.6;
+  font-variant-numeric: tabular-nums;
   color: var(--color-text-sub);
+}
+
+.like,
+.likeOn {
+  composes: secondary md from '../components/buttons.module.css';
+}
+
+.like svg,
+.likeOn svg {
+  width: 18px;
+  height: 18px;
+}
+
+.commentCount {
+  white-space: nowrap;
+}
+
+.mine {
+  display: inline-flex;
+  gap: var(--space-4);
+  margin-left: auto;
+}
+
+.textAction {
+  display: inline-flex;
+  align-items: center;
+  min-height: 40px;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: var(--font-md);
+  color: var(--color-text-sub);
+  cursor: pointer;
+}
+
+.textAction:hover {
+  color: var(--color-text);
+}
+
+.retry {
+  composes: secondary md from '../components/buttons.module.css';
+}
+
+.notice {
+  margin: var(--space-2) 0 0;
+  font-size: var(--font-sm);
+  color: var(--color-text);
+}
+
+.notice:empty {
+  display: none;
+}
+
+.modalTitle {
+  composes: title from '../components/Modal.module.css';
+}
+
+.modalText {
+  composes: text from '../components/Modal.module.css';
+}
+
+.modalButtons {
+  composes: buttons from '../components/Modal.module.css';
+}
+
+/* 되돌릴 수 없는 확정은 primary, 취소는 secondary(단추 규칙) */
+.danger {
+  composes: primary lg from '../components/buttons.module.css';
+}
+
+.cancel {
+  composes: secondary lg from '../components/buttons.module.css';
 }
 
 @media (max-width: 600px) {
@@ -240,7 +281,8 @@
     font-size: var(--font-lg);
   }
 
-  .toList {
+  .toList,
+  .textAction {
     min-height: 44px;
   }
 }

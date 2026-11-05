@@ -1,0 +1,221 @@
+/* 댓글 구역 — 구역 제목 줄(20px + 먹 선) 아래 가는 선으로 나눈 댓글 줄, 맨 아래 쓰는 칸 */
+.comments {
+  margin-top: var(--space-10);
+}
+
+.head {
+  composes: head from './section.module.css';
+}
+
+.title {
+  composes: title from './section.module.css';
+}
+
+.list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.comment {
+  padding: var(--space-4) 0;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0 var(--space-2);
+  margin: 0;
+  font-size: var(--font-sm);
+  color: var(--color-text-sub);
+}
+
+.meta strong {
+  font-size: var(--font-md);
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.content {
+  margin: var(--space-2) 0 0;
+  font-size: var(--font-md);
+  line-height: 1.65;
+  overflow-wrap: anywhere;
+  white-space: pre-line;
+}
+
+.foot {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  margin-top: var(--space-2);
+}
+
+/* 좋아요 — 글자 단추(하트 + 수). 누른 것은 채운 하트와 먹 글자 */
+.like,
+.likeOn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  min-height: 32px;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: var(--font-sm);
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text-sub);
+  cursor: pointer;
+}
+
+.likeOn {
+  color: var(--color-text);
+}
+
+.like svg,
+.likeOn svg {
+  width: 16px;
+  height: 16px;
+}
+
+.mine {
+  display: inline-flex;
+  gap: var(--space-3);
+  margin-left: auto;
+}
+
+.textAction {
+  min-height: 32px;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: var(--font-sm);
+  color: var(--color-text-sub);
+  cursor: pointer;
+}
+
+.textAction:hover,
+.like:hover {
+  color: var(--color-text);
+}
+
+.editBox {
+  margin-top: var(--space-2);
+}
+
+.rowActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+}
+
+.textarea {
+  width: 100%;
+  min-width: 0;
+  padding: var(--space-3) var(--space-4);
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  font: inherit;
+  font-size: var(--font-lg);
+  line-height: 1.6;
+  color: var(--color-text);
+  resize: vertical;
+}
+
+.textarea::placeholder {
+  color: var(--color-text-sub);
+}
+
+.textarea:focus-visible {
+  border-color: var(--color-brand-700);
+  outline: none;
+  box-shadow: 0 0 0 3px var(--color-brand-100);
+}
+
+/* 쓰는 칸 | 올리기 */
+.composer {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--space-2);
+  margin-top: var(--space-5);
+}
+
+.primary {
+  composes: primary md from './buttons.module.css';
+  flex-shrink: 0;
+}
+
+.secondary {
+  composes: secondary md from './buttons.module.css';
+}
+
+.more {
+  composes: secondary lg from './buttons.module.css';
+  width: 100%;
+  margin-top: var(--space-4);
+}
+
+.message {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  margin: var(--space-5) 0;
+  font-size: var(--font-md);
+  color: var(--color-text-sub);
+}
+
+.message p {
+  margin: 0;
+}
+
+/* 비로그인 — 댓글 대신 로그인 안내(옅은 면) */
+.locked {
+  margin-top: var(--space-4);
+  padding: var(--space-5);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-sub);
+  font-size: var(--font-md);
+  color: var(--color-text-sub);
+}
+
+.locked p {
+  margin: 0 0 var(--space-3);
+}
+
+.loginLink {
+  composes: primary md from './buttons.module.css';
+}
+
+.notice {
+  margin: var(--space-3) 0 0;
+  font-size: var(--font-sm);
+  color: var(--color-text);
+}
+
+.notice:empty {
+  display: none;
+}
+
+.srOnly {
+  composes: srOnly from './a11y.module.css';
+}
+
+/* 휴대폰: 누르는 넓이 44px */
+@media (max-width: 600px) {
+  .like,
+  .likeOn,
+  .textAction {
+    min-height: 44px;
+  }
+
+  .composer {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}

@@ -156,6 +156,7 @@ function Layout() {
               <Route path="/community" element={<CommunityPage />} />
               <Route path="/community/write" element={<CommunityWritePage />} />
               <Route path="/community/:postId" element={<CommunityPostPage />} />
+              <Route path="/community/:postId/edit" element={<CommunityWritePage />} />
               <Route path="/guide/:chapterId?" element={<GuidePage />} />
               <Route path="/backtest" element={<BacktestPage />} />
 

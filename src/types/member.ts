@@ -7,6 +7,8 @@ export type SocialType = 'NAVER' | 'KAKAO' | 'GOOGLE'
 export interface MemberInfo {
   /** 비어 오면 ""(화면이 "회원님"으로 적는다) */
   name: string
+  /** 커뮤니티 닉네임. 아직 정하지 않았으면 null — 글·댓글을 쓰기 전에 정한다 */
+  nickname: string | null
   email: string
   /**
    * "2002-05-07". null일 수 있다.

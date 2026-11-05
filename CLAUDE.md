@@ -119,8 +119,8 @@ npx knip@5               # 안 쓰는 파일·내보내기(judge/는 뺀다)
 
 ### 홈
 
-- 넓은 화면: 왼쪽 검색 → 테마별 대표 종목 → 현재 주가 보기, 오른쪽 열(`HomeRail`: 처음 시작하기 또는 사용설명서 칸 → 커뮤니티 최신 다섯 줄)이 왼쪽 세 줄을 subgrid로 나눠 선을 맞춘다.
-- **1100px 이하(한 열)**: 검색 → 테마별 대표 종목 → 현재 주가 보기(10행 + "종목 더 보기" 단추 — 저절로 늘지 않는다) → 처음 시작하기 → 커뮤니티.
+- 넓은 화면: 왼쪽 검색 → 테마별 대표 종목 → 현재 주가 보기, 오른쪽 열(`HomeRail`: 처음 시작하기 또는 사용설명서 칸 → 전체 채팅 `HomeChat`)이 왼쪽 세 줄을 subgrid로 나눠 선을 맞춘다.
+- **1100px 이하(한 열)**: 검색 → 테마별 대표 종목 → 현재 주가 보기(10행 + "종목 더 보기" 단추 — 저절로 늘지 않는다) → 처음 시작하기 → 채팅.
   DOM도 이 순서라(오른쪽 열이 시세표 뒤) Tab·읽어 주는 순서가 보이는 순서와 같다. 넓은 화면은 목록 끝이 보이면 20행씩 더 보인다(`IntersectionObserver`).
   600px 이하 처음 시작하기는 마친 단계를 접는다.
 - 시세표는 거래대금 내림차순으로 시작하고 정렬 기준을 글로 적는다(`describeSort`). 탭은 전체 종목(DB) | 실시간 거래대금 순위(`VolumeRank`, 종목코드가 없어 이름으로 잇는다).
@@ -193,15 +193,23 @@ npx knip@5               # 안 쓰는 파일·내보내기(judge/는 뺀다)
 
 ### 커뮤니티
 
-- 서버가 없어 예시 글로 돈다. 메뉴는 "커뮤니티(예시)"이고 연결하면 "커뮤니티"로 바꾼다.
-- `src/api/community.ts` 한 파일이 서버 자리다. `VITE_COMMUNITY_WS_URL`이 비면 목업, 있으면 STOMP 1.2를 라이브러리 없이 직접 쓴다. 오는 값은 `toCommunityEvent`가 거른다.
-  제안은 [docs/커뮤니티-웹소켓-제안.md](docs/커뮤니티-웹소켓-제안.md).
-- **새 글은 바로 끼우지 않는다** — "새 글 N개 보기"로 모았다가 누르면 맨 위에 선다(`useCommunityFeed`).
-- 목록: **머리에 먹 선이 없고 최신·인기가 알약인 것은 이 화면만의 예외다.** 종목 카드 줄은 옆으로 밀고 앞·뒤 단추는 마우스 화면에서만 띄운다.
-- 글 줄은 어디를 눌러도 글 상세다(줄 전체 링크 `a11y.module.css rowLink` — 줄 안에 따로 눌리는 것을 두지 않는다). 등락률은 `useStockQuotes`(공용 조회). 공감·댓글은 수만 보인다.
-- 글 상세는 실어 온 글(`toCommunityHandoff`) → 처음 목록 → 글 하나 받기 순으로 찾는다.
-- **글쓰기는 실제 연결이 열린 로그인 사용자만** 쓴다. 목업이면 칸을 보이되 잠근다. 떠 있는 "글쓰기"·올리기 줄은 `--index-bar-height` + `env(safe-area-inset-bottom)` 위다.
-- 판정 B16·B19는 웹소켓 주소를 넣은 빌드와 `--ws`가 있어야 돈다.
+- 백엔드 `/api/community/**`(`src/api/community.ts`). 글 조회(목록·인기·상세·종목 카드)는 로그인 없이 되고(`ignoreUnauthorized`), 토큰을 실으면
+  `likedByMe`·`isMine`이 채워진다. **댓글은 보기도 로그인**이라 비로그인은 부르지 않고 "로그인하고 댓글 보기"를 둔다.
+- 목록: 종목 카드 줄(`GET /api/community/stocks` — 전체 글 수 + 글 많은 종목 열 개, 아래에 `priceAsOf` "○월 ○일 HH:MM 기준 등락률이에요"),
+  최신(`/posts`, `cursor`)·인기(`/posts/popular`, 이번 주 좋아요 순 — `cursorLikeCount`·`cursorId`는 늘 함께) 20개씩 "글 더 보기". 카드를 누르면 `stockCode`를 붙여 다시 받는다.
+  **머리에 먹 선이 없고 최신·인기가 알약인 것은 이 화면만의 예외다.** 앞·뒤 단추는 마우스 화면에서만. 손가락 화면은 당겨서 새로고침.
+- 글 줄은 어디를 눌러도 글 상세다(`a11y.module.css rowLink`). 상세 응답에는 등락률이 없어 목록 글을 실어 간다(`toCommunityHandoff`). 좋아요는 상세에서 누르는 토글(응답의 `liked`·`likeCount`로 바꾼다).
+- **쓰기 전 확인은 `hooks/useWriteGate`**: 비로그인 → 로그인 안내, 닉네임(`/api/members/me`의 `nickname`)이 없으면 `NicknameModal`(형식 → `/nickname/check` → `PATCH /me/nickname`).
+  서버가 403 `COMMUNITY403_1`을 주면 닉네임 창을 다시 연다. 좋아요는 로그인만 본다.
+- 글쓰기 `/community/write`(종목은 고르지 않아도 된다 — 없으면 `stockCode` 칸을 뺀다, `""`는 400), 고치기 `/community/{id}/edit`(제목·내용만, 내 글만). 수정·삭제 단추는 `isMine`일 때만.
+  올리면 그 글 상세로 간다. 지운 글·없는 글(404 `COMMUNITY404_1`)은 "삭제된 게시물이에요". 서버 `message`는 쓰지 않고 길이 규칙(제목 40·내용 1,000·댓글 500)을 고정 문구로 적는다.
+- 떠 있는 "글쓰기"·올리기 줄은 `--index-bar-height` + `env(safe-area-inset-bottom)` 위다.
+
+### 홈 전체 채팅(`components/HomeChat`)
+
+- 채팅 서버가 아직 없어 목업이다(`src/api/chat.ts` 한 파일 — `loadChatHistory`·`connectChat`의 모양을 두고 속만 바꾼다, 예시 대화는 `src/content/chatPreview.ts`).
+  예시 말이 몇십 초마다 들어오고, 보낸 말은 그 화면에만 붙는다. 칸 제목 옆 "예시"와 아래 안내 한 줄로 밝힌다.
+- 누구나 읽고 로그인하면 말한다(보내는 이름은 닉네임 → 이름 → "나"). 대화창 안에서만 내리고, 맨 아래를 보는 중일 때만 새 말을 따라 내린다. 내 말은 오른쪽.
 
 ### 아래 지수 띠(`components/MarketIndexBar`)
 
@@ -259,11 +267,11 @@ npx knip@5               # 안 쓰는 파일·내보내기(judge/는 뺀다)
 
 - 인증: 성공은 `/oauth2/callback#accessToken=<AT>`(해시, 30분), 실패는 `/oauth2/error?error=<코드>`. refresh token은 HttpOnly 쿠키(`Path=/api/auth`, 재발급마다 바뀜)라
   프론트는 받지도 저장하지도 않는다. 사파리처럼 다른 사이트 쿠키를 막는 브라우저는 프론트가 `juby.store` 아래여야 재발급된다.
-- **공개 경로는 `/api/stocks/**`·`/api/auth/reissue`뿐이다.** 나머지는 토큰 없으면 401 `COMMON401_1`, 틀리면 `AUTH401_1~6`.
+- **공개 경로는 `/api/stocks/**`·`/api/auth/reissue`와 커뮤니티 GET(댓글 목록 빼고)이다.** 나머지는 토큰 없으면 401 `COMMON401_1`, 틀리면 `AUTH401_1~6`.
 - CORS 허용 출처는 `http://localhost:5173`과 `https://juby-fe.vercel.app`이다. 로컬에서 로그인해도 돌아오는 곳은 배포 사이트다.
 
 쓰는 API는 위 "증권사 호출" 표의 것과 백테스트(`/api/backtest/preset`·`/preset/options`·`/run`), 성향(`GET·POST /api/personality-tests`),
-회원(`/api/members/me`·`/me/personality`·`/me/like-stocks`), AI(`/api/chat-sessions`·`POST /api/open-ai/ask`), 뉴스 검색(`/api/news`·`/api/vectordb/search`)이다.
+회원(`/api/members/me`·`/me/personality`·`/me/like-stocks`·`/me/nickname`·`/nickname/check`), 커뮤니티(`/api/community/**`), AI(`/api/chat-sessions`·`POST /api/open-ai/ask`), 뉴스 검색(`/api/news`·`/api/vectordb/search`)이다.
 붙이지 않은 것: `PATCH /api/members/me/personality`(DB 행 번호만 받는다), `/api/market/{code}/daily-stock`(임시 차트와 겹친다), 관리용(`/api/initiate`·`/api/vectordb/all`·`/api/token/*`).
 
 | 백엔드 빈틈(프론트에서 못 고친다) | 프론트가 하는 것 |
@@ -275,4 +283,4 @@ npx knip@5               # 안 쓰는 파일·내보내기(judge/는 뺀다)
 | 이름 `@Size`가 `javax`라 돌지 않고, `null`은 "안 바꿈"이라 생일을 지울 수 없다 | 화면이 이름을 검사, 생일 지우기 막음 |
 | 거래대금 순위 응답에 종목코드·등락률이 없다 | 이름으로 상세를 찾는다 |
 | DB 일봉이 모의투자 시세라 실제와 다를 수 있고, 종목 뉴스에 무관한 기사가 섞인다 | 받은 대로 그린다 |
-| 커뮤니티 서버·설명서 API가 없다 | 목업, 글은 `src/content/` |
+| 채팅 서버·설명서 API가 없다 | 채팅은 목업(`api/chat.ts`), 설명서 글은 `src/content/` |

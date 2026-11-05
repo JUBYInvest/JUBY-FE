@@ -50,6 +50,29 @@ export function sseBody(batch) {
   if (batch.raw) parts.push(batch.raw)
   return parts.join('')
 }
+/*
+ * 커뮤니티 가짜 저장소(mock() 한 번마다 새로). 글 25개(종목 넷 + 종목 없는 글), 시각은 기준 시각에서 거슬러 센다.
+ * 3번 글은 내 글(닉네임이 있을 때), 1번 글에 댓글 22개(두 쪽)
+ */
+const COMMUNITY_STOCKS = [['005930', '삼성전자', 1.2], ['000660', 'SK하이닉스', 0.5], ['207940', '삼성바이오로직스', -3.4], ['012450', '한화에어로스페이스', null]]
+function communityStore(now, nickname) {
+  const posts = Array.from({ length: 25 }, (_, i) => {
+    const id = 25 - i
+    const stock = id % 5 === 0 ? null : COMMUNITY_STOCKS[id % 4]
+    return {
+      postId: id, stockCode: stock?.[0] ?? null, stockName: stock?.[1] ?? null, changeRate: stock?.[2] ?? null,
+      title: `커뮤니티 글 ${id}`, content: `커뮤니티 글 ${id}의 본문입니다.\n두 번째 줄입니다.`,
+      writerNickname: id === 3 && nickname !== null ? nickname : `회원${id}`, likeCount: (id * 7) % 11, commentCount: id === 1 ? 22 : id % 3,
+      likedBy: new Set(), isEdited: id === 2, createdAt: now - i * 37 * 60_000, deleted: false,
+    }
+  })
+  const comments = Array.from({ length: 22 }, (_, i) => ({
+    commentId: i + 1, postId: 1, content: `댓글 ${i + 1}`, writerNickname: i === 0 && nickname !== null ? nickname : `회원${i + 30}`,
+    likeCount: i % 4, likedBy: new Set(), isEdited: false, createdAt: now - (60 - i) * 60_000, deleted: false,
+  }))
+  return { posts, comments, nickname, nextPost: 26, nextComment: 23 }
+}
+
 export const LEADING = {
   strategyName: 'SMA 이동평균선 전략', period: 'ONE_YEAR', periodLabel: '1년',
   startDate: '2025-10-28', endDate: '2026-10-28', updatedAt: '2026-10-29T04:00:03',
@@ -135,7 +158,7 @@ export function scoring(stockCode, investType, live = false, zero = false) {
 const PRESET = (stockCode, investType, period, zero = false) => ({ stockCode, investType, period, startDate: '2025-10-28', endDate: '2026-10-28', updatedAt: '2026-10-29T04:00:03', result: scoring(stockCode, investType, false, zero) })
 
 /** 서버가 주는 한국 시각 글자("2026-10-29T11:00:00") */
-const kstIso = (ms) => new Date(ms + 9 * 3600_000).toISOString().slice(0, 19)
+const kstIso = (ms) => new Date(ms + 9 * 3600_000).toISOString().slice(0, 19) + '.123456'
 const ymd = (ms) => { const d = new Date(ms + 9 * 3600_000); return `${d.getUTCFullYear()}${String(d.getUTCMonth() + 1).padStart(2, '0')}${String(d.getUTCDate()).padStart(2, '0')}` }
 
 /** 휴장일 응답: 기준일부터 28일. 주말은 N, holidays(YYYYMMDD[])도 N */
@@ -210,6 +233,9 @@ export const ROOM_1 = { title: '삼성전자 주가 어때?', messages: [
  *     묶음이 다 떨어지면(기본은 처음부터) 연결을 열어 둔 채 아무것도 보내지 않는다 — 장중에 값이 안 바뀌는 때와 같다
  *   streamStatus: 스트림을 그 상태로 거절(예: 500)
  *   stocksRealtime: true면 시세표 행이 장중 현재가(realtime)이고 asOf가 붙는다
+ * opts — 커뮤니티(/api/community/**, 메모리 저장소 communityStore)
+ *   nickname: 내 닉네임(기본 '느긋한거북', null이면 아직 없음 — 글·댓글 쓰기가 403 COMMUNITY403_1), takenNicknames: 이미 쓰는 닉네임 배열
+ *   communityStatus: 목록·카드를 그 상태로 실패(예: 500), communityEmpty: true면 글이 하나도 없다
  * opts — 종목 상세·증권사
  *   detailDelay(ms), detailStatus: 상세를 그 상태로 실패(예: 500)
  *   holiday: 'ok'(기본) | '500' | '401' | 'empty', holidayClosed: YYYYMMDD[](공휴일)
@@ -285,6 +311,8 @@ export async function mock(context, opts = {}) {
   let likeListCount = 0
   let indicesCount = 0
   let streamCount = 0
+  const store = communityStore(now, opts.nickname === undefined ? '느긋한거북' : opts.nickname)
+  if (opts.communityEmpty) store.posts.length = 0
   let askCount = 0
   // 방 목록은 서버처럼 최근 대화 순(updatedAt 내림차순)이다 — 질문·이름 바꾸기·만들기가 updatedAt을 지금으로 적는다
   const rooms = new Map([[1, { title: ROOM_1.title, updatedAt: '2026-10-28T10:00:05', messages: ROOM_1.messages.map((m) => ({ ...m })) }]])
@@ -306,7 +334,10 @@ export async function mock(context, opts = {}) {
     const json = (body, status = 200) => route.fulfill({ status, contentType: 'application/json', body }).catch(() => {})
     // 실서버처럼 공개는 /api/stocks/**·재발급뿐이다(JUBY-BE d7edec4). 토큰 없이 그 밖을 부르면 401
     const authed = /^Bearer \S+/.test(req.headers()['authorization'] ?? '')
-    if (!authed && !p.startsWith('/api/stocks') && p !== '/api/auth/reissue') return json(fail('COMMON401_1', '인증이 필요합니다.'), 401)
+    // 커뮤니티는 GET이 공개(댓글 목록만 로그인) — 백엔드 SecurityConfig와 같다
+    const communityPublic = m === 'GET' && p.startsWith('/api/community/') && !/\/comments$/.test(p)
+    if (!authed && !p.startsWith('/api/stocks') && p !== '/api/auth/reissue' && !communityPublic) return json(fail('COMMON401_1', '인증이 필요합니다.'), 401)
+    if (p.startsWith('/api/community/') || p.startsWith('/api/members/nickname') || p === '/api/members/me/nickname') return communityRoute({ m, p, q, req, authed, json, store, now, opts })
     let mm
     if (p === '/api/stocks') {
       await sleep(stocksDelay)
@@ -373,7 +404,7 @@ export async function mock(context, opts = {}) {
     }
     if (p === '/api/auth/logout') return json(wrap('AUTH200_2', null))
     if (p === '/api/auth/reissue') return json(fail('AUTH401_4', 'RT 없음'), 401)
-    if (p === '/api/members/me' && m === 'GET') return json(wrap('MEMBER200_1', { name: '허광엽', email: 'test@juby.store', birth: '2002-05-07', socialType: 'GOOGLE', onboarded: true }))
+    if (p === '/api/members/me' && m === 'GET') return json(wrap('MEMBER200_1', { name: '허광엽', nickname: store.nickname, email: 'test@juby.store', birth: '2002-05-07', socialType: 'GOOGLE', onboarded: true }))
     if (p === '/api/members/me' && m === 'PATCH') return json(wrap('MEMBER200_2', { modifiedDate: '2026-10-29T10:00:00' }))
     if (p === '/api/members/me' && m === 'DELETE') return json(wrap('MEMBER200_5', null))
     if (p === '/api/members/me/personality') {
@@ -470,6 +501,110 @@ export async function mock(context, opts = {}) {
  * 같은 탭에서는 한 번만 심는다(sessionStorage 표시) — 판정이 토큰을 지운 뒤 새로고침해도 다시 심지 않는다.
  * seed로 localStorage에 다른 값도 넣을 수 있다.
  */
+function communityRoute({ m, p, q, req, authed, json, store, now, opts }) {
+  const me = authed ? store.nickname : null
+  const live = () => store.posts.filter((post) => !post.deleted)
+  const summary = (post) => ({
+    postId: post.postId, stockCode: post.stockCode, stockName: post.stockName, changeRate: post.changeRate, title: post.title,
+    preview: post.content.length > 100 ? post.content.slice(0, 100) + '...' : post.content, writerNickname: post.writerNickname,
+    likeCount: post.likeCount, commentCount: post.commentCount, likedByMe: authed && post.likedBy.has('me'), isMine: me !== null && post.writerNickname === me,
+    isEdited: post.isEdited, createdAt: kstIso(post.createdAt),
+  })
+  const detail = (post) => { const { preview, changeRate, ...rest } = summary(post); void preview; void changeRate; return { ...rest, content: post.content, updatedAt: kstIso(post.createdAt) } }
+  const comment = (c) => ({ commentId: c.commentId, postId: c.postId, content: c.content, writerNickname: c.writerNickname, likeCount: c.likeCount,
+    likedByMe: authed && c.likedBy.has('me'), isMine: me !== null && c.writerNickname === me, isEdited: c.isEdited, createdAt: kstIso(c.createdAt), updatedAt: kstIso(c.createdAt) })
+  const body = () => { try { return JSON.parse(req.postData() ?? '{}') ?? {} } catch { return {} } }
+  const size = Number(q.get('size') ?? 20)
+  const stockCode = q.get('stockCode')
+  let mm
+  if (opts.communityStatus && m === 'GET' && (p === '/api/community/stocks' || p.startsWith('/api/community/posts') && !/\d+$/.test(p))) return json(fail(), opts.communityStatus)
+  if (p === '/api/community/stocks') {
+    const counts = new Map()
+    for (const post of live()) if (post.stockCode !== null) counts.set(post.stockCode, (counts.get(post.stockCode) ?? 0) + 1)
+    const stocks = [...counts].sort((a, b) => b[1] - a[1]).slice(0, 10).map(([code, postCount]) => { const s = COMMUNITY_STOCKS.find((x) => x[0] === code); return { stockCode: code, stockName: s[1], postCount, changeRate: s[2] } })
+    return json(wrap('COMMUNITY200_11', { totalPostCount: live().length, stocks, priceAsOf: kstIso(now - 3 * 60_000) }))
+  }
+  if (p === '/api/community/posts' && m === 'GET') {
+    const cursor = q.has('cursor') ? Number(q.get('cursor')) : Infinity
+    const list = live().filter((post) => (stockCode === null || post.stockCode === stockCode) && post.postId < cursor).sort((a, b) => b.postId - a.postId)
+    const page = list.slice(0, size)
+    const hasNext = list.length > size
+    return json(wrap('COMMUNITY200_1', { posts: page.map(summary), nextCursor: hasNext ? page.at(-1).postId : null, hasNext }))
+  }
+  if (p === '/api/community/posts/popular') {
+    if (q.has('cursorLikeCount') !== q.has('cursorId')) return json(fail('COMMUNITY400_1', '커서'), 400)
+    const weekStart = now - 3 * 24 * 3600_000
+    let list = live().filter((post) => (stockCode === null || post.stockCode === stockCode) && post.createdAt >= weekStart).sort((a, b) => b.likeCount - a.likeCount || b.postId - a.postId)
+    if (q.has('cursorId')) { const lc = Number(q.get('cursorLikeCount')), id = Number(q.get('cursorId')); list = list.filter((post) => post.likeCount < lc || (post.likeCount === lc && post.postId < id)) }
+    const page = list.slice(0, size)
+    const hasNext = list.length > size
+    return json(wrap('COMMUNITY200_10', { posts: page.map(summary), nextCursorLikeCount: hasNext ? page.at(-1).likeCount : null, nextCursorId: hasNext ? page.at(-1).postId : null, hasNext }))
+  }
+  if (p === '/api/community/posts' && m === 'POST') {
+    if (store.nickname === null) return json(fail('COMMUNITY403_1', '닉네임'), 403)
+    const b = body()
+    if ('stockCode' in b && (b.stockCode === '' || (b.stockCode !== null && !/^\d{6}$/.test(b.stockCode)))) return json(fail('COMMON400_1', '형식'), 400)
+    const stock = COMMUNITY_STOCKS.find((x) => x[0] === b.stockCode) ?? null
+    if (b.stockCode && stock === null) return json(fail('STOCK404_1', '없는 종목'), 404)
+    const post = { postId: store.nextPost++, stockCode: stock?.[0] ?? null, stockName: stock?.[1] ?? null, changeRate: stock?.[2] ?? null, title: b.title, content: b.content,
+      writerNickname: store.nickname, likeCount: 0, commentCount: 0, likedBy: new Set(), isEdited: false, createdAt: now, deleted: false }
+    store.posts.unshift(post)
+    return json(wrap('COMMUNITY201_1', detail(post)))
+  }
+  if ((mm = p.match(/^\/api\/community\/posts\/(\d+)$/))) {
+    const post = live().find((x) => x.postId === Number(mm[1]))
+    if (!post) return json(fail('COMMUNITY404_1', '없는 글'), 404)
+    if (m === 'GET') return json(wrap('COMMUNITY200_2', detail(post)))
+    if (post.writerNickname !== me) return json(fail('COMMUNITY403_2', '남의 글'), 403)
+    if (m === 'PATCH') { const b = body(); Object.assign(post, { title: b.title, content: b.content, isEdited: true }); return json(wrap('COMMUNITY200_3', detail(post))) }
+    if (m === 'DELETE') { post.deleted = true; return json(wrap('COMMUNITY200_4', null)) }
+  }
+  if ((mm = p.match(/^\/api\/community\/posts\/(\d+)\/likes$/))) {
+    const post = live().find((x) => x.postId === Number(mm[1]))
+    if (!post) return json(fail('COMMUNITY404_1', '없는 글'), 404)
+    const liked = !post.likedBy.has('me')
+    if (liked) post.likedBy.add('me'); else post.likedBy.delete('me')
+    post.likeCount += liked ? 1 : -1
+    return json(wrap('COMMUNITY200_5', { postId: post.postId, liked, likeCount: post.likeCount }))
+  }
+  if ((mm = p.match(/^\/api\/community\/posts\/(\d+)\/comments$/))) {
+    const post = live().find((x) => x.postId === Number(mm[1]))
+    if (!post) return json(fail('COMMUNITY404_1', '없는 글'), 404)
+    if (m === 'GET') {
+      const cursor = q.has('cursor') ? Number(q.get('cursor')) : 0
+      const list = store.comments.filter((c) => !c.deleted && c.postId === post.postId && c.commentId > cursor).sort((a, b) => a.commentId - b.commentId)
+      const page = list.slice(0, size)
+      const hasNext = list.length > size
+      return json(wrap('COMMUNITY200_6', { comments: page.map(comment), nextCursor: hasNext ? page.at(-1).commentId : null, hasNext }))
+    }
+    if (store.nickname === null) return json(fail('COMMUNITY403_1', '닉네임'), 403)
+    const c = { commentId: store.nextComment++, postId: post.postId, content: body().content, writerNickname: store.nickname, likeCount: 0, likedBy: new Set(), isEdited: false, createdAt: now, deleted: false }
+    store.comments.push(c)
+    post.commentCount += 1
+    return json(wrap('COMMUNITY201_2', comment(c)))
+  }
+  if ((mm = p.match(/^\/api\/community\/comments\/(\d+)(\/likes)?$/))) {
+    const c = store.comments.find((x) => !x.deleted && x.commentId === Number(mm[1]))
+    if (!c) return json(fail('COMMUNITY404_2', '없는 댓글'), 404)
+    if (mm[2]) { const liked = !c.likedBy.has('me'); if (liked) c.likedBy.add('me'); else c.likedBy.delete('me'); c.likeCount += liked ? 1 : -1; return json(wrap('COMMUNITY200_9', { commentId: c.commentId, liked, likeCount: c.likeCount })) }
+    if (c.writerNickname !== me) return json(fail('COMMUNITY403_3', '남의 댓글'), 403)
+    if (m === 'PATCH') { Object.assign(c, { content: body().content, isEdited: true }); return json(wrap('COMMUNITY200_7', comment(c))) }
+    if (m === 'DELETE') { c.deleted = true; const post = store.posts.find((x) => x.postId === c.postId); if (post) post.commentCount -= 1; return json(wrap('COMMUNITY200_8', null)) }
+  }
+  if (p === '/api/members/nickname/check') {
+    const nickname = q.get('nickname') ?? ''
+    if (!/^[가-힣a-zA-Z0-9]{2,10}$/.test(nickname)) return json(fail('COMMON400_1', '형식'), 400)
+    return json(wrap('MEMBER200_6', { nickname, available: nickname === store.nickname || !(opts.takenNicknames ?? []).includes(nickname) }))
+  }
+  if (p === '/api/members/me/nickname' && m === 'PATCH') {
+    const nickname = body().nickname
+    if ((opts.takenNicknames ?? []).includes(nickname)) return json(fail('MEMBER409_2', '중복'), 409)
+    store.nickname = nickname
+    return json(wrap('MEMBER200_7', { nickname, modifiedAt: kstIso(now) }))
+  }
+  return json(fail('COMMON404', '없는 경로'), 404)
+}
+
 export async function seedLogin(context, loggedIn = true, { at = THU_11, user = 1, seed = null } = {}) {
   await context.addInitScript(({ at, loggedIn, token, seed }) => {
     const offset = at - Date.now(); const realNow = Date.now.bind(Date); Date.now = () => realNow() + offset

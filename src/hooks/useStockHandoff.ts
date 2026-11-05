@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { toCommunityPost, type CommunityPost } from '../api/community'
+import { isPostSummary, type PostSummary } from '../api/community'
 import { isStockCode } from '../api/stock'
 import { PERIODS } from '../utils/backtest'
 import type { BacktestPeriod } from '../types/backtest'
@@ -38,11 +38,8 @@ export function toSessionHandoff(sessionId: number): { openSession: number } {
   return { openSession: sessionId }
 }
 
-/**
- * 글 줄(홈·커뮤니티 목록)·글쓰기가 글 상세로 싣는 글. 번호가 아니라 글을 싣는 건, 보고 있는 동안 들어온 새 글이
- * 글 상세가 따로 받는 처음 목록에 없을 수 있어서다(글 하나를 받는 API도 아직 없다)
- */
-export function toCommunityHandoff(post: CommunityPost): { communityPost: CommunityPost } {
+/** 목록 글 줄이 글 상세로 싣는 글 — 상세 응답에는 등락률이 없어 목록 값을 이어 쓴다 */
+export function toCommunityHandoff(post: PostSummary): { communityPost: PostSummary } {
   return { communityPost: post }
 }
 
@@ -80,10 +77,10 @@ function readSession(state: unknown): number | null {
   return typeof sessionId === 'number' && Number.isInteger(sessionId) && sessionId > 0 ? sessionId : null
 }
 
-/** 주소 기록에 남은 값이라 서버 글과 같은 검사(toCommunityPost)를 다시 거친다 */
-function readCommunityPost(state: unknown): CommunityPost | null {
+/** 주소 기록에 남은 값이라 모양을 다시 본다 */
+function readCommunityPost(state: unknown): PostSummary | null {
   const post = field(state, 'communityPost')
-  return post === undefined ? null : toCommunityPost(post)
+  return isPostSummary(post) ? post : null
 }
 
 /**
@@ -118,7 +115,7 @@ export function useAiHandoff(): { stock: StockInfo | null; session: number | nul
 }
 
 /** 글 상세가 받는 글(글 줄을 눌러 왔을 때). 주소로 바로 열면 null */
-export function useCommunityHandoff(): CommunityPost | null {
+export function useCommunityHandoff(): PostSummary | null {
   return useHandoffState(readCommunityPost)
 }
 

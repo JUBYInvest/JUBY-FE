@@ -89,7 +89,7 @@ export default function Header() {
         <MenuLink to="/backtest" label="주식 백테스트" />
         <MenuLink to="/ai" label="AI 주가분석" />
         {/* 커뮤니티 서버가 붙기 전까지 예시 글이라 메뉴에서도 밝힌다(연결하면 "커뮤니티"로 되돌린다) */}
-        <MenuLink to="/community" label="커뮤니티(예시)" />
+        <MenuLink to="/community" label="커뮤니티" />
         <MenuLink to="/guide" label="사용설명서" />
       </nav>
 
