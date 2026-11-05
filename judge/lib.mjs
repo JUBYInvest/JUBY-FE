@@ -27,7 +27,13 @@ export async function judge({ BASE, ONLY = null, HEADED = false } = {}) {
   const results = []
   const consoleErrors = []
   let realHits = 0
-  const report = (id, ok, msg) => { const line = `${ok === null ? 'INFO' : ok ? 'PASS' : 'FAIL'}  ${id}  ${msg}`; results.push(line); console.log(line) }
+  const report = (id, ok, msg) => {
+    const line = `${ok === null ? 'INFO' : ok ? 'PASS' : 'FAIL'}  ${id}  ${msg}`
+    results.push(line)
+    console.log(line)
+    // GitHub Actions에서는 FAIL을 주석으로도 남긴다 — 주석은 로그인 없이 공개 API(check-runs/{id}/annotations)로 읽힌다
+    if (ok === false && process.env.GITHUB_ACTIONS === 'true') console.log(`::error title=${id}::${String(msg).replace(/%/g, '%25').replace(/\r?\n/g, '%0A')}`)
+  }
 
   /**
    * 시계를 at에 못박고(기본 목 11:00) 로그인 토큰(user번 회원)을 심은 새 탭. seed는 localStorage에 넣을 값, timezoneId는 보는 사람의

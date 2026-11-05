@@ -48,8 +48,10 @@ jobs:
           exit 1
       - name: 화면 판정(흐름·결함 재현·AI·지수와 실시간)
         working-directory: judge
+        # 하나가 실패해도 넷 다 돌린다. 판정이 FAIL을 GitHub 주석으로 남기고(lib.mjs), 판정째 멈추면 여기서 그 이름을 남긴다
         run: |
-          node flow.mjs http://localhost:4251
-          node repro.mjs http://localhost:4251
-          node ai.mjs http://localhost:4251
-          node market.mjs http://localhost:4251
+          failed=0
+          for suite in flow repro ai market; do
+            node $suite.mjs http://localhost:4251 || { echo "::error title=$suite.mjs::종료 코드 $?"; failed=1; }
+          done
+          exit $failed
