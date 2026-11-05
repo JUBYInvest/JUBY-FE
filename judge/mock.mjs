@@ -332,11 +332,12 @@ export async function mock(context, opts = {}) {
     const m = req.method(), p = url.pathname, q = url.searchParams
     log.push(`${m} ${p}${url.search}`)
     const json = (body, status = 200) => route.fulfill({ status, contentType: 'application/json', body }).catch(() => {})
-    // 실서버처럼 공개는 /api/stocks/**·재발급뿐이다(JUBY-BE d7edec4). 토큰 없이 그 밖을 부르면 401
+    // 실서버처럼 공개는 /api/stocks/**·지수·실시간 스트림·재발급뿐이다(JUBY-BE dc44e2b). 토큰 없이 그 밖을 부르면 401
     const authed = /^Bearer \S+/.test(req.headers()['authorization'] ?? '')
     // 커뮤니티는 GET이 공개(댓글 목록만 로그인) — 백엔드 SecurityConfig와 같다
     const communityPublic = m === 'GET' && p.startsWith('/api/community/') && !/\/comments$/.test(p)
-    if (!authed && !p.startsWith('/api/stocks') && p !== '/api/auth/reissue' && !communityPublic) return json(fail('COMMON401_1', '인증이 필요합니다.'), 401)
+    const marketPublic = p.startsWith('/api/stocks') || p === '/api/market-indices' || p.startsWith('/api/stream/')
+    if (!authed && !marketPublic && p !== '/api/auth/reissue' && !communityPublic) return json(fail('COMMON401_1', '인증이 필요합니다.'), 401)
     if (p.startsWith('/api/community/') || p.startsWith('/api/members/nickname') || p === '/api/members/me/nickname') return communityRoute({ m, p, q, req, authed, json, store, now, opts })
     let mm
     if (p === '/api/stocks') {

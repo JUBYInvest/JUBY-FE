@@ -11,8 +11,7 @@ import styles from './MarketIndexBar.module.css'
 /**
  * 화면 아래에 붙는 국내 지수 띠(코스피·코스닥). App의 Layout에 한 번 놓여 화면을 옮겨도 다시 묻지 않는다.
  * 처음 한 번 REST로 받고, 장중에는 실시간 연결(api/realtime.ts)의 값으로 바꿔 그린다. 실시간 연결이 없으면 장중에 1분마다 다시 묻는다.
- * 로그인하면 다시 묻는다 — 소셜 로그인은 앱 안에서 끝나 띠가 로그인 전에 받은 401을 들고 있다. 로그인했는데 값이 없으면 장 밖에도 1분마다 다시 묻는다.
- * 보여줄 값이 없으면(못 받았고 지난 값도 없음 — 비로그인은 지수 API가 401이다) 띠를 그리지 않는다.
+ * 지수·실시간은 로그인 없이 열린다. 값이 없으면 장 밖에도 1분마다 다시 묻는다. 보여줄 값이 없으면(못 받았고 지난 값도 없음) 띠를 그리지 않는다.
  *
  * 맨 앞에 장 상태(장 시작 전·장 중·장 마감·오늘 휴장)와 오늘 장 진행 막대를 둔다 — 초보자는 지금 가격이 움직이는 때인지 모른다.
  * 휴장일은 로그인했을 때 받아 둔다(api/marketCalendar.ts). 모르면 장 상태를 적지 않는다. 600px 이하는 지수가 먼저라 적지 않고,
@@ -43,18 +42,25 @@ export default function MarketIndexBar() {
       })
     }
     refresh()
-    // 휴장일은 로그인해야 받는다 — 로그인하면 이 effect가 다시 돌아 받는다
-    void loadMarketCalendar().then(() => {
-      if (!isStale) setNow(Date.now())
-    })
     const timer = setInterval(() => {
       setNow(Date.now())
       if (document.visibilityState !== 'visible' || liveRef.current) return
-      if (isMarketHours() || (loggedIn && empty)) refresh()
+      if (isMarketHours() || empty) refresh()
     }, INDEX_REFRESH_MS)
     return () => {
       isStale = true
       clearInterval(timer)
+    }
+  }, [])
+
+  // 휴장일은 로그인해야 받는다 — 로그인하면 다시 받는다
+  useEffect(() => {
+    let isStale = false
+    void loadMarketCalendar().then(() => {
+      if (!isStale) setNow(Date.now())
+    })
+    return () => {
+      isStale = true
     }
   }, [loggedIn])
 

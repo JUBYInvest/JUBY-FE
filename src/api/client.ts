@@ -232,7 +232,7 @@ async function requestReissue(): Promise<string | null> {
  * 보낸 뒤에 토큰이 바뀌었으면(다른 요청이나 다른 탭이 이미 재발급했다) 재발급 없이 그걸 쓴다. 재발급이 실패해도 한 번 더 본다 —
  * 두 탭이 같은 refresh token으로 동시에 재발급하면 늦은 쪽은 실패하는데, 그 사이 앞선 탭이 새 토큰을 담아 뒀을 수 있다.
  */
-export async function tokenForRetry(sentToken: string): Promise<string | null> {
+async function tokenForRetry(sentToken: string): Promise<string | null> {
   const current = getAccessToken()
   if (current !== null && current !== sentToken) return current
   const renewed = await reissueAccessToken()

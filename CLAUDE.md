@@ -75,8 +75,8 @@ npx knip@5               # 안 쓰는 파일·내보내기(judge/는 뺀다)
 
 - 앱 전체가 SSE `GET /api/stream/prices` 연결 하나를 같이 쓴다(연결 직후 전체, 그 뒤 1초마다 바뀐 것만).
   이벤트 `prices`: `{ stockCode, currentPrice, changeRate, accTradingValue, contractTime }[]`, `indices`: `{ code, name, currentIndex, changeRate }[]`.
-- EventSource는 머리글을 못 실어 fetch로 읽고 `Authorization`을 싣는다. **장중(`isMarketHours`)·탭이 보일 때·값을 쓰는 화면이 있을 때만 연결한다.**
-  정상 종료 뒤 1초에 다시 붙고 실패는 늘려 가며 기다린다. 비로그인은 한 번 시도해 401이면 로그인이 바뀔 때까지 쉰다.
+- 로그인 없이 열리는 공개 경로라 토큰을 싣지 않는다(끊기를 쓰려고 EventSource 대신 fetch로 읽는다). **장중(`isMarketHours`)·탭이 보일 때·값을 쓰는 화면이 있을 때만 연결한다.**
+  정상 종료 뒤 1초에 다시 붙고 실패는 늘려 가며 기다린다.
 - 훅: `useRealtime()`, `withLivePrice(row, prices)`, `useLiveRows(rows, sortKey, sort)` — **줄 순서는 받거나 정렬을 바꿀 때만 정하고 값만 실시간으로 바뀐다.**
 - REST의 실시간 필드: `/api/stocks`의 `asOf`와 행마다 `realtime`(장중엔 종가 자리에 현재가), 관심종목 행 `realtime`. 가격 옆 기준 글은 `utils/priceBasis.ts basisLabel()` 하나로 적는다 —
   "실시간" / "11월 5일 11:02 기준" / "장중 현재가" / "10월 28일 종가 기준"(날짜를 모르면 "" → 줄을 숨긴다). 상세 머리 가격도 같은 말을 쓴다.
@@ -93,7 +93,7 @@ npx knip@5               # 안 쓰는 파일·내보내기(judge/는 뺀다)
 | `GET /api/stocks/{code}?period=ALL` 상세 | 1 | 기간 탭은 화면에서 자른다(`periodStart`) |
 | `?period=ONE_YEAR` 홈 카드 그래프 | 담아 둔 게 없는 카드만 | 토큰을 심었거나 `canSpendKisCall`일 때(`api/cardSeries.ts`) |
 | `GET /api/market/{code}/price` 토큰 심기(임시) | 1 | 로그인 때 홈·상세에서 6시간에 1회(`primeKisToken`) |
-| `GET /api/market-indices` 지수 띠 | 장 밖 값은 서버가 증권사(1분 캐시) | 처음·로그인 뒤 + 실시간이 없을 때 장중 1분마다. 장 밖에 `canSpendKisCall`이 아니면 지난 값(없으면 묻는다) |
+| `GET /api/market-indices` 지수 띠 | 장 밖 값은 서버가 증권사(1분 캐시) | 처음 + 실시간이 없을 때 장중 1분마다(값이 없으면 장 밖에도). 장 밖에 `canSpendKisCall`이 아니면 지난 값(없으면 묻는다) |
 | `GET /api/market/holiday` 휴장일 | 1("하루 한 번" API) | 받아 둔 날짜가 오늘과 다음 개장일을 못 덮을 때(로그인) |
 | `GET /api/market/volume-rank` 순위 | 1 | 홈 순위 탭을 열 때만(1분 메모, 로그인) |
 | `GET /api/market/{code}/daily_itemchartprice` | 1(모의투자 토큰) | 로그인했고 상세가 실패했을 때 그 종목만 |
@@ -217,10 +217,10 @@ npx knip@5               # 안 쓰는 파일·내보내기(judge/는 뺀다)
 ### 아래 지수 띠(`components/MarketIndexBar`)
 
 - `GET /api/market-indices` → `{ asOf, indices: [{ code, name, currentIndex, changeRate, accTradingValue, realtime }] }`. 포인트 대비는 없다 — 띠는 지수와 대비율만 적는다.
-- `Layout`에 한 번 놓인다. 처음 한 번, **로그인하면 다시 한 번**(소셜 로그인은 앱 안에서 끝나 띠가 로그인 전의 401을 들고 있다), 그리고 실시간 연결이 없을 때
-  장중·탭이 보일 때 1분마다 묻는다(5초, 차단기에 세지 않는다). 로그인했는데 값이 없으면 장 밖에도 1분마다 묻는다. `canSpendKisCall`이 아니어도 지난 값이 없으면 묻는다
-  (judge market A10·A11).
-  **장중엔 실시간 값으로 바꾸고 기준 자리에 "실시간"**, 아니면 `asOf`로 "N월 N일 HH:MM 기준". 못 받으면 지난 값(`marketIndices.v2`), 없으면 띠가 없다. **비로그인은 API가 401이라 띠가 없다.**
+- `Layout`에 한 번 놓인다. **지수·실시간은 로그인 없이 열린다**(JUBY-BE dc44e2b — judge market A9). 처음 한 번, 그리고 실시간 연결이 없을 때
+  장중·탭이 보일 때 1분마다 묻는다(5초, 차단기에 세지 않는다). 값이 없으면 장 밖에도 1분마다 묻고, 로그인해도 다시 묻지 않는다(휴장일만 받는다).
+  `canSpendKisCall`이 아니어도 지난 값이 없으면 묻는다(judge market A10·A11).
+  **장중엔 실시간 값으로 바꾸고 기준 자리에 "실시간"**, 아니면 `asOf`로 "N월 N일 HH:MM 기준". 못 받으면 지난 값(`marketIndices.v2`), 없으면 띠가 없다.
 - 장 상태·진행 막대(`marketStatus`·`sessionClock`)는 휴장일을 모르면 주말만 휴장으로 보고 평일엔 상태를 적지 않는다. 장 시간은 9:00~15:30 고정(`isMarketHours`는 15:35까지).
 - `position: sticky; bottom: 0`, `z-index: 5`. 높이는 `--index-bar-height`(44px, 600px 이하 40px, 띠가 없으면 `:root:not(:has([data-index-bar]))`로 0) — 띠 위에 뜨는 것이 쓴다.
 - 좁은 폭에서는 1100px 이하 다음 개장일·남은 시간, 900px 이하 막대, 600px 이하 장 상태·기준 시각을 뺀다.
@@ -273,7 +273,8 @@ npx knip@5               # 안 쓰는 파일·내보내기(judge/는 뺀다)
 
 - 인증: 성공은 `/oauth2/callback#accessToken=<AT>`(해시, 30분), 실패는 `/oauth2/error?error=<코드>`. refresh token은 HttpOnly 쿠키(`Path=/api/auth`, 재발급마다 바뀜)라
   프론트는 받지도 저장하지도 않는다. 사파리처럼 다른 사이트 쿠키를 막는 브라우저는 프론트가 `juby.store` 아래여야 재발급된다.
-- **공개 경로는 `/api/stocks/**`·`/api/auth/reissue`와 커뮤니티 GET(댓글 목록 빼고)이다.** 나머지는 토큰 없으면 401 `COMMON401_1`, 틀리면 `AUTH401_1~6`.
+- **공개 경로는 `/api/stocks/**`·`/api/market-indices`·`/api/stream/**`·`/api/auth/reissue`와 커뮤니티 GET(댓글 목록 빼고)이다.**
+  공개 경로에 만료된 토큰을 실어도 401이 아니다(필터가 실패를 적어 두기만 한다). 나머지는 토큰 없으면 401 `COMMON401_1`, 틀리면 `AUTH401_1~6`.
 - CORS 허용 출처는 `http://localhost:5173`과 `https://juby-fe.vercel.app`이다. 로컬에서 로그인해도 돌아오는 곳은 배포 사이트다.
 
 쓰는 API는 위 "증권사 호출" 표의 것과 백테스트(`/api/backtest/preset`·`/preset/options`·`/run`), 성향(`GET·POST /api/personality-tests`),
@@ -282,7 +283,6 @@ npx knip@5               # 안 쓰는 파일·내보내기(judge/는 뺀다)
 
 | 백엔드 빈틈(프론트에서 못 고친다) | 프론트가 하는 것 |
 | --- | --- |
-| `/api/stream/**`·`/api/market-indices`가 SecurityConfig 공개 목록에 없다(스트림 DTO 주석은 공개 경로를 뜻한다) | 비로그인은 401 — 실시간·지수 띠 없음. 공개로 열면 그대로 붙는다 |
 | 상세가 증권사 토큰을 읽기 전용 트랜잭션에서 저장하지 못해 주말엔 1분 1건만 성공한다 | 실패 뒤 기다림·토큰 심기·`canSpendKisCall` |
 | 백테스트가 끝 포지션을 청산하지 않고 축별 점수를 주지 않는다 | `isHeldToEnd`, `calculateAxisScores` |
 | 성향 변경이 DB 행 번호만 받는다 | 저장 단추 없음 |

@@ -1,7 +1,6 @@
 import { useMemo, useRef, useSyncExternalStore } from 'react'
-import { BASE_URL, tokenForRetry } from './client'
+import { BASE_URL } from './client'
 import { isMarketHours } from './market'
-import { getAccessToken, subscribeAuth } from '../utils/auth'
 import { isFiniteNumber } from '../utils/format'
 
 /*
@@ -9,8 +8,7 @@ import { isFiniteNumber } from '../utils/format'
  * 서버는 연결 직후 지금 값 전체를 한 번, 그 뒤엔 1초마다 바뀐 종목·지수만 보낸다(이벤트 prices·indices).
  * 상세 화면도 이 연결에서 자기 종목을 고른다 — 서버가 실시간으로 받는 종목은 이 100개뿐이다.
  *
- * EventSource는 머리글을 실을 수 없어 fetch로 읽는다. 이 경로는 로그인해야 열린다(백엔드 SecurityConfig가 공개 목록에 넣지 않았다).
- * 비로그인은 한 번만 시도하고 401이면 로그인이 바뀔 때까지 쉰다 — 백엔드가 공개로 열면 그대로 붙는다.
+ * 로그인 없이 열리는 공개 시세라 토큰을 싣지 않는다(백엔드 SecurityConfig allowUris). 끊기를 쓰려고 EventSource 대신 fetch로 읽는다.
  * 장중이고 탭이 보이고 값을 쓰는 화면이 하나라도 있을 때만 연결한다.
  */
 
@@ -55,8 +53,6 @@ let retryTimer: ReturnType<typeof setTimeout> | null = null
 let idleTimer: ReturnType<typeof setTimeout> | null = null
 let clockTimer: ReturnType<typeof setInterval> | null = null
 let failures = 0
-/** 비로그인 연결이 401을 받았다. 로그인 상태가 바뀌면 푼다 */
-let needsLogin = false
 
 function publish(next: Partial<Snapshot>): void {
   snapshot = { ...snapshot, ...next }
@@ -64,7 +60,7 @@ function publish(next: Partial<Snapshot>): void {
 }
 
 function shouldConnect(): boolean {
-  return listeners.size > 0 && !needsLogin && document.visibilityState === 'visible' && isMarketHours()
+  return listeners.size > 0 && document.visibilityState === 'visible' && isMarketHours()
 }
 
 /** 지금 맞는 상태로 맞춘다 — 붙어야 하면 붙고, 아니면 끊는다 */
@@ -96,18 +92,8 @@ function scheduleRetry(delay: number): void {
 async function connect(): Promise<void> {
   const own = new AbortController()
   controller = own
-  let token = getAccessToken()
   try {
-    let response = await openStream(token, own.signal)
-    if (response.status === 401 && token !== null) {
-      token = await tokenForRetry(token)
-      if (token !== null && !own.signal.aborted) response = await openStream(token, own.signal)
-    }
-    if (response.status === 401) {
-      needsLogin = true
-      controller = null
-      return
-    }
+    const response = await fetch(`${BASE_URL}${STREAM_PATH}`, { headers: { Accept: 'text/event-stream' }, cache: 'no-store', signal: own.signal })
     if (!response.ok || response.body === null) throw new Error(`실시간 시세 연결 실패 ${response.status}`)
     failures = 0
     await readEvents(response.body, own.signal)
@@ -118,14 +104,6 @@ async function connect(): Promise<void> {
     console.warn('실시간 시세 연결이 끊겼습니다. 다시 붙습니다', error)
     scheduleRetry(Math.min(RECONNECT_MS * 2 ** failures, MAX_BACKOFF_MS))
   }
-}
-
-function openStream(token: string | null, signal: AbortSignal): Promise<Response> {
-  return fetch(`${BASE_URL}${STREAM_PATH}`, {
-    headers: { Accept: 'text/event-stream', ...(token !== null ? { Authorization: `Bearer ${token}` } : {}) },
-    cache: 'no-store',
-    signal,
-  })
 }
 
 /** text/event-stream을 빈 줄로 끊어 읽는다. `:`로 시작하는 줄은 서버의 연결 유지 신호다 */
@@ -212,12 +190,6 @@ function subscribe(listener: () => void): () => void {
     }, IDLE_CLOSE_MS)
   }
 }
-
-subscribeAuth(() => {
-  needsLogin = false
-  disconnect()
-  sync()
-})
 
 /** 실시간 값. 연결 전·장 밖에는 빈 표다 — 화면은 받아 둔 REST 값을 그대로 쓴다 */
 export function useRealtime(): Snapshot {

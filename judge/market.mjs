@@ -10,8 +10,8 @@
 //  A6 일요일 11:00(증권사 토큰 없을 때): 지수 요청 0건, 지난 값이 있으면 그걸 띄운다
 //  A7 실시간 연결이 없으면 장중 61초 뒤 지수 요청 2건. 장 밖(목 20:00)은 61초 뒤에도 1건
 //  A8 화면을 옮겨도(홈 → 상세 → 백테스트, 링크로) 지수 요청 1건·스트림 연결 1건
-//  A9 비로그인: 띠 없음(지수 API가 401), 스트림은 한 번 401을 받고 3초 동안 다시 붙지 않는다
-//  A10 비로그인으로 연 탭에서 로그인(장 밖 목 20:00 — 소셜 로그인은 앱 안에서 끝난다): 띠가 뜬다, 지수 요청 2건(로그인 전 401 + 로그인 뒤)
+//  A9 비로그인 장중(지수·스트림은 로그인 없이 열린다 — JUBY-BE dc44e2b): 띠가 실시간 "코스피 2,620.50" "실시간", 홈 삼성전자 "72,400원", 지수 1건
+//  A10 비로그인 장 밖(목 20:00)에 첫 지수 요청이 500: 61초 뒤 다시 물어 띠가 뜬다(지수 2건). 그 탭에서 로그인해도 지수를 다시 묻지 않는다(2건 그대로)
 //  A11 목 15:50(증권사 토큰이 끝나 있을 때)·지난 값 없음: 지수를 1건 묻고 띠를 띄운다 — 지난 값이 없으면 띠가 통째로 비므로
 //  R1 스트림 값이 띠를 바꾼다: 코스피 "2,620.50" "+0.78%", 기준 자리에 "실시간"
 //  R2 홈 시세표: 삼성전자 "72,400원" "+1.97%" (둘째 묶음까지 반영), 머리 "실시간"
@@ -119,22 +119,29 @@ await j.run('A', async () => {
   j.report('A8', n(t.log, IDX) === 1 && n(t.log, STREAM) === 1 && (await barText(t.page)) !== null, `지수 ${n(t.log, IDX)}건, 스트림 ${n(t.log, STREAM)}건, 주소 ${new URL(t.page.url()).pathname}`)
   await t.close()
 
-  t = await j.open({ loggedIn: false })
-  await t.goto('/', 1500)
-  await sleep(3000)
-  j.report('A9', (await barText(t.page)) === null && n(t.log, STREAM) === 1 && n(t.log, IDX) === 1, `띠 ${await barText(t.page)}, 지수 ${n(t.log, IDX)}건, 스트림 ${n(t.log, STREAM)}건`)
+  t = await j.open({ loggedIn: false, stream: LIVE })
+  await t.goto('/', 2500)
+  const guestBar = await barText(t.page)
+  const guestRow = await rowText(t.page, '005930')
+  j.report('A9', /코스피 2,620\.50 \+0\.78%/.test(guestBar ?? '') && /실시간/.test(guestBar ?? '') && /72,400원/.test(guestRow ?? '') && n(t.log, IDX) === 1, `띠 "${guestBar}", 행 "${guestRow}", 지수 ${n(t.log, IDX)}건, 스트림 ${n(t.log, STREAM)}건`)
   await t.close()
 
-  t = await j.open({ loggedIn: false, at: THU_20 })
+  t = await j.open({ loggedIn: false, at: THU_20, indices: (count) => (count === 1 ? '500' : 'ok') })
   await t.goto('/', 1500)
   const before = await barText(t.page)
+  await sleep(61_000)
+  const retried = await barText(t.page)
   await t.page.evaluate((token) => {
     localStorage.setItem('accessToken', token)
     window.dispatchEvent(new StorageEvent('storage', { key: 'accessToken', newValue: token }))
   }, tokenFor())
   await sleep(1500)
   const after = await barText(t.page)
-  j.report('A10', before === null && /코스피 2,612\.43/.test(after ?? '') && n(t.log, IDX) === 2, `로그인 전 띠 ${before}, 뒤 "${after}", 지수 ${n(t.log, IDX)}건`)
+  j.report(
+    'A10',
+    before === null && /코스피 2,612\.43/.test(retried ?? '') && /코스피 2,612\.43/.test(after ?? '') && n(t.log, IDX) === 2,
+    `처음 띠 ${before}, 61초 뒤 "${retried}", 로그인 뒤 "${after}", 지수 ${n(t.log, IDX)}건`,
+  )
   await t.close()
 
   t = await j.open({ at: kst(2026, 10, 29, 15, 50), seed: { kisTokenPrimedAt: '0' } })
