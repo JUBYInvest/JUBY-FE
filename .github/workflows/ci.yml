@@ -1,0 +1,54 @@
+# 푸시·PR마다 도는 검사. 운영은 팀 저장소 main에서 바로 배포되므로, 깨진 커밋이 main에 들어가기 전에 여기서 멈춘다.
+# check: 타입·린트·빌드·함수 단위 판정. judge: 운영 빌드를 띄워 화면 판정 중 동작을 보는 묶음(픽셀을 재는 묶음은 글꼴이 다른 리눅스에서 흔들려 뺐다).
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx tsc -b
+      - run: npm run lint
+      - run: npm run build
+      - name: 함수 단위 판정
+        working-directory: judge
+        run: node --import ./register.mjs unit.test.mjs
+
+  judge:
+    needs: check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            judge/package-lock.json
+      - run: npm ci
+      - run: npm run build
+      - run: npm ci
+        working-directory: judge
+      - name: 운영 빌드 띄우기
+        run: |
+          npx vite preview --port 4251 --strictPort &
+          for i in $(seq 30); do curl -sf http://localhost:4251 > /dev/null && exit 0; sleep 1; done
+          exit 1
+      - name: 화면 판정(흐름·결함 재현·AI·지수와 실시간)
+        working-directory: judge
+        run: |
+          node flow.mjs http://localhost:4251
+          node repro.mjs http://localhost:4251
+          node ai.mjs http://localhost:4251
+          node market.mjs http://localhost:4251
