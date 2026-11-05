@@ -1,7 +1,6 @@
 import { useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { HOME_GUIDE_INTRO } from '../content/homeGuide'
-import { useCommunityFeed } from '../hooks/useCommunityFeed'
 import { useIsLoggedIn } from '../hooks/useIsLoggedIn'
 import { useMyPersonality } from '../hooks/useMyPersonality'
 import { toBacktestHandoff } from '../hooks/useStockHandoff'
@@ -12,20 +11,19 @@ import { isPersonalityType } from '../utils/personality'
 import { readRecentBacktests } from '../utils/recentBacktests'
 import { SOCIAL_PROVIDERS } from '../utils/social'
 import { isStartFinished, rememberStartFinished } from '../utils/startSteps'
-import CommunityPosts from './CommunityPosts'
 import GuideSteps from './GuideSteps'
+import HomeChat from './HomeChat'
 import StartSteps, { type StartStep } from './StartSteps'
 import styles from './HomeRail.module.css'
 
 /**
- * 홈 오른쪽 열. 위는 사용설명서(네 장을 한 줄씩), 아래는 커뮤니티 최신 글이다. 사용설명서 글은 src/content/homeGuide.ts,
- * 커뮤니티 글은 서버가 생기기 전까지 src/content/communityPreview.ts의 예시 글이다(src/api/community.ts가 가른다).
+ * 홈 오른쪽 열. 위는 처음 시작하기(또는 사용설명서 네 장), 아래는 전체 채팅이다(채팅 서버가 생기기 전까지 예시 — src/api/chat.ts).
  */
 export default function HomeRail({ likedCount }: { likedCount: number | null }) {
   return (
-    <aside className={styles.rail} aria-label="시작하기·사용설명서와 커뮤니티">
+    <aside className={styles.rail} aria-label="시작하기·사용설명서와 채팅">
       <StartOrGuide likedCount={likedCount} />
-      <CommunityPreview />
+      <ChatSection />
     </aside>
   )
 }
@@ -149,42 +147,11 @@ function GuideSection() {
   )
 }
 
-/**
- * 커뮤니티 미리보기.
- * 최신 글 다섯 줄을 보이고 제목 줄 오른쪽 '전체 보기'가 커뮤니티 화면이다. 글 줄을 누르면 그 글 상세로 간다. 글·연결은 커뮤니티 화면과 같은 훅(useCommunityFeed)이다.
- * 보고 있는 동안 웹소켓(지금은 목업)으로 새 글이 오면 바로 끼우지 않고 제목 옆 "새 글 N"으로 알린다 — 누르면 위에 선다.
- * 오른쪽 열은 홈 격자의 줄을 나눠 쓰므로(subgrid) 줄 수를 다섯으로 묶어 높이가 글 수만큼 늘지 않게 한다
- */
-const HOME_POST_COUNT = 5
-
-function CommunityPreview() {
-  const { posts, pending, status, revealPending } = useCommunityFeed()
-  // "N분 전"은 목록이 바뀌어 다시 그릴 때마다 지금 시각으로 센다(커뮤니티 화면과 같다) — 새 글을 세운 뒤 앞 글이 옛 시각에 멈춰 있지 않게
-  const now = Date.now()
-  const latest = [...(posts ?? [])].sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt)).slice(0, HOME_POST_COUNT)
-
+/* 홈 맨 아래 — 전체 채팅(HomeChat). 왼쪽 '현재 주가 보기'와 같은 줄(격자 셋째 줄)에 선다 */
+function ChatSection() {
   return (
-    <section className={styles.community} aria-labelledby="home-community-title">
-      <div className={styles.head}>
-        <h2 id="home-community-title" className={styles.title}>
-          커뮤니티
-        </h2>
-        {status === 'mock' && <span className={styles.sampleTag}>예시</span>}
-        {pending.length > 0 && (
-          <button type="button" className={styles.fresh} onClick={revealPending}>
-            새 글 {pending.length}
-          </button>
-        )}
-        <Link to="/community" className={styles.more}>
-          전체 보기
-        </Link>
-      </div>
-      {posts === null ? (
-        <div className={styles.loading} aria-hidden="true" />
-      ) : (
-        <CommunityPosts posts={latest} now={now} compact />
-      )}
-      {status === 'mock' && <p className={styles.notice}>지금 보이는 글은 예시예요. 커뮤니티 서버가 열리면 실제 글로 바뀌어요.</p>}
-    </section>
+    <div className={styles.community}>
+      <HomeChat />
+    </div>
   )
 }

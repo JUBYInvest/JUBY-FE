@@ -1,0 +1,210 @@
+/* 홈 전체 채팅 — 구역 제목 줄(먹 선) 아래 대화창(안에서만 내린다) → 쓰는 줄 */
+.chat {
+  display: flex;
+  flex-direction: column;
+}
+
+.head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: var(--section-head-height);
+  border-bottom: 2px solid var(--color-rule);
+}
+
+.title {
+  composes: title from './section.module.css';
+}
+
+.sampleTag {
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-sub);
+  color: var(--color-text-sub);
+  font-size: var(--font-xs);
+  font-weight: 700;
+}
+
+.note {
+  margin-left: auto;
+  font-size: var(--font-sm);
+  color: var(--color-text-sub);
+}
+
+/* 대화창 — 상자 없이 높이만 정하고 안에서 내린다. 412px이면 쓰는 줄 위 선이 왼쪽 시세표 행 선과 같은 높이에 온다(judge/lines.mjs G home) */
+.log {
+  height: 412px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: var(--space-3) 0;
+}
+
+.log:focus-visible {
+  outline: 2px solid var(--color-brand-700);
+  outline-offset: -2px;
+  border-radius: var(--radius-sm);
+}
+
+.messages {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* 다른 사람 말: 첫 글자 동그라미 | 이름 / 말풍선 · 시각. 이어 말하면 이름 없이 바짝 붙는다 */
+.message,
+.continued {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr);
+  gap: var(--space-2);
+}
+
+.continued {
+  margin-top: calc(var(--space-2) * -1);
+}
+
+/* 내 말은 오른쪽 */
+.mine {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.avatar {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--color-bg-sub);
+  color: var(--color-text-sub);
+  font-size: var(--font-xs);
+  font-weight: 700;
+}
+
+.continued .avatar {
+  background: none;
+}
+
+.body {
+  min-width: 0;
+}
+
+.meta {
+  margin: 0 0 var(--space-1);
+  font-size: var(--font-sm);
+}
+
+.meta strong {
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.line {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--space-1);
+  margin: 0;
+}
+
+.mine .line {
+  flex-direction: row-reverse;
+}
+
+.bubble {
+  max-width: 85%;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-lg);
+  background: var(--color-bg-sub);
+  font-size: var(--font-md);
+  line-height: 1.5;
+  color: var(--color-text);
+  overflow-wrap: anywhere;
+}
+
+.mine .bubble {
+  background: var(--color-brand-50);
+}
+
+.time {
+  flex-shrink: 0;
+  font-size: var(--font-xs);
+  color: var(--color-text-sub);
+  white-space: nowrap;
+}
+
+/* 쓰는 줄 — 입력칸 | 보내기 */
+.composer {
+  display: flex;
+  gap: var(--space-2);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--color-border);
+}
+
+.input {
+  flex: 1;
+  min-width: 0;
+  min-height: 44px;
+  padding: 0 var(--space-4);
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  font: inherit;
+  font-size: var(--font-lg);
+  color: var(--color-text);
+}
+
+.input::placeholder {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--color-text-sub);
+}
+
+.input:focus-visible {
+  border-color: var(--color-brand-700);
+  outline: none;
+  box-shadow: 0 0 0 3px var(--color-brand-100);
+}
+
+.send {
+  composes: primary md from './buttons.module.css';
+  flex-shrink: 0;
+}
+
+.login {
+  margin: 0;
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--color-border);
+  font-size: var(--font-md);
+  color: var(--color-text-sub);
+}
+
+.loginLink {
+  margin-right: var(--space-1);
+  font-weight: 700;
+  color: var(--color-brand-700);
+}
+
+.notice {
+  margin: var(--space-3) 0 0;
+  font-size: var(--font-sm);
+  color: var(--color-text-sub);
+}
+
+.srOnly {
+  composes: srOnly from './a11y.module.css';
+}
+
+/* 휴대폰: 대화창을 화면에 맞게 줄인다 */
+@media (max-width: 600px) {
+  .log {
+    height: min(380px, 60dvh);
+  }
+
+  .note {
+    display: none;
+  }
+}

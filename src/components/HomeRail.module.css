@@ -24,7 +24,7 @@
   flex-direction: column;
 }
 
-/* 왼쪽 '현재 주가 보기'(HomePage .list)와 같은 위 여백. 한 열일 때는 사용설명서와 커뮤니티 사이 여백이다 */
+/* 채팅 — 왼쪽 '현재 주가 보기'(HomePage .list)와 같은 위 여백. 한 열일 때는 처음 시작하기와 채팅 사이 여백이다 */
 .community {
   grid-row: 3;
   margin-top: var(--space-10);
@@ -94,53 +94,3 @@
   display: grid;
 }
 
-/* 커뮤니티 — 최신 글 다섯 줄. 글 줄 모양은 CommunityPosts.module.css */
-.sampleTag {
-  padding: 2px 6px;
-  border-radius: var(--radius-sm);
-  background: var(--color-bg-sub);
-  color: var(--color-text-sub);
-  font-size: var(--font-xs);
-  font-weight: 700;
-}
-
-/* 보고 있는 동안 들어온 새 글. 누르면 목록 위에 선다 — 행동이라 브랜드 초록 글자, 누르는 넓이는 제목 줄 높이(44px) */
-.fresh {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-1);
-  min-height: 44px;
-  padding: 0 var(--space-2);
-  border: 0;
-  background: none;
-  color: var(--color-brand-700);
-  font-size: var(--font-md);
-  font-weight: 700;
-}
-
-.fresh::before {
-  content: '';
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: currentColor;
-}
-
-.fresh:hover {
-  text-decoration: underline;
-  text-underline-offset: 3px;
-}
-
-/* 처음 목록을 받는 동안(목업은 곧바로 온다). 다섯 줄 자리를 잡아 아래가 튀지 않게 */
-.loading {
-  composes: shimmer from './skeleton.module.css';
-  height: 360px;
-  margin-top: var(--space-3);
-  border-radius: var(--radius-md);
-}
-
-.notice {
-  margin: var(--space-3) 0 0;
-  font-size: var(--font-sm);
-  color: var(--color-text-sub);
-}
