@@ -9,7 +9,7 @@ import SearchBar from '../components/SearchBar'
 import Spinner from '../components/Spinner'
 import { useDocumentTitle } from '../hooks/useDocumentTitle'
 import { useIsLoggedIn } from '../hooks/useIsLoggedIn'
-import { useCommunityWriteHandoff } from '../hooks/useStockHandoff'
+import { toSavedPostHandoff, useCommunityWriteHandoff } from '../hooks/useStockHandoff'
 import { loginPathFrom } from '../utils/navigation'
 import type { StockInfo } from '../types/stock'
 import styles from './CommunityWritePage.module.css'
@@ -91,7 +91,7 @@ export default function CommunityWritePage() {
     const draft = { title: title.trim(), content: content.trim() }
     try {
       const saved = editId !== null ? await updatePost(editId, draft) : await createPost({ ...draft, stockCode: stock?.stockCode ?? null })
-      navigate(`/community/${saved.postId}`, { replace: true })
+      navigate(`/community/${saved.postId}`, { replace: true, state: toSavedPostHandoff(saved) })
     } catch (caught: unknown) {
       console.warn('글을 올리지 못했습니다', caught)
       if (needsNickname(caught)) setNicknameOpen(true)
@@ -148,13 +148,10 @@ export default function CommunityWritePage() {
               종목 {!editing && <span className={styles.optional}>(고르지 않아도 돼요)</span>}
             </span>
             {editing ? (
-              <p className={styles.stockChosen}>{stock !== null ? <><strong>{stock.stockName}</strong> 이야기 · 종목은 바꿀 수 없어요</> : '종목 없이 쓴 글이에요'}</p>
+              <p className={styles.stockChosen}>{stock !== null ? <><strong>{stock.stockName}</strong> · 종목은 바꿀 수 없어요</> : '종목 없이 쓴 글이에요'}</p>
             ) : stock !== null ? (
               <p className={styles.stockChosen}>
-                <strong>{stock.stockName}</strong> 이야기
-                <button type="button" className={styles.textAction} onClick={() => setStock(null)}>
-                  빼기
-                </button>
+                <strong>{stock.stockName}</strong>
               </p>
             ) : picking ? (
               <SearchBar stocks={STOCK_LIST} onPick={pickStock} onDismiss={() => setPicking(false)} autoFocus placeholder="이야기할 종목 (예: 삼성전자)" />

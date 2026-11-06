@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { deletePost, getPost, togglePostLike, type PostDetail } from '../api/community'
+import { deletePost, getPost, isServerFault, togglePostLike, type PostDetail } from '../api/community'
 import CommunityComments from '../components/CommunityComments'
 import { PostByline } from '../components/CommunityPosts'
 import CommunitySide from '../components/CommunitySide'
@@ -15,8 +15,8 @@ import { formatChangeRate, rateTone } from '../utils/format'
 import { toPreviewState } from '../utils/stockPreview'
 import styles from './CommunityPostPage.module.css'
 
-/** undefined: 받는 중, null: 없거나 지운 글, 'error': 못 받음 */
-type Loaded = PostDetail | null | undefined | 'error'
+/** undefined: 받는 중, null: 없거나 지운 글, 'error': 못 받음, 'serverError': 서버가 받고도 실패(5xx) */
+type Loaded = PostDetail | null | undefined | 'error' | 'serverError'
 
 /**
  * 커뮤니티 글 상세(`/community/{postId}`). 본문은 `GET /api/community/posts/{postId}`, 등락률은 상세 응답에 없어 목록에서 실어 온 값을 쓴다.
@@ -26,9 +26,10 @@ export default function CommunityPostPage() {
   const { postId: param = '' } = useParams()
   const postId = /^\d{1,9}$/.test(param) ? Number(param) : null
   const navigate = useNavigate()
-  const carried = useCommunityHandoff()
+  const { listed: carried, saved } = useCommunityHandoff()
   const gate = useWriteGate()
-  const [post, setPost] = useState<Loaded>(postId === null ? null : undefined)
+  // 글쓰기에서 저장하고 왔으면 그 글부터 그린다. 아래 조회가 새 값으로 바꾸고, 실패하면 그대로 둔다
+  const [post, setPost] = useState<Loaded>(postId === null ? null : saved !== null && saved.postId === postId ? saved : undefined)
   const [turn, setTurn] = useState(0)
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [deleting, setDeleting] = useState(false)
@@ -47,7 +48,8 @@ export default function CommunityPostPage() {
       })
       .catch((error: unknown) => {
         console.warn('커뮤니티 글을 받지 못했습니다', error)
-        if (!isStale) setPost((current) => (current === undefined ? 'error' : current))
+        const failed = isServerFault(error) ? 'serverError' : 'error'
+        if (!isStale) setPost((current) => (current === undefined || typeof current === 'string' ? failed : current))
       })
     return () => {
       isStale = true
@@ -105,9 +107,9 @@ export default function CommunityPostPage() {
             <p className={styles.message}>
               <Spinner size={16} /> 글을 불러오는 중…
             </p>
-          ) : post === 'error' ? (
+          ) : post === 'error' || post === 'serverError' ? (
             <div className={styles.missing}>
-              <p>글을 불러오지 못했어요.</p>
+              <p>{post === 'serverError' ? '커뮤니티 서버에 문제가 생겨 글을 불러오지 못했어요.' : '글을 불러오지 못했어요.'}</p>
               <button type="button" className={styles.retry} onClick={reload}>
                 다시 시도
               </button>

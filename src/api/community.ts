@@ -276,17 +276,41 @@ export async function deleteComment(commentId: number): Promise<void> {
 /** 닉네임이 없어 쓰지 못했는가(403 COMMUNITY403_1) — 화면이 닉네임 창을 띄운다 */
 export const needsNickname = (error: unknown): boolean => error instanceof ApiError && error.code === 'COMMUNITY403_1'
 
+/** 서버가 받고도 실패했다(5xx). 화면이 "커뮤니티 서버에 문제가 생겨"라고 알린다 — 연결 끊김·시간 초과는 그냥 "못 불러왔어요"다 */
+export const isServerFault = (error: unknown): boolean => error instanceof ApiError && error.status >= 500
 
-/** 주소 기록(넘겨주기 state)에 남은 목록 글이 모양이 맞는가 — 글 상세가 등락률·미리보기를 이어 쓴다 */
-export function isPostSummary(value: unknown): value is PostSummary {
-  if (!isRaw(value)) return false
+
+function isPostBase(value: Raw): boolean {
   return (
     typeof value.postId === 'number' &&
     typeof value.title === 'string' &&
     typeof value.author === 'string' &&
-    typeof value.preview === 'string' &&
     typeof value.createdAt === 'string' &&
-    (value.changeRate === null || typeof value.changeRate === 'number') &&
     (value.stockCode === null || (typeof value.stockCode === 'string' && isStockCode(value.stockCode)))
+  )
+}
+
+/** 주소 기록(넘겨주기 state)에 남은 목록 글이 모양이 맞는가 — 글 상세가 등락률·미리보기를 이어 쓴다 */
+export function isPostSummary(value: unknown): value is PostSummary {
+  return (
+    isRaw(value) &&
+    isPostBase(value) &&
+    typeof value.preview === 'string' &&
+    (value.changeRate === null || typeof value.changeRate === 'number')
+  )
+}
+
+/** 주소 기록에 남은 방금 저장한 글(올리기·고치기 응답)이 모양이 맞는가 — 글 상세가 서버에 다시 묻기 전에 그대로 그린다 */
+export function isPostDetail(value: unknown): value is PostDetail {
+  return (
+    isRaw(value) &&
+    isPostBase(value) &&
+    typeof value.content === 'string' &&
+    (value.stockName === null || typeof value.stockName === 'string') &&
+    typeof value.likeCount === 'number' &&
+    typeof value.commentCount === 'number' &&
+    typeof value.likedByMe === 'boolean' &&
+    typeof value.isMine === 'boolean' &&
+    typeof value.isEdited === 'boolean'
   )
 }

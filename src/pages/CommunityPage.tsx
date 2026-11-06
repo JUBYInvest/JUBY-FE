@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type Ref } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { getCommunityStocks, getPosts, type PageCursor, type PostOrder, type PostSummary, type StockCards } from '../api/community'
+import { getCommunityStocks, getPosts, isServerFault, type PageCursor, type PostOrder, type PostSummary, type StockCards } from '../api/community'
 import { STOCK_LIST } from '../api/stockList'
 import CommunityPosts from '../components/CommunityPosts'
 import CommunitySide from '../components/CommunitySide'
@@ -32,7 +32,7 @@ interface StockChoice {
 
 type ListState =
   | { kind: 'loading' }
-  | { kind: 'error' }
+  | { kind: 'error'; server: boolean }
   | { kind: 'ready'; items: PostSummary[]; next: PageCursor | null; more: 'idle' | 'loading' | 'error' }
 
 const withoutDuplicates = (list: PostSummary[]) => list.filter((post, index) => list.findIndex((other) => other.postId === post.postId) === index)
@@ -80,7 +80,7 @@ export default function CommunityPage() {
       })
       .catch((error: unknown) => {
         console.warn('커뮤니티 글을 받지 못했습니다', error)
-        if (id === requestRef.current) setList({ kind: 'error' })
+        if (id === requestRef.current) setList({ kind: 'error', server: isServerFault(error) })
       })
   }, [order, stockCode, turn])
 
@@ -118,7 +118,7 @@ export default function CommunityPage() {
       // 받아 둔 목록은 그대로 둔다. 이 번호로 끊긴 첫 목록·더 보기는 다시 할 수 있게 푼다
       if (id === requestRef.current) {
         setList((current) =>
-          current.kind === 'loading' ? { kind: 'error' } : current.kind === 'ready' && current.more === 'loading' ? { ...current, more: 'idle' } : current,
+          current.kind === 'loading' ? { kind: 'error', server: isServerFault(error) } : current.kind === 'ready' && current.more === 'loading' ? { ...current, more: 'idle' } : current,
         )
       }
       return 'error'
@@ -256,7 +256,7 @@ export default function CommunityPage() {
                 </p>
               ) : list.kind === 'error' ? (
                 <div className={styles.message}>
-                  <p>글을 불러오지 못했어요.</p>
+                  <p>{list.server ? '커뮤니티 서버에 문제가 생겨 글을 불러오지 못했어요.' : '글을 불러오지 못했어요.'}</p>
                   <button type="button" className={styles.retry} onClick={() => setTurn((value) => value + 1)}>
                     다시 시도
                   </button>

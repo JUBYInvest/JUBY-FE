@@ -134,27 +134,6 @@
   font-size: var(--font-lg);
 }
 
-/* 제목 줄·줄 끝의 글자 동작 — 상자 없는 초록 굵은 글자(AI "+ 새 대화"와 같은 모양) */
-.textAction {
-  display: inline-flex;
-  align-items: center;
-  min-height: 40px;
-  padding: 0 var(--space-2);
-  border: 0;
-  border-radius: var(--radius-sm);
-  background: none;
-  font: inherit;
-  font-size: var(--font-md);
-  font-weight: 700;
-  color: var(--color-brand-700);
-  cursor: pointer;
-}
-
-.textAction:hover {
-  text-decoration: underline;
-  text-underline-offset: 3px;
-}
-
 .error,
 /* 취소 | 올리기 — 지수 띠(--index-bar-height, 아이폰은 홈 막대 자리만큼 더) 바로 위에 붙어 따라온다. 글 칸이 밑으로 지나가므로 흰 바탕 */
 .actions {
@@ -184,10 +163,6 @@
 }
 
 @media (max-width: 600px) {
-  .textAction {
-    min-height: 44px;
-  }
-
   .actions {
     padding: var(--space-3) 0;
   }

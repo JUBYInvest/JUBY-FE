@@ -236,6 +236,7 @@ export const ROOM_1 = { title: '삼성전자 주가 어때?', messages: [
  * opts — 커뮤니티(/api/community/**, 메모리 저장소 communityStore)
  *   nickname: 내 닉네임(기본 '느긋한거북', null이면 아직 없음 — 글·댓글 쓰기가 403 COMMUNITY403_1), takenNicknames: 이미 쓰는 닉네임 배열
  *   communityStatus: 목록·카드를 그 상태로 실패(예: 500), communityEmpty: true면 글이 하나도 없다
+ *   communityReadStatus: 커뮤니티 GET을 모두 그 상태로 실패(쓰기는 된다) — 2026-11-06 운영이 그랬다(없는 글 번호까지 500)
  * opts — 종목 상세·증권사
  *   detailDelay(ms), detailStatus: 상세를 그 상태로 실패(예: 500)
  *   holiday: 'ok'(기본) | '500' | '401' | 'empty', holidayClosed: YYYYMMDD[](공휴일)
@@ -518,6 +519,7 @@ function communityRoute({ m, p, q, req, authed, json, store, now, opts }) {
   const size = Number(q.get('size') ?? 20)
   const stockCode = q.get('stockCode')
   let mm
+  if (opts.communityReadStatus && m === 'GET' && p.startsWith('/api/community/')) return json(fail(), opts.communityReadStatus)
   if (opts.communityStatus && m === 'GET' && (p === '/api/community/stocks' || p.startsWith('/api/community/posts') && !/\d+$/.test(p))) return json(fail(), opts.communityStatus)
   if (p === '/api/community/stocks') {
     const counts = new Map()

@@ -101,6 +101,18 @@ describe('api/community — 서버 글 거르기', async () => {
     assert.equal(isPostSummary({ ...ok, stockCode: '12' }), false)
     assert.equal(isPostSummary({ ...ok, postId: '1' }), false)
   })
+  test('넘겨주기 저장한 글 검사(isPostDetail)·서버 탓 가르기(isServerFault)', async () => {
+    const { isPostDetail, isServerFault } = await src('api/community.ts')
+    const { ApiError } = await src('api/client.ts')
+    const ok = { postId: 26, title: 't', author: 'a', createdAt: '', stockCode: '005930', stockName: '삼성전자', content: 'c', likeCount: 0, commentCount: 0, likedByMe: false, isMine: true, isEdited: false }
+    assert.equal(isPostDetail(ok), true)
+    assert.equal(isPostDetail({ ...ok, stockCode: null, stockName: null }), true)
+    assert.equal(isPostDetail({ ...ok, content: undefined }), false)
+    assert.equal(isPostDetail({ ...ok, isMine: 'true' }), false)
+    assert.equal(isServerFault(new ApiError('서버 문제입니다.', 500, 'COMMON500_1')), true)
+    assert.equal(isServerFault(new ApiError('없음', 404, 'COMMUNITY404_1')), false)
+    assert.equal(isServerFault(new Error('응답 없음')), false)
+  })
 })
 
 describe('utils/guideExcerpt — 백테스트 도움말이 사용설명서 3장에서 떼어 오는 글', async () => {

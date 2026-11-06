@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { isPostSummary, type PostSummary } from '../api/community'
+import { isPostDetail, isPostSummary, type PostDetail, type PostSummary } from '../api/community'
 import { isStockCode } from '../api/stock'
 import { PERIODS } from '../utils/backtest'
 import type { BacktestPeriod } from '../types/backtest'
@@ -43,8 +43,16 @@ export function toCommunityHandoff(post: PostSummary): { communityPost: PostSumm
   return { communityPost: post }
 }
 
+/**
+ * 글쓰기가 올리기·고치기 뒤 글 상세로 싣는 저장한 글(서버 응답 그대로). 상세가 다시 묻기 전에 그리고,
+ * 다시 묻기가 실패해도 그대로 둔다 — 2026-11-06 운영은 쓰기만 되고 글 조회가 모두 500이라 방금 쓴 글이 "못 불러왔어요"로 떴다
+ */
+export function toSavedPostHandoff(post: PostDetail): { savedPost: PostDetail } {
+  return { savedPost: post }
+}
+
 /** 이 파일이 싣는 state 칸. 받는 화면은 이 중 하나라도 있으면 읽은 뒤 state를 비운다 */
-const HANDOFF_KEYS = ['handoff', 'plan', 'openSession', 'communityPost'] as const
+const HANDOFF_KEYS = ['handoff', 'plan', 'openSession', 'communityPost', 'savedPost'] as const
 
 function field(state: unknown, key: (typeof HANDOFF_KEYS)[number]): unknown {
   if (typeof state !== 'object' || state === null || !(key in state)) return undefined
@@ -83,6 +91,11 @@ function readCommunityPost(state: unknown): PostSummary | null {
   return isPostSummary(post) ? post : null
 }
 
+function readSavedPost(state: unknown): PostDetail | null {
+  const post = field(state, 'savedPost')
+  return isPostDetail(post) ? post : null
+}
+
 /**
  * 처음 그릴 때 한 번만 읽고, 곧바로 같은 주소로 바꿔 넣으며(replace) state를 비운다. 그대로 두면 새로고침·뒤로 갔다
  * 앞으로 오기에 같은 state가 살아 있어 백테스트가 다시 계산되고 AI 방이 또 생긴다. 읽은 값은 이 화면이 떠 있는 동안 그대로다 —
@@ -114,9 +127,9 @@ export function useAiHandoff(): { stock: StockInfo | null; session: number | nul
   return useHandoffState((state) => ({ stock: readHandoff(state), session: readSession(state) }))
 }
 
-/** 글 상세가 받는 글(글 줄을 눌러 왔을 때). 주소로 바로 열면 null */
-export function useCommunityHandoff(): PostSummary | null {
-  return useHandoffState(readCommunityPost)
+/** 글 상세가 받는 글 — 글 줄을 눌러 왔으면 listed, 글쓰기에서 저장하고 왔으면 saved. 주소로 바로 열면 둘 다 null */
+export function useCommunityHandoff(): { listed: PostSummary | null; saved: PostDetail | null } {
+  return useHandoffState((state) => ({ listed: readCommunityPost(state), saved: readSavedPost(state) }))
 }
 
 /** 글쓰기 화면이 받는 종목(커뮤니티 목록에서 종목 카드를 고른 채 "글쓰기"를 눌렀을 때 — 그 종목 이야기로 쓴다). 없으면 null */

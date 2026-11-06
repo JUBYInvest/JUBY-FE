@@ -186,7 +186,7 @@ npx knip@5               # 안 쓰는 파일·내보내기(judge/는 뺀다)
 - **900px 이하 메뉴**는 `MypageLayout.tsx`가 `useMediaQuery`로 공용 `tabs.module.css`의 `tab`·`tabActive`를 그대로 쓴다(값을 베껴 적지 않는다). 폭이 모자라면 탭 줄만 옆으로 밀리고
   로그아웃(13px 글자 단추)은 오른쪽 끝에 남는다. 넓은 화면 메뉴는 `sideList.module.css` 줄이다.
 - 한눈에 보기는 칸마다 따로 받고 따로 실패한다(`useLoad`). 내 정보 저장 뒤는 조용히 다시 받는다(`useLoad`의 셋째 값 — 뼈대로 바꾸면 닫힌 상자가 포커스를 돌려줄 단추가 사라진다). **최근 본 백테스트는 이 브라우저에만 있다**(서버가 결과를 저장하지 않는다).
-- 넘겨주기 state(`hooks/useStockHandoff.ts`): 종목, 백테스트 조건(`plan`), 대화방(`openSession`), 커뮤니티 글.
+- 넘겨주기 state(`hooks/useStockHandoff.ts`): 종목, 백테스트 조건(`plan`), 대화방(`openSession`), 커뮤니티 글(목록 글 `communityPost`·방금 저장한 글 `savedPost`).
 - **검사 없이 성향을 바꾸는 저장 단추는 없다**(다섯 성향 둘러보기만). 내 정보 수정은 바꾼 것만 보내고(이름이 그대로면 `name: null`) 생일은 지울 수 없다.
 
 ### 사용설명서
@@ -207,7 +207,8 @@ npx knip@5               # 안 쓰는 파일·내보내기(judge/는 뺀다)
 - **쓰기 전 확인은 `hooks/useWriteGate`**: 비로그인 → 로그인 안내, 닉네임(`/api/members/me`의 `nickname`)이 없으면 `NicknameModal`(형식 → `/nickname/check` → `PATCH /me/nickname`).
   서버가 403 `COMMUNITY403_1`을 주면 닉네임 창을 다시 연다. 좋아요는 로그인만 본다.
 - 글쓰기 `/community/write`(종목은 고르지 않아도 된다 — 없으면 `stockCode` 칸을 뺀다, `""`는 400), 고치기 `/community/{id}/edit`(제목·내용만, 내 글만). 수정·삭제 단추는 `isMine`일 때만.
-  올리면 그 글 상세로 간다. 지운 글·없는 글(404 `COMMUNITY404_1`)은 "삭제된 게시물이에요". 서버 `message`는 쓰지 않고 길이 규칙(제목 40·내용 1,000·댓글 500)을 고정 문구로 적는다.
+  종목 줄은 고른 종목 이름뿐이다("이야기"·"빼기" 없음, B8b). **올리면 그 글 상세로 가며 서버가 돌려준 글을 실어 간다**(`toSavedPostHandoff`) — 상세는 다시 묻기 전에 그리고
+  실패해도 그대로 둔다(B20, 운영 글 조회가 500이던 2026-11-06). 5xx는 "커뮤니티 서버에 문제가 생겨…"(`isServerFault`, B16b·B21). 지운 글·없는 글(404 `COMMUNITY404_1`)은 "삭제된 게시물이에요". 서버 `message`는 쓰지 않고 길이 규칙(제목 40·내용 1,000·댓글 500)을 고정 문구로 적는다.
 - 떠 있는 "글쓰기"·올리기 줄은 `--index-bar-height` + `env(safe-area-inset-bottom)` 위다.
 
 ### 홈 전체 채팅(`components/HomeChat`)

@@ -5,6 +5,7 @@ import {
   createComment,
   deleteComment,
   getComments,
+  isServerFault,
   needsNickname,
   toggleCommentLike,
   updateComment,
@@ -32,7 +33,7 @@ interface Props {
   onChanged: () => void
 }
 
-type ListState = { kind: 'loading' } | { kind: 'error' } | { kind: 'ready'; items: CommunityComment[]; next: PageCursor | null; more: boolean }
+type ListState = { kind: 'loading' } | { kind: 'error'; server: boolean } | { kind: 'ready'; items: CommunityComment[]; next: PageCursor | null; more: boolean }
 
 /**
  * 댓글(한 단계, 오래된 순). 보기도 로그인이 필요해 비로그인은 부르지 않고 "로그인하고 댓글 보기"를 둔다(수는 글 응답에 있어 보인다).
@@ -62,7 +63,7 @@ export default function CommunityComments({ postId, count, loggedIn, ensure, nic
       })
       .catch((error: unknown) => {
         console.warn('댓글을 받지 못했습니다', error)
-        if (!isStale) setList({ kind: 'error' })
+        if (!isStale) setList({ kind: 'error', server: isServerFault(error) })
       })
     return () => {
       isStale = true
@@ -198,7 +199,7 @@ export default function CommunityComments({ postId, count, loggedIn, ensure, nic
             </p>
           ) : list.kind === 'error' ? (
             <div className={styles.message}>
-              <p>댓글을 불러오지 못했어요.</p>
+              <p>{list.server ? '커뮤니티 서버에 문제가 생겨 댓글을 불러오지 못했어요.' : '댓글을 불러오지 못했어요.'}</p>
               <button type="button" className={styles.secondary} onClick={() => setTurn((value) => value + 1)}>
                 다시 시도
               </button>

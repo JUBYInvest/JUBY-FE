@@ -10,7 +10,8 @@
 //  B5 종목 카드: stockCode=005930 요청, 글이 모두 삼성전자, 구역 이름 "삼성전자 이야기". 인기 + 종목이면 popular?stockCode=
 //  B6 비로그인: 목록은 그대로 보이고(토큰 없이 요청), 글쓰기를 누르면 로그인 안내 창
 //  B7 닉네임 없음: 글쓰기 → 닉네임 창. 형식 틀림("a!")은 요청 없이 안내, 쓰는 닉네임은 "이미 사용 중인 닉네임이에요", 맞으면 PATCH 뒤 /community/write
-//  B8 글쓰기(삼성전자 카드를 고른 채): 종목 "삼성전자 이야기" → 제목·내용 → 올리기 = POST {stockCode, title, content} → /community/26, 목록 맨 위
+//  B8 글쓰기(삼성전자 카드를 고른 채): 종목 "삼성전자" → 제목·내용 → 올리기 = POST {stockCode, title, content} → /community/26, 목록 맨 위
+//  B8b 그 글쓰기 종목 줄은 종목 이름뿐이다 — "이야기"·"빼기" 없음(2026-11-06 사용자)
 //  B9 종목 없이 쓰면 본문에 stockCode 칸이 없다
 //  B10 글 상세(목록에서 누름): 종목 줄 + 목록에서 실어 온 등락률, 본문, 좋아요 누르면 POST likes·수 +1·눌림, 다시 누르면 되돌림
 //  B11 내 글(3번)만 수정·삭제. 수정 → /community/3/edit 칸 채움(종목은 바꿀 수 없음) → PATCH → 상세에 새 제목·"수정됨". 삭제 → 확인 창 → DELETE → /community
@@ -19,6 +20,9 @@
 //  B14 비로그인 글 상세: 댓글 요청 0건, "로그인하고 댓글 보기" → /login?next=%2Fcommunity%2F1
 //  B15 없는 글(/community/999): "삭제된 게시물이에요" + 목록 링크
 //  B16 목록 실패(500): "글을 불러오지 못했어요" + 다시 시도
+//  B16b 그 실패가 서버 오류(5xx)면 "커뮤니티 서버에 문제가 생겨"라고 알린다 — 내 연결 탓으로 읽히지 않게
+//  B20 커뮤니티 GET이 모두 500(쓰기는 됨 — 2026-11-06 운영): 글쓰기 → 올리기 → /community/26에 올린 글(제목·본문·종목 삼성전자·수정 단추)이 보이고 실패 글이 없다
+//  B21 같은 서버에서 주소로 연 글(/community/1): "커뮤니티 서버에 문제가 생겨 글을 불러오지 못했어요" + 다시 시도
 //  B17 390·320: 목록·상세·글쓰기 가로 넘침 없음, 카드 줄은 한 줄로 옆으로 민다
 //  C1 홈 채팅(1440 로그인): 제목 "채팅" + "예시", 예시 말 9개, 대화창이 맨 아래(최신 말)에 있다, 안내 한 줄
 //  C2 말 보내기: 입력 → 보내기 → 오른쪽 "내 말" 줄, 입력칸 비움, 요청은 보내는 이름을 위한 회원 정보뿐(채팅은 목업)
@@ -97,6 +101,8 @@ await j.run('B', async () => {
   await t.page.locator(`${STRIP} button[data-code="005930"]`).click(); await sleep(500)
   await t.page.getByRole('button', { name: '글쓰기' }).click(); await sleep(1200)
   const chosen = await t.page.getByText('삼성전자', { exact: true }).count()
+  const stockLine = (await t.page.locator('[class*="_stockChosen_"]').innerText()).trim()
+  const unpick = await t.page.getByRole('button', { name: '빼기' }).count()
   await t.page.getByLabel('제목').fill('새로 쓴 글')
   await t.page.getByLabel('내용').fill('새로 쓴 글의 내용')
   const posting = t.page.waitForRequest((r) => r.url().endsWith('/api/community/posts') && r.method() === 'POST')
@@ -108,6 +114,7 @@ await j.run('B', async () => {
   const first = (await titles(t.page))[0]
   j.report('B8', chosen >= 1 && sent.stockCode === '005930' && sent.title === '새로 쓴 글' && sent.content === '새로 쓴 글의 내용' && new URL(t.page.url()).pathname === '/community' && detailTitle === '새로 쓴 글' && first === '새로 쓴 글',
     `보낸 ${JSON.stringify(sent)}, 상세 제목 "${detailTitle}", 목록 첫 글 "${first}"`)
+  j.report('B8b', stockLine === '삼성전자' && unpick === 0, `종목 줄 "${stockLine}", 빼기 단추 ${unpick}`)
 
   await t.goto('/community/write', 1500)
   await t.page.getByLabel('제목').fill('종목 없는 글')
@@ -189,6 +196,30 @@ await j.run('B', async () => {
   const failed = await t.page.getByText('글을 불러오지 못했어요.').count()
   const retry = await t.page.locator(FEED).getByRole('button', { name: '다시 시도' }).count()
   j.report('B16', failed === 1 && retry === 1, `실패 글 ${failed}, 다시 시도 ${retry}`)
+  const serverFault = await t.page.getByText('커뮤니티 서버에 문제가 생겨 글을 불러오지 못했어요.').count()
+  j.report('B16b', serverFault === 1, `서버 탓 안내 ${serverFault}`)
+  await t.close()
+
+  t = await j.open({ communityReadStatus: 500 })
+  await t.goto('/community/write', 1500)
+  await t.page.getByRole('button', { name: '종목 고르기' }).click()
+  await t.page.getByRole('combobox').fill('삼성전자'); await sleep(300)
+  await t.page.getByRole('option', { name: /삼성전자/ }).first().click(); await sleep(200)
+  await t.page.getByLabel('제목').fill('운영에서 쓴 글')
+  await t.page.getByLabel('내용').fill('운영에서 쓴 글의 내용')
+  await t.page.getByRole('button', { name: '올리기' }).click(); await sleep(1500)
+  const savedPath = new URL(t.page.url()).pathname
+  const savedTitle = await t.page.locator('h1').innerText()
+  const savedBody = await t.page.getByText('운영에서 쓴 글의 내용', { exact: true }).count()
+  const savedStock = await t.page.getByRole('link', { name: '삼성전자', exact: true }).count()
+  const savedEdit = await t.page.getByRole('link', { name: '수정' }).count()
+  const savedFailed = await t.page.getByText(/^(커뮤니티 서버에 문제가 생겨 )?글을 불러오지 못했어요\.$/).count()
+  j.report('B20', savedPath === '/community/26' && savedTitle === '운영에서 쓴 글' && savedBody === 1 && savedStock === 1 && savedEdit === 1 && savedFailed === 0,
+    `주소 ${savedPath}, 제목 "${savedTitle}", 본문 ${savedBody}, 종목 ${savedStock}, 수정 ${savedEdit}, 실패 글 ${savedFailed}`)
+  await t.goto('/community/1', 1500)
+  const directFailed = await t.page.getByText('커뮤니티 서버에 문제가 생겨 글을 불러오지 못했어요.').count()
+  const directRetry = await t.page.getByRole('button', { name: '다시 시도' }).count()
+  j.report('B21', directFailed === 1 && directRetry === 1, `서버 탓 안내 ${directFailed}, 다시 시도 ${directRetry}`)
   await t.close()
 
   const narrow = []
