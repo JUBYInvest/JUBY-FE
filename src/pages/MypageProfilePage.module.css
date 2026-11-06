@@ -135,9 +135,14 @@
   color: var(--color-text-sub);
 }
 
-.primary {
+.retry {
   composes: primary lg from '../components/buttons.module.css';
   margin-top: 26px;
+}
+
+/* 내 정보 수정 상자의 저장 — 위 여백은 .modalButtons가 준다 */
+.primary {
+  composes: primary lg from '../components/buttons.module.css';
 }
 
 .skeleton {

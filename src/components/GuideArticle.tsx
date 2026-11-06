@@ -5,7 +5,7 @@ import remarkGfm from 'remark-gfm'
 import { GUIDE_IMAGE_SIZES } from '../content/guide'
 import type { GuideSectionLink } from '../utils/guideMarkdown'
 import { plainText, remarkLooseStrong } from '../utils/guideMarkdown'
-import { safeLink } from '../utils/link'
+import ExternalLink from './ExternalLink'
 import styles from './GuideArticle.module.css'
 
 /** react-markdown이 넘기는 글 나무(hast)에서 쓰는 만큼만 */
@@ -53,13 +53,7 @@ function makeComponents(sections: GuideSectionLink[]): Components {
     // 앱 안 주소는 라우터 링크, 바깥은 http·https만 새 탭으로
     a: ({ href, children }) => {
       if (typeof href === 'string' && href.startsWith('/') && !href.startsWith('//')) return <Link to={href}>{children}</Link>
-      const link = safeLink(href)
-      if (link === '') return <>{children}</>
-      return (
-        <a href={link} target="_blank" rel="noopener noreferrer">
-          {children}
-        </a>
-      )
+      return <ExternalLink href={href}>{children}</ExternalLink>
     },
     // 좁은 화면에서 표가 넘치면 표만 옆으로 민다(화면 전체가 흔들리지 않게)
     table: ({ children }) => (

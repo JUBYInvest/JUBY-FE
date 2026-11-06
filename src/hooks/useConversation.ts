@@ -75,6 +75,8 @@ export function useConversation(loggedIn: boolean, rooms: ChatRooms): Conversati
   })
   /** 지금 기다리는 질문 요청. "그만 기다리기"가 끊는다(연결을 닫을 뿐 서버는 답을 계속 만든다) */
   const abortRef = useRef<AbortController | null>(null)
+  // 화면을 떠나면 기다리던 질문 요청을 끊는다(답은 서버가 방에 저장한다)
+  useEffect(() => () => abortRef.current?.abort(), [])
 
   // 로그아웃하면(다른 탭 포함) 보던 대화를 거둔다 — 계정의 대화라 로그아웃한 화면에 남으면 안 된다
   useEffect(() => {
@@ -90,6 +92,8 @@ export function useConversation(loggedIn: boolean, rooms: ChatRooms): Conversati
   }
 
   function startNewChat() {
+    // 기다리던 답은 버리니 요청도 끊는다 — 제한 시간이 없어 열어 두면 중계가 끊을 때 차단기에 무응답으로 세인다
+    abortRef.current?.abort()
     askSeqRef.current += 1
     roomSeqRef.current += 1
     setSessionId(null)
@@ -115,6 +119,7 @@ export function useConversation(loggedIn: boolean, rooms: ChatRooms): Conversati
     // 보고 있는 세션을 또 누른 것뿐이다. 다시 받아올 이유가 없다
     if (roomId === sessionId && detailState !== 'error') return
 
+    abortRef.current?.abort()
     askSeqRef.current += 1
     roomSeqRef.current += 1
     const seq = askSeqRef.current

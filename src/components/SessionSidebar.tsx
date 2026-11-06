@@ -65,6 +65,8 @@ export default function SessionSidebar({
    */
   const narrow = useMediaQuery('(max-width: 900px)')
   const [isOpen, setIsOpen] = useState(false)
+  // 넓어지면 닫아 둔다 — 열린 채 두면 태블릿을 돌려 다시 좁아질 때 날개가 저절로 열리고 본문 스크롤이 잠긴다(그리는 중에 맞춘다)
+  if (!narrow && isOpen) setIsOpen(false)
   const drawerOpen = narrow && isOpen
   const openRef = useRef<HTMLButtonElement>(null)
   const panelRef = useRef<HTMLElement>(null)

@@ -128,16 +128,30 @@ export function forgetMyPersonality(): void {
   forget('personality', 'personality-public', 'member')
 }
 
+/** GET /api/members/me/personality */
+interface PersonalityInfoResponse {
+  investPersonality?: string | null
+  description?: string | null
+  personalityImg?: string | null
+}
+
 async function fetchMyPersonality(options?: { ignoreUnauthorized?: boolean }): Promise<PersonalityInfo | null> {
-  let result: PersonalityInfo | null
+  let result: PersonalityInfoResponse | null
   try {
-    result = await get<PersonalityInfo | null>('/api/members/me/personality', options)
+    result = await get<PersonalityInfoResponse | null>('/api/members/me/personality', options)
   } catch (error: unknown) {
     if (error instanceof ApiError && error.code === 'MEMBER404_2') return null
     throw error
   }
-  // 성향 이름이 없으면 결과 화면을 그릴 수 없다. 없는 것으로 본다
-  return result === null || !result.investPersonality ? null : result
+  // 성향 이름이 없으면 결과 화면을 그릴 수 없다. 없는 것으로 본다(글자가 아닌 값도 — 렌더에서 던지지 않게)
+  if (typeof result !== 'object' || result === null) return null
+  const name = typeof result.investPersonality === 'string' ? result.investPersonality.trim() : ''
+  if (name === '') return null
+  return {
+    investPersonality: name,
+    description: typeof result.description === 'string' ? result.description : '',
+    personalityImg: typeof result.personalityImg === 'string' && result.personalityImg.trim() !== '' ? result.personalityImg : null,
+  }
 }
 
 /**
@@ -222,7 +236,7 @@ async function fetchLikeStocks(options?: { ignoreUnauthorized?: boolean }): Prom
   }
   return {
     // 기준일이 빈 건 화면이 그 줄을 숨긴다(fromDashedYmd → "")
-    baseDate: fromDashedYmd(typeof result.baseDate === 'string' ? result.baseDate : null),
+    baseDate: fromDashedYmd(result.baseDate),
     realtime: result.likeStockList.some((row) => row?.realtime === true),
     totalCount: finiteOrNull(result.totalCount) ?? likeStockList.length,
     likeStockList,
@@ -271,7 +285,7 @@ function toLikeStock(row: LikeStockResponse | null): LikeStock[] {
   if (typeof stockCode !== 'string' || !isStockCode(stockCode)) return []
   const likedAt = typeof row.likedAt === 'string' ? row.likedAt : null
   // "2026-10-20T10:00:00" → "20261020". 모양이 다르면 ""(화면이 "담음" 날짜를 숨긴다)
-  const likedDate = likedAt === null ? '' : fromDashedYmd(likedAt.slice(0, 10))
+  const likedDate = fromDashedYmd(likedAt)
   return [{
     stockCode,
     stockName: nameOrCode(row.stockName, stockCode),

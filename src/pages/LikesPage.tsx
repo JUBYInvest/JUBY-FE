@@ -3,6 +3,7 @@ import { Link, useLocation } from 'react-router-dom'
 import { getLikeStocks, unlikeStock } from '../api/member'
 import { useLiveRows, useRealtime, withLivePrice } from '../api/realtime'
 import { useDocumentTitle } from '../hooks/useDocumentTitle'
+import { useElementSize } from '../hooks/useElementSize'
 import { useIsLoggedIn } from '../hooks/useIsLoggedIn'
 import KeywordNews from '../components/KeywordNews'
 import HeartIcon from '../components/HeartIcon'
@@ -79,27 +80,37 @@ function LikesBoard() {
   const [notice, setNotice] = useState('')
   const [order, setOrder] = useState<ListOrder>('rate')
 
-  const load = useCallback(() => {
-    setState({ kind: 'loading' })
+  /** 목록 요청 번호. 해제를 누를 때도 올린다 — 그 전에 나간 목록 응답에는 지운 종목이 아직 있다 */
+  const listSeqRef = useRef(0)
+  /** quiet면 보던 판을 두고 뒤에서 맞춘다(해제 실패 뒤). 아니면 뼈대부터 */
+  const load = useCallback((quiet = false) => {
+    const seq = ++listSeqRef.current
+    if (!quiet) setState({ kind: 'loading' })
     getLikeStocks()
-      .then((result) =>
-        setState({ kind: 'ready', baseDate: result.baseDate, realtime: result.realtime, stocks: result.likeStockList }),
-      )
+      .then((result) => {
+        if (seq !== listSeqRef.current) return
+        // 해제 요청이 아직 오는 중인 종목은 빼 둔다 — 실패하면 그 종목이 스스로 되돌린다
+        const stocks = result.likeStockList.filter((stock) => !pending.current.has(stock.stockCode))
+        setState({ kind: 'ready', baseDate: result.baseDate, realtime: result.realtime, stocks })
+      })
       .catch((error: unknown) => {
+        if (seq !== listSeqRef.current) return
         console.warn('관심종목 조회 실패', error)
-        setState({ kind: 'error' })
+        if (!quiet) setState({ kind: 'error' })
       })
   }, [])
 
-  useEffect(load, [load])
+  useEffect(() => load(), [load])
 
   // 홈과 같은 이유로 상세 화면 묶음을 미리 받아 둔다
   useEffect(() => preloadStockChartPage(), [])
 
-  /** 먼저 지우고 서버에 알린다. 실패하면 목록을 다시 받아 원래대로 돌린다 */
+  /** 먼저 지우고 서버에 알린다. 실패하면 그 줄을 곧바로 되돌리고, 판은 둔 채 목록을 다시 받아 서버와 맞춘다 */
   async function handleUnlike(stockCode: string) {
     if (pending.current.has(stockCode)) return
+    const removed = state.kind === 'ready' ? state.stocks.find((stock) => stock.stockCode === stockCode) : undefined
     pending.current.add(stockCode)
+    listSeqRef.current += 1
     setNotice('')
     setState((current) =>
       current.kind === 'ready'
@@ -111,7 +122,15 @@ function LikesBoard() {
     } catch (error: unknown) {
       console.warn('관심종목 해제 실패', error)
       setNotice('관심종목을 해제하지 못했어요. 잠시 후 다시 시도해 주세요.')
-      load()
+      pending.current.delete(stockCode)
+      if (removed !== undefined) {
+        setState((current) =>
+          current.kind === 'ready' && !current.stocks.some((s) => s.stockCode === stockCode)
+            ? { ...current, stocks: [...current.stocks, removed] }
+            : current,
+        )
+      }
+      load(true)
     } finally {
       pending.current.delete(stockCode)
     }
@@ -136,7 +155,7 @@ function LikesBoard() {
       <section className={styles.page}>
         <div className={styles.message}>
           <p className={styles.messageText}>관심종목을 불러오지 못했습니다.</p>
-          <button type="button" className={styles.primary} onClick={load}>
+          <button type="button" className={styles.primary} onClick={() => load()}>
             다시 시도
           </button>
         </div>
@@ -334,21 +353,9 @@ function heatLevel(rate: number | null): (typeof HEAT_LEVELS)[number] {
   return 'heatDown3'
 }
 
-/** 칸 크기를 잰 뒤에 나눈다(CardChart와 같은 방식). 칸을 누르면 그 종목 상세로 간다 */
+/** 칸 크기를 잰 뒤에 나눈다(useElementSize — CardChart와 같은 방식). 칸을 누르면 그 종목 상세로 간다 */
 function HeatMap({ stocks, baseDate }: { stocks: LikeStock[]; baseDate: string }) {
-  const boxRef = useRef<HTMLDivElement>(null)
-  const [size, setSize] = useState<{ width: number; height: number } | null>(null)
-
-  useEffect(() => {
-    const box = boxRef.current
-    if (box === null) return
-    const observer = new ResizeObserver(([entry]) => {
-      const { width, height } = entry.contentRect
-      setSize({ width, height })
-    })
-    observer.observe(box)
-    return () => observer.disconnect()
-  }, [])
+  const [boxRef, size] = useElementSize()
 
   const tiles = size === null ? [] : squarify(stocks, (s) => s.tradingValue ?? 0, size.width, size.height)
 
@@ -382,12 +389,11 @@ function LikeRow({ stock, baseDate, onUnlike }: { stock: LikeStock; baseDate: st
 
   return (
     <li className={styles.row}>
-      {/* 하트를 누르면 관심종목에서 뺀다(채운 하트 = 담김) */}
+      {/* 하트를 누르면 관심종목에서 뺀다(채운 하트 = 담김). 켜고 끄는 단추가 아니라 빼는 동작이라 aria-pressed를 달지 않는다 */}
       <button
         type="button"
         className={styles.heart}
         onClick={onUnlike}
-        aria-pressed="true"
         aria-label={`${stock.stockName} 관심종목 해제`}
       >
         <HeartIcon filled />

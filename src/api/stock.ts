@@ -1,6 +1,6 @@
 import { ApiError, get, malformedResponse } from './client'
 import { rememberCardSeries } from './cardSeries'
-import { memberKey, readMemo, shared, type Memo } from './memo'
+import { memberKey, readMemo, shared, writeMemo, type Memo } from './memo'
 import { isLoggedIn } from '../utils/auth'
 import { readStamp, writeStamp } from '../utils/cache'
 import { fromDashedYmd, fromKstDateTime, kstNow } from '../utils/date'
@@ -451,7 +451,7 @@ async function fetchStockDetail(stockCode: string, period: Period, memoKey: stri
     candles: usable.sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0)),
     receivedAt: Date.now(),
   }
-  detailMemo.set(memoKey, { savedAt: Date.now(), value: detail })
+  writeMemo(detailMemo, memoKey, detail, DETAIL_MEMO_AGE)
   // 받은 일봉의 마지막 한 달은 홈 카드 그래프로도 쓴다. 상세를 본 종목은 카드가 다시 묻지 않는다
   rememberCardSeries(stockCode, detail.candles)
   return detail

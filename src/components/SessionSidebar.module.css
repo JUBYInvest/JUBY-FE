@@ -329,8 +329,9 @@
     background: var(--color-surface);
   }
 
-  .headTitle {
-    margin-right: auto;
+  /* 제목은 왼쪽, 새 대화·닫기는 오른쪽에 모은다. 제목(.headTitle)은 section.title의 margin을 가져오므로 여기서 덮지 않는다 */
+  .head .newChat {
+    margin-left: auto;
   }
 
   .close {

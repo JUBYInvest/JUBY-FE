@@ -1,5 +1,4 @@
 import {
-  useCallback,
   useEffect,
   useLayoutEffect,
   useMemo,
@@ -142,7 +141,9 @@ export default function HomePage() {
    * 대장주는 DB만 읽는 API라 몇 번을 불러도 부담이 없다. 들어올 때마다 새로 받는다.
    * 실패해도 loadLeading()이 지난 값이나 고정 목록을 돌려주므로 카드는 늘 그려진다.
    */
-  const reloadLeading = useCallback(() => {
+  /** 다시 시도는 번호만 올린다 — effect가 앞 요청을 버리고 새로 받는다(단추가 직접 부르면 늦게 온 앞 응답을 못 버린다) */
+  const [leadingTry, setLeadingTry] = useState(0)
+  useEffect(() => {
     let ignore = false
     void loadLeading().then((next) => {
       if (ignore) return
@@ -152,11 +153,13 @@ export default function HomePage() {
     return () => {
       ignore = true
     }
-  }, [])
+  }, [leadingTry])
 
-  useEffect(() => reloadLeading(), [reloadLeading])
-
-  const load = useCallback(() => {
+  const [listTry, setListTry] = useState(0)
+  /** 시세표를 새로 받을 때마다 올라간다 — 그 전에 누른 하트의 실패가 새 목록의 하트를 되돌리지 않게 */
+  const listSeqRef = useRef(0)
+  useEffect(() => {
+    listSeqRef.current += 1
     setList({ kind: 'loading' })
     /*
      * 로그인 상태가 바뀌면 다시 받는다. 늦게 온 앞 요청은 버린다 — 안 버리면 앞 회원의 하트가 비로그인 화면에 칠해진다(judge/repro.mjs R7)
@@ -180,10 +183,8 @@ export default function HomePage() {
     return () => {
       isStale = true
     }
-  }, [loggedIn])
-
-  // 로그인·로그아웃하면 load가 새로 만들어져 다시 받는다 — 하트(isLiked)가 그 회원의 것이어야 한다
-  useEffect(load, [load])
+    // 로그인·로그아웃하면 다시 받는다 — 하트(isLiked)가 그 회원의 것이어야 한다
+  }, [loggedIn, listTry])
 
   // 종목을 누르기 전에 상세 화면 묶음을 받아 둔다. 누른 뒤 받으면 그만큼 상세 요청이 늦게 나간다
   useEffect(() => preloadStockChartPage(), [])
@@ -352,12 +353,15 @@ export default function HomePage() {
     pendingLikes.current.add(stockCode)
     setLikeNotice('')
     apply(!wasLiked)
+    const seq = listSeqRef.current
 
     try {
       if (wasLiked) await unlikeStock(stockCode)
       else await likeStock(stockCode)
     } catch (error: unknown) {
       console.warn('관심종목 반영 실패', error)
+      // 그사이 목록을 새로 받았으면(로그아웃 포함) 하트는 서버 값이다 — 되돌리지 않는다
+      if (seq !== listSeqRef.current) return
       apply(wasLiked)
       setLikeNotice(
         wasLiked
@@ -400,7 +404,7 @@ export default function HomePage() {
             카드를 그리다 멈춰도 검색·시세표는 남는다(경계가 없으면 카드 한 장 때문에 홈 전체가 오류 화면이 된다).
             다시 시도는 대장주만 새로 받는다. 카드는 종목·종가(DB)만으로 세 장이 늘 선다. 그래프를 못 받은 카드만 그래프 자리에 알린다.
           */}
-          <SectionBoundary onRetry={reloadLeading}>
+          <SectionBoundary onRetry={() => setLeadingTry((count) => count + 1)}>
             <div className={styles.cards}>
               {themes.map((theme) => (
                 <TopStockCard
@@ -469,7 +473,7 @@ export default function HomePage() {
           {listTab === 'all' && list.kind === 'error' && (
             <div className={styles.loading}>
               <p>시세를 불러오지 못했습니다.</p>
-              <button type="button" className={styles.retry} onClick={load}>
+              <button type="button" className={styles.retry} onClick={() => setListTry((count) => count + 1)}>
                 다시 시도
               </button>
             </div>
@@ -477,7 +481,7 @@ export default function HomePage() {
 
           {/* 표를 그리다 멈춰도 검색·테마 카드는 남는다. 다시 시도하면 목록을 새로 받는다 */}
           {listTab === 'all' && list.kind === 'ready' && (
-            <SectionBoundary onRetry={load}>
+            <SectionBoundary onRetry={() => setListTry((count) => count + 1)}>
               <StockTable
                 stocks={sortedStocks.slice(0, visibleCount)}
                 baseDate={list.baseDate}

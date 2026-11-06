@@ -219,7 +219,8 @@ export default function NewsList({ stockCode, stockName }: Props) {
         </div>
       )}
 
-      {!asking && state.kind === 'ready' && state.items.length === 0 && (
+      {/* 첫 쪽이 모두 걸러졌어도 서버에 다음 쪽이 있으면 "찾지 못했다"고 하지 않는다 — 더 보기만 둔다 */}
+      {!asking && state.kind === 'ready' && state.items.length === 0 && !hasMore && (
         <p className={styles.empty}>관련 뉴스를 찾지 못했습니다.</p>
       )}
 

@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import Spinner from '../components/Spinner'
 import { checkAfterLogin } from '../api/member'
+import { useDocumentTitle } from '../hooks/useDocumentTitle'
 import { saveTokens, takeReturnPath, toUsableToken } from '../utils/auth'
 import { forgetLoginProvider, rememberLoginProvider } from '../utils/lastLogin'
 import { loginPathFrom, toReturnPath } from '../utils/navigation'
@@ -24,6 +25,7 @@ function onboardingPath(destination: string): string {
  * HttpOnly 쿠키로 따로 둬서 자바스크립트가 읽을 수 없다 — 찾지도 저장하지도 않는다. 실패면 `/oauth2/error?error=<코드>`다.
  */
 export default function OAuthCallbackPage({ failed = false }: Props) {
+  useDocumentTitle('로그인')
   const location = useLocation()
   const navigate = useNavigate()
   /*

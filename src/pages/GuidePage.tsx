@@ -1,11 +1,10 @@
-import { useEffect, useState, type MouseEvent } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, Navigate, useLocation, useParams } from 'react-router-dom'
 import GuideArticle from '../components/GuideArticle'
 import { GUIDE_CHAPTERS } from '../content/guide'
 import { useDocumentTitle } from '../hooks/useDocumentTitle'
 import { readGuideDocument, type GuideDocument } from '../utils/guideMarkdown'
-import { prefersReducedMotion } from '../utils/motion'
-import { isPlainClick } from '../utils/navigation'
+import { jumpWithin } from '../utils/navigation'
 import styles from './GuidePage.module.css'
 
 interface Chapter {
@@ -29,18 +28,6 @@ const CHAPTERS: Chapter[] = GUIDE_CHAPTERS.map((source, index) => ({
 const READY = CHAPTERS.filter((chapter) => chapter.document !== null)
 const FIRST_READY = READY[0]
 const pathOf = (chapter: Chapter) => (chapter === FIRST_READY ? '/guide' : `/guide/${chapter.id}`)
-
-/** 꼭지로 옮긴다. 주소는 바꾸지 않는다(새 기록이 생기면 뒤로 가기가 꼭지마다 걸린다). 새 탭으로 열기는 브라우저에 맡긴다 */
-function jumpTo(id: string) {
-  return (event: MouseEvent<HTMLAnchorElement>) => {
-    if (!isPlainClick(event)) return
-    const target = document.getElementById(id)
-    if (target === null) return
-    event.preventDefault()
-    target.scrollIntoView({ behavior: prefersReducedMotion() ? 'auto' : 'smooth', block: 'start' })
-    target.focus({ preventScroll: true })
-  }
-}
 
 /**
  * 지금 읽는 꼭지. 화면 위 30% 선을 지난 마지막 꼭지 제목이다 — 첫 꼭지 전이면 null.
@@ -200,7 +187,7 @@ function GuideView({ chapter, content }: { chapter: Chapter | undefined; content
                       href={`#${section.id}`}
                       className={reading === section.id ? styles.sectionLinkOn : styles.sectionLink}
                       aria-current={reading === section.id ? 'location' : undefined}
-                      onClick={jumpTo(section.id)}
+                      onClick={jumpWithin(section.id, { smooth: true })}
                     >
                       {section.title}
                     </a>

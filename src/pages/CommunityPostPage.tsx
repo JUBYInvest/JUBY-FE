@@ -31,6 +31,7 @@ export default function CommunityPostPage() {
   const [post, setPost] = useState<Loaded>(postId === null ? null : undefined)
   const [turn, setTurn] = useState(0)
   const [confirmDelete, setConfirmDelete] = useState(false)
+  const [deleting, setDeleting] = useState(false)
   const [notice, setNotice] = useState('')
   const liking = useRef(false)
   const now = Date.now()
@@ -51,7 +52,8 @@ export default function CommunityPostPage() {
     return () => {
       isStale = true
     }
-  }, [postId, turn])
+    // 로그인이 바뀌면(다른 탭 포함) 다시 받는다 — likedByMe·isMine이 그 계정의 것이어야 좋아요가 거꾸로 눌리지 않고 수정·삭제가 보인다
+  }, [postId, turn, gate.loggedIn])
 
   const shown = typeof post === 'object' ? post : null
   useDocumentTitle(shown?.title ?? '커뮤니티 글')
@@ -75,11 +77,13 @@ export default function CommunityPostPage() {
     })
 
   const remove = () => {
-    if (shown === null) return
+    if (shown === null || deleting) return
+    setDeleting(true)
     deletePost(shown.postId)
       .then(() => navigate('/community', { replace: true }))
       .catch((error: unknown) => {
         console.warn('글을 지우지 못했습니다', error)
+        setDeleting(false)
         setConfirmDelete(false)
         setNotice('글을 지우지 못했어요. 잠시 후 다시 시도해 주세요.')
       })
@@ -194,8 +198,9 @@ export default function CommunityPostPage() {
         <p className={styles.modalTitle}>이 글을 지울까요?</p>
         <p className={styles.modalText}>지우면 댓글도 함께 사라지고 되돌릴 수 없어요.</p>
         <div className={styles.modalButtons}>
-          <button type="button" className={styles.danger} onClick={remove}>
-            지우기
+          {/* 지우는 동안 잠근다 — 연타하면 DELETE가 두 번 나가 둘째가 404로 "지우지 못했어요"를 띄운다 */}
+          <button type="button" className={styles.danger} onClick={remove} disabled={deleting}>
+            {deleting ? '지우는 중…' : '지우기'}
           </button>
           <button type="button" className={styles.cancel} onClick={() => setConfirmDelete(false)}>
             취소

@@ -63,7 +63,16 @@ export default function BacktestHelp({ step, investType }: HelpProps) {
           </section>
         )}
 
-        {step === 'strategy' && chosen !== null && <StrategyHelp name={chosen.strategyName} />}
+        {step === 'strategy' &&
+          (chosen !== null ? (
+            <StrategyHelp name={chosen.strategyName} />
+          ) : (
+            // 아직 안 골랐다(비로그인으로 상세에서 왔거나 로그아웃으로 추천을 거뒀다) — 칸이 제목만 남아 비어 보이지 않게
+            <section className={styles.guideSection}>
+              <h3 className={styles.guideHeading}>전략 고르기</h3>
+              <p className={styles.guideBody}>전략 카드를 고르면 그 전략의 아이디어와 특징이 여기에 나와요.</p>
+            </section>
+          ))}
 
         {step === 'period' && <PeriodHelp strategyName={chosen?.strategyName ?? null} minPeriod={chosen?.minPeriod ?? null} />}
 

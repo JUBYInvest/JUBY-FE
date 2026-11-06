@@ -283,7 +283,7 @@ export default function BacktestResult({
             </span>
           </li>
           <li>
-            그래서 <b>{info.focusMetrics}</b>를 특히 눈여겨봐요.
+            그래서 <b>{info.focusMetrics}</b>에 특히 주목해요.
             <span className={styles.noteBody}>
               적합도를 매길 때 {AXIS_LABEL.stable}에{' '}
               {Math.round(info.weights.stable * 100)}%, {AXIS_LABEL.profit}에{' '}

@@ -153,8 +153,8 @@ function textOrNull(value: unknown): string | null {
 
 /** 서버의 YYYY-MM-DD를 YYYYMMDD로. 비었거나 여덟 자리가 안 되면 null(화면이 그 줄을 숨긴다) */
 function dateOrNull(value: unknown): string | null {
-  const ymd = fromDashedYmd(typeof value === 'string' ? value : null)
-  return /^\d{8}$/.test(ymd) ? ymd : null
+  const ymd = fromDashedYmd(value)
+  return ymd === '' ? null : ymd
 }
 
 interface PresetOptions {

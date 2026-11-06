@@ -64,8 +64,7 @@ function toSession(row: SessionSummaryResponse | null | undefined): ChatSession 
 /** "2026-10-28T10:00:05" → updatedAt 그대로 + updatedDate "20261028". 비었거나 모양이 다르면 null·"" */
 function toUpdated(value: unknown): Pick<ChatSession, 'updatedAt' | 'updatedDate'> {
   const updatedAt = typeof value === 'string' && value !== '' ? value : null
-  const updatedDate = updatedAt === null ? '' : fromDashedYmd(updatedAt.slice(0, 10))
-  return { updatedAt, updatedDate: /^\d{8}$/.test(updatedDate) ? updatedDate : '' }
+  return { updatedAt, updatedDate: fromDashedYmd(updatedAt) }
 }
 
 /** 말한 쪽이나 글이 틀린 메시지는 null(그 말풍선은 뺀다). 빈 말풍선이나 엉뚱한 쪽 말풍선을 그리지 않는다 */

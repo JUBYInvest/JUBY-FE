@@ -69,11 +69,16 @@ export function usePullToRefresh<T>(
     const run = async () => {
       busy = true
       show('refreshing', HOLD)
-      const [value] = await Promise.all([refreshRef.current(), wait(MIN_SPIN_MS)])
-      if (!alive) return
-      setResult(value)
-      await settle('closing')
-      busy = false
+      try {
+        const [value] = await Promise.all([refreshRef.current(), wait(MIN_SPIN_MS)])
+        if (alive) setResult(value)
+      } catch (error: unknown) {
+        // 실패를 알리는 건 onRefresh 몫이다(실패를 값으로 돌려준다). 여기까지 던져도 당김이 열린 채 굳지 않게 닫는다
+        console.warn('당겨서 새로고침 실패', error)
+      } finally {
+        if (alive) await settle('closing')
+        busy = false
+      }
     }
 
     const stop = () => {

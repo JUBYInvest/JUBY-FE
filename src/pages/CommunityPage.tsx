@@ -100,15 +100,29 @@ export default function CommunityPage() {
   }
 
   const pullRef = useRef<HTMLDivElement>(null)
-  const pull = usePullToRefresh(pullRef, async () => {
+  /** 당겨서 새로고침 — 위에 올린 새 글, 실패면 'error', 받는 사이 정렬·종목을 바꿨으면 null(알릴 것 없음) */
+  const pull = usePullToRefresh(pullRef, async (): Promise<PostSummary[] | 'error' | null> => {
     const before = new Set(list.kind === 'ready' ? list.items.map((post) => post.postId) : [])
     loadCards()
-    const page = await getPosts(order, stockCode)
-    requestRef.current += 1
-    setList({ kind: 'ready', items: page.items, next: page.next, more: 'idle' })
-    const incoming = page.items.filter((post) => !before.has(post.postId))
-    if (incoming.length > 0) setFeedTurn((value) => value + 1)
-    return incoming
+    // 받는 사이 탭·종목을 바꾸면 그쪽 목록이 이긴다 — 늦게 온 이 쪽이 덮지 않게 번호를 먼저 잡는다
+    const id = ++requestRef.current
+    try {
+      const page = await getPosts(order, stockCode)
+      if (id !== requestRef.current) return null
+      setList({ kind: 'ready', items: page.items, next: page.next, more: 'idle' })
+      const incoming = page.items.filter((post) => !before.has(post.postId))
+      if (incoming.length > 0) setFeedTurn((value) => value + 1)
+      return incoming
+    } catch (error: unknown) {
+      console.warn('커뮤니티 글을 새로 받지 못했습니다', error)
+      // 받아 둔 목록은 그대로 둔다. 이 번호로 끊긴 첫 목록·더 보기는 다시 할 수 있게 푼다
+      if (id === requestRef.current) {
+        setList((current) =>
+          current.kind === 'loading' ? { kind: 'error' } : current.kind === 'ready' && current.more === 'loading' ? { ...current, more: 'idle' } : current,
+        )
+      }
+      return 'error'
+    }
   })
   // "N분 전"은 다시 그릴 때마다 지금 시각으로 센다
   const now = Date.now()
@@ -164,7 +178,14 @@ export default function CommunityPage() {
   // 고른 종목이 있으면 그 종목 이야기로 쓴다
   const write = () => gate.ensure(() => navigate('/community/write', { state: picked === null ? undefined : toStockHandoff({ stockCode: picked.code, stockName: picked.name }) }))
 
-  const pulled = pull.result === null ? '' : pull.result.length === 0 ? '새 글이 없어요' : `새 글 ${pull.result.length}개를 위에 올렸어요`
+  const pulled =
+    pull.result === null
+      ? ''
+      : pull.result === 'error'
+        ? '새 글을 불러오지 못했어요. 다시 당겨 주세요'
+        : pull.result.length === 0
+          ? '새 글이 없어요'
+          : `새 글 ${pull.result.length}개를 위에 올렸어요`
 
   return (
     <>

@@ -48,6 +48,8 @@ export default function CommunityComments({ postId, count, loggedIn, ensure, nic
   const [editing, setEditing] = useState<{ id: number; text: string } | null>(null)
   /** 좋아요를 보내는 중인 댓글 — 연타를 막는다 */
   const liking = useRef(new Set<number>())
+  /** 오는 중인 올리기('send')·고치기·지우기('edit:번호'·'remove:번호'). 상태는 다음 그림까지 안 바뀌어 연타가 두 번 보낸다 — ref로 막는다 */
+  const working = useRef(new Set<string>())
   const now = Date.now()
 
   useEffect(() => {
@@ -90,7 +92,8 @@ export default function CommunityComments({ postId, count, loggedIn, ensure, nic
 
   const send = () => {
     const content = draft.trim()
-    if (content === '' || sending) return
+    if (content === '' || working.current.has('send')) return
+    working.current.add('send')
     setSending(true)
     setNotice('')
     createComment(postId, content)
@@ -105,7 +108,10 @@ export default function CommunityComments({ postId, count, loggedIn, ensure, nic
         else if (error instanceof ApiError && error.code === 'COMMUNITY404_1') setNotice('삭제된 게시물이에요.')
         else setNotice('댓글을 올리지 못했어요. 잠시 후 다시 시도해 주세요.')
       })
-      .finally(() => setSending(false))
+      .finally(() => {
+        working.current.delete('send')
+        setSending(false)
+      })
   }
 
   const submit = (event: FormEvent) => {
@@ -116,7 +122,9 @@ export default function CommunityComments({ postId, count, loggedIn, ensure, nic
   const saveEdit = () => {
     if (editing === null) return
     const content = editing.text.trim()
-    if (content === '') return
+    const key = `edit:${editing.id}`
+    if (content === '' || working.current.has(key)) return
+    working.current.add(key)
     updateComment(editing.id, content)
       .then((updated) => {
         replace(updated)
@@ -127,10 +135,13 @@ export default function CommunityComments({ postId, count, loggedIn, ensure, nic
         if (error instanceof ApiError && error.code === 'COMMUNITY404_2') setTurn((value) => value + 1)
         setNotice('댓글을 고치지 못했어요. 잠시 후 다시 시도해 주세요.')
       })
+      .finally(() => working.current.delete(key))
   }
 
   const remove = (commentId: number) => {
-    if (!window.confirm('이 댓글을 지울까요?')) return
+    const key = `remove:${commentId}`
+    if (working.current.has(key) || !window.confirm('이 댓글을 지울까요?')) return
+    working.current.add(key)
     deleteComment(commentId)
       .then(() => {
         setList((current) => (current.kind === 'ready' ? { ...current, items: current.items.filter((item) => item.commentId !== commentId) } : current))
@@ -141,6 +152,7 @@ export default function CommunityComments({ postId, count, loggedIn, ensure, nic
         if (error instanceof ApiError && error.code === 'COMMUNITY404_2') setTurn((value) => value + 1)
         else setNotice('댓글을 지우지 못했어요. 잠시 후 다시 시도해 주세요.')
       })
+      .finally(() => working.current.delete(key))
   }
 
   const like = (comment: CommunityComment) =>
@@ -148,7 +160,14 @@ export default function CommunityComments({ postId, count, loggedIn, ensure, nic
       if (liking.current.has(comment.commentId)) return
       liking.current.add(comment.commentId)
       toggleCommentLike(comment.commentId)
-        .then((state) => replace({ ...comment, likedByMe: state.liked, likeCount: state.likeCount }))
+        // 누른 때의 댓글이 아니라 지금 댓글에 좋아요만 얹는다 — 그사이 고친 내용을 되돌리지 않게
+        .then((state) =>
+          setList((current) =>
+            current.kind === 'ready'
+              ? { ...current, items: current.items.map((item) => (item.commentId === comment.commentId ? { ...item, likedByMe: state.liked, likeCount: state.likeCount } : item)) }
+              : current,
+          ),
+        )
         .catch((error: unknown) => {
           console.warn('댓글 좋아요를 반영하지 못했습니다', error)
           setNotice('좋아요를 반영하지 못했어요. 잠시 후 다시 시도해 주세요.')

@@ -141,7 +141,7 @@ function GuideSection() {
       {/* 넓은 화면에서 제목 줄은 홈 검색 줄, 이 묶음은 대표 종목 줄에 놓인다(HomeRail.module.css) */}
       <div className={styles.guideBody}>
         <p className={styles.intro}>{HOME_GUIDE_INTRO}</p>
-        <GuideSteps className={styles.steps} here="/" chevron />
+        <GuideSteps className={styles.steps} />
       </div>
     </section>
   )

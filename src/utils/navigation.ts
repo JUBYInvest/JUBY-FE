@@ -1,3 +1,6 @@
+import type { MouseEvent } from 'react'
+import { prefersReducedMotion } from './motion'
+
 /**
  * 컴포넌트가 아닌 곳에서 화면을 옮기기 위한 다리. 지금은 `client.ts`의 401 처리만 쓴다.
  *
@@ -56,9 +59,24 @@ export function loginPathFrom(path: string): string {
 }
 
 /**
- * 링크를 그냥 누른 것인가(왼쪽 단추, 보조 키 없음). 같은 화면 안에서 옮기는 링크(사용설명서 "이 장에서"·백테스트 진행 단계)가
+ * 링크를 그냥 누른 것인가(왼쪽 단추, 보조 키 없음). 같은 화면 안에서 옮기는 링크(jumpWithin)가
  * 이때만 기본 이동을 막고 직접 옮긴다 — 새 탭·새 창으로 열기는 브라우저에 맡긴다
  */
-export function isPlainClick(event: { button: number; metaKey: boolean; ctrlKey: boolean; shiftKey: boolean; altKey: boolean }): boolean {
+function isPlainClick(event: { button: number; metaKey: boolean; ctrlKey: boolean; shiftKey: boolean; altKey: boolean }): boolean {
   return event.button === 0 && !event.metaKey && !event.ctrlKey && !event.shiftKey && !event.altKey
+}
+
+/**
+ * 같은 화면 안 자리로 옮기는 링크의 onClick(홈 진행표·사용설명서 "이 장에서"). 주소는 바꾸지 않는다 — 해시가 붙으면 라우터가 새 기록으로 보고
+ * 뒤로 가기가 자리마다 걸린다. 옮긴 뒤 포커스를 그 자리로 준다. `smooth`여도 움직임 줄이기면 곧바로 옮긴다
+ */
+export function jumpWithin(id: string, { smooth = false }: { smooth?: boolean } = {}) {
+  return (event: MouseEvent<HTMLAnchorElement>) => {
+    if (!isPlainClick(event)) return
+    const target = document.getElementById(id)
+    if (target === null) return
+    event.preventDefault()
+    target.scrollIntoView({ behavior: smooth && !prefersReducedMotion() ? 'smooth' : 'auto', block: 'start' })
+    target.focus({ preventScroll: true })
+  }
 }

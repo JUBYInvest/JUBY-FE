@@ -31,12 +31,8 @@
 }
 
 .head {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  /* 선(2px) 안쪽으로 '전체 보기' 링크가 44px을 채운다 */
-  min-height: var(--section-head-height);
-  border-bottom: 2px solid var(--color-rule);
+  /* 다른 구역 제목 줄과 같은 규격 — 제목 20px 옆 "2 / 4"가 바닥선을 맞춘다(가운데 맞춤이면 2px 어긋난다) */
+  composes: head from './section.module.css';
 }
 
 .title {

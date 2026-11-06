@@ -1,5 +1,5 @@
 // 결함 재현 판정 — 코드 검토에서 찾은 것들. 고치기 전 빌드에서 FAIL, 고친 뒤 PASS여야 한다(CLAUDE.md "버그 수정" 순서).
-//   node repro.mjs <BASE> [--only B,C,D,E,S]
+//   node repro.mjs <BASE> [--only B,C,D,E,S,R,F]
 import { cli, hexToRgb, judge, sleep, tokenFor, THU_11 } from './lib.mjs'
 
 const j = await judge(cli())
@@ -332,6 +332,50 @@ await run('R', async () => {
   await sleep(3200)
   const pressed = await t.page.locator('button[aria-pressed="true"][aria-label*="관심종목"]').count()
   report('R7', pressed === 0 && stockCalls >= 2, `로그인 응답(늦게)·로그아웃 응답(먼저) 뒤 켜진 하트 ${pressed}개, 시세표 요청 ${stockCalls}건`)
+  await t.close()
+})
+
+/* ── F. 코드 점검(2026-11-06) ─────────────────────────────────────────── */
+await run('F', async () => {
+  // F1 관심종목 해제가 실패해도 판(지도·뉴스)을 뼈대로 바꾸지 않는다 — 바꾸면 고른 뉴스 탭이 풀리고 화면이 깜빡였다
+  let t = await open({ likeWrite: '500' })
+  await t.goto('/likes', 1500)
+  await t.page.evaluate(() => {
+    window.__busy = 0
+    new MutationObserver(() => { if (document.querySelector('[aria-busy="true"]')) window.__busy += 1 }).observe(document.body, { subtree: true, childList: true, attributes: true })
+  })
+  await t.page.getByRole('button', { name: 'SK하이닉스 관심종목 해제' }).click(); await sleep(800)
+  const busy = await t.page.evaluate(() => window.__busy)
+  const rows = await t.page.getByRole('button', { name: /관심종목 해제/ }).count()
+  report('F1', busy === 0 && rows === 2, `해제 500 뒤 뼈대 ${busy}번, 줄 ${rows}`)
+  await t.close()
+
+  // F2 회원 정보(닉네임 확인)가 늦게 오는 사이 '올리기'를 두 번 눌러도 댓글은 한 번만 보낸다
+  t = await open()
+  await t.context.route((url) => url.pathname === '/api/members/me', async (route) => { await sleep(700); return route.fallback() })
+  await t.goto('/community/1', 1800)
+  await t.page.getByLabel('댓글', { exact: true }).fill('두 번 누른 댓글')
+  const sendButton = t.page.getByRole('button', { name: '올리기' })
+  await sendButton.click(); await sendButton.click(); await sleep(1800)
+  const posts = t.count(/^POST \/api\/community\/posts\/1\/comments/)
+  report('F2', posts === 1, `올리기 두 번 → 댓글 POST ${posts}건`)
+  await t.close()
+
+  // F3 AI 질문을 기다리는 중에 새 대화로 옮기면 그 요청을 끊는다(제한 시간이 없어 남겨 두면 중계가 끊을 때 차단기에 세인다)
+  t = await open()
+  let aborted = 0
+  await t.context.route((url) => url.pathname === '/api/open-ai/ask', async (route) => {
+    const request = route.request()
+    // 끊기면 Playwright가 요청 실패로 알린다
+    t.page.on('requestfailed', (r) => { if (r === request) aborted += 1 })
+    await sleep(4000)
+    return route.fallback().catch(() => {})
+  })
+  await t.goto('/ai', 1500)
+  await t.page.getByRole('textbox').first().fill('삼성전자 어때?')
+  await t.page.keyboard.press('Enter'); await sleep(1200)
+  await t.page.getByRole('button', { name: '+ 새 대화' }).first().click(); await sleep(800)
+  report('F3', aborted === 1, `기다리던 질문 요청 끊김 ${aborted}건`)
   await t.close()
 })
 

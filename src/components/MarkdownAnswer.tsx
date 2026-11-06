@@ -3,7 +3,7 @@ import rehypeKatex from 'rehype-katex'
 import remarkGfm from 'remark-gfm'
 import remarkMath from 'remark-math'
 import 'katex/dist/katex.min.css'
-import { safeLink } from '../utils/link'
+import ExternalLink from './ExternalLink'
 import { normalizeMath } from '../utils/markdownMath'
 import styles from './MarkdownAnswer.module.css'
 
@@ -12,20 +12,14 @@ import styles from './MarkdownAnswer.module.css'
  * normalizeMath가 미리 $$로 바꿔 둔다(utils/markdownMath.ts)
  */
 const remarkPlugins: Options['remarkPlugins'] = [remarkGfm, [remarkMath, { singleDollarTextMath: false }]]
-/* 틀린 수식은 던지지 않고 그 자리에 빨간 원문으로 둔다. \text{} 안의 한글은 경고 없이 받는다 */
-const rehypePlugins: Options['rehypePlugins'] = [[rehypeKatex, { throwOnError: false, strict: 'ignore' }]]
+/*
+ * 틀린 수식은 던지지 않고 그 자리에 원문으로 둔다. KaTeX 기본은 빨간 글자(#cc0000)라 보조 글자색으로 바꾼다 — 빨강은 등락 전용이다.
+ * \text{} 안의 한글은 경고 없이 받는다
+ */
+const rehypePlugins: Options['rehypePlugins'] = [[rehypeKatex, { throwOnError: false, strict: 'ignore', errorColor: 'var(--color-text-sub)' }]]
 
 const components: Components = {
-  // 링크는 http·https만 새 탭으로 연다. 그 밖(javascript: 등)은 글자만 남긴다
-  a: ({ href, children }) => {
-    const link = safeLink(href)
-    if (link === '') return <>{children}</>
-    return (
-      <a href={link} target="_blank" rel="noopener noreferrer">
-        {children}
-      </a>
-    )
-  },
+  a: ({ href, children }) => <ExternalLink href={href}>{children}</ExternalLink>,
   // 넓은 표는 말풍선 안에서 가로로 밀어 본다. 표가 페이지를 밀어내면 320px에서 화면 전체가 가로로 흔들린다
   table: ({ children }) => (
     <div className={styles.tableWrap}>

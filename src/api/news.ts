@@ -1,5 +1,5 @@
 import { get, malformedResponse } from './client'
-import { readMemo, type Memo } from './memo'
+import { readMemo, writeMemo, type Memo } from './memo'
 import { timeAgo } from '../utils/date'
 import { finiteOrNull } from '../utils/format'
 import { safeLink } from '../utils/link'
@@ -20,7 +20,7 @@ interface StockNewsResponse {
   stockCode?: string | null
   stockName?: string | null
   sort?: NewsSort | null
-  newsList?: NewsItemResponse[] | null
+  newsList?: (NewsItemResponse | null)[] | null
   page?: number | null
   totalCount?: number | null
 }
@@ -60,11 +60,11 @@ export async function getStockNews(
 
   const newsPage: NewsPage = {
     /*
-     * 제목이나 링크가 빈 기사는 뺀다. 그리면 제목 없는 카드가 href=""로 지금 페이지를 새 탭에 연다.
+     * 빈 행(null)과 제목이나 링크가 빈 기사는 뺀다. 그리면 제목 없는 카드가 href=""로 지금 페이지를 새 탭에 연다.
      * http(s)가 아닌 링크(javascript:, data:, 상대 주소)도 toNewsItem이 비워 여기서 빠진다
      */
     items: response.newsList
-      .map(toNewsItem)
+      .flatMap((row) => (typeof row === 'object' && row !== null ? [toNewsItem(row)] : []))
       .filter((item) => item.title.trim() !== '' && item.link.trim() !== ''),
     receivedCount: response.newsList.length,
     // 쪽 번호·정렬은 보낸 값을 되돌려 주는 자리라 보낸 값을 쓴다
@@ -73,7 +73,7 @@ export async function getStockNews(
     totalCount: finiteOrNull(response.totalCount),
     sort,
   }
-  newsMemo.set(memoKey, { savedAt: Date.now(), value: newsPage })
+  writeMemo(newsMemo, memoKey, newsPage, NEWS_MEMO_AGE)
   return newsPage
 }
 
@@ -156,7 +156,7 @@ export async function searchNews(query: string): Promise<NewsItem[]> {
     })
     // 날짜를 못 읽은 기사는 뒤로
     .sort((left, right) => (right.publishedAt.getTime() || 0) - (left.publishedAt.getTime() || 0))
-  naverMemo.set(keyword, { savedAt: Date.now(), value: items })
+  writeMemo(naverMemo, keyword, items, NEWS_MEMO_AGE)
   return items
 }
 
@@ -206,7 +206,7 @@ export async function askStockNews(stockName: string, question: string): Promise
   const items = rows
     .flatMap((row) => (typeof row === 'object' && row !== null ? [toHitItem(row)] : []))
     .filter((item) => item.title.trim() !== '' && item.link !== '')
-  askMemo.set(memoKey, { savedAt: Date.now(), value: items })
+  writeMemo(askMemo, memoKey, items, NEWS_MEMO_AGE)
   return items
 }
 

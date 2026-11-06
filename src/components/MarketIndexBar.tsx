@@ -179,7 +179,7 @@ function IndexItem({ index }: { index: MarketIndex }) {
   )
 }
 
-/** 오르면 빨강, 내리면 파랑, 보합은 색 없음(utils/format rateTone). 대비율이 없으면 대비(포인트)의 부호로 가른다 */
+/** 오르면 빨강, 내리면 파랑, 보합은 색 없음(utils/format rateTone). 대비율이 없으면 그리지 않는다(IndexItem) */
 function toneClass(index: MarketIndex): string {
   return `${styles.tone} ${styles[rateTone(index.changeRate)]}`
 }

@@ -52,7 +52,7 @@ function DefaultAvatar() {
 export default function MypageProfilePage() {
   useDocumentTitle('내 정보')
   const navigate = useNavigate()
-  const [state, load] = useLoad(getMemberInfo, '회원 정보')
+  const [state, load, refresh] = useLoad(getMemberInfo, '회원 정보')
   const { isLoggingOut, logOut } = useLogout()
 
   const [isDeleteOpen, setIsDeleteOpen] = useState(false)
@@ -146,7 +146,7 @@ export default function MypageProfilePage() {
     try {
       await updateMemberInfo({ name: nameChanged ? name : null, birth: editBirth === '' ? null : editBirth })
       setIsEditOpen(false)
-      load()
+      refresh()
     } catch (error: unknown) {
       console.warn('회원 정보 수정 실패', error)
       /*
@@ -178,7 +178,7 @@ export default function MypageProfilePage() {
         <p className={styles.hint}>
           잠시 후 다시 시도해 주세요. 문제가 계속되면 다시 로그인해 보세요.
         </p>
-        <button type="button" className={styles.primary} onClick={load}>
+        <button type="button" className={styles.retry} onClick={load}>
           다시 시도
         </button>
       </div>

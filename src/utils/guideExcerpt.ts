@@ -1,4 +1,5 @@
 import backtestChapter from '../content/guide/backtest.md?raw'
+import { readGuideDocument } from './guideMarkdown'
 
 /*
  * 백테스트 화면 오른쪽 날개 도움말이 사용설명서 3장(src/content/guide/backtest.md)에서 그대로 떼어 오는 글.
@@ -8,11 +9,11 @@ import backtestChapter from '../content/guide/backtest.md?raw'
 
 const LINES = backtestChapter.split('\n')
 
-/** "## " 꼭지 순서대로의 사용설명서 주소 조각 — 사용설명서 화면의 꼭지 id(`backtest-2`, utils/guideMarkdown)와 같은 규칙 */
-const SECTIONS = LINES.filter((line) => /^## /.test(line)).map((line, index) => ({ title: line.slice(3).trim(), anchor: `backtest-${index + 1}` }))
+/** 사용설명서 화면이 거는 꼭지(`backtest-2`) — 같은 함수로 읽어 맨 앞 "# 제목"·코드 블록 속 "##"가 생겨도 주소가 어긋나지 않는다 */
+const SECTIONS = readGuideDocument('backtest', backtestChapter).sections
 
 function anchorOf(keyword: string): string | null {
-  return SECTIONS.find((section) => section.title.includes(keyword))?.anchor ?? null
+  return SECTIONS.find((section) => section.title.includes(keyword))?.id ?? null
 }
 
 /** 제목 줄(정규식)부터 다음 같은·윗단계 제목 전까지의 줄 */

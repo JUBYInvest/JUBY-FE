@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useElementSize, type ElementSize } from '../hooks/useElementSize'
 import type { CardSeries } from '../types/stock'
 import { formatChangeRate, rateTone } from '../utils/format'
 import styles from './TopStockCard.module.css'
@@ -45,36 +45,10 @@ const LINE_PAD_BOTTOM = DOT_RADIUS + DOT_STROKE / 2
 const CURVE_DIGITS = 3
 const BAR_DIGITS = 4
 
-interface Size {
-  width: number
-  height: number
-}
-
-/**
- * 부모 칸의 실제 크기를 잰다.
- *
- * 카드 폭이 화면에 따라 달라지므로 좌표를 미리 정해 둘 수 없다. 고정된 좌표계를
- * 늘려 쓰면 넓은 화면에서 선 굵기와 끝점 동그라미까지 같이 부풀어 뭉개진다.
- * 매번 재서 그 폭에 맞는 좌표를 만들면 어느 폭에서나 굵기가 같다.
+/*
+ * 그림 크기는 재서 정한다(useElementSize). 카드 폭이 화면에 따라 달라지므로 좌표를 미리 정해 둘 수 없다. 고정된 좌표계를
+ * 늘려 쓰면 넓은 화면에서 선 굵기와 끝점 동그라미까지 같이 부풀어 뭉개진다. 매번 재서 그 폭에 맞는 좌표를 만들면 어느 폭에서나 굵기가 같다.
  */
-function useSize(): [React.RefObject<HTMLDivElement | null>, Size | null] {
-  const ref = useRef<HTMLDivElement>(null)
-  const [size, setSize] = useState<Size | null>(null)
-
-  useEffect(() => {
-    const element = ref.current
-    if (element === null) return
-
-    const observer = new ResizeObserver(([entry]) => {
-      const { width, height } = entry.contentRect
-      setSize({ width, height })
-    })
-    observer.observe(element)
-    return () => observer.disconnect()
-  }, [])
-
-  return [ref, size]
-}
 
 /**
  * 좌표를 소수점 아래 자리에서 끊는다.
@@ -149,7 +123,7 @@ function monotonePath(points: { x: number; y: number }[]): string {
 }
 
 export default function CardChart({ stock }: { stock: CardSeries }) {
-  const [boxRef, size] = useSize()
+  const [boxRef, size] = useElementSize()
 
   /* 선은 1년 흐름의 방향이라 그대로 두고, 숫자만 보합이면 검게 적는다. 소수 한 자리로 적으므로 보합 기준도 한 자리다 */
   const rateClass = styles[rateTone(stock.changeRate, 1)]
@@ -172,7 +146,7 @@ export default function CardChart({ stock }: { stock: CardSeries }) {
   )
 }
 
-function Sparkline({ stock, size }: { stock: CardSeries; size: Size }) {
+function Sparkline({ stock, size }: { stock: CardSeries; size: ElementSize }) {
   const { width, height } = size
   const count = stock.prices.length
   if (count === 0 || width <= 0 || height <= 0) return null

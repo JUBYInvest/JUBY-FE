@@ -1,6 +1,5 @@
-import type { MouseEvent } from 'react'
 import { Link } from 'react-router-dom'
-import { isPlainClick } from '../utils/navigation'
+import { jumpWithin } from '../utils/navigation'
 import styles from './StartSteps.module.css'
 
 export interface StartStep {
@@ -13,18 +12,6 @@ export interface StartStep {
    * 아직 모르거나 마쳤으면 null
    */
   action: { label: string; to: string; state?: unknown } | { label: string; onClick: () => void } | null
-}
-
-/** 같은 화면 안 자리로 — 주소는 바꾸지 않는다(해시가 붙으면 라우터가 새 기록으로 본다) */
-function jumpWithin(id: string) {
-  return (event: MouseEvent<HTMLAnchorElement>) => {
-    if (!isPlainClick(event)) return
-    const target = document.getElementById(id)
-    if (target === null) return
-    event.preventDefault()
-    target.scrollIntoView({ block: 'start' })
-    target.focus({ preventScroll: true })
-  }
 }
 
 /**

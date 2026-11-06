@@ -18,12 +18,14 @@ export function toYmd(date: Date): string {
 }
 
 /**
- * "2026-08-05" → "20260805". /api/stocks 계열이 하이픈 형식을 주는데 앱은 붙여 쓴다.
- * 날짜가 비어 오면(null) 던지지 않고 빈 문자열로 둔다 — 기준일 하나 때문에
- * 멀쩡한 시세표 전체가 실패로 바뀌면 안 된다. 화면이 빈 날짜의 줄을 숨긴다.
+ * "2026-08-05"·"2026-08-05T10:00:05" → "20260805". /api/stocks 계열이 하이픈 형식을 주는데 앱은 붙여 쓴다.
+ * 날짜가 비었거나 모양이 다르면 던지지 않고 빈 문자열로 둔다 — 기준일 하나 때문에
+ * 멀쩡한 시세표 전체가 실패로 바뀌면 안 된다. 화면이 빈 날짜의 줄을 숨긴다(부르는 쪽이 다시 검사하지 않는다).
  */
-export function fromDashedYmd(dashed: string | null | undefined): string {
-  return typeof dashed === 'string' ? dashed.replace(/-/g, '') : ''
+export function fromDashedYmd(dashed: unknown): string {
+  if (typeof dashed !== 'string') return ''
+  const match = /^(\d{4})-(\d{2})-(\d{2})(?:T|$)/.exec(dashed.trim())
+  return match === null ? '' : `${match[1]}${match[2]}${match[3]}`
 }
 
 /**
