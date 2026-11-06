@@ -1,5 +1,5 @@
 // 결함 재현 판정 — 코드 검토에서 찾은 것들. 고치기 전 빌드에서 FAIL, 고친 뒤 PASS여야 한다(CLAUDE.md "버그 수정" 순서).
-//   node repro.mjs <BASE> [--only B,C,D,E,S,R,F]
+//   node repro.mjs <BASE> [--only B,C,D,E,S,R,F,G]
 import { cli, hexToRgb, judge, sleep, tokenFor, THU_11 } from './lib.mjs'
 
 const j = await judge(cli())
@@ -376,6 +376,29 @@ await run('F', async () => {
   await t.page.keyboard.press('Enter'); await sleep(1200)
   await t.page.getByRole('button', { name: '+ 새 대화' }).first().click(); await sleep(800)
   report('F3', aborted === 1, `기다리던 질문 요청 끊김 ${aborted}건`)
+  await t.close()
+})
+
+/* ── G. 사용자 결정(2026-11-06) ───────────────────────────────────────── */
+await run('G', async () => {
+  // G1·G2 장이 닫혀 있으면 상세 머리 가격 옆에 받은 시각("20:00 기준") 대신 그 가격이 정해진 날("N월 N일 종가")을 적는다.
+  // 15:30이 지난 거래일은 그날, 장 시작 전은 마지막 일봉의 날(가짜 API의 일봉은 10월 28일까지). 휴장일은 받아 둔 것으로 둔다(받는 순서와 상관없게)
+  for (const [id, at, want] of [['G1', THU_11 + 9 * 3600e3, '10월 29일 종가'], ['G2', THU_11 - 3 * 3600e3, '10월 28일 종가']]) {
+    const calendar = JSON.stringify({ days: [{ date: '20261028', open: true }, { date: '20261029', open: true }, { date: '20261030', open: true }], savedAt: at })
+    const t = await open({ at, seed: { marketCalendar: calendar } })
+    await t.goto('/stocks/005930', 1800)
+    const line = await t.page.locator('main p', { hasText: '전일 대비' }).first().innerText().catch(() => '')
+    report(id, line.includes(want) && !/\d{1,2}:\d{2} 기준/.test(line), `머리 "${line.replace(/\s+/g, ' ')}" (기대 "${want}")`)
+    await t.close()
+  }
+
+  // G3 로그인하지 않으면 성향 테스트를 하지 않는다 — 문항을 묻지 않고 로그인 안내만 둔다(돌아올 자리를 싣는다)
+  const t = await open({ loggedIn: false })
+  await t.goto('/personality-test?from=ai', 1500)
+  const asked = t.count(/^GET \/api\/personality-tests/)
+  const bar = await t.page.locator('main [role="progressbar"]').count()
+  const href = await t.page.locator('main').getByRole('link', { name: '로그인' }).first().getAttribute('href').catch(() => null)
+  report('G3', asked === 0 && bar === 0 && href === '/login?next=%2Fpersonality-test%3Ffrom%3Dai', `문항 GET ${asked}건, 진행 막대 ${bar}, 로그인 링크 ${href}`)
   await t.close()
 })
 

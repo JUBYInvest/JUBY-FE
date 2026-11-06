@@ -17,6 +17,7 @@
 //     (320px에서 오른쪽에 붙어 '담은 종목' 18px, 뉴스는 '기사 검색하기'로 이름이 길어져 내려간 뒤 오른쪽에 붙었다)
 //  C9 밑줄 탭의 고른 막대는 놓인 선(가는 선 1px·굵은 먹 선 2px)을 그 두께만큼 덮는다 — 막대 아래 끝 = 선 아래 끝, 막대 두께 ≥ 선 두께.
 //     선 바로 위에 얹으면 2px 막대와 2px 먹 선이 두 줄로 겹쳐 보였다(2026-11-05 주식 모아보기 '담은 종목')
+//  C10 누르지 않는 꾸밈 글자(시세표 순위 숫자·홈 카드 테마 이름·관심종목 화면 이름)는 먹·보조색이다 — 브랜드 초록이었다(2026-11-06 사용자 결정)
 // node consistency.mjs <BASE> [--only C1,C2] [--headed]
 import { cli, judge, sleep } from './lib.mjs'
 
@@ -301,6 +302,23 @@ await j.run('C9', async () => {
     }))
     const bad = bars.filter((b) => b.line === null || Math.abs(b.gap) > 0.5)
     j.report(`C9${path}-${width}`, bars.length > 0 && bad.length === 0, bars.length === 0 ? '고른 탭 막대 없음' : bars.map((b) => `'${b.name}' 선 ${b.thick}px, 막대 아래 끝과 ${b.gap}px`).join(' · '))
+    await t.close()
+  }
+})
+
+await j.run('C10', async () => {
+  for (const [path, picks] of [['/', ['rank', 'theme']], ['/likes', ['eyebrow']]]) {
+    const t = await j.open({ width: 1440 })
+    await t.goto(path, 1800)
+    const r = await t.page.evaluate((picks) => {
+      const token = (name) => { const p = document.createElement('p'); p.style.color = `var(${name})`; document.body.append(p); const c = getComputedStyle(p).color; p.remove(); return c }
+      const allowed = [token('--color-text'), token('--color-text-sub')]
+      return picks.map((pick) => {
+        const colors = [...new Set([...document.querySelectorAll(`main [class*="_${pick}_"]`)].map((el) => getComputedStyle(el).color))]
+        return { pick, colors, ok: colors.length > 0 && colors.every((c) => allowed.includes(c)) }
+      })
+    }, picks)
+    j.report(`C10${path}`, r.every((x) => x.ok), r.map((x) => `.${x.pick} ${x.colors.length ? x.colors.join('/') : '없음'}`).join(' · '))
     await t.close()
   }
 })

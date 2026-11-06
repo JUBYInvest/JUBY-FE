@@ -63,7 +63,8 @@ export interface StockDetail extends StockInfo {
   candles: Candle[]
   /**
    * 응답을 받은 때(ms). 상세 응답에는 시각이 없어(StockDetailRes) 머리 가격이 언제 값인지는
-   * 받은 시각으로 적는다. 1분 캐시에서 꺼내도 처음 받은 때다
+   * 받은 때로 가른다 — 장 중이면 그 시각, 장이 닫혀 있었으면 그 가격이 정해진 날(`closedPriceDate`).
+   * 1분 캐시에서 꺼내도 처음 받은 때다
    */
   receivedAt: number
 }

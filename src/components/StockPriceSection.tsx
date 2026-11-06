@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import type { ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import CandleChart from './CandleChart'
+import { closedPriceDate } from '../api/marketCalendar'
 import { useRealtime } from '../api/realtime'
 import { nameOrCode } from '../api/stock'
 import { periodStart, toKoreanDate, toKoreanDateTime } from '../utils/date'
@@ -461,6 +462,16 @@ function RetryCountdown({ until }: { until: number }) {
 }
 
 /**
+ * 머리 가격 옆에 적는 때. 장이 닫혀 있을 때 받은 값이면 그 가격이 정해진 날("10월 29일 종가"), 장 중에 받았으면 받은 시각("10월 29일 11:02 기준") —
+ * 상세 응답에는 시각이 없다. 받은 때로 가르므로 화면을 연 채 장이 끝나도 장 중 값을 종가라고 하지 않는다
+ */
+function headBasis(detail: StockDetail): string {
+  const closed = closedPriceDate(detail.candles.at(-1)?.date ?? '', detail.receivedAt)
+  if (closed !== null) return toKoreanDate(closed) === '' ? '' : `${toKoreanDate(closed)} 종가`
+  return toKoreanDateTime(detail.receivedAt) === '' ? '' : `${toKoreanDateTime(detail.receivedAt)} 기준`
+}
+
+/**
  * 가격 두 줄. 응답이 오면 현재가·전일 대비, 오기 전엔 목록에서 들고 온 기준일 종가를
  * 흐리게 날짜와 함께 적고(현재가로 읽히면 안 된다), 그것도 없으면 뼈대를 둔다.
  * 오는 중에 "-"를 적으면 값이 없는 것과 가를 수 없다.
@@ -477,7 +488,7 @@ function PriceLines({
     // 장중에는 실시간 연결의 값으로 바꿔 그린다(api/realtime.ts). 아래 시세 요약은 마지막 거래일 마감 값 그대로다
     const tick = realtime.live ? realtime.prices.get(detail.stockCode) : undefined
     const rate = tick?.changeRate ?? detail.comparePrev
-    const asOf = tick !== undefined ? '실시간' : toKoreanDateTime(detail.receivedAt) !== '' ? `${toKoreanDateTime(detail.receivedAt)} 기준` : ''
+    const asOf = tick !== undefined ? '실시간' : headBasis(detail)
     return (
       <>
         <p className={styles.price}>

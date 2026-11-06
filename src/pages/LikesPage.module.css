@@ -16,11 +16,12 @@
   border-bottom: 2px solid var(--color-rule);
 }
 
+/* 화면 이름. 제목이 요약 문장이라 그 위에 작게 둔다 — 누르는 것이 아니라 보조색이다 */
 .eyebrow {
   margin: 0;
   font-size: var(--font-md);
   font-weight: 600;
-  color: var(--color-brand-700);
+  color: var(--color-text-sub);
 }
 
 .title {

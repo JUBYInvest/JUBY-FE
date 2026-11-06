@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { getQuestions, submitTest } from '../api/personality'
 import { useDocumentTitle } from '../hooks/useDocumentTitle'
+import { useIsLoggedIn } from '../hooks/useIsLoggedIn'
 import Spinner from '../components/Spinner'
 import { loginPathFrom } from '../utils/navigation'
 import type { Question } from '../types/personality'
@@ -22,10 +23,10 @@ export default function PersonalityTestPage() {
   const navigate = useNavigate()
   /* 어디서 들어왔는지(?from=mypage)·가려던 자리(?next=, 첫 로그인)를 결과 화면까지 그대로 넘긴다 */
   const { pathname, search } = useLocation()
+  /** 검사는 로그인한 회원만 한다 — 결과가 회원 성향으로 저장된다. 다른 탭에서 로그인하면 곧바로 문항을 받는다 */
+  const loggedIn = useIsLoggedIn()
 
   const [questions, setQuestions] = useState<Question[] | null>(null)
-  /** 서버 문항 대신 예비 문항으로 진행 중인 까닭(비로그인만 여기로 온다). null이면 서버 문항이다 */
-  const [fallbackReason, setFallbackReason] = useState<'login' | 'server' | null>(null)
   /** 문항을 못 받았다. 그릴 게 없으니 화면 전체를 안내로 바꾼다 */
   const [hasError, setHasError] = useState(false)
   /** 문항 조회 '다시 시도'. 올리면 아래 effect가 다시 돈다 */
@@ -43,19 +44,42 @@ export default function PersonalityTestPage() {
   const [saveFailed, setSaveFailed] = useState(false)
 
   useEffect(() => {
+    if (!loggedIn) return
+    let isStale = false
     setHasError(false)
+    setQuestions(null)
     getQuestions()
       .then((loaded) => {
-        setQuestions(loaded.questions)
-        setFallbackReason(loaded.fallbackReason)
-        setAnswers(Array(loaded.questions.length).fill(null))
+        if (isStale) return
+        setQuestions(loaded)
+        setAnswers(Array(loaded.length).fill(null))
+        setCurrentIndex(0)
+        setSaveFailed(false)
       })
       .catch((error: unknown) => {
-        // 로그인 상태에서 서버 문항을 못 받은 경우다. 예비 문항 결과가 저장되면 안 되므로 멈춘다
+        if (isStale) return
         console.warn('성향 테스트 문항 조회 실패', error)
         setHasError(true)
       })
-  }, [retryCount])
+    return () => {
+      isStale = true
+    }
+  }, [loggedIn, retryCount])
+
+  if (!loggedIn) {
+    return (
+      <div className={styles.page}>
+        <h1 className={styles.title}>나의 투자성향 테스트</h1>
+        <div className={styles.gate}>
+          <p className={styles.gateText}>로그인하면 투자성향 테스트를 할 수 있어요.</p>
+          <p className={styles.gateNote}>결과는 내 성향으로 저장돼 백테스트 전략 추천과 AI 답변에 쓰여요.</p>
+          <Link to={loginPathFrom(pathname + search)} className={styles.login}>
+            로그인
+          </Link>
+        </div>
+      </div>
+    )
+  }
 
   if (hasError) {
     return (
@@ -106,8 +130,7 @@ export default function PersonalityTestPage() {
     setIsSubmitting(true)
     setSaveFailed(false)
     try {
-      // 예비 문항이면 저장하지 않는다(submitTest가 fallbackReason으로 가른다)
-      const result = await submitTest(questions, toScores(questions, answers), fallbackReason)
+      const result = await submitTest(questions, toScores(questions, answers))
       navigate(
         { pathname: '/personality-test/result', search },
         { state: { result } },
@@ -124,22 +147,6 @@ export default function PersonalityTestPage() {
   return (
     <div className={styles.page}>
       <h1 className={styles.title}>나의 투자성향 테스트</h1>
-
-      {/* 로그인만 하면 되는 경우와 서버가 실패한 경우를 가른다. 둘을 같은 말로 알리면 멀쩡한 서버가 장애로 읽힌다 */}
-      {fallbackReason === 'login' && (
-        <p className={styles.fallbackNotice} role="status">
-          비로그인 테스트는 간단 버전({total}문항)이에요.{' '}
-          <Link to={loginPathFrom(pathname + search)} className={styles.fallbackLink}>
-            로그인하면
-          </Link>{' '}
-          정식 10문항으로 검사하고 결과를 저장해요.
-        </p>
-      )}
-      {fallbackReason === 'server' && (
-        <p className={styles.fallbackNotice} role="status">
-          서버 문항을 불러오지 못해 간단 버전({total}문항)으로 진행해요. 결과는 참고로만 봐 주세요.
-        </p>
-      )}
 
       <div className={styles.progressRow}>
         <div

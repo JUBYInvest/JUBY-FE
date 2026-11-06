@@ -100,6 +100,21 @@ export function sessionClock(status: MarketStatus | null, now: number = Date.now
   return { ratio: Math.min(1, Math.max(0, ratio)), minutesLeft: Math.max(0, CLOSE_MINUTES - minutes), until: 'close' }
 }
 
+/**
+ * 장이 닫혀 있을 때 증권사 현재가는 어느 날의 종가인가(YYYYMMDD) — 상세 머리 "N월 N일 종가". 장 중(9:00~15:30)이면 null(그때 값은 종가가 아니다).
+ * 15:30이 지난 거래일은 그날이고, 장 시작 전·휴장일은 DB 마지막 일봉의 날이다(일봉 배치가 휴장일을 거른다).
+ * 휴장일을 모르는 평일은 15:30 뒤 그날로 보되, 일봉 배치(평일 16시)가 돌았을 16:30이 지나도 그날 일봉이 없으면 휴장으로 본다.
+ * 마지막 일봉을 모르면(빈 값) ""
+ */
+export function closedPriceDate(lastCandleYmd: string, now: number = Date.now()): string | null {
+  const { ymd, minutes } = kstNow(now)
+  const open = isOpenDay(ymd, readCalendar())
+  if (open !== false && minutes >= OPEN_MINUTES && minutes < CLOSE_MINUTES) return null
+  const closedToday = open === true || (open === null && (lastCandleYmd === ymd || minutes < 16 * 60 + 30))
+  if (minutes >= CLOSE_MINUTES && closedToday) return ymd
+  return lastCandleYmd
+}
+
 /** 오늘 장이 열리지 않는 날로 확실한가(주말, 또는 받아 둔 휴장일). 모르면 false */
 export function isDayOffToday(now: number = Date.now()): boolean {
   return isOpenDay(kstNow(now).ymd, readCalendar()) === false

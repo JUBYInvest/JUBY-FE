@@ -4,6 +4,8 @@
  * 백엔드 DB에 적재된 시총 상위 종목 목록.
  * JUBY-BE의 initiate/loader/StockLoadService.java와 같은 순서·같은 내용이다.
  * 목록을 내려주는 API가 아직 없어 프론트에 복사해 둔다.
+ * 영문이 든 종목코드(`0126Z0` 삼성에피스홀딩스)는 뺐다 — 화면(`isStockCode`)과 백엔드의 관심종목·커뮤니티 경로가
+ * 숫자 여섯 자리만 받아 고르면 상세가 "없는 종목"이고 하트·글쓰기가 400이다(2026-11-06 사용자 결정).
  */
 export const STOCK_LIST: StockInfo[] = [
   { stockCode: '005930', stockName: '삼성전자' },
@@ -66,7 +68,6 @@ export const STOCK_LIST: StockInfo[] = [
   { stockCode: '003550', stockName: 'LG' },
   { stockCode: '047050', stockName: '포스코인터내셔널' },
   { stockCode: '010950', stockName: 'S-Oil' },
-  { stockCode: '0126Z0', stockName: '삼성에피스홀딩스' },
   { stockCode: '005830', stockName: 'DB손해보험' },
   { stockCode: '018260', stockName: '삼성에스디에스' },
   { stockCode: '071050', stockName: '한국금융지주' },

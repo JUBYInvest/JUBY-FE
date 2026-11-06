@@ -487,8 +487,9 @@ async function u6() {
   {
     const s = await open('/personality-test')
     const text = await s.page.locator('main').innerText()
-    const old = /지금은 임시 문항으로 진행해요/.test(text)
-    const neu = /간단 버전\(7문항\)/.test(text)
+    // 2026-11-06부터 비로그인은 검사하지 않는다(간단 버전 7문항을 걷고 로그인 안내만 둔다 — repro G3)
+    const old = /지금은 임시 문항으로 진행해요|간단 버전/.test(text)
+    const neu = /로그인하면 투자성향 테스트를 할 수 있어요/.test(text)
     const l = await open('/login')
     const lt = await l.page.locator('main').innerText()
     report('U6-4', !old && neu && !/Create Your Own JUBY!/.test(lt) && /백테스트/.test(lt) && /AI/.test(lt) && /성향/.test(lt), `성향테스트 옛 문구 ${old}·새 문구 ${neu}, 로그인 영어 문구 ${/Create Your Own JUBY!/.test(lt)}, 가치 3줄 ${/백테스트/.test(lt) && /AI/.test(lt) && /성향/.test(lt)}`)

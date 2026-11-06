@@ -764,29 +764,26 @@ describe('api/client — 끊기 신호', async () => {
   })
 })
 
-describe('api/personality — 예비 문항 결과는 저장하지 않는다', async () => {
+describe('api/personality — 서버 문항·서버 채점뿐이다(로그인한 회원만 검사한다)', async () => {
   const p = await src('api/personality.ts')
   const auth = await src('utils/auth.ts')
-  const seven = Array.from({ length: 7 }, (_, i) => ({ questionId: i + 1, content: '', choices: [1, 3, 5, 7, 9].map((score, j) => ({ choiceId: (i + 1) * 10 + j, content: '', score })) }))
+  const ten = Array.from({ length: 10 }, (_, i) => ({ questionId: i + 1, content: '', choices: [1, 3, 5, 7, 9].map((score, j) => ({ choiceId: (i + 1) * 10 + j, content: '', score })) }))
   beforeEach(() => { calls.length = 0; auth.saveTokens('tok') })
-  test('로그인했어도 fallbackReason이 있으면 POST 없이 로컬 채점', async () => {
-    const result = await p.submitTest(seven, [9, 9, 9, 9, 9, 9, 9], 'login')
-    assert.equal(result.type, '공격투자형')
-    assert.equal(calls.length, 0)
-  })
-  test('서버 문항이고 로그인이면 낱개 점수를 POST', async () => {
+  test('낱개 점수를 POST하고 서버 이름을 쓴다', async () => {
     responder = () => ok({ personalityName: '위험중립형', description: '', url: '' })
-    const ten = Array.from({ length: 10 }, (_, i) => ({ questionId: i + 1, content: '', choices: [1, 3, 5, 7, 9].map((score, j) => ({ choiceId: (i + 1) * 10 + j, content: '', score })) }))
-    const result = await p.submitTest(ten, [5, 5, 5, 5, 5, 5, 5, 5, 5, 5], null)
+    const result = await p.submitTest(ten, [5, 5, 5, 5, 5, 5, 5, 5, 5, 5])
     assert.equal(result.type, '위험중립형')
     assert.equal(calls.length, 1)
     assert.deepEqual(JSON.parse(calls[0].init.body), { scores: [5, 5, 5, 5, 5, 5, 5, 5, 5, 5] })
   })
-  test('비로그인은 늘 로컬 채점', async () => {
-    auth.clearTokens()
-    const result = await p.submitTest(seven, [1, 1, 1, 1, 1, 1, 1], null)
-    assert.equal(result.type, '안정형')
-    assert.equal(calls.length, 0)
+  test('서버가 이름을 비워 주면 같은 구간표로 짓는다', async () => {
+    responder = () => ok({})
+    const result = await p.submitTest(ten, [9, 9, 9, 9, 9, 9, 9, 9, 9, 9])
+    assert.equal(result.type, '공격투자형')
+  })
+  test('문항을 못 받으면 예비 문항 없이 던진다', async () => {
+    responder = () => ok({ questions: [] })
+    await assert.rejects(p.getQuestions(), /비어 있습니다/)
   })
 })
 
@@ -808,5 +805,39 @@ describe('api/client 차단기', async () => {
     const before = calls.length
     await assert.rejects(client.get('/api/a'), /서버 무응답 상태/)
     assert.equal(calls.length, before, '보내지 않는다')
+  })
+})
+
+/* ── api/stockList ─────────────────────────────────────────────────── */
+describe('api/stockList', async () => {
+  const { STOCK_LIST } = await src('api/stockList.ts')
+  const { isStockCode } = await src('api/stock.ts')
+  test('검색 사본에는 화면이 열 수 있는 종목코드만 있다(영문이 든 0126Z0은 상세·하트가 막혀 뺀다)', () => {
+    assert.deepEqual(STOCK_LIST.filter((s) => !isStockCode(s.stockCode)).map((s) => s.stockCode), [])
+  })
+})
+
+/* ── api/marketCalendar closedPriceDate ───────────────────────────── */
+describe('api/marketCalendar closedPriceDate — 상세 머리 "N월 N일 종가"', async () => {
+  const m = await src('api/marketCalendar.ts')
+  const cache = await src('utils/cache.ts')
+  const calendar = (days) => cache.writeJson('marketCalendar', { days, savedAt: THU_11 })
+  beforeEach(() => calendar([]))
+  test('장 중이면 null, 15:30이 지난 거래일은 그날, 장 시작 전은 마지막 일봉', () => {
+    calendar([{ date: '20261029', open: true }])
+    assert.equal(m.closedPriceDate('20261028', kst(2026, 10, 29, 11)), null)
+    assert.equal(m.closedPriceDate('20261028', kst(2026, 10, 29, 15, 30)), '20261029')
+    assert.equal(m.closedPriceDate('20261028', kst(2026, 10, 29, 8)), '20261028')
+  })
+  test('휴장일·주말은 시각과 상관없이 마지막 일봉', () => {
+    calendar([{ date: '20261029', open: false }])
+    assert.equal(m.closedPriceDate('20261028', kst(2026, 10, 29, 11)), '20261028')
+    assert.equal(m.closedPriceDate('20261030', kst(2026, 10, 31, 11)), '20261030')
+  })
+  test('휴장일을 모르는 평일: 16:30 전엔 그날, 뒤엔 그날 일봉이 있어야 그날', () => {
+    assert.equal(m.closedPriceDate('20261028', kst(2026, 10, 29, 16)), '20261029')
+    assert.equal(m.closedPriceDate('20261029', kst(2026, 10, 29, 20)), '20261029')
+    assert.equal(m.closedPriceDate('20261028', kst(2026, 10, 29, 20)), '20261028')
+    assert.equal(m.closedPriceDate('', kst(2026, 10, 29, 8)), '')
   })
 })

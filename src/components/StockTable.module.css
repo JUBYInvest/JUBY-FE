@@ -57,11 +57,11 @@
   background: var(--color-bg-hover);
 }
 
-/* 지금 정렬의 차례. 표의 진짜 칸이라 숫자로 적는다 */
+/* 지금 정렬의 차례. 표의 진짜 칸이라 숫자로 적는다. 종목 이름이 앞서도록 보조색이다(초록은 행동·선택에만) */
 .rank {
   font-size: var(--font-md);
-  font-weight: 700;
-  color: var(--color-brand-700);
+  font-weight: 600;
+  color: var(--color-text-sub);
   text-align: center;
   font-variant-numeric: tabular-nums;
 }

@@ -136,20 +136,33 @@
   margin-top: var(--space-4);
 }
 
-/* 간단 버전 안내. 제목 아래 한 줄 — 로그인 화면의 안내 줄과 같은 자리 */
-.fallbackNotice {
-  margin: var(--space-4) 0 0;
+/* 비로그인 안내. 검사 자리를 옅은 면 하나로 채운다(관심종목 비로그인 안내와 같은 모양) */
+.gate {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+  margin-top: var(--space-8);
+  padding: var(--space-12) var(--space-4);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-sub);
+  text-align: center;
+}
+
+.gateText {
+  margin: 0;
+  font-size: var(--font-lg);
+  font-weight: 700;
+}
+
+.gateNote {
+  margin: 0;
   font-size: var(--font-md);
   line-height: 1.6;
   color: var(--color-text-sub);
 }
 
-.fallbackLink {
-  color: var(--color-text);
-  font-weight: 700;
-  text-decoration: underline;
-  text-underline-offset: 2px;
-  /* 문장 속 링크라 글줄은 그대로 두고 누르는 넓이만 위아래로 넓힌다 */
-  padding: 8px 2px;
-  margin: -8px -2px;
+.login {
+  composes: primary lg from '../components/buttons.module.css';
+  margin-top: var(--space-2);
 }
