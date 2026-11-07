@@ -241,6 +241,14 @@ async function tokenForRetry(sentToken: string): Promise<string | null> {
   return latest !== null && latest !== sentToken ? latest : null
 }
 
+/**
+ * 보낸 토큰이 만료됐다는 답을 받은 곳이 새 토큰을 얻는다(요청 다시 보내기와 같은 규칙 — 이미 바뀌었으면 그것, 아니면 한 번 재발급).
+ * fetch가 아닌 길(홈 전체 채팅의 웹소켓 CONNECT, api/chat.ts)이 쓴다. 못 얻으면 null — 로그인 화면으로 보내지는 않는다
+ */
+export function renewAccessToken(sentToken: string): Promise<string | null> {
+  return tokenForRetry(sentToken)
+}
+
 function redirectToLogin(): void {
   // 이미 로그인 화면이면 보낼 곳이 없다. 여기서 401이 또 나면 무한히 새로고침한다
   if (window.location.pathname === '/login') {

@@ -1,4 +1,4 @@
-/* 홈 전체 채팅 — 구역 제목 줄(먹 선) 아래 대화창(안에서만 내린다) → 쓰는 줄 */
+/* 홈 전체 채팅 — 구역 제목 줄(먹 선, 오른쪽에 연결 상태) 아래 대화창(안에서만 내린다) → 쓰는 줄 */
 .chat {
   display: flex;
   flex-direction: column;
@@ -16,19 +16,45 @@
   composes: title from './section.module.css';
 }
 
-.sampleTag {
-  padding: 2px 6px;
-  border-radius: var(--radius-sm);
-  background: var(--color-bg-sub);
-  color: var(--color-text-sub);
-  font-size: var(--font-xs);
-  font-weight: 700;
-}
-
-.note {
-  margin-left: auto;
+/* 연결 상태 — 붙어 있으면 초록 점(활성) + "실시간", 붙는 중엔 도는 고리, 멈췄으면 "다시 연결" 글자 단추 */
+.status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 0 auto;
   font-size: var(--font-sm);
   color: var(--color-text-sub);
+  white-space: nowrap;
+}
+
+.liveDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--color-brand-700);
+  box-shadow: 0 0 0 3px var(--color-brand-100);
+}
+
+.reconnect {
+  display: inline-flex;
+  align-items: center;
+  min-height: 40px;
+  padding: 0;
+  border: none;
+  background: none;
+  font: inherit;
+  font-weight: 700;
+  color: var(--color-brand-700);
+}
+
+.reconnect:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* 대화창 + 그 위에 뜨는 "새 말 N개" */
+.logWrap {
+  position: relative;
 }
 
 /*
@@ -40,6 +66,10 @@
   height: 412px;
   overflow-y: auto;
   overscroll-behavior: contain;
+  /* 안의 화면 읽기 전용 글(srOnly — absolute)이 이 상자를 기준으로 서게 한다. 아니면 대화창 밖(아래 수천 px)에 서서 페이지가 길어진다(market S4) */
+  position: relative;
+  /* 이전 대화를 위에 붙일 때 보던 말을 제자리에 두는 일은 HomeChat이 한다 — 브라우저(크롬)의 스크롤 고정까지 겹치면 두 번 밀린다. 사파리는 고정이 없다 */
+  overflow-anchor: none;
   padding: var(--space-4) 0 var(--space-3);
   mask-image: linear-gradient(to bottom, transparent, var(--color-text) var(--space-4), var(--color-text) calc(100% - var(--space-3)), transparent);
 }
@@ -50,6 +80,44 @@
   border-radius: var(--radius-sm);
 }
 
+/* 맨 위 — 이전 대화 보기 */
+.older {
+  display: flex;
+  justify-content: center;
+  margin-bottom: var(--space-3);
+}
+
+.olderButton {
+  composes: ghost md from './buttons.module.css';
+}
+
+/* 지난 대화를 못 받음 · 대화가 없음 — 대화창 가운데 */
+.state,
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3);
+  min-height: 100%;
+  margin: 0;
+  text-align: center;
+}
+
+.stateText,
+.empty {
+  font-size: var(--font-md);
+  color: var(--color-text-sub);
+}
+
+.stateText {
+  margin: 0;
+}
+
+.stateAction {
+  composes: secondary md from './buttons.module.css';
+}
+
 .messages {
   display: flex;
   flex-direction: column;
@@ -57,6 +125,21 @@
   margin: 0;
   padding: 0;
   list-style: none;
+}
+
+/* 날짜 띠 — 날이 바뀌는 자리(선 대신 옅은 알약) */
+.day {
+  display: flex;
+  justify-content: center;
+}
+
+.day span {
+  padding: 2px 10px;
+  border-radius: var(--radius-pill);
+  background: var(--color-bg-sub);
+  font-size: var(--font-xs);
+  color: var(--color-text-sub);
+  font-variant-numeric: tabular-nums;
 }
 
 /* 다른 사람 말: 첫 글자 동그라미 | 이름·시각 / 말풍선. 이어 말하면(3분 안) 이름·시각 없이 바짝 붙는다 */
@@ -152,6 +235,89 @@
   border-radius: var(--radius-lg);
 }
 
+/* 아직 오르지 않은 내 말 — 보내는 중엔 옅게, 실패하면 진하게 두고 아래에 까닭과 단추 */
+.sending .bubble {
+  opacity: 0.6;
+}
+
+.pendingNote {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0 var(--space-2);
+  margin: var(--space-1) 0 0;
+  font-size: var(--font-xs);
+  color: var(--color-text-sub);
+  text-align: right;
+}
+
+.failed .pendingNote {
+  color: var(--color-text);
+}
+
+.pendingActions {
+  display: inline-flex;
+  gap: var(--space-2);
+}
+
+.pendingAction {
+  display: inline-flex;
+  align-items: center;
+  min-height: 32px;
+  padding: 0;
+  border: none;
+  background: none;
+  font: inherit;
+  font-weight: 700;
+  color: var(--color-brand-700);
+}
+
+.pendingAction:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* 위를 읽는 중에 새 말이 왔다 — 대화창 아래 가운데에 뜬다(떠 있는 층이라 그림자) */
+.unseen {
+  position: absolute;
+  bottom: var(--space-3);
+  left: 50%;
+  transform: translateX(-50%);
+  min-height: 36px;
+  padding: 0 var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-pill);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-pop);
+  font-size: var(--font-sm);
+  font-weight: 700;
+  color: var(--color-text);
+  white-space: nowrap;
+}
+
+/* 뼈대 — 동그라미 | 이름 줄 / 말풍선 */
+.skeletonAvatar {
+  composes: shimmer from './skeleton.module.css';
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+}
+
+.skeletonName {
+  composes: shimmer from './skeleton.module.css';
+  width: 64px;
+  height: 12px;
+  margin: 8px 0 8px;
+  border-radius: var(--radius-sm);
+}
+
+.skeletonBubble {
+  composes: shimmer from './skeleton.module.css';
+  height: 36px;
+  border-radius: var(--radius-lg);
+}
+
 .time {
   font-size: var(--font-xs);
   color: var(--color-text-sub);
@@ -159,9 +325,10 @@
   font-variant-numeric: tabular-nums;
 }
 
-/* 쓰는 줄 — 입력칸 | 보내기 */
+/* 쓰는 줄 — 입력칸 | 보내기 (끝 50자부터 그 아래 오른쪽에 글자 수) */
 .composer {
   display: flex;
+  flex-wrap: wrap;
   gap: var(--space-2);
   padding-top: var(--space-3);
   border-top: 1px solid var(--color-border);
@@ -200,6 +367,35 @@
   flex-shrink: 0;
 }
 
+.count {
+  flex-basis: 100%;
+  font-size: var(--font-xs);
+  color: var(--color-text-sub);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+/* 로그인했는데 닉네임이 없다 — 안내 | 닉네임 정하기 */
+.nicknameRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2) var(--space-3);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--color-border);
+}
+
+.nicknameText {
+  margin: 0;
+  font-size: var(--font-md);
+  color: var(--color-text-sub);
+}
+
+.nicknameButton {
+  composes: secondary md from './buttons.module.css';
+}
+
 .login {
   margin: 0;
   padding-top: var(--space-3);
@@ -214,12 +410,6 @@
   color: var(--color-brand-700);
 }
 
-.notice {
-  margin: var(--space-3) 0 0;
-  font-size: var(--font-sm);
-  color: var(--color-text-sub);
-}
-
 .srOnly {
   composes: srOnly from './a11y.module.css';
 }
@@ -230,7 +420,8 @@
     height: min(380px, 60dvh);
   }
 
-  .note {
-    display: none;
+  .reconnect,
+  .pendingAction {
+    min-height: 44px;
   }
 }

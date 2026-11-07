@@ -35,14 +35,18 @@ interface MemberInfoResponse {
  * 낱개 칸은 여기서 거른다(다른 API와 같다 — CLAUDE.md "API 계층"): 이름·이메일이 문자열이 아니면 ""(화면이 "회원님"으로 적는다),
  * 생일이 비면 null, 가입 경로가 모르는 값이면 null. 거르지 않으면 name이 null일 때 내 정보 수정이 `null.trim()`에서 죽는다.
  */
-export function getMemberInfo(): Promise<MemberInfo> {
-  return shared(memberKey('member'), 60_000, fetchMemberInfo)
-}
-
-async function fetchMemberInfo(): Promise<MemberInfo> {
-  const member = await get<MemberInfoResponse | null>('/api/members/me')
+export async function getMemberInfo(): Promise<MemberInfo> {
+  const member = await loadMember()
   if (member === null || typeof member !== 'object') throw malformedResponse()
   return toMemberInfo(member)
+}
+
+/**
+ * `GET /api/members/me` 응답 그대로. 화면끼리 1분 같이 쓴다 — 로그인 콜백의 확인(checkAfterLogin)이 받은 것을
+ * 들어간 홈(전체 채팅의 내 닉네임)이 다시 묻지 않고 쓴다(judge login L6: 로그인 뒤 회원 정보 요청 1건)
+ */
+function loadMember(options?: Parameters<typeof get>[1]): Promise<(MemberInfoResponse & { onboarded?: unknown }) | null> {
+  return shared(memberKey('member'), 60_000, () => get<(MemberInfoResponse & { onboarded?: unknown }) | null>('/api/members/me', options))
 }
 
 function toMemberInfo(row: MemberInfoResponse): MemberInfo {
@@ -64,7 +68,7 @@ function toMemberInfo(row: MemberInfoResponse): MemberInfo {
  */
 export async function checkAfterLogin(): Promise<{ needsOnboarding: boolean; socialType: SocialType | null }> {
   try {
-    const member = await get<{ onboarded?: unknown; socialType?: unknown } | null>('/api/members/me', {
+    const member = await loadMember({
       ignoreUnauthorized: true,
       // "로그인 중" 화면에 붙잡아 두는 요청이라 짧게 끊는다. 못 받으면 검사 없이 가려던 자리로 간다
       timeoutMs: 5_000,

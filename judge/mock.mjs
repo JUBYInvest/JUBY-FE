@@ -299,6 +299,40 @@ async function serveFont(route) {
   }).catch(() => {})
 }
 
+/*
+ * 홈 전체 채팅 가짜 저장소 — 지난 대화 chatHistory개(기본 60, id 1~N, 앞 열 개는 전날), 몇 개는 내 닉네임 말.
+ * 서버처럼 GET은 오래된 순, 커서는 그 쪽 첫 말의 id다
+ */
+const CHAT_LINES = ['오늘 반도체가 좀 쉬어 가네요', '배당 기준일 언제인지 아시는 분?', '백테스트 돌려 보니 이동평균이 생각보다 괜찮았어요', '장 마감 전에 거래대금이 몰리네요',
+  'MDD 보는 법 사용설명서에 잘 나와 있어요', '저는 RSI 전략으로 1년 돌려 봤어요', '오늘 코스닥 많이 빠졌네요', '안녕하세요 처음 왔어요', '차트 공부 중인데 볼린저 밴드 어렵네요', '좋은 하루 보내세요']
+const CHAT_AUTHORS = ['차트독학', '주린이공부중', '배당모으기', '장기투자러', '느긋한거북']
+function chatStore(now, count) {
+  const messages = Array.from({ length: count }, (_, i) => {
+    const id = i + 1
+    const at = id <= 10 ? now - 26 * 3600_000 + id * 60_000 : now - (count - id + 1) * 4 * 60_000
+    return { messageId: id, writerNickname: CHAT_AUTHORS[i % CHAT_AUTHORS.length], content: CHAT_LINES[i % CHAT_LINES.length], at }
+  })
+  return { messages, nextId: count + 1 }
+}
+/** 서버처럼 한국 시각(시간대 없음) 글자 */
+const kstText = (ms) => new Date(ms + 9 * 3600_000).toISOString().slice(0, 19)
+const chatRow = (m) => ({ messageId: m.messageId, writerNickname: m.writerNickname, content: m.content, createdAt: kstText(m.at) })
+
+/** 가짜 STOMP 프레임 */
+function stompFrame(command, headers, body = '') {
+  return `${command}\n${Object.entries(headers).map(([k, v]) => `${k}:${v}`).join('\n')}\n\n${body}\0`
+}
+function parseStomp(raw) {
+  const text = raw.replace(/^(\r?\n)+/, '')
+  if (text === '') return null
+  const split = text.indexOf('\n\n')
+  const head = split === -1 ? text : text.slice(0, split)
+  const lines = head.split('\n')
+  const headers = {}
+  for (const line of lines.slice(1)) { const c = line.indexOf(':'); if (c > 0 && !(line.slice(0, c) in headers)) headers[line.slice(0, c)] = line.slice(c + 1) }
+  return { command: lines[0], headers, body: split === -1 ? '' : text.slice(split + 2) }
+}
+
 export async function mock(context, opts = {}) {
   const { presetMissing = () => false, run = () => 'ok', askDelay = 300, askStatus = 'ok', createStatus = null, renameStatus = null, deleteStatus = null } = opts
   const { personality = 'found', personalityDelay = 0, likeList = 'ok', likeListDelay = 0, likeWrite = 'ok', likeWriteDelay = 0 } = opts
@@ -314,6 +348,62 @@ export async function mock(context, opts = {}) {
   let streamCount = 0
   const store = communityStore(now, opts.nickname === undefined ? '느긋한거북' : opts.nickname)
   if (opts.communityEmpty) store.posts.length = 0
+  const chat = chatStore(now, opts.chatHistory ?? 60)
+  /*
+   * 채팅 웹소켓(wss://api.juby.store/ws/live-chat)을 가로채는 가짜 STOMP 서버 — 실서버로 나가지 않는다.
+   * log.chat: connects(CONNECT마다 Authorization 값 또는 null), sends(보낸 글), push(이름, 글) = 다른 사람 말을 모두에게, drop() = 서버가 연결을 끊는다.
+   * opts.chatConnect(n, auth) → 에러 코드면 그 CONNECT를 ERROR 프레임으로 거절, opts.chatSendError(글, n) → 코드면 /user/queue/errors로 실패,
+   * opts.chatDown이면 웹소켓이 열리자마자 닫힌다
+   */
+  const sockets = new Set()
+  const broadcast = (row) => {
+    for (const s of sockets) if (s.subs['/topic/live-chat']) s.ws.send(stompFrame('MESSAGE', { destination: '/topic/live-chat', subscription: s.subs['/topic/live-chat'], 'message-id': `m-${row.messageId}`, 'content-type': 'application/json' }, JSON.stringify(row)))
+  }
+  // 판정 시계(now)에 맞춘 지금 — 브라우저 시계도 now에 못박혀 있다(seedLogin)
+  const startedAt = Date.now()
+  const addChat = (author, content) => {
+    const m = { messageId: chat.nextId++, writerNickname: author, content, at: now + (Date.now() - startedAt) }
+    chat.messages.push(m)
+    return chatRow(m)
+  }
+  log.chat = {
+    connects: [], sends: [],
+    push: (author, content) => broadcast(addChat(author, content)),
+    drop: () => { for (const s of [...sockets]) s.ws.close() },
+  }
+  await context.routeWebSocket(/\/ws\/live-chat/, (ws) => {
+    if (opts.chatDown) { log.push('WS DOWN'); ws.close(); return }
+    const state = { ws, subs: {} }
+    sockets.add(state)
+    ws.onClose(() => sockets.delete(state))
+    ws.onMessage((data) => {
+      for (const raw of String(data).split('\0')) {
+        const frame = parseStomp(raw)
+        if (frame === null) continue
+        if (frame.command === 'CONNECT') {
+          const auth = frame.headers.Authorization ?? null
+          log.chat.connects.push(auth)
+          log.push(`WS CONNECT${auth ? ' auth' : ''}`)
+          const code = opts.chatConnect?.(log.chat.connects.length, auth) ?? null
+          if (code) { ws.send(stompFrame('ERROR', { message: code, 'content-type': 'application/json' }, JSON.stringify({ isSuccess: false, code, message: '토큰', result: null }))); ws.close(); return }
+          ws.send(stompFrame('CONNECTED', { version: '1.2', 'heart-beat': '0,0' }))
+        } else if (frame.command === 'SUBSCRIBE') {
+          state.subs[frame.headers.destination] = frame.headers.id
+        } else if (frame.command === 'SEND') {
+          let content = ''
+          try { content = JSON.parse(frame.body).content } catch { /* 형식 틀림 */ }
+          log.chat.sends.push(content)
+          const code = opts.chatSendError?.(content, log.chat.sends.length) ?? (store.nickname === null ? 'LIVECHAT403_1' : null)
+          if (code) {
+            const sub = state.subs['/user/queue/errors']
+            if (sub) ws.send(stompFrame('MESSAGE', { destination: '/user/queue/errors', subscription: sub, 'message-id': `e-${log.chat.sends.length}`, 'content-type': 'application/json' }, JSON.stringify({ isSuccess: false, code, message: '실패', result: null })))
+          } else {
+            broadcast(addChat(store.nickname, content))
+          }
+        }
+      }
+    })
+  })
   let askCount = 0
   // 방 목록은 서버처럼 최근 대화 순(updatedAt 내림차순)이다 — 질문·이름 바꾸기·만들기가 updatedAt을 지금으로 적는다
   const rooms = new Map([[1, { title: ROOM_1.title, updatedAt: '2026-10-28T10:00:05', messages: ROOM_1.messages.map((m) => ({ ...m })) }]])
@@ -327,6 +417,12 @@ export async function mock(context, opts = {}) {
   await context.route(() => true, async (route) => {
     const req = route.request()
     const url = new URL(req.url())
+    if (url.hostname === 'api.juby.store' && url.pathname === '/api/auth/reissue' && opts.reissue === 'ok') {
+      log.push('POST /api/auth/reissue')
+      const origin = req.headers()['origin'] ?? '*'
+      return route.fulfill({ status: 200, contentType: 'application/json', headers: { 'access-control-allow-origin': origin, 'access-control-allow-credentials': 'true' },
+        body: JSON.stringify({ isSuccess: true, code: 'AUTH200_2', message: 'ok', result: { accessToken: 'renewed-token' } }) })
+    }
     if (url.hostname === 'api.juby.store') { log.push('BLOCKED ' + url.pathname); return route.abort() }
     if (FONT_HOSTS.has(url.hostname)) return serveFont(route)
     if (!url.pathname.startsWith('/api/')) return route.continue()
@@ -337,10 +433,19 @@ export async function mock(context, opts = {}) {
     const authed = /^Bearer \S+/.test(req.headers()['authorization'] ?? '')
     // 커뮤니티는 GET이 공개(댓글 목록만 로그인) — 백엔드 SecurityConfig와 같다
     const communityPublic = m === 'GET' && p.startsWith('/api/community/') && !/\/comments$/.test(p)
-    const marketPublic = p.startsWith('/api/stocks') || p === '/api/market-indices' || p.startsWith('/api/stream/')
+    const marketPublic = p.startsWith('/api/stocks') || p === '/api/market-indices' || p.startsWith('/api/stream/') || p === '/api/live-chat/messages'
     if (!authed && !marketPublic && p !== '/api/auth/reissue' && !communityPublic) return json(fail('COMMON401_1', '인증이 필요합니다.'), 401)
     if (p.startsWith('/api/community/') || p.startsWith('/api/members/nickname') || p === '/api/members/me/nickname') return communityRoute({ m, p, q, req, authed, json, store, now, opts })
     let mm
+    if (p === '/api/live-chat/messages' && m === 'GET') {
+      await sleep(opts.chatHistoryDelay ?? 0)
+      if (opts.chatHistoryStatus) return json(fail('COMMON500_1', '서버'), opts.chatHistoryStatus)
+      const size = Number(q.get('size') ?? 50), cursor = q.has('cursor') ? Number(q.get('cursor')) : Infinity
+      const older = chat.messages.filter((x) => x.messageId < cursor)
+      const page = older.slice(-size)
+      const hasNext = older.length > size
+      return json(wrap('LIVECHAT200_1', { messages: page.map(chatRow), nextCursor: hasNext ? page[0].messageId : null, hasNext }))
+    }
     if (p === '/api/stocks') {
       await sleep(stocksDelay)
       // 실서버처럼 비로그인에는 isLiked를 주지 않는다

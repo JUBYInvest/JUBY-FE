@@ -28,11 +28,19 @@
 //  B20 커뮤니티 GET이 모두 500(쓰기는 됨 — 2026-11-06 운영): 글쓰기 → 올리기 → /community/26에 올린 글(제목·본문·종목 삼성전자·수정 단추)이 보이고 실패 글이 없다
 //  B21 같은 서버에서 주소로 연 글(/community/1): "커뮤니티 서버에 문제가 생겨 글을 불러오지 못했어요" + 다시 시도
 //  B17 390·320: 목록·상세·글쓰기 가로 넘침 없음, 카드 줄은 한 줄로 옆으로 민다
-//  C1 홈 채팅(1440 로그인): 제목 "채팅" + "예시", 예시 말 9개, 대화창이 맨 아래(최신 말)에 있다, 안내 한 줄
-//  C2 말 보내기: 입력 → 보내기 → 오른쪽 "내 말" 줄, 입력칸 비움, 요청은 보내는 이름을 위한 회원 정보뿐(채팅은 목업)
-//  C3 비로그인: 입력칸 대신 로그인 링크(/login — 홈은 돌아올 자리를 적지 않는다)
+//  홈 전체 채팅(실서버 STOMP — 가짜 서버 mock.mjs: 지난 대화 60개 id 1~60, 앞 열 개는 전날, 다섯 번째마다 내 닉네임 '느긋한거북')
+//  C1 1440 로그인: 지난 대화는 GET /api/live-chat/messages?size=50 한 번 → 말 50개(id 11~60), 대화창이 맨 아래, 웹소켓 CONNECT에 토큰, 제목 옆 "실시간",
+//     내 닉네임 말은 오른쪽, "예시"·예시 안내 없음
+//  C2 보내기: 입력 → 보내기 → SEND 본문이 그 글, 입력칸 비움, 서버가 되돌려 준 말이 맨 아래 오른쪽(내 말)에 서고 "보내는 중"이 사라진다
+//  C3 비로그인: 입력칸 대신 로그인 링크(/login), CONNECT에 토큰 없음, 지난 대화는 그대로 보인다
 //  C4 390: 시세표 → 처음 시작하기 → 채팅 순, 가로 넘침 없음
 //  C5 1280(좁은 오른쪽 열): 이름 있는 말마다 시각이 이름 줄(말풍선 위), 가장 넓은 말풍선이 열 폭의 90% 넘게 쓴다, 대화창 위아래가 흐려진다(mask)
+//  C6 이전 대화: 맨 위 "이전 대화 보기" → GET cursor=11 → 말 60개, 단추가 사라지고, 보던 말(id 11)이 제자리(±8px), 전날 말 앞에 날짜 띠
+//  C7 다른 사람 말: 맨 아래를 보는 중이면 따라 내린다. 위로 올려 읽는 중이면 그대로 두고 "새 말 1개" → 누르면 맨 아래
+//  C8 보내기 실패: 서버가 LIVECHAT429_1을 주면 그 말이 "너무 빨리 보내고 있어요" + 다시 보내기, 누르면 다시 SEND되고 대화에 오른다.
+//     닉네임이 없으면 입력칸 대신 "닉네임 정하기"
+//  C9 연결: 첫 CONNECT가 AUTH401_1(만료)이면 재발급 → 새 토큰으로 다시 CONNECT → "실시간". 서버가 끊으면 다시 붙고 최근 대화를 다시 받는다
+//  C10 지난 대화 실패(500): "지난 대화를 불러오지 못했어요" + 다시 시도, 그래도 새 말은 받는다
 import { cli, judge, noOverflow, sleep } from './lib.mjs'
 
 const j = await judge(cli())
@@ -295,35 +303,110 @@ await j.run('B', async () => {
   j.report('B17', narrow.length === 0, narrow.length === 0 ? '390·320 세 화면 넘침 없음, 카드 줄 한 줄' : narrow.join(', '))
 })
 
+const chatState = (page) => page.evaluate((sel) => {
+  const section = document.querySelector(sel)
+  const log = section.querySelector('[role="log"]')
+  const rows = [...log.querySelectorAll('li')].filter((li) => li.querySelector('[class*="_bubble_"]'))
+  return {
+    title: section.querySelector('h2')?.textContent, status: section.querySelector('[role="status"]')?.textContent.trim() ?? '',
+    sample: /예시/.test(section.textContent), count: rows.length,
+    texts: rows.map((li) => li.querySelector('[class*="_bubble_"]').textContent), right: rows.map((li) => getComputedStyle(li).justifyContent === 'flex-end'),
+    atBottom: Math.abs(log.scrollHeight - log.scrollTop - log.clientHeight) < 2, sending: /보내는 중/.test(log.textContent),
+  }
+}, CHAT)
+
 await j.run('C', async () => {
   let t = await j.open()
   await t.goto('/', 2000)
   const chat = t.page.locator(CHAT)
-  const c1 = await t.page.evaluate((sel) => {
-    const section = document.querySelector(sel)
-    const log = section.querySelector('[role="log"]')
-    return { title: section.querySelector('h2')?.textContent, tag: [...section.querySelectorAll('span')].some((s) => s.textContent === '예시'), messages: log.querySelectorAll('li').length,
-      atBottom: Math.abs(log.scrollHeight - log.scrollTop - log.clientHeight) < 2, notice: /지금 대화는 예시예요/.test(section.textContent) }
-  }, CHAT)
-  j.report('C1', c1.title === '채팅' && c1.tag && c1.messages === 9 && c1.atBottom && c1.notice, JSON.stringify(c1))
+  const c1 = await chatState(t.page)
+  const history = t.log.filter((l) => l.startsWith('GET /api/live-chat/messages'))
+  // 다섯 번째마다(id 5, 10, …) 내 닉네임 — 11~60 안에 열 개
+  const mineRight = c1.right.filter(Boolean).length
+  j.report('C1', c1.title === '채팅' && c1.status === '실시간' && !c1.sample && c1.count === 50 && c1.atBottom && history.join() === 'GET /api/live-chat/messages?size=50' &&
+    t.log.chat.connects.length === 1 && /^Bearer /.test(t.log.chat.connects[0] ?? '') && mineRight === 10,
+    JSON.stringify({ ...c1, texts: undefined, right: undefined, mineRight, history, connects: t.log.chat.connects.map((a) => (a ? 'Bearer' : null)) }))
 
-  const before = t.api().length
-  await chat.getByLabel('채팅에 보낼 말').fill('안녕하세요')
-  await chat.getByRole('button', { name: '보내기' }).click(); await sleep(300)
-  const lastMine = await t.page.evaluate((sel) => { const li = [...document.querySelectorAll(`${sel} li`)].at(-1); return { text: li.innerText, right: getComputedStyle(li).justifyContent } }, CHAT)
+  await chat.getByLabel('채팅에 보낼 말').fill('안녕하세요 반가워요')
+  await chat.getByRole('button', { name: '보내기' }).click(); await sleep(600)
+  const c2 = await chatState(t.page)
   const cleared = await chat.getByLabel('채팅에 보낼 말').inputValue()
-  j.report('C2', /안녕하세요/.test(lastMine.text) && lastMine.right === 'flex-end' && cleared === '' && t.api().slice(before).every((l) => l === 'GET /api/members/me'), `${JSON.stringify(lastMine)}, 입력칸 "${cleared}", 요청 ${t.api().length - before}건`)
+  j.report('C2', t.log.chat.sends.join() === '안녕하세요 반가워요' && cleared === '' && c2.texts.at(-1) === '안녕하세요 반가워요' && c2.right.at(-1) === true && !c2.sending && c2.count === 51,
+    `보낸 ${JSON.stringify(t.log.chat.sends)}, 입력칸 "${cleared}", 마지막 "${c2.texts.at(-1)}" 오른쪽 ${c2.right.at(-1)}, 보내는 중 ${c2.sending}, 말 ${c2.count}`)
+
+  // C7 다른 사람 말
+  t.log.chat.push('차트독학', '방금 들어온 소식이에요'); await sleep(500)
+  const followed = await chatState(t.page)
+  await t.page.locator(`${CHAT} [role="log"]`).evaluate((log) => { log.scrollTop = 0 }); await sleep(300)
+  t.log.chat.push('배당모으기', '위에서 읽는 중에 온 말'); await sleep(500)
+  const held = await t.page.locator(`${CHAT} [role="log"]`).evaluate((log) => log.scrollTop)
+  const pill = chat.getByRole('button', { name: '새 말 1개' })
+  const pillShown = await pill.count()
+  await pill.click().catch(() => {}); await sleep(800)
+  const after = await chatState(t.page)
+  j.report('C7', followed.texts.at(-1) === '방금 들어온 소식이에요' && followed.atBottom && held < 5 && pillShown === 1 && after.atBottom && (await pill.count()) === 0,
+    `따라 내림 ${followed.atBottom}, 위에서 읽는 중 스크롤 ${held}, "새 말 1개" ${pillShown} → 누른 뒤 맨 아래 ${after.atBottom}`)
+
+  // C6 이전 대화
+  await t.page.locator(`${CHAT} [role="log"]`).evaluate((log) => { log.scrollTop = 0 }); await sleep(300)
+  const firstTop = await t.page.locator(`${CHAT} [role="log"] li`).filter({ has: t.page.locator('[class*="_bubble_"]') }).first().evaluate((li) => Math.round(li.getBoundingClientRect().top))
+  await chat.getByRole('button', { name: '이전 대화 보기' }).click(); await sleep(800)
+  const c6 = await chatState(t.page)
+  const moved = await t.page.locator(`${CHAT} [role="log"] li`).filter({ has: t.page.locator('[class*="_bubble_"]') }).nth(10).evaluate((li) => Math.round(li.getBoundingClientRect().top))
+  const days = await t.page.locator(`${CHAT} [role="log"] [class*="_day_"]`).count()
+  j.report('C6', t.log.includes('GET /api/live-chat/messages?size=50&cursor=11') && c6.count === 63 && (await chat.getByRole('button', { name: '이전 대화 보기' }).count()) === 0 && Math.abs(moved - firstTop) <= 8 && days >= 1,
+    `말 ${c6.count}, 이전 대화 요청 ${t.log.filter((l) => /cursor=/.test(l)).join()}, 보던 말 ${firstTop} → ${moved}, 날짜 띠 ${days}`)
   await t.close()
 
   t = await j.open({ loggedIn: false })
   await t.goto('/', 1800)
   const link = await t.page.locator(CHAT).getByRole('link', { name: '로그인' }).getAttribute('href')
   const input = await t.page.locator(CHAT).getByLabel('채팅에 보낼 말').count()
-  j.report('C3', link === '/login' && input === 0, `로그인 링크 ${link}, 입력칸 ${input}`)
+  const guest = await chatState(t.page)
+  j.report('C3', link === '/login' && input === 0 && t.log.chat.connects.length === 1 && t.log.chat.connects[0] === null && guest.count === 50 && guest.status === '실시간',
+    `로그인 링크 ${link}, 입력칸 ${input}, CONNECT 토큰 ${JSON.stringify(t.log.chat.connects)}, 말 ${guest.count}, 상태 "${guest.status}"`)
   await t.close()
 
-  // C5 좁은 오른쪽 열(1280 — 320px 남짓): 시각은 이름 줄에(말풍선 옆에 두면 말풍선이 그만큼 좁아져 꺾였다), 말풍선은 열 폭을 다 쓸 수 있고,
-  // 대화창 위아래는 흐려지며 사라진다(먹 선에 잘린 말이 깨진 듯 보였다)
+  // C8 보내기 실패 · 닉네임 없음
+  t = await j.open({ chatSendError: (content, n) => (n === 1 ? 'LIVECHAT429_1' : null) })
+  await t.goto('/', 1800)
+  await t.page.locator(CHAT).getByLabel('채팅에 보낼 말').fill('빨리 보낸 말')
+  await t.page.locator(CHAT).getByRole('button', { name: '보내기' }).click(); await sleep(600)
+  const failedText = await t.page.locator(CHAT).getByRole('alert').innerText().catch(() => '')
+  await t.page.locator(CHAT).getByRole('button', { name: '다시 보내기' }).click().catch(() => {}); await sleep(1600)
+  const resent = await chatState(t.page)
+  await t.close()
+  t = await j.open({ nickname: null })
+  await t.goto('/', 1800)
+  const askName = await t.page.locator(CHAT).getByRole('button', { name: '닉네임 정하기' }).count()
+  const noInput = await t.page.locator(CHAT).getByLabel('채팅에 보낼 말').count()
+  j.report('C8', /너무 빨리 보내고 있어요/.test(failedText) && resent.texts.at(-1) === '빨리 보낸 말' && resent.right.at(-1) && (await t.page.locator(CHAT).getByRole('alert').count()) === 0 && askName === 1 && noInput === 0,
+    `실패 글 "${failedText.replace(/\s+/g, ' ')}", 다시 보낸 뒤 마지막 "${resent.texts.at(-1)}", 닉네임 정하기 ${askName}, 입력칸 ${noInput}`)
+  await t.close()
+
+  // C9 연결 — 만료 토큰 재발급, 끊기면 다시 붙기
+  t = await j.open({ reissue: 'ok', chatConnect: (n) => (n === 1 ? 'AUTH401_1' : null) })
+  await t.goto('/', 2500)
+  const renewed = await chatState(t.page)
+  const connects1 = [...t.log.chat.connects]
+  t.log.chat.drop(); await sleep(2500)
+  const again = await chatState(t.page)
+  const histories = t.log.filter((l) => l.startsWith('GET /api/live-chat/messages')).length
+  j.report('C9', t.log.includes('POST /api/auth/reissue') && connects1.length === 2 && connects1[1] === 'Bearer renewed-token' && renewed.status === '실시간' &&
+    t.log.chat.connects.length === 3 && again.status === '실시간' && histories === 2,
+    `CONNECT ${JSON.stringify(t.log.chat.connects.map((a) => a?.slice(0, 20) ?? null))}, 재발급 ${t.log.includes('POST /api/auth/reissue')}, 상태 ${renewed.status} → 끊긴 뒤 ${again.status}, 지난 대화 요청 ${histories}`)
+  await t.close()
+
+  // C10 지난 대화 실패
+  t = await j.open({ chatHistoryStatus: 500 })
+  await t.goto('/', 1800)
+  const failed = await t.page.locator(CHAT).getByText('지난 대화를 불러오지 못했어요.').count()
+  const retry = await t.page.locator(CHAT).getByRole('button', { name: '다시 시도' }).count()
+  t.log.chat.push('차트독학', '실패해도 새 말은 와요'); await sleep(500)
+  const live = await chatState(t.page)
+  j.report('C10', failed === 1 && retry === 1 && live.texts.at(-1) === '실패해도 새 말은 와요', `실패 안내 ${failed}, 다시 시도 ${retry}, 새 말 "${live.texts.at(-1)}"`)
+  await t.close()
+
   t = await j.open({ width: 1280, height: 800 })
   await t.goto('/', 2000)
   const c5 = await t.page.evaluate((sel) => {
