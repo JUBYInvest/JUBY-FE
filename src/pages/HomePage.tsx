@@ -392,12 +392,12 @@ export default function HomePage() {
           <div className={styles.sectionHead}>
             {/* 홈의 대표 제목. 아래 '현재 주가 보기'가 h2로 이어진다 */}
             <h1 className={styles.heading}>테마별 대표 종목</h1>
-            {cardDate !== null && listBasis !== '' && <span className={styles.asOf}>{listBasis}</span>}
             {/*
-              무엇을 보여 주는지 쉬운 말로. 백엔드는 테마마다 정해 둔 종목을 주고(LeadingStockTheme) 전략 결과로 고르지 않으므로
-              머리말에 전략을 적지 않는다. "1년 전보다" 숫자는 그 종목의 1년 주가 변화다(CardChart)
+              제목 옆 보조 글은 기준일 하나다('현재 주가 보기'와 같은 꼴). 한 줄 설명("테마마다 대표 종목을 하나씩 골라…")을 이어 붙였더니
+              회색 글 두 덩이가 한 줄로 이어져 제목 줄이 어수선했다(2026-11-07, judge feature H-2d) — 무엇인지는 칸의 "○○주 대장"과 "1년 전보다"가 말한다.
+              백엔드는 테마마다 정해 둔 종목을 주고(LeadingStockTheme) 전략 결과로 고르지 않으므로 전략을 적지 않는다
             */}
-            <p className={styles.lede}>테마마다 대표 종목을 하나씩 골라 1년 주가 흐름을 보여드려요</p>
+            {cardDate !== null && listBasis !== '' && <span className={styles.asOf}>{listBasis}</span>}
           </div>
 
           {/*

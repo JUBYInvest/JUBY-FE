@@ -135,7 +135,7 @@ export default function CardChart({ stock }: { stock: CardSeries }) {
         {size !== null && <Sparkline stock={stock} size={size} />}
       </div>
 
-      {/* 상세 API의 일봉에서 마지막 1년(주 단위). 머리말의 "1년 주가 흐름"과 기간을 맞춘다. api/cardSeries.ts 참고 */}
+      {/* 상세 API의 일봉에서 마지막 1년(주 단위). 아래 "1년 전보다"와 기간을 맞춘다. api/cardSeries.ts 참고 */}
       <p className={styles.yearRow}>
         <span className={styles.caption}>1년 전보다</span>
         <span className={`${styles.rate} ${rateClass}`}>

@@ -56,11 +56,6 @@
   composes: title from '../components/section.module.css';
 }
 
-/* 제목 옆 한 줄 설명 */
-.lede {
-  composes: note from '../components/section.module.css';
-}
-
 /* '현재 주가 보기'의 두 탭(전체 종목 · 실시간 거래대금 순위). 밑줄 탭(tabs.module.css)을 가는 선 위에 왼쪽부터 세운다 */
 .listTabs {
   composes: tabs from '../components/tabs.module.css';
@@ -83,11 +78,12 @@
   white-space: nowrap;
 }
 
-/* 지금 정렬 기준. 제목 줄 오른쪽 끝 */
+/* 지금 정렬 기준. 제목 줄 오른쪽 끝 — 누르는 글이 아니라 옆 열 제목 줄 끝 글("사용설명서" 링크)과 같은 보조색이다. 먹 글자면 제목과 겨룬다 */
 .sortNote {
   margin-left: auto;
   font-size: var(--font-md);
   font-weight: 600;
+  color: var(--color-text-sub);
   white-space: nowrap;
 }
 
@@ -164,13 +160,9 @@
     margin-top: var(--space-8);
   }
 
-  /* 설명이 둘째 줄로 내려가면 먹 선에 붙지 않게 아래를 띄운다 */
+  /* 옆 글이 둘째 줄로 내려가면(320px의 기준일·정렬) 먹 선에 붙지 않게 아래를 띄운다 */
   .sectionHead {
     padding-bottom: var(--space-2);
-  }
-
-  .lede {
-    width: 100%;
   }
 
   .cards {

@@ -20,7 +20,7 @@ interface Props {
 }
 
 /**
- * 테마별 대표 종목 칸. 이름 아래 그래프가 끝나는 날의 종가, 그 아래 1년 그래프와 "1년 전보다 ±x%"다.
+ * 테마별 대표 종목 칸. 이름 아래 그래프가 끝나는 날의 종가와 "전날보다 ±x%", 그 아래 1년 그래프와 "1년 전보다 ±x%"다.
  * "큰 % + 작은 라벨 + 그래프"를 담은 타일은 AI가 만든 화면의 흔한 꼴이라 쓰지 않고, 같은 값을 한 줄씩 적는다.
  * 1년인 까닭: 한 달 등락을 크게 적으면 그 한 달 때문에 뽑힌 것처럼 읽힌다. 종목은 백테스트 결과로
  * 고르지 않는다 — 백엔드가 테마마다 정해 둔 종목이다(JUBY-BE LeadingStockTheme).
@@ -57,18 +57,23 @@ export default function TopStockCard({ theme, series, quote, showDate }: Props) 
       </p>
       <p className={styles.name}>{theme.stockName}</p>
       {/*
-        그래프가 끝나는 날의 종가와 그 전 거래일 대비. 그래프를 못 그린 카드도 이 줄은 있다.
-        등락률 앞에 "전날보다"를 적는다 — 아래 1년 그래프·"1년 전보다"와 색이 엇갈리면(1년은 올랐는데 하루는 내림) 무엇이 올랐는지 안 읽혔다(2026-11-07 사용자)
+        그래프가 끝나는 날의 종가와 그 전 거래일 대비, 두 줄. 그래프를 못 그린 카드도 이 줄은 있다.
+        등락률 앞에 "전날보다"를 적는다 — 아래 1년 그래프·"1년 전보다"와 색이 엇갈리면(1년은 올랐는데 하루는 내림) 무엇이 올랐는지 안 읽혔다(2026-11-07 사용자).
+        한 줄에 글자 크기는 하나다 — 가격 옆에 작은 "전날보다"와 등락률을 붙였더니 크기가 셋이라 어수선했다(2026-11-07 사용자, judge feature H-2c)
       */}
       <p className={styles.quote}>
         <span className={styles.price}>{formatPrice(quote?.closePrice)}</span>{' '}
-        {/* 전일 대비를 모르면 이름도 적지 않는다("전날보다 -"가 되지 않게) */}
-        {quote?.fluctuate != null && (
-          <span className={styles.daily}>
-            <span className={styles.caption}>전날보다</span>{' '}
-            <span className={styles[rateTone(quote.fluctuate)]}>{formatChangeRate(quote.fluctuate)}</span>
-          </span>
-        )}
+        {/* 전일 대비를 모르면 이름도 적지 않는다("전날보다 -"가 되지 않게). 줄 자리는 남겨 세 칸의 그래프 높이를 맞춘다 */}
+        <span className={styles.daily}>
+          {quote?.fluctuate == null ? (
+            ' '
+          ) : (
+            <>
+              <span className={styles.caption}>전날보다</span>{' '}
+              <span className={`${styles.rate} ${styles[rateTone(quote.fluctuate)]}`}>{formatChangeRate(quote.fluctuate)}</span>
+            </>
+          )}
+        </span>
       </p>
 
       {series === null ? (

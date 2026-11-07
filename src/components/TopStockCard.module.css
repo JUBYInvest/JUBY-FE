@@ -38,7 +38,7 @@
 }
 
 .quoteLabel {
-  font-size: var(--font-xs);
+  font-size: var(--font-sm);
   color: var(--color-text-sub);
   white-space: nowrap;
 }
@@ -50,14 +50,23 @@
   font-weight: 700;
 }
 
-/* 그래프가 끝나는 날의 종가와 전일 대비 */
+/*
+ * 그래프가 끝나는 날의 종가(16px) 한 줄, 그 아래 "전날보다 ±x%"(14px) 한 줄. 이름과 떨어뜨려 [테마·이름] [가격·전날] [그래프·1년] 세 묶음으로 읽힌다.
+ * 한 줄 안에서는 글자 크기가 하나다 — 이름 18 > 가격 16 > 등락 두 줄 14(judge feature H-2c)
+ */
 .quote {
   grid-area: quote;
-  margin: 2px 0 0;
+  display: grid;
+  justify-items: start;
+  row-gap: 2px;
+  margin: var(--space-2) 0 0;
+}
+
+.price {
   font-size: var(--font-lg);
   font-weight: 600;
   font-variant-numeric: tabular-nums;
-  /* 칸이 좁으면 "전날보다 ±x%" 묶음째 다음 줄로 — 가격과 묶음은 각각 꺾지 않는다 */
+  white-space: nowrap;
 }
 
 .chart {
@@ -66,30 +75,31 @@
   margin-top: var(--space-3);
 }
 
-/* 1년 주가 변화. 큰 숫자 타일이 아니라 그래프 아래 한 줄로 적는다 */
+/*
+ * "전날보다 ±x%"와 그래프 아래 "1년 전보다 ±x%"는 같은 꼴이다 — 14px 한 줄, 보조색 이름 + 등락색 숫자(상세 머리 "전일 대비 +x%"와 같은 크기).
+ * 큰 숫자 타일이 아니라 한 줄로 적는다
+ */
+.daily,
+.yearRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  column-gap: var(--space-1);
+  font-size: var(--font-md);
+}
+
 .yearRow {
   grid-area: year;
-  display: flex;
-  align-items: baseline;
-  gap: var(--space-1);
   margin: var(--space-2) 0 0;
 }
 
 .caption {
-  font-size: var(--font-sm);
   font-weight: 400;
   color: var(--color-text-sub);
 }
 
-/* 가격 옆 "전날보다 ±x%" — 아래 "1년 전보다"와 같은 꼴(작은 보조색 이름 + 등락색 숫자) */
-.price,
-.daily {
-  white-space: nowrap;
-}
-
 .rate {
-  font-size: var(--font-lg);
-  font-weight: 700;
+  font-weight: 600;
   font-variant-numeric: tabular-nums;
 }
 
@@ -152,19 +162,22 @@
     display: none;
   }
 
+  /* 이름 16 > 가격 14 > 전날 13. 왼쪽 칸이 160px 남짓(320px 화면은 100px 남짓)이라 넘치면 "전날보다"와 숫자 사이에서 꺾는다 */
   .name {
     font-size: var(--font-lg);
   }
 
   .quote {
-    font-size: var(--font-md);
-    font-weight: 600;
+    row-gap: 0;
+    margin-top: var(--space-1);
   }
 
-  /* 왼쪽 칸이 160px 남짓(320px 화면은 100px 남짓)이라 늘 가격 아래 줄, 그래도 넘치면 "전날보다"와 숫자 사이에서 꺾는다 */
+  .price {
+    font-size: var(--font-md);
+  }
+
   .daily {
-    display: block;
-    white-space: normal;
+    font-size: var(--font-sm);
   }
 
   .chart {
@@ -181,6 +194,7 @@
     display: none;
   }
 
+  /* 오른쪽 끝 두 줄 — 작은 "1년 전보다" 아래 숫자. 한 줄씩이라 크기가 달라도 한 줄 안에서는 하나다 */
   .yearRow {
     flex-direction: column;
     align-items: flex-end;
@@ -189,7 +203,7 @@
     margin: 0;
   }
 
-  .caption {
+  .yearRow .caption {
     font-size: var(--font-xs);
   }
 }

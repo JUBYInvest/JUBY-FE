@@ -126,6 +126,45 @@ for (const [width, height, least] of [[1920, 1080, 8], [1440, 900, 8], [390, 844
   await context.close()
 }
 
+// H-2c(2026-11-07 사용자 "가격, 전날보다, 퍼센트 이게 글자크기가 다 다르고 세련되지 못한 UI"): 테마 칸의 한 줄 안에서는 글자 크기가 하나다.
+// 위계는 이름 > 가격 > 등락이고, "전날보다 ±x%"와 "1년 전보다 ±x%"는 같은 크기다. 줄은 같은 문단(p) 안에서 세로로 겹치는 글 조각이다(휴대폰은 칸이 세 열이라 문단으로 가른다)
+// H-2d(같은 날 "메인 페이지의 위계를 다시 한번 잡아줘"): 홈 구역 제목 옆(왼쪽 묶음) 보조 글은 하나다 — 기준일과 한 줄 설명이 회색 두 덩이로 이어 붙어 있었다.
+// 제목 줄 오른쪽 끝 글(정렬 기준·사용설명서·연결 상태)은 모두 보조색이다 — 정렬 기준만 먹 글자라 제목과 겨뤘다
+for (const [width, height] of [[1920, 1080], [1101, 900], [390, 844]]) {
+  const { context, page } = await open('/', { width, height })
+  const cards = await page.$$eval('[class*="_cards_"] > a', (list) => list.map((card) => {
+    const leaves = [...card.querySelectorAll('*')].filter((e) => [...e.childNodes].some((n) => n.nodeType === 3 && n.textContent.trim() !== '') && e.getBoundingClientRect().height > 0)
+    const lines = []
+    for (const e of leaves) {
+      const r = e.getBoundingClientRect(), mid = (r.top + r.bottom) / 2, block = e.closest('p') ?? card
+      const item = { text: e.textContent.trim(), fs: parseFloat(getComputedStyle(e).fontSize) }
+      const line = lines.find((l) => l.block === block && mid > l.top && mid < l.bottom)
+      if (line) { line.items.push(item); line.top = Math.min(line.top, r.top); line.bottom = Math.max(line.bottom, r.bottom) } else lines.push({ block, top: r.top, bottom: r.bottom, items: [item] })
+    }
+    const sizeOf = (sel) => { const e = card.querySelector(sel); return e ? parseFloat(getComputedStyle(e).fontSize) : null }
+    const lineWith = (re) => lines.filter((l) => l.items.some((i) => re.test(i.text))).flatMap((l) => l.items.map((i) => i.fs))
+    return {
+      mixed: lines.filter((l) => new Set(l.items.map((i) => i.fs)).size > 1).map((l) => l.items.map((i) => `${i.text} ${i.fs}`).join(' | ')),
+      name: sizeOf('[class*="_name_"]'), price: sizeOf('[class*="_price_"]'),
+      daily: lineWith(/^전날보다$/), year: lineWith(/^1년 전보다$/),
+    }
+  }))
+  const ok2c = cards.length === 3 && cards.every((c) => c.mixed.length === 0 && c.name > c.price && c.daily.length > 0 && c.price > Math.max(...c.daily) && (width <= 600 || new Set([...c.daily, ...c.year]).size === 1))
+  report(`H-2c ${width}`, ok2c, `크기가 섞인 줄 ${JSON.stringify(cards.flatMap((c) => c.mixed))}, 이름·가격 ${JSON.stringify(cards.map((c) => [c.name, c.price]))}, 전날·1년 줄 ${JSON.stringify(cards.map((c) => [c.daily, c.year]))}`)
+  const heads = await page.$$eval('main [class*="_head"]', (list) => list.filter((h) => h.querySelector('h1, h2') && parseFloat(getComputedStyle(h).borderBottomWidth) === 2).map((h) => {
+    const box = h.getBoundingClientRect()
+    const items = [...h.children].filter((c) => !/^H[12]$/.test(c.tagName) && c.getBoundingClientRect().width > 0 && c.textContent.trim() !== '')
+    const atEnd = (c) => box.right - c.getBoundingClientRect().right < 2
+    return {
+      title: h.querySelector('h1, h2').textContent.trim(),
+      beside: items.filter((c) => !atEnd(c)).map((c) => c.textContent.trim()),
+      endInk: items.filter(atEnd).filter((c) => getComputedStyle(c).color === getComputedStyle(h.querySelector('h1, h2')).color).map((c) => c.textContent.trim()),
+    }
+  }))
+  report(`H-2d ${width}`, heads.length >= 4 && heads.every((h) => h.beside.length <= 1 && h.endInk.length === 0), JSON.stringify(heads.map((h) => `${h.title}: 옆 ${JSON.stringify(h.beside)} 끝 먹 ${JSON.stringify(h.endInk)}`)))
+  await context.close()
+}
+
 /* ── 종목 상세 ── */
 {
   const plotH = []
