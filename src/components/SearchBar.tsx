@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import type { FocusEvent, FormEvent, KeyboardEvent } from 'react'
+import type { FocusEvent, KeyboardEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { rankStocks, searchStocks, searchStocksRemote } from '../api/search'
 import { forgetRecentStocks, readRecentStocks } from '../utils/recentStocks'
@@ -136,8 +136,11 @@ export default function SearchBar({
   /** 지금 보이는 후보. 비어 있으면 넘겨받은 목록(없으면 최근 본 종목), 아니면 검색 결과 */
   const options = isEmpty ? (browse?.stocks ?? recent) : suggestions
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault()
+  /*
+   * Enter·검색 단추. 폼으로 두지 않는다 — 커뮤니티 글쓰기는 이 검색칸을 글 폼 안에 그려서, 폼 안의 폼이 되면 종목을 Enter로 고르는 순간
+   * 바깥 글 폼까지 제출돼 화면이 새로 열리고 쓰던 제목·내용이 사라졌다(judge community B25)
+   */
+  function submitSearch() {
     if (isEmpty) {
       // 최근 본 종목(또는 넘겨받은 목록)을 방향키로 골랐으면 그리로 간다
       const picked = activeIndex >= 0 ? options[activeIndex] : undefined
@@ -165,6 +168,15 @@ export default function SearchBar({
     if (event.key === 'Escape') {
       if (!isListVisible) onDismiss?.()
       setIsOpen(false)
+      // 닫힌 목록의 후보가 Enter로 골라지지 않게
+      setActiveIndex(-1)
+      return
+    }
+
+    // 한글 조합 중 Enter는 글자를 끝내는 것이다 — 그때 보내면 마지막 글자가 빠진다
+    if (event.key === 'Enter' && !event.nativeEvent.isComposing) {
+      event.preventDefault()
+      submitSearch()
       return
     }
 
@@ -185,7 +197,7 @@ export default function SearchBar({
     }
   }
 
-  function handleBlur(event: FocusEvent<HTMLFormElement>) {
+  function handleBlur(event: FocusEvent<HTMLDivElement>) {
     // 후보 버튼으로 포커스가 옮겨간 것뿐이면 닫지 않는다
     if (event.currentTarget.contains(event.relatedTarget)) return
     setIsOpen(false)
@@ -212,7 +224,7 @@ export default function SearchBar({
     isListVisible && activeIndex >= 0 ? `stock-suggestion-${activeIndex}` : undefined
 
   return (
-    <form className={styles.form} onSubmit={handleSubmit} onBlur={handleBlur}>
+    <div className={styles.form} role="search" onBlur={handleBlur}>
       <div className={styles.box}>
         <svg className={styles.icon} width="20" height="20" viewBox="0 0 24 24" aria-hidden="true">
           <circle cx="11" cy="11" r="7" fill="none" stroke="currentColor" strokeWidth="2.2" />
@@ -243,7 +255,7 @@ export default function SearchBar({
           aria-autocomplete="list"
           aria-activedescendant={activeOptionId}
         />
-        <button type="submit" className={styles.button}>
+        <button type="button" className={styles.button} onClick={submitSearch}>
           검색
         </button>
       </div>
@@ -305,6 +317,6 @@ export default function SearchBar({
       )}
 
       {message !== '' && <p className={styles.message}>{message}</p>}
-    </form>
+    </div>
   )
 }

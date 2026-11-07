@@ -73,6 +73,9 @@ const evenInsets = (cells) => cells.length > 1 && cells.every(([l]) => l >= 12 &
     const boxed = cards.filter((c) => { const cs = getComputedStyle(c); return cs.boxShadow !== 'none' || ['Top', 'Right', 'Bottom'].every((s) => parseFloat(cs[`border${s}Width`]) > 0) })
     return { n: cards.length, boxed: boxed.length, year: cards.filter((c) => /1년 전보다\s*[+-]?\d/.test(c.textContent)).length, big: cards.filter((c) => [...c.querySelectorAll('*')].some((e) => parseFloat(getComputedStyle(e).fontSize) >= 28)).length }
   })
+  // H-2b 가격 옆 등락률이 무엇과 비교한 값인지 적는다 — "전날보다 -10.20%"(2026-11-07 사용자: 1년 그래프 색과 전일 등락 색이 섞여 오르내림이 안 읽혔다)
+  const daily = await page.$$eval('[class*="_cards_"] > a', (cards) => cards.map((c) => c.querySelector('[class*="_quote_"]')?.textContent.replace(/\s+/g, ' ').trim() ?? ''))
+  report('H-2b', daily.length === 3 && daily.every((t) => /원 전날보다 [+-]?\d+\.\d{2}%$/.test(t)), `가격 줄 ${JSON.stringify(daily)}`)
   report('H-2', h2.n === 3 && h2.boxed === 0 && h2.year === 3 && h2.big === 0, `테마 칸 ${h2.n}, 상자(그림자·세 변 테두리) ${h2.boxed}, "1년 전보다 ±x%" ${h2.year}, 28px 넘는 큰 숫자 ${h2.big}`)
   const ranks = await page.locator('[class*="_rank_"]').allTextContents()
   await page.getByRole('button', { name: '등락률 기준 정렬' }).click()

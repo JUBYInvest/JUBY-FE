@@ -30,6 +30,8 @@ export interface StompSession {
 }
 
 const HEARTBEAT_MS = 10_000
+/** 열고 나서 이만큼 안에 CONNECTED가 안 오면 끊는다 — 안 그러면 "연결하는 중"에 영영 멈춘다 */
+const CONNECT_TIMEOUT_MS = 10_000
 
 /** STOMP 1.2 머리 값 escaping(CONNECT·CONNECTED는 하지 않는다) */
 function escapeHeader(value: string): string {
@@ -96,6 +98,7 @@ export function openStomp(url: string, connectHeaders: Record<string, string>, h
   const stopTimers = () => {
     if (beat !== undefined) window.clearInterval(beat)
     beat = undefined
+    window.clearTimeout(connectTimer)
   }
 
   const finish = (notify: boolean) => {
@@ -111,13 +114,17 @@ export function openStomp(url: string, connectHeaders: Record<string, string>, h
     if (!Number.isFinite(tick)) return
     beat = window.setInterval(() => {
       if (plan.send > 0 && socket.readyState === WebSocket.OPEN) socket.send('\n')
-      // 바란 간격의 두 배가 넘도록 아무것도 안 왔으면 죽은 연결이다
-      if (plan.expect > 0 && Date.now() - lastReceived > plan.expect * 2) socket.close()
+      // 바란 간격의 두 배가 넘도록 아무것도 안 왔으면 죽은 연결이다. 닫힘 인사가 끝나기를(반쯤 열린 연결이면 수십 초) 기다리지 않고 곧바로 끝낸다
+      if (plan.expect > 0 && Date.now() - lastReceived > plan.expect * 2) {
+        finish(true)
+        socket.close()
+      }
     }, tick)
   }
 
   const handleFrame = (frame: StompFrame) => {
     if (frame.command === 'CONNECTED') {
+      window.clearTimeout(connectTimer)
       connected = true
       startHeartbeat(heartbeatPlan(frame.headers['heart-beat']))
       handlers.onConnect()
@@ -147,6 +154,11 @@ export function openStomp(url: string, connectHeaders: Record<string, string>, h
     if (/^(\r?\n)*$/.test(buffer)) buffer = ''
   }
   socket.onclose = () => finish(true)
+  const connectTimer = window.setTimeout(() => {
+    if (connected || finished) return
+    finish(true)
+    socket.close()
+  }, CONNECT_TIMEOUT_MS)
 
   return {
     subscribe: (destination, onMessage) => {

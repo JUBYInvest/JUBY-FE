@@ -56,12 +56,19 @@ export default function TopStockCard({ theme, series, quote, showDate }: Props) 
         {showDate && date !== '' && <span className={styles.quoteLabel}>{date} 종가</span>}
       </p>
       <p className={styles.name}>{theme.stockName}</p>
-      {/* 그래프가 끝나는 날의 종가. 그래프를 못 그린 카드도 이 줄은 있다 */}
+      {/*
+        그래프가 끝나는 날의 종가와 그 전 거래일 대비. 그래프를 못 그린 카드도 이 줄은 있다.
+        등락률 앞에 "전날보다"를 적는다 — 아래 1년 그래프·"1년 전보다"와 색이 엇갈리면(1년은 올랐는데 하루는 내림) 무엇이 올랐는지 안 읽혔다(2026-11-07 사용자)
+      */}
       <p className={styles.quote}>
-        {formatPrice(quote?.closePrice)}{' '}
-        <span className={styles[rateTone(quote?.fluctuate)]}>
-          {formatChangeRate(quote?.fluctuate)}
-        </span>
+        <span className={styles.price}>{formatPrice(quote?.closePrice)}</span>{' '}
+        {/* 전일 대비를 모르면 이름도 적지 않는다("전날보다 -"가 되지 않게) */}
+        {quote?.fluctuate != null && (
+          <span className={styles.daily}>
+            <span className={styles.caption}>전날보다</span>{' '}
+            <span className={styles[rateTone(quote.fluctuate)]}>{formatChangeRate(quote.fluctuate)}</span>
+          </span>
+        )}
       </p>
 
       {series === null ? (

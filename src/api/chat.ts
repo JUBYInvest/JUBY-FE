@@ -22,8 +22,8 @@ export interface ChatMessage {
 
 /** 한 번에 보낼 수 있는 글자 수(백엔드 LiveChatService.MAX_CONTENT_LENGTH — String.length로 센다, 입력칸 maxLength와 같다) */
 export const CHAT_LIMIT = 300
-/** 같은 사람이 이 간격 안에 다시 보내면 서버가 거절한다(LIVECHAT429_1, LiveChatRateLimiter) — 보내는 쪽이 먼저 기다린다 */
-export const CHAT_SEND_GAP_MS = 1_000
+/** 서버는 같은 사람이 1초 안에 다시 보내면 거절한다(LIVECHAT429_1, LiveChatRateLimiter) — 망에서 앞 말이 늦게 닿아도 걸리지 않게 조금 더 기다린다 */
+export const CHAT_SEND_GAP_MS = 1_200
 
 const PAGE_SIZE = 50
 const SOCKET_URL = `${API_ORIGIN.replace(/^http/, 'ws')}/ws/live-chat`
@@ -89,11 +89,18 @@ export function openLiveChat(handlers: LiveChatHandlers): LiveChat {
   let timer: number | undefined
   /** 토큰을 살리지 못했다 — 이 연결은 끝날 때까지 토큰 없이 붙는다 */
   let readOnly = false
+  /** 재발급을 기다리는 중 — 그 사이 다시 붙기(탭 복귀·온라인)가 연결을 하나 더 열지 않게 */
+  let renewing = false
+  /** 마지막으로 붙은 뒤 재발급했다 — 새 토큰도 거절당하면 또 재발급하지 않고 읽기 전용으로 둔다(재발급·연결이 끝없이 돌지 않게) */
+  let renewedSinceLive = false
 
   const connect = () => {
     window.clearTimeout(timer)
     timer = undefined
     if (closed) return
+    // 열려 있던 연결은 닫고 연다 — 둘이 열려 있으면 앞의 것이 하트비트로 끝까지 산다
+    session?.close()
+    session = null
     const token = readOnly ? null : getAccessToken()
     let rejected = false
     const current = openStomp(SOCKET_URL, token === null ? {} : { Authorization: `Bearer ${token}` }, {
@@ -101,6 +108,7 @@ export function openLiveChat(handlers: LiveChatHandlers): LiveChat {
         if (closed || session !== current) return
         live = true
         failures = 0
+        renewedSinceLive = false
         current.subscribe(TOPIC, (body) => {
           const message = parse(body, toChatMessage)
           if (message !== null) handlers.onMessage(message)
@@ -132,12 +140,16 @@ export function openLiveChat(handlers: LiveChatHandlers): LiveChat {
   }
 
   const renewAndReconnect = async (sentToken: string) => {
+    if (renewing) return
     live = false
     const old = session
     session = null
     old?.close()
     handlers.onStatus('retrying')
-    const renewed = await renewAccessToken(sentToken)
+    renewing = true
+    const renewed = renewedSinceLive ? null : await renewAccessToken(sentToken)
+    renewing = false
+    renewedSinceLive = true
     if (closed) return
     if (renewed === null) {
       readOnly = true
@@ -162,9 +174,10 @@ export function openLiveChat(handlers: LiveChatHandlers): LiveChat {
   connect()
 
   return {
-    send: (text) => live && session !== null && session.send(SEND, JSON.stringify({ content: text })),
+    // 읽기 전용(토큰을 못 살림)이면 보내지 않는다 — 손님 연결로 보내 봐야 실패도 돌아오지 않는다
+    send: (text) => live && !readOnly && session !== null && session.send(SEND, JSON.stringify({ content: text })),
     reconnect: () => {
-      if (closed || live || session !== null) return
+      if (closed || live || renewing || session !== null) return
       failures = 0
       handlers.onStatus('retrying')
       connect()

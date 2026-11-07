@@ -64,14 +64,25 @@
  */
 .log {
   height: 412px;
+  /*
+   * 스크롤 막대는 보이지 않는다(2026-11-07 사용자 — 막대가 늘 보이는 윈도에서 세로 막대가 칸을 좁히고 가로 막대까지 생겼다).
+   * 맨 아래를 보는 중이면 새 말이 오는 대로 위로 밀려 올라가고(HomeChat), 지난 말은 휠·손가락·키보드(대화창에 포커스)로 올려 읽는다.
+   * 위아래 흐림(mask)과 맨 위 "이전 대화 보기"가 더 있다는 표시다. 가로로는 넘치지 않는다 — 긴 낱말은 말풍선 안에서 꺾는다
+   */
+  overflow-x: hidden;
   overflow-y: auto;
   overscroll-behavior: contain;
+  scrollbar-width: none;
   /* 안의 화면 읽기 전용 글(srOnly — absolute)이 이 상자를 기준으로 서게 한다. 아니면 대화창 밖(아래 수천 px)에 서서 페이지가 길어진다(market S4) */
   position: relative;
   /* 이전 대화를 위에 붙일 때 보던 말을 제자리에 두는 일은 HomeChat이 한다 — 브라우저(크롬)의 스크롤 고정까지 겹치면 두 번 밀린다. 사파리는 고정이 없다 */
   overflow-anchor: none;
   padding: var(--space-4) 0 var(--space-3);
   mask-image: linear-gradient(to bottom, transparent, var(--color-text) var(--space-4), var(--color-text) calc(100% - var(--space-3)), transparent);
+}
+
+.log::-webkit-scrollbar {
+  display: none;
 }
 
 .log:focus-visible {

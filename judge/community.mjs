@@ -13,6 +13,7 @@
 //  B8 글쓰기(삼성전자 카드를 고른 채): 종목 "삼성전자" → 제목·내용 → 올리기 = POST {stockCode, title, content} → /community/26, 목록 맨 위
 //  B8b 그 글쓰기 종목 줄은 종목 이름뿐이다 — "이야기"·"빼기" 없음(2026-11-06 사용자)
 //  B9 종목 없이 쓰면 본문에 stockCode 칸이 없다
+//  B25 제목·내용을 쓴 뒤 종목을 Enter로 고르면(검색칸 폼이 글 폼 안에 있다) 글이 올라가지 않고 종목만 골라진다 — 전엔 종목 없이 POST됐다(2026-11-07 코드 점검)
 //  B22 글쓰기(1440): 글 칸(680px)이 본문 폭 가운데 — 왼쪽·오른쪽 빈 곳이 같다(2026-11-07 사용자)
 //  B23 "종목 고르기" → 치기 전에 후보가 뜬다: 머리 "시가총액 순"(기록 지우기 없음), 삼성전자 · SK하이닉스 · 삼성전자우 순, 목록 안에서 굴러가고 화면 밖으로 나가지 않는다,
 //      방향키로 내려가면 고른 후보가 목록 안에 보인다, Esc로 닫은 뒤 입력칸을 누르면 다시 뜬다(2026-11-07 사용자)
@@ -40,6 +41,7 @@
 //  C8 보내기 실패: 서버가 LIVECHAT429_1을 주면 그 말이 "너무 빨리 보내고 있어요" + 다시 보내기, 누르면 다시 SEND되고 대화에 오른다.
 //     닉네임이 없으면 입력칸 대신 "닉네임 정하기"
 //  C9 연결: 첫 CONNECT가 AUTH401_1(만료)이면 재발급 → 새 토큰으로 다시 CONNECT → "실시간". 서버가 끊으면 다시 붙고 최근 대화를 다시 받는다
+//  C11 대화창에 스크롤 막대가 보이지 않는다(가로 막대 없음 — 내용이 폭을 넘지 않고, 세로 막대도 숨긴다 — 2026-11-07 사용자). 휠로는 그대로 올려 읽는다
 //  C10 지난 대화 실패(500): "지난 대화를 불러오지 못했어요" + 다시 시도, 그래도 새 말은 받는다
 import { cli, judge, noOverflow, sleep } from './lib.mjs'
 
@@ -135,6 +137,19 @@ await j.run('B', async () => {
   await t.page.getByRole('button', { name: '올리기' }).click()
   const sent2 = JSON.parse((await posting2).postData())
   j.report('B9', !('stockCode' in sent2) && sent2.title === '종목 없는 글', `보낸 ${JSON.stringify(sent2)}`)
+  await t.close()
+
+  t = await j.open()
+  await t.goto('/community/write', 1500)
+  await t.page.getByLabel('제목').fill('엔터로 종목 고르기')
+  await t.page.getByLabel('내용').fill('본문')
+  await t.page.getByRole('button', { name: '종목 고르기' }).click(); await sleep(300)
+  await t.page.getByRole('combobox').press('ArrowDown')
+  await t.page.getByRole('combobox').press('Enter'); await sleep(800)
+  const enterPosts = t.log.filter((l) => l === 'POST /api/community/posts').length
+  const enterStock = (await t.page.locator('[class*="_stockChosen_"]').innerText().catch(() => '')).trim()
+  const enterPath = new URL(t.page.url()).pathname
+  j.report('B25', enterPosts === 0 && enterStock === '삼성전자' && enterPath === '/community/write', `글 올림 ${enterPosts}건, 종목 줄 "${enterStock}", 주소 ${enterPath}`)
   await t.close()
 
   t = await j.open()
@@ -395,6 +410,19 @@ await j.run('C', async () => {
   j.report('C9', t.log.includes('POST /api/auth/reissue') && connects1.length === 2 && connects1[1] === 'Bearer renewed-token' && renewed.status === '실시간' &&
     t.log.chat.connects.length === 3 && again.status === '실시간' && histories === 2,
     `CONNECT ${JSON.stringify(t.log.chat.connects.map((a) => a?.slice(0, 20) ?? null))}, 재발급 ${t.log.includes('POST /api/auth/reissue')}, 상태 ${renewed.status} → 끊긴 뒤 ${again.status}, 지난 대화 요청 ${histories}`)
+  await t.close()
+
+  // C11 스크롤 막대
+  t = await j.open({ width: 1280, height: 900 })
+  await t.goto('/', 2000)
+  const bars = await t.page.locator(`${CHAT} [role="log"]`).evaluate((log) => {
+    const cs = getComputedStyle(log)
+    return { scrollbar: cs.scrollbarWidth, overflowX: cs.overflowX, wider: log.scrollWidth > log.clientWidth, gutter: log.offsetWidth - log.clientWidth }
+  })
+  await t.page.locator(`${CHAT} [role="log"]`).hover()
+  await t.page.mouse.wheel(0, -600); await sleep(400)
+  const wheeled = await t.page.locator(`${CHAT} [role="log"]`).evaluate((log) => log.scrollHeight - log.scrollTop - log.clientHeight > 100)
+  j.report('C11', bars.scrollbar === 'none' && bars.overflowX === 'hidden' && !bars.wider && bars.gutter === 0 && wheeled, `${JSON.stringify(bars)}, 휠로 올라감 ${wheeled}`)
   await t.close()
 
   // C10 지난 대화 실패

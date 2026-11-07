@@ -229,6 +229,36 @@ async function run(opts, period) {
     JSON.stringify({ ...r, names: `${r.names.length}개 ${r.names.slice(0, 3).join(' · ')} … 12번째 ${r.names[11]}` }))
 }
 
+// B10 (2026-11-07 코드 점검) 종목 칸: Esc로 닫은 뒤 Enter는 안 보이는 후보를 고르지 않는다. 마우스를 올린 줄은 Enter로 골라지지 않는다(방향키만).
+//     결과가 오면 포커스가 결과로 간다(휴대폰은 결과가 시작 단추보다 DOM 앞이라 Tab으로 못 간다). "백테스트 다시하기" 뒤 포커스는 화면 제목(사라진 단추에 남지 않는다)
+{
+  const context = await browser.newContext({ viewport: { width: 1440, height: 1000 } })
+  await seedLogin(context)
+  await mock(context, {})
+  const page = await context.newPage()
+  await page.goto(BASE + '/backtest', { waitUntil: 'domcontentloaded' })
+  await sleep(1500)
+  const input = page.locator('#backtest-stock')
+  await input.fill('삼성'); await sleep(250)
+  await input.press('Escape'); await input.press('Enter'); await sleep(250)
+  const r = { escEnter: await input.inputValue() }
+  await input.fill(''); await sleep(250)
+  await page.locator('[role="listbox"] [role="option"]').nth(3).hover().catch(() => {}); await sleep(150)
+  await input.press('Enter'); await sleep(250)
+  r.hoverEnter = await input.inputValue()
+  await input.fill('삼성전자'); await sleep(250); await input.press('Enter')
+  await page.locator('button[data-period="ONE_YEAR"]').click({ timeout: 2000 }).catch(() => {})
+  await page.getByRole('button', { name: '백테스트 시작하기' }).click({ timeout: 2000 }).catch(() => {})
+  await page.getByRole('heading', { name: '백테스트 결과' }).waitFor({ timeout: 8000 }).catch(() => {})
+  await sleep(600)
+  r.resultFocus = await page.evaluate(() => document.activeElement?.id ?? document.activeElement?.tagName)
+  await page.getByRole('button', { name: '백테스트 다시하기' }).click({ timeout: 2000 }).catch(() => {})
+  await sleep(500)
+  r.retryFocus = await page.evaluate(() => document.activeElement?.tagName)
+  await context.close()
+  report('B10', r.escEnter === '삼성' && r.hoverEnter === '' && r.resultFocus === 'backtest-result' && r.retryFocus === 'H1', JSON.stringify(r))
+}
+
 await browser.close()
 console.log(out.join('\n'))
 console.log(`backtest PASS ${out.filter((l) => l.startsWith('PASS')).length} FAIL ${out.filter((l) => l.startsWith('FAIL')).length}`)

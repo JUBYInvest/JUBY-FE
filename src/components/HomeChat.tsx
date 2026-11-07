@@ -37,8 +37,11 @@ export default function HomeChat() {
   const [unseen, setUnseen] = useState(0)
   const logRef = useRef<HTMLDivElement>(null)
   const stickRef = useRef(true)
-  /** 이전 대화를 위에 붙이기 직전의 높이 — 붙인 뒤 그만큼 내려 보던 말이 제자리에 있게 한다 */
-  const prependRef = useRef<number | null>(null)
+  /**
+   * 이전 대화를 위에 붙이기 직전의 높이와 맨 위 말 — 맨 위 말이 바뀐(위에 붙은) 때에만 그만큼 내려 보던 말이 제자리에 있게 한다.
+   * 받는 사이 새 말이 와도 보정을 그 말에 써 버리지 않고, 받기가 실패하면 버린다
+   */
+  const prependRef = useRef<{ height: number; firstId: number | undefined } | null>(null)
   const lastIdRef = useRef<number | null>(null)
 
   // 서버가 닉네임이 없다고 거절하면 닉네임 창을 연다
@@ -50,8 +53,9 @@ export default function HomeChat() {
   useLayoutEffect(() => {
     const log = logRef.current
     if (log === null) return
-    if (prependRef.current !== null) {
-      log.scrollTop += log.scrollHeight - prependRef.current
+    const prepend = prependRef.current
+    if (prepend !== null && messages[0]?.id !== prepend.firstId) {
+      log.scrollTop += log.scrollHeight - prepend.height
       prependRef.current = null
     } else if (stickRef.current) {
       log.scrollTop = log.scrollHeight
@@ -64,6 +68,11 @@ export default function HomeChat() {
     }
     lastIdRef.current = lastId
   }, [messages, pending])
+
+  // 이전 대화 받기가 실패하면 기다리던 보정을 버린다 — 남아 있으면 다음 새 말에 화면이 끌려간다
+  useEffect(() => {
+    if (history.kind === 'ready' && !history.loadingMore && history.moreFailed) prependRef.current = null
+  }, [history])
 
   const onScroll = () => {
     const log = logRef.current
@@ -85,7 +94,7 @@ export default function HomeChat() {
 
   const loadOlder = () => {
     const log = logRef.current
-    if (log !== null) prependRef.current = log.scrollHeight
+    if (log !== null) prependRef.current = { height: log.scrollHeight, firstId: messages[0]?.id }
     chat.loadOlder()
   }
 
@@ -112,7 +121,7 @@ export default function HomeChat() {
 
       <div className={styles.logWrap}>
         {/* 스크롤되는 칸이라 키보드로도 들어와 위아래로 움직일 수 있게 tabIndex를 준다 */}
-        <div ref={logRef} className={styles.log} role="log" aria-label="전체 채팅" aria-busy={history.kind === 'loading'} tabIndex={0} onScroll={onScroll}>
+        <div ref={logRef} className={styles.log} role="log" aria-label="전체 채팅" aria-busy={history.kind === 'loading' || (history.kind === 'ready' && history.loadingMore)} tabIndex={0} onScroll={onScroll}>
           {/* 지난 대화를 못 받았는데 새 말이 먼저 와 있으면 맨 위에서 다시 받게 한다 */}
           {history.kind === 'error' && messages.length > 0 && (
             <div className={styles.older}>

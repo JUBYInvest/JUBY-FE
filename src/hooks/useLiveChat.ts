@@ -156,8 +156,10 @@ export function useLiveChat() {
         setMessages((list) => mergeMessages(list, [message]))
         // 닉네임을 모르면 글만으로 맞춘다
         if (nicknameRef.current !== undefined && message.author !== nicknameRef.current) return
-        // 내 말이 돌아왔다 — 같은 글의 가장 오래된 보낸 말을 지운다
-        const mine = pendingRef.current.find((item) => item.state === 'sent' && item.text === message.text)
+        // 내 말이 돌아왔다 — 같은 글의 가장 오래된 보낸 말을 지운다. 기다리다 실패로 바꾼 뒤 늦게 온 것도 맞춘다(다시 보내면 두 번 오른다)
+        const mine =
+          pendingRef.current.find((item) => item.state === 'sent' && item.text === message.text) ??
+          pendingRef.current.find((item) => item.state === 'failed' && item.text === message.text)
         if (mine === undefined) return
         settle(mine.key)
         setMineIds((ids) => new Set(ids).add(message.id))

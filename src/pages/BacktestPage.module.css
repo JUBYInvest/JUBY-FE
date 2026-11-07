@@ -23,6 +23,11 @@
   margin: 0;
 }
 
+/* 다시하기 뒤 포커스가 오는 자리(tabIndex -1) — 눌러서 온 게 아니라 테두리를 그리지 않는다 */
+.title:focus {
+  outline: none;
+}
+
 /* ── 내 투자성향 배너 ──────────────────────────────────────────────── */
 
 /* 고르는 칸이 아니라 이미 정해진 사실이라, 입력과 다른 모양(옅은 면)으로 조건 맨 앞에 둔다 */
@@ -962,13 +967,6 @@
 .helpLink:hover {
   text-decoration: underline;
   text-underline-offset: 3px;
-}
-
-/* 자주 묻는 질문의 질문 줄 */
-.helpQuestion {
-  margin: var(--space-3) 0 var(--space-1);
-  font-size: var(--font-sm);
-  font-weight: 700;
 }
 
 /* 사용설명서 "결과는 이 순서로 확인하세요" 다섯 줄 */

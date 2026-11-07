@@ -113,6 +113,7 @@ export default function BacktestPage() {
   /** 실행·결과·거두기(hooks/useBacktestRun). 같은 조합은 한 번만 받고, 늦게 온 결과는 버린다 */
   const { result, run, clear } = useBacktestRun()
   const resultRef = useRef<HTMLDivElement>(null)
+  const titleRef = useRef<HTMLHeadingElement>(null)
 
   // 서버 목록·기간·내 성향을 한 번에 받는다. 셋 다 실패해도 화면은 로컬 값으로 뜬다
   useEffect(() => {
@@ -303,6 +304,8 @@ export default function BacktestPage() {
     // 한글 조합 중 Enter는 글자를 끝내는 것이다 — 그때 고르면 마지막 글자가 빠진 채 골라진다
     if (event.key === 'Enter' && !event.nativeEvent.isComposing) {
       event.preventDefault()
+      // Esc로 닫은 목록의 후보는 고르지 않는다 — 보이지 않는 종목이 골라진다
+      if (!isSearchOpen) return
       const picked = activeMatch >= 0 && activeMatch < matches.length ? matches[activeMatch] : browsing ? undefined : matches[0]
       // 시가총액 목록을 훑기만 하다 누른 Enter는 고르지 않는다 — 이미 고른 종목이 맨 앞 종목으로 바뀌면 안 된다
       if (picked === undefined) setIsSearchOpen(false)
@@ -328,6 +331,8 @@ export default function BacktestPage() {
   /** 결과 아래 "백테스트 다시하기" — 결과를 거두고 조건을 바꾸러 화면 위로 올라간다 */
   function retryFromTop() {
     clearResult()
+    // 누른 단추가 결과와 함께 사라지므로 포커스를 화면 제목으로 옮긴다(아니면 body로 떨어져 키보드 사용자가 길을 잃는다)
+    titleRef.current?.focus({ preventScroll: true })
     const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
     window.scrollTo({ top: 0, behavior: reduced ? 'auto' : 'smooth' })
   }
@@ -349,6 +354,8 @@ export default function BacktestPage() {
       '(prefers-reduced-motion: reduce)',
     ).matches
 
+    // 결과로 포커스를 옮긴다 — 휴대폰은 결과가 시작 단추보다 DOM 앞이라(보이는 순서는 order로 바꿨다) Tab으로는 결과에 못 간다
+    resultRef.current.focus({ preventScroll: true })
     resultRef.current.scrollIntoView({
       behavior: prefersReduced ? 'auto' : 'smooth',
       block: 'start',
@@ -420,7 +427,9 @@ export default function BacktestPage() {
 
   return (
     <>
-      <h1 className={styles.title}>주식 백테스트 이용하기</h1>
+      <h1 ref={titleRef} className={styles.title} tabIndex={-1}>
+        주식 백테스트 이용하기
+      </h1>
 
       {/*
         두 열: 왼쪽 성향 배너 → ①종목 ②전략 ③기간(그 아래 결과) | 오른쪽 '돌릴 조합' 판(고른 셋 + 시작 단추, 화면을 내려도 따라온다).
@@ -502,7 +511,6 @@ export default function BacktestPage() {
                         type="button"
                         tabIndex={-1}
                         className={index === activeMatch ? `${styles.match} ${styles.matchActive}` : styles.match}
-                        onMouseEnter={() => setActiveMatch(index)}
                         onClick={() => selectStock(item)}
                       >
                         <span>{item.stockName}</span>
