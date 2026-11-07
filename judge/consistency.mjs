@@ -2,7 +2,7 @@
 // 위계는 셋이다: 화면 제목(h1) 28px(900px 이하 24px) + 굵은 먹 선 > 구역 제목 20px(46px 줄 + 굵은 먹 선) > 칸 안 작은 제목 16~18px(가는 선·여백).
 //  C1 화면 제목: 제목이 있는 화면마다 같은 크기·같은 높이(넓은 화면 88px, 휴대폰 112px)에 서고 아래 2px 먹 선이 있다.
 //     백테스트만 8px(휴대폰 28px) 아래였고, 투자성향 테스트는 가운데 맞춘 28px에 선이 없었고(휴대폰도 28px), 없는 주소는 24px에 선이 없었다
-//  C2 백테스트 결과: '백테스트 결과'는 구역 제목(20px, 46px 줄, 바로 아래 먹 선, 다시하기 단추가 그 줄 안). 결과 안 작은 칸은 가는 선(1px)으로 열고,
+//  C2 백테스트 결과: '백테스트 결과'는 구역 제목(20px, 46px 줄, 바로 아래 먹 선 — 다시하기 단추는 그 줄에 두지 않고 '이 종목으로 이어서' 맨 앞, 2026-11-07 사용자). 결과 안 작은 칸은 가는 선(1px)으로 열고,
 //     지표 여섯은 세 칸 두 줄(600px 이하 두 칸) — 다섯 칸이던 때는 '거래횟수' 하나만 둘째 줄에 남았다. 가이드 칸 작은 제목은 16px.
 //     결과 칸 제목·지표 글자는 결과 제목과 왼쪽 끝이 같다(휴대폰에서 상자이던 때의 안 여백 16·12px이 남아 있었다)
 //  C3 주식 모아보기: 나란한 두 구역 제목('한눈에 보기' | '담은 종목')의 글자 바닥선이 맞는다(탭이 있는 쪽이 10px 위였다). 하트는 종목 이름 줄 옆에 선다
@@ -71,19 +71,20 @@ await j.run('C2', async () => {
       const items = [...document.querySelectorAll('main li[class*="_metric_"]')]
       const tops = [...new Set(items.map((li) => Math.round(li.getBoundingClientRect().top)))]
       const guide = [...document.querySelectorAll('aside h3')].map((h) => parseFloat(getComputedStyle(h).fontSize))
-      // 결과 칸 제목·지표 글자의 왼쪽 끝이 결과 제목과 같은가(휴대폰에서 상자이던 때의 안 여백이 남아 16px 안쪽이었다)
+      // 결과 칸 제목·지표 글자의 왼쪽 끝이 결과 제목과 같은가(휴대폰에서 상자이던 때의 안 여백이 남아 16px 안쪽이었다).
+      // 맨 아래 '이 종목으로 이어서'는 가운데에 모은 마무리 칸이라 뺀다(2026-11-07 사용자 — backtest B9가 가운데인지 본다)
       const left = Math.round(title.getBoundingClientRect().left)
       const textLeft = (el) => { const range = document.createRange(); range.selectNodeContents(el); return Math.round(range.getBoundingClientRect().left) - left }
       // 지표는 줄마다 첫 칸(가장 왼쪽)만 견준다
-      const lefts = [...document.querySelectorAll('main h3')].filter((h) => !h.closest('aside')).map(textLeft)
+      const lefts = [...document.querySelectorAll('main h3')].filter((h) => !h.closest('aside') && !h.closest('[class*="_next_"]')).map(textLeft)
         .concat(Math.min(...items.map((li) => textLeft(li.firstElementChild))))
       return { fs: parseFloat(getComputedStyle(title).fontSize), headH: Math.round(hr.height), rule: hs.borderBottomWidth, retryIn: retry !== undefined, cards, metrics: items.length, rows: tops.length, firstRow: items.filter((li) => Math.round(li.getBoundingClientRect().top) === tops[0]).length, guide, lefts }
     })
-    j.report(`C2a-${width}`, r.fs === 20 && r.headH === 46 && r.rule === '2px' && r.retryIn, `'백테스트 결과' ${r.fs}px, 제목 줄 ${r.headH}px·아래 선 ${r.rule}, 다시하기 단추 ${r.retryIn ? '줄 안' : '줄 밖'}`)
+    j.report(`C2a-${width}`, r.fs === 20 && r.headH === 46 && r.rule === '2px' && !r.retryIn, `'백테스트 결과' ${r.fs}px, 제목 줄 ${r.headH}px·아래 선 ${r.rule}, 다시하기 단추 ${r.retryIn ? '줄 안' : '줄 밖(이어서 칸)'}`)
     j.report(`C2b-${width}`, r.cards.length >= 3 && r.cards.every((w) => w === '1px'), `결과 안 작은 칸 위 선 ${r.cards.join('·')}(굵은 먹 선은 구역 제목에만)`)
     const cols = width > 600 ? 3 : 2
     j.report(`C2c-${width}`, r.metrics === 6 && r.firstRow === cols && r.rows === 6 / cols, `지표 ${r.metrics}개 — 첫 줄 ${r.firstRow}칸 · ${r.rows}줄(기대 ${cols}칸 ${6 / cols}줄)`)
-    j.report(`C2e-${width}`, r.lefts.length >= 4 && r.lefts.every((d) => Math.abs(d) <= 1), `결과 칸 제목·지표 글자 왼쪽 끝 − 결과 제목 왼쪽 끝 ${[...new Set(r.lefts)].join('·')}px`)
+    j.report(`C2e-${width}`, r.lefts.length >= 3 && r.lefts.every((d) => Math.abs(d) <= 1), `결과 칸 제목·지표 글자 왼쪽 끝 − 결과 제목 왼쪽 끝 ${[...new Set(r.lefts)].join('·')}px`)
     // 결과가 나온 뒤 오른쪽 날개 도움말(2026-11-03)은 결과 단계 글 두 묶음이다
     if (width === 1440) j.report('C2d', r.guide.length >= 2 && r.guide.every((fs) => fs === 16), `도움말 칸 작은 제목 ${r.guide.join('·')}px(기대 16)`)
     await t.close()

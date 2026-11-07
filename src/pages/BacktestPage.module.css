@@ -165,10 +165,10 @@
   transition: border-color 0.15s;
 }
 
-/* 안쪽 입력칸은 테두리를 지우고 상자가 브랜드 테두리와 옅은 둘레로 포커스를 알린다 */
+/* 안쪽 입력칸은 테두리를 지우고 상자가 포커스를 알린다 — 고른 기간 칸과 같은 모양(초록 테두리 + 옅은 초록 바탕, 빛번짐 없음 — 2026-11-07 사용자) */
 .control:focus-within {
   border-color: var(--color-brand-700);
-  box-shadow: 0 0 0 3px var(--color-brand-100);
+  background: var(--color-brand-50);
 }
 
 .input {
@@ -246,6 +246,20 @@
 
 .match:hover {
   background: var(--color-bg-hover);
+}
+
+/* 칸이 비어 있을 때의 시가총액 순 목록 — 일곱 줄 반에서 끊고 안에서 굴린다(반 줄이 걸쳐 보여 더 있는 줄 안다) */
+.matchesScroll {
+  max-height: min(350px, 45dvh);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.matchesHead {
+  padding: var(--space-1) var(--space-3) var(--space-2);
+  font-size: var(--font-sm);
+  font-weight: 700;
+  color: var(--color-text-sub);
 }
 
 /* 방향키로 고른 후보(홈 검색칸과 같은 옅은 초록) */
@@ -575,11 +589,6 @@
 }
 
 /* 결과를 지우고 처음으로 돌리는 보조 동작. 바로 위 '백테스트 시작하기'와 같은 검정이면 주 버튼이 둘로 보인다 */
-.retry {
-  composes: secondary md from '../components/buttons.module.css';
-  flex: 0 0 auto;
-}
-
 /* 결과 한 덩이. 결과 구역(굵은 먹 선) 안의 작은 묶음이라 가는 선으로 나눈다 — 먹 선이면 구역 제목보다 굵게 읽힌다 */
 .card {
   margin-top: var(--space-8);
@@ -1230,11 +1239,15 @@
   margin-top: var(--space-4);
 }
 
-/* 결과 아래 "이 종목으로 이어서" — 상세·AI·관심종목 담기. 다른 결과 칸처럼 가는 선으로 나눈다 */
+/*
+ * 결과 아래 "이 종목으로 이어서" — 다시하기(주 단추)·상세·AI·관심종목 담기. 다른 결과 칸처럼 가는 선으로 나눈다.
+ * 결과를 다 읽고 다음 걸음을 고르는 마무리 자리라 가운데에 모은다(2026-11-07 사용자)
+ */
 .next {
   margin-top: var(--space-8);
   padding-top: var(--space-5);
   border-top: 1px solid var(--color-border);
+  text-align: center;
 }
 
 .nextTitle {
@@ -1247,9 +1260,15 @@
   display: flex;
   flex-wrap: wrap;
   align-items: center;
+  justify-content: center;
   gap: var(--space-2) var(--space-3);
 }
 
 .nextLink {
   composes: secondary md from '../components/buttons.module.css';
+}
+
+/* 백테스트 다시하기 — 이 자리의 주 행동(초록 바탕 + 흰 글자). 결과 머리 먹 선 줄에 두면 선과 겹쳐 보였다 */
+.nextRetry {
+  composes: primary md from '../components/buttons.module.css';
 }

@@ -239,18 +239,22 @@ export default function BacktestPage() {
   /** 로컬 표로는 고를 수 있는데 서버 목록(계산된 적 있는 기간)에 없어 빠진 기간이 있는가 — 안내 문구를 가른다 */
   const serverNarrowed = investType !== null && periodChoices.length < supportedPeriods(investType).length
 
+  // 방향키로 고른 후보가 굴러가는 목록 밖으로 내려가면 보이는 자리로 끌어온다
+  useEffect(() => {
+    if (!isSearchOpen || activeMatch < 0) return
+    document.getElementById(`backtest-stock-match-${activeMatch}`)?.scrollIntoView({ block: 'nearest' })
+  }, [isSearchOpen, activeMatch])
+
   const isRunning = result.kind === 'loading'
   const canRun =
     stock !== null && investType !== null && period !== null && !isRunning
 
-  const matches = useMemo(() => {
-    const keyword = query.trim()
-    if (keyword === '') return []
-    // 고른 종목의 이름이 그대로 적혀 있으면 다시 펼칠 이유가 없다
-    if (stock !== null && keyword === stock.stockName) return []
-
-    return searchStocks(stockOptions, keyword)
-  }, [query, stock, stockOptions])
+  /*
+   * 칸이 비었거나 고른 종목 이름 그대로면 시가총액 순 전체를 보인다 — 치기 전에 눌러도 고를 종목이 보인다(2026-11-07 사용자).
+   * 순서는 시총 순 사본(STOCK_LIST — 백엔드 적재 목록과 같다, 커뮤니티 글쓰기와 같은 목록). 서버 목록은 거래대금 순이라 이 순서로 쓰지 않는다
+   */
+  const browsing = query.trim() === '' || (stock !== null && query.trim() === stock.stockName)
+  const matches = useMemo(() => (browsing ? STOCK_LIST : searchStocks(stockOptions, query.trim())), [browsing, query, stockOptions])
 
   /*
    * 조건을 건드리면 이전 결과는 더 이상 그 조건의 결과가 아니다.
@@ -299,7 +303,10 @@ export default function BacktestPage() {
     // 한글 조합 중 Enter는 글자를 끝내는 것이다 — 그때 고르면 마지막 글자가 빠진 채 골라진다
     if (event.key === 'Enter' && !event.nativeEvent.isComposing) {
       event.preventDefault()
-      selectStock(matches[activeMatch >= 0 && activeMatch < matches.length ? activeMatch : 0])
+      const picked = activeMatch >= 0 && activeMatch < matches.length ? matches[activeMatch] : browsing ? undefined : matches[0]
+      // 시가총액 목록을 훑기만 하다 누른 Enter는 고르지 않는다 — 이미 고른 종목이 맨 앞 종목으로 바뀌면 안 된다
+      if (picked === undefined) setIsSearchOpen(false)
+      else selectStock(picked)
     }
   }
 
@@ -316,6 +323,13 @@ export default function BacktestPage() {
       }
     }
     clearResult()
+  }
+
+  /** 결과 아래 "백테스트 다시하기" — 결과를 거두고 조건을 바꾸러 화면 위로 올라간다 */
+  function retryFromTop() {
+    clearResult()
+    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    window.scrollTo({ top: 0, behavior: reduced ? 'auto' : 'smooth' })
   }
 
   /** 지금 고른 종목·전략·기간으로 실행한다. 다 고르지 않았으면 아무것도 하지 않는다(단추는 canRun으로 잠긴다) */
@@ -453,6 +467,8 @@ export default function BacktestPage() {
                   onChange={(event) => handleQueryChange(event.target.value)}
                   onKeyDown={handleStockKeyDown}
                   onFocus={() => setIsSearchOpen(true)}
+                  // 포커스가 남은 채 Esc로 닫았으면 onFocus가 다시 오지 않는다. 눌러서 다시 연다
+                  onClick={() => setIsSearchOpen(true)}
                   onBlur={() => {
                     setIsSearchOpen(false)
                     setActiveMatch(-1)
@@ -471,10 +487,15 @@ export default function BacktestPage() {
                 <ul
                   id="backtest-stock-matches"
                   role="listbox"
-                  aria-label="종목 후보"
-                  className={styles.matches}
+                  aria-label={browsing ? '시가총액 순 종목' : '종목 후보'}
+                  className={browsing ? `${styles.matches} ${styles.matchesScroll}` : styles.matches}
                   onMouseDown={(event) => event.preventDefault()}
                 >
+                  {browsing && (
+                    <li role="presentation" className={styles.matchesHead} aria-hidden="true">
+                      시가총액 순
+                    </li>
+                  )}
                   {matches.map((item, index) => (
                     <li key={item.stockCode} id={`backtest-stock-match-${index}`} role="option" aria-selected={index === activeMatch}>
                       <button
@@ -592,7 +613,7 @@ export default function BacktestPage() {
                 missed={result.missed}
                 stock={stock}
                 savedPersonality={savedPersonality}
-                onRetry={clearResult}
+                onRetry={retryFromTop}
               />
             </SectionBoundary>
           )}

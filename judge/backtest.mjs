@@ -168,6 +168,67 @@ async function run(opts, period) {
   report('B8', keys(wide) && keys(narrow), JSON.stringify(Object.fromEntries(Object.entries(result).map(([w, r]) => [w, { enter: r.enterPick, arrow: r.arrowPick, active: r.activeText, escape: r.escape }]))))
 }
 
+// B9 (2026-11-07 사용자) 종목 칸을 누르면 빛번짐 대신 고른 기간 칸과 같은 모양(초록 테두리 + 옅은 초록 바탕, 그림자 없음).
+//    비어 있는 칸을 누르기만 해도 시가총액 순 후보(삼성전자 · SK하이닉스 · 삼성전자우 …)가 뜨고 목록 안에서 굴러간다. ↓ 열두 번 + Enter → 열두 번째 종목.
+//    결과의 "백테스트 다시하기"는 결과 머리(먹 선 줄)가 아니라 "이 종목으로 이어서" 맨 앞 주 단추(초록 바탕 + 흰 글자)이고, 단추 줄은 가운데
+{
+  const context = await browser.newContext({ viewport: { width: 1440, height: 1000 } })
+  await seedLogin(context)
+  await mock(context, {})
+  const page = await context.newPage()
+  await page.goto(BASE + '/backtest', { waitUntil: 'domcontentloaded' })
+  await sleep(1500)
+  const input = page.locator('#backtest-stock')
+  await input.click(); await sleep(300)
+  const r = await page.evaluate(() => {
+    const box = document.querySelector('[class*="_control_"]'), cs = getComputedStyle(box)
+    const root = getComputedStyle(document.documentElement)
+    const rgb = (hex) => { const n = parseInt(hex.trim().slice(1), 16); return `rgb(${n >> 16}, ${(n >> 8) & 255}, ${n & 255})` }
+    const list = document.querySelector('[role="listbox"]')
+    return {
+      shadow: cs.boxShadow, border: cs.borderTopColor === rgb(root.getPropertyValue('--color-brand-700')), fill: cs.backgroundColor === rgb(root.getPropertyValue('--color-brand-50')),
+      names: list ? [...list.querySelectorAll('[role="option"]')].map((o) => o.textContent.replace(/\d{6}/, '').trim()) : [],
+      scrolls: list ? list.scrollHeight > list.clientHeight : false,
+    }
+  })
+  for (let i = 0; i < 12; i++) await input.press('ArrowDown')
+  await sleep(150)
+  r.activeSeen = await page.evaluate(() => {
+    const list = document.querySelector('[role="listbox"]'), active = list?.querySelector('[aria-selected="true"]')
+    if (!list || !active) return false
+    const a = active.getBoundingClientRect(), l = list.getBoundingClientRect()
+    return a.top >= l.top - 1 && a.bottom <= l.bottom + 1
+  })
+  await input.press('Enter'); await sleep(300)
+  r.picked = await input.inputValue()
+  // 지금 코드에서 종목이 안 골라지면 시작 단추가 잠긴다 — 멈추지 않고 결과 없이 적는다
+  await page.locator('button[data-period="ONE_YEAR"]').click({ timeout: 2000 }).catch(() => {})
+  await page.getByRole('button', { name: '백테스트 시작하기' }).click({ timeout: 2000 }).catch(() => {})
+  if (r.picked === '') { await input.fill('삼성전자'); await sleep(300); await page.getByRole('button', { name: /삼성전자\s*005930/ }).first().click({ timeout: 2000 }).catch(() => {}); await page.getByRole('button', { name: '백테스트 시작하기' }).click({ timeout: 2000 }).catch(() => {}) }
+  await page.getByRole('heading', { name: '백테스트 결과' }).waitFor({ timeout: 8000 }).catch(() => {})
+  await sleep(800)
+  Object.assign(r, await page.evaluate(() => {
+    const head = document.querySelector('[class*="_resultHead_"]')
+    const next = document.querySelector('[class*="_nextActions_"]')
+    const first = next?.firstElementChild
+    const root = getComputedStyle(document.documentElement)
+    const rgb = (hex) => { const n = parseInt(hex.trim().slice(1), 16); return `rgb(${n >> 16}, ${(n >> 8) & 255}, ${n & 255})` }
+    const section = next?.parentElement.getBoundingClientRect()
+    const items = next ? [...next.children].map((c) => c.getBoundingClientRect()) : []
+    const left = Math.min(...items.map((b) => b.left)), right = Math.max(...items.map((b) => b.right))
+    return {
+      headRetry: head ? [...head.querySelectorAll('button')].some((b) => b.textContent.includes('다시하기')) : null,
+      firstText: first?.textContent.trim() ?? null,
+      firstGreen: first ? getComputedStyle(first).backgroundColor === rgb(root.getPropertyValue('--color-brand-700')) && getComputedStyle(first).color === 'rgb(255, 255, 255)' : false,
+      centered: section ? Math.abs((left + right) / 2 - (section.left + section.right) / 2) <= 2 : false,
+    }
+  }))
+  await context.close()
+  report('B9', r.shadow === 'none' && r.border && r.fill && r.names.slice(0, 3).join('|') === '삼성전자|SK하이닉스|삼성전자우' && r.names.length > 50 && r.scrolls && r.activeSeen &&
+    r.picked === (r.names[11] ?? '?') && r.headRetry === false && r.firstText === '백테스트 다시하기' && r.firstGreen && r.centered,
+    JSON.stringify({ ...r, names: `${r.names.length}개 ${r.names.slice(0, 3).join(' · ')} … 12번째 ${r.names[11]}` }))
+}
+
 await browser.close()
 console.log(out.join('\n'))
 console.log(`backtest PASS ${out.filter((l) => l.startsWith('PASS')).length} FAIL ${out.filter((l) => l.startsWith('FAIL')).length}`)

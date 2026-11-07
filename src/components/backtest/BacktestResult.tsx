@@ -146,10 +146,6 @@ export default function BacktestResult({
     <section className={styles.result}>
       <div className={styles.resultHead}>
         <h2 className={styles.resultTitle}>백테스트 결과</h2>
-
-        <button type="button" className={styles.retry} onClick={onRetry}>
-          백테스트 다시하기
-        </button>
       </div>
 
       {/*
@@ -395,6 +391,10 @@ export default function BacktestResult({
       <div className={styles.next}>
         <h3 className={styles.nextTitle}>이 종목으로 이어서</h3>
         <div className={styles.nextActions}>
+          {/* 조건을 바꿔 다시 돌린다 — 결과를 거두고 조건 고르기로 올라간다 */}
+          <button type="button" className={styles.nextRetry} onClick={onRetry}>
+            백테스트 다시하기
+          </button>
           {/* 이름을 실어 상세가 응답 전에 이름 자리를 채운다(CLAUDE.md "종목 상세는 기다림을 줄이고 가린다") */}
           <Link to={`/stocks/${stock.stockCode}`} state={toPreviewState(stock)} className={styles.nextLink}>
             종목 상세 보기
