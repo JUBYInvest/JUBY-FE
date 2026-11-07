@@ -94,11 +94,10 @@ await j.run('A7', () => pairs('A7', '/guide', '사용설명서: 장 목록 첫 �
   const bottom = ${BOTTOM}
   return [['장 목록 첫 줄', bottom(document.querySelector('nav[aria-label="사용설명서 장"] li a, nav[aria-label="사용설명서 장"] li span'))], ['이 장에서', bottom(document.getElementById('guide-side-title'))]]`), { widths: [1920, 1600, 1440, 1280] }))
 
-// A4 백테스트(2026-11-03 날개 도움말로 바꿈 — 그 전엔 화면 제목 먹 선 = 오른쪽 가이드 제목 먹 선이었다. 이제 화면 제목이 세 열 위를 다 덮는다):
-// 세 열(1200px~)에서 왼쪽 '전략 고르기' 제목 줄의 먹 선과 오른쪽 '도움말' 제목 줄의 먹 선이 같은 높이다. 1199px 이하는 왼쪽 열이 없다
-await j.run('A4', () => pairs('A4', '/backtest', '백테스트: 전략 고르기 먹 선 = 도움말 먹 선', new Function(`
-  const bottom = ${BOTTOM}
-  return [['전략 고르기', bottom(document.getElementById('backtest-strategies-title').parentElement)], ['도움말', bottom(document.getElementById('backtest-help-title').parentElement)]]`), { widths: [1920, 1600, 1440, 1280] }))
+// A4 백테스트(2026-11-07 두 열 — 그날 구역 머리 먹 선을 걷었다): 왼쪽 맨 앞 성향 배너의 위끝과 오른쪽 '돌릴 조합' 판의 위끝이 같다(901px~ 두 열)
+await j.run('A4', () => pairs('A4', '/backtest', '백테스트: 성향 배너 위끝 = 돌릴 조합 판 위끝', new Function(`
+  const top = (el) => el ? el.getBoundingClientRect().top : NaN
+  return [['성향 배너', top(document.querySelector('[class*="_myBanner_"]'))], ['돌릴 조합', top(document.querySelector('[aria-labelledby="backtest-summary-title"]'))]]`), { widths: [1920, 1600, 1440, 1280, 1000] }))
 
 await j.run('A5', () => pairs('A5', '/mypage', '마이페이지 한눈에 보기: 왼쪽 메뉴 아래 선 = 첫 두 칸의 먹 선', new Function(`
   const bottom = ${BOTTOM}

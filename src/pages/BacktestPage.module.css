@@ -1,20 +1,19 @@
 /*
- * 화면 제목의 먹 선 아래 세 열: 왼쪽 전략 카드 | 가운데 입력·결과(760px까지) | 오른쪽 도움말. 남는 폭은 열 사이에 나눈다.
- * 세 열의 첫 선이 같은 높이다: 왼쪽 '전략 고르기'와 오른쪽 '도움말' 먹 선(구역 제목 줄 46px). 가운데는 내 성향 안내(옅은 면)로 시작한다.
- * 1199px 이하는 두 열(가운데 | 도움말)이고 전략 카드는 가운데 ②칸에 들어간다(BacktestPage가 한 곳에만 그린다). 900px 이하는 한 열
+ * 화면 제목의 먹 선 아래 두 열: 왼쪽 성향 배너 → ①종목 ②전략 ③기간(그 아래 결과) | 오른쪽 '돌릴 조합' 판(고른 셋 + 시작 단추) + 도움말.
+ * 굵은 먹 선은 화면 제목 아래 하나다 — 구역 머리마다 먹 선을 두면 제목 선 바로 아래 두 줄이 위계 없이 겹쳐 보였다(2026-11-07 사용자).
+ * 왼쪽은 배너(옅은 면)와 원형 번호가, 오른쪽은 테두리 판이 구역을 연다. 배너와 판의 위끝이 같다(judge/lines.mjs A4).
+ * 글은 모두 왼쪽 맞춤 — 위에서 아래로 차례대로 고르는 화면이라 눈이 매번 같은 왼쪽 끝에서 시작한다. 오른쪽 열은 화면을 내려도 따라온다.
+ * 900px 이하는 한 열: 배너 → 조건 → 시작 단추 → 결과 → 도움말(order). 판의 세 줄 요약은 바로 위 조건과 같아 감춘다
  */
 .layout {
   display: grid;
-  grid-template-columns: clamp(260px, 18vw, 340px) minmax(0, 760px) clamp(280px, 19vw, 340px);
-  grid-template-areas: 'strategies content help';
-  justify-content: space-between;
-  column-gap: clamp(32px, 3vw, 56px);
+  grid-template-columns: minmax(0, 1fr) clamp(320px, 24vw, 400px);
+  column-gap: clamp(40px, 4.5vw, 88px);
   align-items: start;
   margin-top: var(--space-6);
 }
 
-.content {
-  grid-area: content;
+.main {
   min-width: 0;
 }
 
@@ -24,42 +23,13 @@
   margin: 0;
 }
 
-/* ── 왼쪽 열: 전략 카드 ─────────────────────────────────────────────── */
+/* ── 내 투자성향 배너 ──────────────────────────────────────────────── */
 
-.strategies {
-  grid-area: strategies;
-  min-width: 0;
-}
-
-.strategiesHead {
-  composes: head from '../components/section.module.css';
-  margin-bottom: var(--space-4);
-}
-
-.strategiesTitle {
-  composes: title from '../components/section.module.css';
-}
-
-/* 넓은 화면 ②칸 — 왼쪽에서 고른 전략을 한 줄로 되짚는다 */
-.chosen {
-  margin: 0;
-  font-size: var(--font-md);
-  line-height: 1.6;
-  color: var(--color-text-sub);
-}
-
-.chosen b {
-  margin-right: var(--space-1);
-  color: var(--color-text);
-}
-
-/* ── 내 투자성향 안내 ──────────────────────────────────────────────── */
-
-/* 고르는 칸이 아니라 이미 정해진 사실이라, 입력과 다른 모양으로 구분한다 */
+/* 고르는 칸이 아니라 이미 정해진 사실이라, 입력과 다른 모양(옅은 면)으로 조건 맨 앞에 둔다 */
 .myBanner {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: var(--space-3);
   padding: 14px 16px;
   border-radius: var(--radius-md);
   background: var(--color-bg-sub);
@@ -77,49 +47,111 @@
   flex: 0 0 auto;
 }
 
-/* ── 입력 ──────────────────────────────────────────────────────────── */
+/* ── 조건 고르기 ───────────────────────────────────────────────────── */
 
-.form {
-  margin-top: 24px;
+.srOnly {
+  composes: srOnly from '../components/a11y.module.css';
 }
 
-/* 서버 목록 대신 기본 목록을 쓰는 중이라는 안내. 폼 바로 위에 한 줄 */
+/* 칸 이름을 왼쪽 열에 세울지는 이 구역의 폭으로 정한다(화면 폭이 아니라 — 오른쪽 열 폭에 따라 남는 자리가 다르다) */
+.form {
+  container: backtest-form / inline-size;
+}
+
+/* 서버 목록 대신 기본 목록을 쓰는 중이라는 안내. 구역 제목 바로 아래 한 줄 */
 .fallbackNote {
-  margin: 16px 2px 0;
+  margin: var(--space-4) 0 0;
   font-size: var(--font-sm);
   line-height: 1.6;
   color: var(--color-text-sub);
 }
 
-.field + .field {
-  margin-top: 22px;
+/* 한 줄 = 칸 이름 + 칸. 줄 사이는 가는 선. 세 줄의 칸은 왼쪽·오른쪽 끝이 같다 */
+.field {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-3);
+  padding: var(--space-6) 0;
+  border-bottom: 1px solid var(--color-border);
 }
 
-.label {
+.field:last-child {
+  border-bottom: none;
+}
+
+/* 칸 이름 — 원형 번호 + 칸 안 작은 제목 16px */
+.fieldName {
   display: flex;
   align-items: center;
-  gap: 7px;
-  margin-bottom: 8px;
-  font-size: var(--font-md);
+  gap: var(--space-2);
+  margin: 0;
+  font-size: var(--font-lg);
   font-weight: 700;
+  line-height: 1.5;
 }
 
-/* 세 칸을 순서대로 채우는 흐름이라는 걸 번호로 알린다 */
-.step {
-  display: flex;
+/* 세 칸을 차례대로 채우는 흐름이라는 걸 번호로 알린다(먹 원 + 흰 숫자) */
+.stepNum {
+  display: inline-flex;
   flex: 0 0 auto;
   align-items: center;
   justify-content: center;
-  width: 20px;
-  height: 20px;
+  width: 22px;
+  height: 22px;
   border-radius: 50%;
   background: var(--color-text);
   color: var(--color-surface);
   font-size: var(--font-xs);
   font-weight: 700;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
 }
 
-/* 입력칸과 선택칸의 겉모습을 하나로 맞춘다 */
+/* 칸 쪽 폭으로 전략 카드를 한 줄에 세울지 정한다(아래 backtest-field 규칙) */
+.fieldBody {
+  container: backtest-field / inline-size;
+  display: grid;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+/*
+ * 넓으면 칸 이름을 왼쪽 열(104px)에 세운다 — 이름 줄만큼 세로가 줄고, 세 칸이 같은 선에서 시작한다.
+ * 이름 줄 높이는 종목 칸·기간 칸(48px)과 같아 이름이 칸 가운데 높이에 선다
+ */
+@container backtest-form (min-width: 720px) {
+  .field {
+    grid-template-columns: 104px minmax(0, 1fr);
+    gap: var(--space-6);
+  }
+
+  .fieldName {
+    align-self: start;
+    min-height: 48px;
+  }
+}
+
+/* 줄 끝 글자 동작 — 상자 없는 초록 굵은 글자(디자인 규칙) */
+.textLink {
+  display: inline-flex;
+  align-items: center;
+  min-height: 40px;
+  padding: 0;
+  border: none;
+  background: none;
+  font: inherit;
+  font-size: var(--font-md);
+  font-weight: 700;
+  color: var(--color-brand-700);
+  justify-self: start;
+}
+
+.textLink:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* 입력칸 상자 */
 .control {
   display: flex;
   align-items: center;
@@ -133,15 +165,15 @@
   transition: border-color 0.15s;
 }
 
-/* 입력칸 상자의 포커스. 안쪽 입력칸은 테두리를 지우고(아래) 상자가 브랜드 테두리와 옅은 둘레로 알린다 */
+/* 안쪽 입력칸은 테두리를 지우고 상자가 브랜드 테두리와 옅은 둘레로 포커스를 알린다 */
 .control:focus-within {
   border-color: var(--color-brand-700);
   box-shadow: 0 0 0 3px var(--color-brand-100);
 }
 
-.input,
-.select {
+.input {
   flex: 1;
+  width: 0;
   min-width: 0;
   height: 100%;
   border: none;
@@ -150,29 +182,15 @@
   font: inherit;
   /* 16px 아래면 아이폰·아이패드 사파리가 누르는 순간 화면을 확대하고 되돌리지 않는다 */
   font-size: var(--font-lg);
+  text-overflow: ellipsis;
 }
 
-.input:focus,
-.select:focus {
+.input:focus {
   outline: none;
 }
 
 .input::placeholder {
   color: var(--color-text-sub);
-}
-
-.select:disabled {
-  color: var(--color-text-sub);
-  cursor: not-allowed;
-}
-
-/* 아직 고르지 않은 칸의 안내 문장은 입력칸 안내 글처럼 회색이다. 펼친 목록의 보기는 본문색으로 둔다 */
-.select:has(option[value='']:checked) {
-  color: var(--color-text-sub);
-}
-
-.select option {
-  color: var(--color-text);
 }
 
 .code {
@@ -184,7 +202,7 @@
 }
 
 .hint {
-  margin: 8px 2px 0;
+  margin: 0;
   font-size: var(--font-sm);
   line-height: 1.6;
   color: var(--color-text-sub);
@@ -194,6 +212,7 @@
 
 .searchWrap {
   position: relative;
+  min-width: 0;
 }
 
 .matches {
@@ -229,11 +248,293 @@
   background: var(--color-bg-hover);
 }
 
-/* ── 실행 버튼 ──────────────────────────────────────────────────────── */
+/* 방향키로 고른 후보(홈 검색칸과 같은 옅은 초록) */
+.matchActive,
+.matchActive:hover {
+  background: var(--color-brand-50);
+}
 
-.submitRow {
-  margin-top: 32px;
-  text-align: center;
+/* ── 전략 카드 다섯 ─────────────────────────────────────────────────── */
+
+/* 위험도 순 다섯 칸을 한 줄에. 좁으면(아래 컨테이너 규칙) 한 줄에 하나씩 */
+.strategyList {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.strategyList li {
+  display: flex;
+  min-width: 0;
+}
+
+/* 카드 전체가 단추다. 테두리는 입력칸과 같은 1.5px — 한 구역 안 고르는 칸들의 겉모습을 하나로 둔다 */
+.strategyOff,
+.strategyOn {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-1);
+  min-width: 0;
+  padding: var(--space-3) var(--space-3) var(--space-4);
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  text-align: left;
+  transition: border-color 0.15s, background-color 0.15s;
+}
+
+.strategyOff:hover {
+  border-color: var(--color-border-strong);
+  background: var(--color-bg-hover);
+}
+
+.strategyOn {
+  border-color: var(--color-brand-700);
+  background: var(--color-brand-50);
+}
+
+/* 위험도 점 */
+.strategyTop {
+  display: flex;
+  align-items: center;
+  min-height: 22px;
+  margin-bottom: var(--space-1);
+}
+
+.strategyName {
+  font-size: var(--font-md);
+  font-weight: 700;
+  line-height: 1.4;
+  word-break: keep-all;
+}
+
+.badge {
+  margin-top: var(--space-1);
+  padding: 2px 7px;
+  border-radius: var(--radius-pill);
+  background: var(--color-brand-100);
+  color: var(--color-brand-800);
+  font-size: var(--font-xs);
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+/* 고른 전략 설명 — 묶어 보여야 하는 안내라 옅은 면. 카드 줄과 같은 폭 */
+.strategyDetail {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-4) var(--space-5) var(--space-2);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-sub);
+}
+
+.strategySummary {
+  margin: 0;
+  font-size: var(--font-md);
+  line-height: 1.6;
+}
+
+.strategyEmpty {
+  margin: 0;
+  font-size: var(--font-sm);
+  color: var(--color-text-sub);
+}
+
+/* 매수·매도는 사고파는 방향이지 등락이 아니라 빨강·파랑을 쓰지 않는다. 굵기로만 가른다 */
+.rules {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: var(--space-1) var(--space-3);
+  margin: 0;
+  font-size: var(--font-md);
+  line-height: 1.6;
+}
+
+.rules dt {
+  font-weight: 700;
+}
+
+.rules dd {
+  margin: 0;
+  color: var(--color-text-sub);
+}
+
+/* ── 위험도 점 ─────────────────────────────────────────────────────── */
+
+.dots {
+  display: inline-flex;
+  gap: 3px;
+  align-items: center;
+}
+
+.dotOn,
+.dotOff {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+
+.dotOn {
+  background: var(--color-text);
+}
+
+.dotOff {
+  background: var(--color-border-strong);
+}
+
+/* ── 기간 네 칸 ─────────────────────────────────────────────────────── */
+
+/* 한 줄을 네 칸으로 똑같이 나눈다 — 위 종목 칸·전략 카드 줄과 끝이 같다. 높이는 종목 칸(48px)과 같다 */
+.periods {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--space-2);
+}
+
+.periodOff,
+.periodOn {
+  height: 48px;
+  padding: 0 var(--space-2);
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  font-size: var(--font-lg);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  transition: border-color 0.15s, background-color 0.15s;
+}
+
+.periodOff:hover:not(:disabled) {
+  border-color: var(--color-border-strong);
+  background: var(--color-bg-hover);
+}
+
+.periodOn {
+  border-color: var(--color-brand-700);
+  background: var(--color-brand-50);
+  color: var(--color-brand-800);
+  font-weight: 700;
+}
+
+.periodOff:disabled {
+  border-color: var(--color-disabled-bg);
+  background: var(--color-disabled-bg);
+  color: var(--color-disabled-text);
+  cursor: not-allowed;
+}
+
+/* 좁은 칸: 전략 카드는 한 줄에 하나(점 | 이름·성향 | 맞음) */
+@container backtest-field (max-width: 600px) {
+  .strategyList {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .strategyOff,
+  .strategyOn {
+    display: grid;
+    grid-template-columns: 52px minmax(0, 1fr) auto;
+    grid-template-rows: auto;
+    align-items: center;
+    gap: 0 var(--space-3);
+    min-height: 56px;
+    padding: var(--space-2) var(--space-4);
+  }
+
+  .strategyTop {
+    display: contents;
+  }
+
+  .badge {
+    grid-column: 3;
+    grid-row: 1;
+    margin-top: 0;
+  }
+
+  .strategyName {
+    grid-column: 2;
+  }
+
+  .dots {
+    grid-column: 1;
+    grid-row: 1;
+  }
+}
+
+/* ── 돌릴 조합 ──────────────────────────────────────────────────────── */
+
+/*
+ * 오른쪽 열 전체가 따라온다. 결과 도움말까지 붙으면 화면보다 길 수 있어 지수 띠 위까지만 쓰고 안에서 굴린다
+ * (붙인 채 아래가 잘리지 않게)
+ */
+.side {
+  position: sticky;
+  top: var(--space-6);
+  min-width: 0;
+  max-height: calc(100dvh - var(--index-bar-height) - var(--space-6) * 2);
+  overflow-y: auto;
+  /* 안에서 굴리는 상자라 단추 포커스 고리가 잘리지 않게 좌우 4px 틈을 둔다(바깥 배치는 그대로) */
+  margin: 0 -4px;
+  padding: 0 4px;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+}
+
+/*
+ * '돌릴 조합' 판 — 화면을 내려도 따라오는 떠 있는 층이라 테두리로 묶는다(그림자는 두지 않는다 — 판이 본문 위로 뜨지는 않는다).
+ * 머리는 먹 선 없이 판 안 작은 제목 18px
+ */
+.summary {
+  padding: var(--space-5) var(--space-5) var(--space-6);
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+}
+
+.summaryTitle {
+  margin: 0 0 var(--space-2);
+  font-size: var(--font-xl);
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.summaryList {
+  margin: 0 0 var(--space-5);
+}
+
+.summaryRow:last-child {
+  border-bottom: none;
+}
+
+.summaryRow {
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr);
+  gap: var(--space-3);
+  padding: var(--space-3) 0;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.summaryRow dt {
+  font-size: var(--font-md);
+  line-height: 1.6;
+  color: var(--color-text-sub);
+}
+
+.summaryRow dd {
+  margin: 0;
+  font-size: var(--font-lg);
+  font-weight: 700;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.summaryEmpty {
+  font-weight: 400;
+  color: var(--color-text-sub);
 }
 
 /* 다음에 할 일이 하나뿐인 자리라 폭을 채워 눈에 먼저 걸리게 한다 */
@@ -243,7 +544,7 @@
 }
 
 .submitHint {
-  margin: 10px 0 0;
+  margin: var(--space-2) 0 0;
   font-size: var(--font-sm);
   color: var(--color-text-sub);
 }
@@ -631,32 +932,11 @@
   color: var(--color-text-sub);
 }
 
-/* ── 오른쪽 날개: 도움말 ──────────────────────────────────────────── */
+/* ── 돌릴 조합 아래 도움말 ───────────────────────────────────────── */
 
-/*
- * 지금 단계에 맞는 글만 보인다(BacktestHelp). 페이지와 함께 내려간다 — 붙여 두면(sticky) 전략 목록까지 펼친 날개가 화면보다 길어
- * 아래가 잘린다
- */
-.help {
-  grid-area: help;
-  min-width: 0;
-}
-
-/* 제목 줄 — 구역 제목(20px) + 오른쪽 '사용설명서' 링크, 아래 먹 선. 줄 높이는 왼쪽 단계 한 줄(44px) */
-.helpHead {
-  composes: head from '../components/section.module.css';
-}
-
-.helpTitle {
-  composes: title from '../components/section.module.css';
-}
-
-.helpMore {
-  composes: more from '../components/section.module.css';
-}
-
-.helpBody {
-  padding-top: var(--space-5);
+/* '돌릴 조합' 아래 도움말(BacktestHelp). 선 대신 여백으로 나눈다 */
+.guide {
+  margin-top: var(--space-10);
 }
 
 /* 그 꼭지로 가는 글자 링크. 행동이라 브랜드 초록, 누르는 넓이 40px */
@@ -737,132 +1017,6 @@
   color: var(--color-text);
 }
 
-/* ── 전략 고르기 ───────────────────────────────────────────────────── */
-
-.strategyList {
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.strategyList li + li {
-  margin-top: 8px;
-}
-
-/* 설명과 선택을 한 몸으로 만든다. 카드 전체가 버튼이다 */
-.strategyOff,
-.strategyOn {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-  width: 100%;
-  padding: 12px;
-  border-radius: var(--radius-md);
-  text-align: left;
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-}
-
-.strategyOff:hover {
-  border-color: var(--color-border-strong);
-  background: var(--color-bg-hover);
-}
-
-/* 고른 것은 테두리를 굵게 해서 목록에서 바로 튀어나오게 한다 */
-/* 고른 전략: 브랜드 테두리 두 겹에 옅은 초록 바탕 */
-.strategyOn {
-  border-color: var(--color-brand-700);
-  background: var(--color-brand-50);
-  box-shadow: inset 0 0 0 1px var(--color-brand-700);
-}
-
-.strategyTop {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  margin-bottom: 2px;
-}
-
-.strategyName {
-  font-size: var(--font-sm);
-  font-weight: 700;
-}
-
-.strategyDesc {
-  font-size: var(--font-xs);
-  line-height: 1.55;
-  color: var(--color-text-sub);
-}
-
-.badge {
-  margin-left: auto;
-  padding: 2px 7px;
-  border-radius: var(--radius-pill);
-  background: var(--color-brand-100);
-  color: var(--color-brand-800);
-  font-size: var(--font-xs);
-  font-weight: 700;
-  white-space: nowrap;
-}
-
-/* 고른 전략만 펼쳐 매수·매도 조건을 보인다 */
-.detail {
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-  margin-top: 9px;
-  padding-top: 9px;
-  border-top: 1px solid var(--color-border);
-}
-
-.detailRow {
-  display: grid;
-  grid-template-columns: 34px minmax(0, 1fr);
-  gap: 8px;
-  font-size: var(--font-xs);
-  line-height: 1.5;
-  color: var(--color-text-sub);
-}
-
-/* 매수·매도는 사고파는 방향이지 등락이 아니라 빨강·파랑을 쓰지 않는다. 굵기로만 가른다 */
-.buy {
-  color: var(--color-text);
-  font-weight: 700;
-}
-
-.sell {
-  color: var(--color-text);
-  font-weight: 700;
-}
-
-.term {
-  color: var(--color-text-sub);
-  font-weight: 700;
-}
-
-/* ── 위험도 점 ─────────────────────────────────────────────────────── */
-
-.dots {
-  display: inline-flex;
-  gap: 3px;
-  align-items: center;
-}
-
-.dotOn,
-.dotOff {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-}
-
-.dotOn {
-  background: var(--color-text);
-}
-
-.dotOff {
-  background: var(--color-border);
-}
-
 /* ── 점수 설명 ─────────────────────────────────────────────────────── */
 
 .axisGuide {
@@ -885,24 +1039,46 @@
 
 /* ── 좁은 화면 ─────────────────────────────────────────────────────── */
 
-/* 1199px 이하는 두 열: 가운데 | 도움말. 전략 카드는 가운데 ②칸에 선다 */
-@media (max-width: 1199px) {
-  .layout {
-    grid-template-columns: minmax(0, 1fr) clamp(280px, 30vw, 360px);
-    grid-template-areas: 'content help';
-  }
-}
-
 @media (max-width: 900px) {
+  /* 한 열: 조건 → 시작 단추 → 결과 → 도움말. 두 열의 묶음을 풀어 칸마다 순서를 준다 */
   .layout {
     grid-template-columns: minmax(0, 1fr);
-    grid-template-areas:
-      'content'
-      'help';
-    row-gap: var(--space-12);
   }
 
-  /* 가이드는 참고용이라 내용 아래로 내린다(한 열 격자라 저절로 아래에 선다) */
+  .main,
+  .side {
+    display: contents;
+  }
+
+  .myBanner {
+    order: 0;
+  }
+
+  .form {
+    order: 1;
+  }
+
+  .summary {
+    order: 2;
+    padding: var(--space-2) 0 0;
+    border: none;
+    border-radius: 0;
+  }
+
+  .resultSlot {
+    order: 3;
+  }
+
+  .guide {
+    order: 4;
+    margin-top: var(--space-12);
+  }
+
+  /* 바로 위 조건과 같은 세 줄이라 감춘다. 제목도 함께 — 단추만 조건 아래에 선다 */
+  .summaryTitle,
+  .summaryList {
+    display: none;
+  }
 
   .scoreRow {
     flex-direction: column;
@@ -930,9 +1106,18 @@
     min-height: 44px;
   }
 
+  .textLink {
+    min-height: 44px;
+  }
+
   .myBanner {
     flex-direction: column;
     align-items: stretch;
+  }
+
+  .periodOff,
+  .periodOn {
+    font-size: var(--font-md);
   }
 
   /* 점수 옆 한 줄 평가가 "비교적 잘 맞아/요"로 꺾이지 않게 한다. 자리가 없으면 통째로 다음 줄로 */

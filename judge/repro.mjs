@@ -18,7 +18,7 @@ await run('B', async () => {
   await t.goto('/backtest', 1200)
   await t.page.locator('#backtest-stock').fill('삼성전자')
   await t.page.getByRole('button', { name: /삼성전자\s*005930/ }).first().click()
-  await t.page.locator('#backtest-period').selectOption('ONE_YEAR')
+  await t.page.locator('button[data-period="ONE_YEAR"]').click()
   await t.page.getByRole('button', { name: '백테스트 시작하기' }).click()
   await t.page.getByRole('heading', { name: '백테스트 결과' }).waitFor({ timeout: 8000 })
   const zero = await t.page.evaluate(() => {
@@ -37,10 +37,11 @@ await run('B', async () => {
   await t.page.locator('#backtest-stock').fill('삼성전자')
   await t.page.getByRole('button', { name: /삼성전자\s*005930/ }).first().click()
   await t.page.locator('[data-invest-type="1"]').first().click()
-  await t.page.locator('#backtest-period').selectOption('ONE_MONTH')
-  const picked = await t.page.locator('#backtest-period').inputValue()
+  await t.page.locator('button[data-period="ONE_MONTH"]').click()
+  const pressedPeriod = () => t.page.locator('button[data-period][aria-pressed="true"]').getAttribute('data-period', { timeout: 500 }).catch(() => '')
+  const picked = await pressedPeriod()
   await sleep(3000)
-  const after = await t.page.locator('#backtest-period').inputValue()
+  const after = await pressedPeriod()
   const disabled = await t.page.getByRole('button', { name: '백테스트 시작하기' }).isDisabled()
   report('B3', picked === 'ONE_MONTH' && after === '' && disabled, `1개월 고른 뒤 목록 도착(1개월 없음) → 기간 "${after}", 단추 잠김 ${disabled}`)
   await t.close()
@@ -50,7 +51,7 @@ await run('B', async () => {
   await t.goto('/backtest', 1200)
   await t.page.locator('#backtest-stock').fill('삼성전자')
   await t.page.getByRole('button', { name: /삼성전자\s*005930/ }).first().click()
-  await t.page.locator('#backtest-period').selectOption('ONE_YEAR')
+  await t.page.locator('button[data-period="ONE_YEAR"]').click()
   await t.page.getByRole('button', { name: '백테스트 시작하기' }).click()
   await sleep(200)
   await t.page.getByRole('link', { name: '마이페이지' }).click()
@@ -59,13 +60,13 @@ await run('B', async () => {
   report('B4', recent === null || recent === '[]', `떠난 뒤 온 결과: recentBacktests=${recent}`)
   await t.close()
 
-  // B5 배너는 고른 전략이 추천과 다르면 "골라 뒀어요"라고 하지 않는다
+  // B5 성향 배너는 고른 전략이 추천과 다르면 "골라 뒀어요"라고 하지 않는다
   t = await open()
   await t.goto('/backtest', 1200)
   await t.page.locator('[data-invest-type="1"]').first().click()
   await sleep(200)
-  const banner = (await t.page.getByText(/내 투자성향은/).innerText()).replace(/\s+/g, ' ')
-  report('B5', !/골라 뒀어요/.test(banner), `전략을 바꾼 뒤 배너: "${banner}"`)
+  const banner = (await t.page.getByText(/내 투자성향은/).innerText({ timeout: 2000 }).catch(() => '')).replace(/\s+/g, ' ')
+  report('B5', /위험중립형/.test(banner) && !/골라 뒀어요/.test(banner), `전략을 바꾼 뒤 배너: "${banner}"`)
   await t.close()
 })
 
@@ -178,7 +179,7 @@ await run('E', async () => {
     await t.goto('/backtest', 1200)
     await t.page.locator('#backtest-stock').fill('삼성전자')
     await t.page.getByRole('button', { name: /삼성전자\s*005930/ }).first().click()
-    await t.page.locator('#backtest-period').selectOption('ONE_YEAR')
+    await t.page.locator('button[data-period="ONE_YEAR"]').click()
     await t.page.getByRole('button', { name: '백테스트 시작하기' }).click()
     await t.page.getByRole('heading', { name: '백테스트 결과' }).waitFor({ timeout: 8000 })
   }

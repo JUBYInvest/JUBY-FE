@@ -1,20 +1,19 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { getPresetOptions } from '../api/backtest'
 import { ApiError } from '../api/client'
 import { byTradingValue, searchStocks } from '../api/search'
 import { getStockList } from '../api/stock'
 import { STOCK_LIST } from '../api/stockList'
-import BacktestHelp, { type BacktestStep } from '../components/backtest/BacktestHelp'
+import BacktestHelp from '../components/backtest/BacktestHelp'
 import BacktestResult from '../components/backtest/BacktestResult'
-import StrategyPicker from '../components/backtest/StrategyPicker'
+import StrategyPicker, { StrategyDetail } from '../components/backtest/StrategyPicker'
 import SectionBoundary from '../components/SectionBoundary'
 import Spinner from '../components/Spinner'
 import { COMPARE_PERIOD, useBacktestRun } from '../hooks/useBacktestRun'
 import { useIsLoggedIn } from '../hooks/useIsLoggedIn'
 import { useMyPersonality } from '../hooks/useMyPersonality'
 import { useDocumentTitle } from '../hooks/useDocumentTitle'
-import { useMediaQuery } from '../hooks/useMediaQuery'
 import { useBacktestHandoff } from '../hooks/useStockHandoff'
 import type { StockInfo } from '../types/stock'
 import type { BacktestPeriod } from '../types/backtest'
@@ -46,8 +45,6 @@ function availablePeriods(
 
 /** 성향테스트를 하러 가는 곳. 끝나면 doneRoute가 홈으로 보낸다(from 없음) */
 const PERSONALITY_TEST_URL = '/personality-test'
-/** 세 열(전략 | 입력·결과 | 도움말)이 서는 폭 */
-const WIDE = '(min-width: 1200px)'
 
 export default function BacktestPage() {
   useDocumentTitle('주식 백테스트')
@@ -62,6 +59,8 @@ export default function BacktestPage() {
   const [query, setQuery] = useState(handoff?.stockName ?? '')
   const [stock, setStock] = useState<StockInfo | null>(handoff)
   const [isSearchOpen, setIsSearchOpen] = useState(false)
+  /** 방향키로 고른 후보. -1이면 아직 안 골랐다 — Enter는 가장 잘 맞는 첫 후보로 간다 */
+  const [activeMatch, setActiveMatch] = useState(-1)
 
   /**
    * 검색 대상 종목. 로컬 사본으로 시작해 서버 목록이 오면 바꾼다.
@@ -114,8 +113,6 @@ export default function BacktestPage() {
   /** 실행·결과·거두기(hooks/useBacktestRun). 같은 조합은 한 번만 받고, 늦게 온 결과는 버린다 */
   const { result, run, clear } = useBacktestRun()
   const resultRef = useRef<HTMLDivElement>(null)
-  /** 지금 하는 단계 — 왼쪽 단계 줄과 오른쪽 도움말이 따른다. 칸에 들어가면(포커스) 그 단계, 결과가 나오면 결과 */
-  const [step, setStep] = useState<BacktestStep>(handoff !== null ? 'strategy' : 'stock')
 
   // 서버 목록·기간·내 성향을 한 번에 받는다. 셋 다 실패해도 화면은 로컬 값으로 뜬다
   useEffect(() => {
@@ -269,6 +266,7 @@ export default function BacktestPage() {
     setQuery(value)
     setStock(null)
     setIsSearchOpen(true)
+    setActiveMatch(-1)
     clearResult()
   }
 
@@ -276,7 +274,33 @@ export default function BacktestPage() {
     setStock(item)
     setQuery(item.stockName)
     setIsSearchOpen(false)
+    setActiveMatch(-1)
     clearResult()
+  }
+
+  /**
+   * 종목 칸 키보드: ↑↓로 후보를 오가고 Enter로 고른다. 아무것도 안 골랐으면 Enter는 가장 잘 맞는 첫 후보다
+   * ("삼성전자" + Enter = 삼성전자 — searchStocks가 이름이 똑같은 종목을 맨 앞에 세운다). Esc는 후보를 닫는다
+   */
+  function handleStockKeyDown(event: KeyboardEvent<HTMLInputElement>) {
+    if (event.key === 'Escape') {
+      setIsSearchOpen(false)
+      setActiveMatch(-1)
+      return
+    }
+    if (matches.length === 0) return
+    if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+      event.preventDefault()
+      const step = event.key === 'ArrowDown' ? 1 : -1
+      setIsSearchOpen(true)
+      setActiveMatch((index) => (index < 0 ? (step === 1 ? 0 : matches.length - 1) : (index + step + matches.length) % matches.length))
+      return
+    }
+    // 한글 조합 중 Enter는 글자를 끝내는 것이다 — 그때 고르면 마지막 글자가 빠진 채 골라진다
+    if (event.key === 'Enter' && !event.nativeEvent.isComposing) {
+      event.preventDefault()
+      selectStock(matches[activeMatch >= 0 && activeMatch < matches.length ? activeMatch : 0])
+    }
   }
 
   /**
@@ -285,7 +309,6 @@ export default function BacktestPage() {
    * 서버 목록에 없는 기간도 놓아 준다. 로컬 표만 보면 선택지에서 사라진 기간이 고른 값으로 남는다.
    */
   function changeStrategy(next: number | null) {
-    setStep('strategy')
     setInvestType(next)
     if (next !== null && period !== null) {
       if (!availablePeriods(next, serverPeriods).includes(period)) {
@@ -307,7 +330,6 @@ export default function BacktestPage() {
    */
   useEffect(() => {
     if (result.kind !== 'ready' || resultRef.current === null) return
-    setStep('result')
 
     const prefersReduced = window.matchMedia(
       '(prefers-reduced-motion: reduce)',
@@ -319,102 +341,98 @@ export default function BacktestPage() {
     })
   }, [result.kind])
 
-  /** 넓은 화면은 전략 카드를 왼쪽 열에, 좁은 화면은 입력 ②칸에 둔다(한 곳에만 그린다) */
-  const wide = useMediaQuery(WIDE)
-  const picker = <StrategyPicker investType={investType} savedPersonality={savedPersonality} onSelect={changeStrategy} />
+  /*
+   * 성향은 고르는 칸이 아니라 '이미 정해진 나의 정보'다. 조건보다 앞, 왼쪽 맨 위에 옅은 면 한 줄로 적는다(화면에 한 번).
+   * 비로그인 안내도 여기 — 결과 자리의 로그인 안내는 다 고른 뒤에야 보이므로 시작하기 전에 알리고 로그인으로 보낸다
+   */
+  const banner = (
+    <div className={styles.myBanner}>
+      {personality.kind === 'loading' ? (
+        <p className={styles.myText}>
+          <Spinner size={16} /> 내 투자성향을 불러오는 중이에요.
+        </p>
+      ) : personality.kind === 'error' ? (
+        /* 못 불러왔으면 검사를 권하지 않는다 — 다시 검사하면 멀쩡한 성향을 덮어쓴다 */
+        <>
+          <p className={styles.myText}>성향을 불러오지 못했어요.</p>
+          <button type="button" className={styles.myAction} onClick={retryPersonality}>
+            다시 시도
+          </button>
+        </>
+      ) : savedPersonality === null ? (
+        <>
+          <p className={styles.myText}>
+            {loggedIn
+              ? '투자성향테스트를 아직 안 하셨어요. 먼저 하면 나에게 맞는 전략을 자동으로 골라드려요.'
+              : '로그인하면 백테스트 결과를 볼 수 있어요. 투자성향테스트까지 하면 나에게 맞는 전략도 자동으로 골라드려요.'}
+          </p>
+          {loggedIn ? (
+            <Link className={styles.myAction} to={PERSONALITY_TEST_URL}>
+              테스트하러 가기
+            </Link>
+          ) : (
+            <Link className={styles.myAction} to={loginPathFrom('/backtest')}>
+              로그인
+            </Link>
+          )}
+        </>
+      ) : (
+        <>
+          <p className={styles.myText}>
+            내 투자성향은 <b>{savedPersonality}</b>이에요.
+            {/* 다른 전략을 골랐거나 '이 전략으로 백테스트'로 다른 전략을 실어 왔으면 "골라 뒀어요"는 거짓이다 */}
+            {recommended !== null && (
+              <>
+                {' '}
+                {investType === recommended.investType ? (
+                  <>
+                    여기에 맞는 <b>{recommended.strategyName}</b>을 골라 뒀어요.
+                  </>
+                ) : (
+                  <>
+                    여기에 맞는 전략은 <b>{recommended.strategyName}</b>이에요.
+                  </>
+                )}
+              </>
+            )}
+          </p>
+          <Link className={styles.myAction} to={PERSONALITY_TEST_URL}>
+            성향 다시 검사
+          </Link>
+        </>
+      )}
+    </div>
+  )
 
   return (
     <>
       <h1 className={styles.title}>주식 백테스트 이용하기</h1>
 
+      {/*
+        두 열: 왼쪽 성향 배너 → ①종목 ②전략 ③기간(그 아래 결과) | 오른쪽 '돌릴 조합' 판(고른 셋 + 시작 단추, 화면을 내려도 따라온다).
+        굵은 먹 선은 화면 제목 아래 하나다. 좁은 화면은 한 열 — 배너 → 조건 → 시작 단추 → 결과 → 도움말 순으로 선다(CSS order)
+      */}
       <div className={styles.layout}>
-      {wide && (
-        <aside className={styles.strategies} aria-labelledby="backtest-strategies-title" onFocus={() => setStep('strategy')}>
-          <div className={styles.strategiesHead}>
-            <h2 id="backtest-strategies-title" className={styles.strategiesTitle}>
-              전략 고르기
-            </h2>
-          </div>
-          {picker}
-        </aside>
-      )}
+      <div className={styles.main}>
+        {banner}
 
-      <div className={styles.content}>
+        <section className={styles.form} aria-labelledby="backtest-form-title">
+          {/* 구역 이름은 보조기기에만 — 눈에는 배너와 ①②③ 번호가 흐름을 이끈다(먹 선 두 줄이 겹쳐 보이지 않게) */}
+          <h2 id="backtest-form-title" className={styles.srOnly}>
+            조건 고르기
+          </h2>
 
-        {/*
-          성향은 고르는 칸이 아니라 '이미 정해진 나의 정보'다.
-          입력 칸에서 빼고 맨 위에 사실로 적어 둔다.
-        */}
-        <div className={styles.myBanner}>
-          {personality.kind === 'loading' ? (
-            <p className={styles.myText}>
-              <Spinner size={16} /> 내 투자성향을 불러오는 중이에요.
+          {usingFallback && (
+            <p className={styles.fallbackNote} role="status">
+              서버 목록을 받지 못해 기본 목록으로 보여드려요. 결과가 없는 조합이 있을 수 있어요.
             </p>
-          ) : personality.kind === 'error' ? (
-            /* 못 불러왔으면 검사를 권하지 않는다 — 다시 검사하면 멀쩡한 성향을 덮어쓴다 */
-            <>
-              <p className={styles.myText}>성향을 불러오지 못했어요.</p>
-              <button type="button" className={styles.myAction} onClick={retryPersonality}>
-                다시 시도
-              </button>
-            </>
-          ) : savedPersonality === null ? (
-            <>
-              <p className={styles.myText}>
-                {loggedIn
-                  ? '투자성향테스트를 아직 안 하셨어요. 먼저 하면 나에게 맞는 전략을 자동으로 골라드려요.'
-                  : '로그인하면 백테스트 결과를 볼 수 있어요. 투자성향테스트까지 하면 나에게 맞는 전략도 자동으로 골라드려요.'}
-              </p>
-              {/* 결과 자리의 로그인 안내는 다 고른 뒤에야 보이므로, 비로그인에게는 시작하기 전에 알리고 로그인으로 보낸다 */}
-              {loggedIn ? (
-                <Link className={styles.myAction} to={PERSONALITY_TEST_URL}>
-                  테스트하러 가기
-                </Link>
-              ) : (
-                <Link className={styles.myAction} to={loginPathFrom('/backtest')}>
-                  로그인
-                </Link>
-              )}
-            </>
-          ) : (
-            <>
-              <p className={styles.myText}>
-                내 투자성향은 <b>{savedPersonality}</b>이에요.
-                {/* 다른 전략을 골랐거나 '이 전략으로 백테스트'로 다른 전략을 실어 왔으면 "골라 뒀어요"는 거짓이다 */}
-                {recommended !== null && (
-                  <>
-                    {' '}
-                    {investType === recommended.investType ? (
-                      <>
-                        여기에 맞는 <b>{recommended.strategyName}</b>을 골라 뒀어요.
-                      </>
-                    ) : (
-                      <>
-                        여기에 맞는 전략은 <b>{recommended.strategyName}</b>이에요.
-                      </>
-                    )}
-                  </>
-                )}
-              </p>
-              <Link className={styles.myAction} to={PERSONALITY_TEST_URL}>
-                성향 다시 검사
-              </Link>
-            </>
           )}
-        </div>
 
-        {usingFallback && (
-          <p className={styles.fallbackNote} role="status">
-            서버 목록을 받지 못해 기본 목록으로 보여드려요. 결과가 없는 조합이 있을 수 있어요.
-          </p>
-        )}
-
-        <section className={styles.form}>
-          {/* 종목 선택 --------------------------------------------------- */}
-          <div className={styles.field} onFocus={() => setStep('stock')}>
-            <label className={styles.label} htmlFor="backtest-stock">
-              <span className={styles.step}>1</span>
-              종목 선택
+          {/* 종목 --------------------------------------------------------- */}
+          <div className={styles.field}>
+            <label className={styles.fieldName} htmlFor="backtest-stock">
+              <span className={styles.stepNum} aria-hidden="true">1</span>
+              종목
             </label>
 
             <div className={styles.searchWrap}>
@@ -424,11 +442,21 @@ export default function BacktestPage() {
                   className={styles.input}
                   type="text"
                   value={query}
-                  placeholder="종목을 검색해주세요. (예: 삼성전자)"
+                  placeholder="종목명으로 검색 (예: 삼성전자)"
                   autoComplete="off"
+                  role="combobox"
+                  aria-expanded={isSearchOpen && matches.length > 0}
+                  aria-controls="backtest-stock-matches"
+                  aria-autocomplete="list"
+                  // 방향키로 고른 후보 — 포커스는 입력칸에 남으니 보조기기에 어느 후보인지 알린다
+                  aria-activedescendant={isSearchOpen && activeMatch >= 0 && activeMatch < matches.length ? `backtest-stock-match-${activeMatch}` : undefined}
                   onChange={(event) => handleQueryChange(event.target.value)}
+                  onKeyDown={handleStockKeyDown}
                   onFocus={() => setIsSearchOpen(true)}
-                  onBlur={() => setIsSearchOpen(false)}
+                  onBlur={() => {
+                    setIsSearchOpen(false)
+                    setActiveMatch(-1)
+                  }}
                 />
                 {stock !== null && (
                   <span className={styles.code}>{stock.stockCode}</span>
@@ -441,14 +469,19 @@ export default function BacktestPage() {
                  * mousedown을 막아 focus를 붙잡아 둔다.
                  */
                 <ul
+                  id="backtest-stock-matches"
+                  role="listbox"
+                  aria-label="종목 후보"
                   className={styles.matches}
                   onMouseDown={(event) => event.preventDefault()}
                 >
-                  {matches.map((item) => (
-                    <li key={item.stockCode}>
+                  {matches.map((item, index) => (
+                    <li key={item.stockCode} id={`backtest-stock-match-${index}`} role="option" aria-selected={index === activeMatch}>
                       <button
                         type="button"
-                        className={styles.match}
+                        tabIndex={-1}
+                        className={index === activeMatch ? `${styles.match} ${styles.matchActive}` : styles.match}
+                        onMouseEnter={() => setActiveMatch(index)}
                         onClick={() => selectStock(item)}
                       >
                         <span>{item.stockName}</span>
@@ -461,109 +494,64 @@ export default function BacktestPage() {
             </div>
           </div>
 
-          {/* 투자전략 — 넓은 화면은 왼쪽 열에서 고르고 여기는 고른 것을 되짚는다. 좁은 화면은 여기서 카드로 고른다 */}
-          <div className={styles.field} onFocus={() => setStep('strategy')}>
-            <p className={styles.label} id="backtest-strategy-label">
-              <span className={styles.step}>2</span>
-              투자전략 선택
+          {/* 전략 — 고르는 곳은 이 카드 하나다. 성향 안내는 이 줄 머리에 한 번 */}
+          <div className={styles.field}>
+            <p className={styles.fieldName} id="backtest-strategy-label">
+              <span className={styles.stepNum} aria-hidden="true">2</span>
+              전략
             </p>
-            {wide ? (
-              <p className={styles.chosen} aria-labelledby="backtest-strategy-label">
-                {selected === null ? (
-                  '왼쪽 목록에서 전략을 눌러 골라 주세요.'
-                ) : (
-                  <>
-                    <b>{selected.strategyName}</b> {selected.strategySummary}
-                  </>
-                )}
-              </p>
-            ) : (
-              picker
-            )}
-          </div>
-
-          {/* 투자기간 선택 ------------------------------------------------ */}
-          <div className={styles.field} onFocus={() => setStep('period')}>
-            <label className={styles.label} htmlFor="backtest-period">
-              <span className={styles.step}>3</span>
-              투자기간 선택
-            </label>
-
-            <div className={styles.control}>
-              <select
-                id="backtest-period"
-                className={styles.select}
-                value={period ?? ''}
-                disabled={investType === null}
-                onChange={(event) => {
-                  setPeriod(
-                    event.target.value === ''
-                      ? null
-                      : (event.target.value as BacktestPeriod),
-                  )
-                  clearResult()
-                }}
-              >
-                <option value="">
-                  {investType === null
-                    ? '투자전략을 먼저 선택해주세요.'
-                    : '투자기간을 선택해주세요.'}
-                </option>
-                {PERIODS.filter((item) =>
-                  periodChoices.includes(item.period),
-                ).map((item) => (
-                  <option key={item.period} value={item.period}>
-                    {periodLabel(item.period)}
-                  </option>
-                ))}
-              </select>
+            <div className={styles.fieldBody} role="group" aria-labelledby="backtest-strategy-label">
+              <StrategyPicker investType={investType} savedPersonality={savedPersonality} onSelect={changeStrategy} />
+              <StrategyDetail investType={investType} />
             </div>
-
-            {/* 줄어든 까닭을 가른다 — 로컬 최소 기간인지, 서버에 계산된 기간만 남긴 것인지. 하나도 없으면 막다른 길임을 알린다 */}
-            {selected !== null && periodChoices.length === 0 ? (
-              <p className={styles.hint}>지금은 이 전략으로 계산된 기간이 없어요. 다른 전략을 골라 주세요.</p>
-            ) : selected !== null && serverNarrowed ? (
-              <p className={styles.hint}>서버에 계산된 기간만 보여드려요.</p>
-            ) : selected !== null && periodChoices.length < PERIODS.length ? (
-              <p className={styles.hint}>
-                {selected.strategyName}은 지표를 계산하는 데 봉이 많이 필요해서{' '}
-                <b>{periodLabel(selected.minPeriod)}</b> 이상만 고를 수 있어요.
-              </p>
-            ) : null}
           </div>
 
-          <div className={styles.submitRow}>
-            <button
-              type="button"
-              className={styles.submit}
-              disabled={!canRun}
-              onClick={() => handleSubmit()}
-            >
-              {isRunning ? (
-                <>
-                  <Spinner size={18} /> 불러오는 중…
-                </>
-              ) : (
-                '백테스트 시작하기'
-              )}
-            </button>
+          {/* 기간 — 네 칸을 한 줄에 나눠 둔다. 이 전략이 못 쓰는 기간은 잠근다 */}
+          <div className={styles.field}>
+            <p className={styles.fieldName} id="backtest-period-label">
+              <span className={styles.stepNum} aria-hidden="true">3</span>
+              기간
+            </p>
+            <div className={styles.fieldBody}>
+              <div className={styles.periods} role="group" aria-labelledby="backtest-period-label">
+                {PERIODS.map((item) => {
+                  const isActive = item.period === period
+                  return (
+                    <button
+                      key={item.period}
+                      type="button"
+                      className={isActive ? styles.periodOn : styles.periodOff}
+                      aria-pressed={isActive}
+                      data-period={item.period}
+                      disabled={investType === null || !periodChoices.includes(item.period)}
+                      onClick={() => {
+                        setPeriod(item.period)
+                        clearResult()
+                      }}
+                    >
+                      {item.label}
+                    </button>
+                  )
+                })}
+              </div>
 
-            {/* 버튼이 꺼져 있는 이유를 말해 준다. 안 그러면 왜 안 눌리는지 알 길이 없다 */}
-            {!canRun && !isRunning && (
-              <p className={styles.submitHint}>
-                {stock === null
-                  ? '종목을 먼저 골라주세요.'
-                  : investType === null
-                    ? '투자전략을 골라주세요.'
-                    : periodChoices.length === 0
-                      ? '이 전략은 지금 고를 수 있는 기간이 없어요.'
-                      : '투자기간을 골라주세요.'}
-              </p>
-            )}
+              {/* 잠긴 까닭을 가른다 — 로컬 최소 기간인지, 서버에 계산된 기간만 남긴 것인지. 하나도 없으면 막다른 길임을 알린다 */}
+              {selected === null ? (
+                <p className={styles.hint}>전략을 고르면 기간을 고를 수 있어요.</p>
+              ) : periodChoices.length === 0 ? (
+                <p className={styles.hint}>지금은 이 전략으로 계산된 기간이 없어요. 다른 전략을 골라 주세요.</p>
+              ) : serverNarrowed ? (
+                <p className={styles.hint}>서버에 계산된 기간만 고를 수 있어요.</p>
+              ) : periodChoices.length < PERIODS.length ? (
+                <p className={styles.hint}>
+                  {selected.strategyName}은 지표를 계산할 봉이 많이 필요해 {periodLabel(selected.minPeriod)}부터 고를 수 있어요.
+                </p>
+              ) : null}
+            </div>
           </div>
         </section>
 
-        <div ref={resultRef} id="backtest-result" tabIndex={-1}>
+        <div ref={resultRef} id="backtest-result" className={styles.resultSlot} tabIndex={-1}>
           {result.kind === 'loading' && (
             <p className={styles.loadingBox}>
               <Spinner size={20} /> 백테스트 결과를 불러오는 중…
@@ -611,7 +599,64 @@ export default function BacktestPage() {
         </div>
       </div>
 
-      <BacktestHelp step={step} investType={investType} />
+      <aside className={styles.side} aria-label="돌릴 조합과 도움말">
+        <section className={styles.summary} aria-labelledby="backtest-summary-title">
+          <h2 id="backtest-summary-title" className={styles.summaryTitle}>
+            돌릴 조합
+          </h2>
+          <dl className={styles.summaryList}>
+            <div className={styles.summaryRow}>
+              <dt>종목</dt>
+              <dd>{stock === null ? <span className={styles.summaryEmpty}>아직 안 골랐어요</span> : stock.stockName}</dd>
+            </div>
+            <div className={styles.summaryRow}>
+              <dt>전략</dt>
+              <dd>
+                {selected === null ? (
+                  <span className={styles.summaryEmpty}>아직 안 골랐어요</span>
+                ) : (
+                  selected.strategyName
+                )}
+              </dd>
+            </div>
+            <div className={styles.summaryRow}>
+              <dt>기간</dt>
+              <dd>{period === null ? <span className={styles.summaryEmpty}>아직 안 골랐어요</span> : PERIODS.find((item) => item.period === period)?.label}</dd>
+            </div>
+          </dl>
+
+          <button
+            type="button"
+            className={styles.submit}
+            disabled={!canRun}
+            onClick={() => handleSubmit()}
+          >
+            {isRunning ? (
+              <>
+                <Spinner size={18} /> 불러오는 중…
+              </>
+            ) : (
+              '백테스트 시작하기'
+            )}
+          </button>
+
+          {/* 버튼이 꺼져 있는 이유를 말해 준다. 안 그러면 왜 안 눌리는지 알 길이 없다 */}
+          {!canRun && !isRunning && (
+            <p className={styles.submitHint}>
+              {stock === null
+                ? '종목을 먼저 골라주세요.'
+                : investType === null
+                  ? '투자전략을 골라주세요.'
+                  : periodChoices.length === 0
+                    ? '이 전략은 지금 고를 수 있는 기간이 없어요.'
+                    : '투자기간을 골라주세요.'}
+            </p>
+          )}
+
+        </section>
+
+        <BacktestHelp showResult={result.kind === 'ready'} />
+      </aside>
       </div>
     </>
   )

@@ -2,7 +2,7 @@ import backtestChapter from '../content/guide/backtest.md?raw'
 import { readGuideDocument } from './guideMarkdown'
 
 /*
- * 백테스트 화면 오른쪽 날개 도움말이 사용설명서 3장(src/content/guide/backtest.md)에서 그대로 떼어 오는 글.
+ * 백테스트 화면(전략 설명의 '이 전략 자세히 보기' 꼭지 주소, '돌릴 조합' 아래 도움말)이 사용설명서 3장(src/content/guide/backtest.md)에서 그대로 떼어 오는 글.
  * 글은 사용자가 노션에서 쓴 것이라 고치지 않고 줄 단위로 옮긴다.
  * 굵게(**)는 남겨 두고 그리는 쪽이 나눈다. 글이 바뀌어 찾는 줄이 없으면 그 조각만 빈다(던지지 않는다).
  */
@@ -48,16 +48,6 @@ export function resultSteps(): { items: string[]; anchor: string | null } {
     .map((line) => /^\d+\.\s+(.*)$/.exec(line.trim())?.[1] ?? null)
     .filter((item): item is string => item !== null)
   return { items, anchor: anchorOf('결과는 이 순서로') }
-}
-
-/** 3장 자주 묻는 질문 중 질문 글자를 품은 것의 첫 답 문단 */
-export function faqAnswer(keyword: string): { question: string; answer: string; anchor: string | null } | null {
-  const lines = block(/^## .*자주 묻는 질문/, 2)
-  const at = lines.findIndex((line) => line.startsWith('**Q.') && line.includes(keyword))
-  if (at === -1) return null
-  const answer = lines.slice(at + 1).find((line) => line.trim() !== '')
-  if (answer === undefined || answer.startsWith('**Q.')) return null
-  return { question: lines[at].replace(/\*\*/g, '').trim(), answer: answer.trim(), anchor: anchorOf('자주 묻는 질문') }
 }
 
 /** "**굵게**"가 섞인 한 줄을 [글, 굵은가] 조각으로 */

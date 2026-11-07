@@ -22,7 +22,7 @@ async function run(opts, period) {
   await page.locator('#backtest-stock').fill('삼성전자')
   await page.getByRole('button', { name: /삼성전자\s*005930/ }).first().click()
   await sleep(300)
-  await page.locator('#backtest-period').selectOption(period)
+  await page.locator(`button[data-period="${period}"]`).click()
   await sleep(200)
   await page.locator('[class*="submit"]').first().click()
   await sleep(1500)
@@ -83,8 +83,13 @@ async function run(opts, period) {
   report('B6', /결과를 불러오지 못했어요/.test(r.text) && /잠시 후 다시 시도/.test(r.text) && r.errors.length === 0, `안내 ${/결과를 불러오지 못했어요/.test(r.text)}, 예외 ${r.errors.length}`)
 }
 
-// B7 전략은 카드 하나에서만 고른다: 1440은 왼쪽 열 '전략 고르기'에 카드 다섯(진행 단계 줄·전략 목록 상자 없음), 카드를 누르면 그 카드가 눌린 상태이고
-//    가운데 ②칸이 그 전략 이름을 되짚는다. 390은 왼쪽 열 없이 입력 ②칸 안에 카드 다섯
+// B7 두 열(2026-11-07 사용자가 고른 시안 3, 같은 날 다듬음): 왼쪽 = 성향 배너(맨 앞) → ①종목 ②전략 ③기간(원형 번호), 오른쪽 = '돌릴 조합' 판(종목·전략·기간 + 시작 단추).
+//    굵은 먹 선은 화면 제목 아래 하나뿐이다(구역 머리 먹 선 두 줄이 겹쳐 보이던 것 — 사용자). 배너와 '돌릴 조합' 판의 위끝이 같다.
+//    전략을 고르는 곳은 카드 하나, 카드에는 성향 이름(안정형 등)을 적지 않는다. 고른 전략 설명은 화면에 한 번.
+//    이동평균 교차(6개월 이상)를 고르면 1개월·3개월이 잠기고, 1년을 누르면 조합에 1년. 1440에서 두 열이 본문 폭의 95% 넘게 쓴다.
+//    390은 한 열 — 조건 아래에 시작 단추, 가로 넘침 없음
+// B8 종목 검색은 키보드로 고른다: "삼성전자" + Enter → 삼성전자(005930)가 골라지고 조합에 적힌다. "삼성" + ↓↓ + Enter → 두 번째 후보가 골라진다
+//    (↓마다 입력칸의 aria-activedescendant가 그 후보를 가리킨다). Esc는 후보를 닫는다
 {
   const result = {}
   for (const width of [1440, 390]) {
@@ -94,23 +99,73 @@ async function run(opts, period) {
     const page = await context.newPage()
     await page.goto(BASE + '/backtest', { waitUntil: 'domcontentloaded' })
     await sleep(1500)
-    const aside = page.locator('aside[aria-labelledby="backtest-strategies-title"]')
+    const form = page.locator('[aria-labelledby="backtest-form-title"]')
+    const summary = page.locator('[aria-labelledby="backtest-summary-title"]')
     const r = {
-      asideCards: await aside.locator('[data-invest-type]').count(),
-      formCards: await page.locator('[class*="_form_"] [data-invest-type]').count(),
-      select: await page.locator('#backtest-strategy').count(),
-      rail: await page.locator('nav[aria-label="백테스트 단계"]').count(),
+      formCards: await form.locator('[data-invest-type]').count(),
+      oldAside: await page.locator('aside[aria-labelledby="backtest-strategies-title"]').count(),
+      select: await page.locator('main select').count(),
+      periods: await form.locator('button[data-period]').count(),
+      steps: await page.$$eval('[class*="_stepNum_"]', (els) => els.map((e) => e.textContent.trim()).join('')),
+      cardText: (await form.locator('[class*="_strategyList_"]').innerText().catch(() => '')).replace(/\s+/g, ' '),
     }
-    await page.locator('[data-invest-type="1"]').first().click()
+    await page.locator('[data-invest-type="1"]').first().click().catch(() => {})
     await sleep(300)
-    r.pressed = await page.locator('[data-invest-type="1"]').first().getAttribute('aria-pressed')
-    r.chosen = width > 1200 ? ((await page.locator('[class*="_chosen_"]').innerText().catch(() => '')).includes('RSI 역추세 전략')) : null
+    r.pressed = await page.locator('[data-invest-type="1"]').first().getAttribute('aria-pressed').catch(() => null)
+    r.summaryName = (await summary.innerText().catch(() => '')).includes('RSI 역추세 전략')
+    r.desc = await page.getByText('너무 많이 팔려 눌린 종목이 제자리로 돌아오는 힘을 노리는 전략이에요.').count()
+    await page.locator('[data-invest-type="3"]').first().click().catch(() => {})
+    await sleep(200)
+    r.locked = await page.$$eval('button[data-period]', (bs) => bs.filter((b) => b.disabled).map((b) => b.dataset.period).join(','))
+    await page.locator('button[data-period="ONE_YEAR"]').click({ timeout: 2000 }).catch(() => {})
+    await sleep(200)
+    r.summaryPeriod = /1년/.test(await summary.innerText().catch(() => ''))
+    Object.assign(r, await page.evaluate(() => {
+      const main = document.querySelector('main'), style = getComputedStyle(main), box = main.getBoundingClientRect()
+      const inner = box.width - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight)
+      const form = document.querySelector('[aria-labelledby="backtest-form-title"]')?.getBoundingClientRect()
+      const side = document.querySelector('[aria-labelledby="backtest-summary-title"]')?.getBoundingClientRect()
+      const banner = document.querySelector('[class*="_myBanner_"]')?.getBoundingClientRect()
+      const firstStep = document.querySelector('[class*="_stepNum_"]')?.getBoundingClientRect()
+      const submit = [...document.querySelectorAll('main button')].find((b) => b.textContent.includes('백테스트 시작하기'))?.getBoundingClientRect()
+      const rule = getComputedStyle(document.documentElement).getPropertyValue('--color-rule').trim()
+      const thick = [...main.querySelectorAll('*')].filter((el) => { const cs = getComputedStyle(el); return cs.borderBottomWidth === '2px' && cs.borderBottomStyle === 'solid' && el.getBoundingClientRect().height > 0 }).length
+      return {
+        span: form && side ? Math.round(((Math.max(form.right, side.right) - Math.min(form.left, side.left)) / inner) * 100) : 0,
+        bannerFirst: banner && firstStep ? banner.bottom <= firstStep.top : false,
+        topsEqual: banner && side ? Math.abs(banner.top - side.top) <= 1 : false,
+        thick, rule: rule !== '',
+        submitBelowForm: form && submit ? submit.top >= form.bottom - 1 : false,
+        overflow: document.documentElement.scrollWidth > innerWidth,
+      }
+    }))
+
+    // B8 — 키보드로 종목 고르기
+    const input = page.locator('#backtest-stock')
+    await input.fill('삼성전자'); await sleep(250)
+    await input.press('Enter'); await sleep(250)
+    r.enterPick = { value: await input.inputValue(), code: (await page.locator('[class*="_control_"] [class*="_code_"]').first().innerText().catch(() => '')).trim() }
+    await input.fill('삼성'); await sleep(250)
+    const options = await page.$$eval('[role="listbox"] [role="option"]', (os) => os.map((o) => o.textContent.replace(/\d{6}/, '').trim()))
+    await input.press('ArrowDown'); await input.press('ArrowDown'); await sleep(150)
+    r.active = await input.getAttribute('aria-activedescendant')
+    r.activeText = r.active ? (await page.locator(`#${r.active}`).innerText().catch(() => '')).replace(/\d{6}/, '').trim() : ''
+    await input.press('Enter'); await sleep(250)
+    r.arrowPick = { want: options[1] ?? null, got: await input.inputValue() }
+    await input.fill('SK'); await sleep(250)
+    const before = await page.locator('[role="listbox"]').count()
+    await input.press('Escape'); await sleep(150)
+    r.escape = before === 1 && (await page.locator('[role="listbox"]').count()) === 0
     result[width] = r
     await context.close()
   }
   const wide = result[1440], narrow = result[390]
-  report('B7', wide.asideCards === 5 && wide.formCards === 0 && wide.select === 0 && wide.rail === 0 && wide.pressed === 'true' && wide.chosen === true &&
-    narrow.asideCards === 0 && narrow.formCards === 5 && narrow.pressed === 'true', JSON.stringify(result))
+  const common = (r) => r.formCards === 5 && r.oldAside === 0 && r.select === 0 && r.periods === 4 && r.steps === '123' && !/안정형|안정추구형|적극투자형|공격투자형/.test(r.cardText) &&
+    r.pressed === 'true' && r.desc === 1 && r.locked === 'ONE_MONTH,THREE_MONTHS' && r.bannerFirst && r.thick === 1 && !r.overflow
+  report('B7', common(wide) && wide.summaryName && wide.summaryPeriod && wide.span >= 95 && wide.topsEqual && common(narrow) && narrow.submitBelowForm,
+    JSON.stringify(Object.fromEntries(Object.entries(result).map(([w, r]) => [w, { ...r, enterPick: undefined, arrowPick: undefined, active: undefined, activeText: undefined, escape: undefined }]))))
+  const keys = (r) => r.enterPick.value === '삼성전자' && r.enterPick.code === '005930' && r.arrowPick.want !== null && r.arrowPick.got === r.arrowPick.want && r.activeText === r.arrowPick.want && r.escape
+  report('B8', keys(wide) && keys(narrow), JSON.stringify(Object.fromEntries(Object.entries(result).map(([w, r]) => [w, { enter: r.enterPick, arrow: r.arrowPick, active: r.activeText, escape: r.escape }]))))
 }
 
 await browser.close()

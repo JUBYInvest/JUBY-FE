@@ -128,15 +128,10 @@ describe('utils/guideExcerpt — 백테스트 도움말이 사용설명서 3장�
     // "돌파 전략"이 "볼린저 밴드 돌파 전략"에 걸리지 않는다
     assert.match(g.strategyExcerpt('돌파 전략').idea, /신고가/)
   })
-  test('결과 확인 순서 다섯 줄(3절)·자주 묻는 질문(4절)', () => {
+  test('결과 확인 순서 다섯 줄(3절)', () => {
     const order = g.resultSteps()
     assert.equal(order.items.length, 5)
     assert.equal(order.anchor, 'backtest-3')
-    const faq = g.faqAnswer('데이터가 부족')
-    assert.match(faq.question, /^Q\. /)
-    assert.match(faq.answer, /워밍업/)
-    assert.equal(faq.anchor, 'backtest-4')
-    assert.equal(g.faqAnswer('없는 질문'), null)
   })
   test('splitBold', () => {
     assert.deepEqual(g.splitBold('a **b** c'), [{ text: 'a ', bold: false }, { text: 'b', bold: true }, { text: ' c', bold: false }])

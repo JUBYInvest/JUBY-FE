@@ -322,7 +322,7 @@ async function toBacktest(opts = {}, login = true, base = BASE) {
 const formOf = (page) => page.evaluate(() => ({
   stock: document.querySelector('#backtest-stock')?.value ?? null,
   strategy: document.querySelector('[data-invest-type][aria-pressed="true"]')?.getAttribute('data-invest-type') ?? '',
-  period: document.querySelector('#backtest-period')?.value ?? null,
+  period: document.querySelector('button[data-period][aria-pressed="true"]')?.getAttribute('data-period') ?? '',
 }))
 
 async function backtestGroup() {
@@ -333,7 +333,7 @@ async function backtestGroup() {
     await until(() => page.locator('[data-invest-type][aria-pressed="true"]').first().getAttribute('data-invest-type', { timeout: 500 }).catch(() => '').then((v) => v === '3'), 6000)
     await page.locator('#backtest-stock').fill('삼성전자')
     await page.getByRole('button', { name: /삼성전자\s*005930/ }).first().click()
-    await page.locator('#backtest-period').selectOption('ONE_YEAR')
+    await page.locator('button[data-period="ONE_YEAR"]').click()
     await page.locator('[class*="submit"]').first().click()
     await sleep(1500)
     manual = log.filter((l) => PRESET.test(l) || RUN.test(l)).sort()
