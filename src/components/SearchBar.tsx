@@ -20,6 +20,11 @@ interface Props {
   placeholder?: string
   /** 후보 목록이 닫힌 채 Esc를 누르면 — 단추로 연 칸을 닫는 쪽이 받는다 */
   onDismiss?: () => void
+  /**
+   * 입력칸이 비어 있을 때 최근 본 종목 대신 보일 목록과 그 머리 이름. 커뮤니티 글쓰기가 시가총액 순 사본(api/stockList)을 넘긴다 —
+   * 치기 전에 눌러도 고를 종목이 보인다(2026-11-07 사용자). 길어서 목록 안에서 굴러간다
+   */
+  browse?: { title: string; stocks: StockInfo[] }
 }
 
 export default function SearchBar({
@@ -28,6 +33,7 @@ export default function SearchBar({
   autoFocus = false,
   placeholder = '종목명이나 종목코드로 검색 (예: 삼성전자)',
   onDismiss,
+  browse,
 }: Props) {
   const [keyword, setKeyword] = useState('')
   const [suggestions, setSuggestions] = useState<StockInfo[]>([])
@@ -41,6 +47,7 @@ export default function SearchBar({
    */
   const [recent, setRecent] = useState(readRecentStocks)
   const inputRef = useRef<HTMLInputElement>(null)
+  const listRef = useRef<HTMLUListElement>(null)
   const navigate = useNavigate()
   /** 서버 검색이 마지막으로 찾아 준 것. 그 사이 가진 목록(stocks)이 바뀌어도 다시 합치려고 들고 있는다 */
   const remoteRef = useRef<{ keyword: string; found: StockInfo[] } | null>(null)
@@ -126,14 +133,14 @@ export default function SearchBar({
   }
 
   const isEmpty = keyword.trim() === ''
-  /** 지금 보이는 후보. 비어 있으면 최근 본 종목, 아니면 검색 결과 */
-  const options = isEmpty ? recent : suggestions
+  /** 지금 보이는 후보. 비어 있으면 넘겨받은 목록(없으면 최근 본 종목), 아니면 검색 결과 */
+  const options = isEmpty ? (browse?.stocks ?? recent) : suggestions
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     if (isEmpty) {
-      // 최근 본 종목을 방향키로 골랐으면 그리로 간다
-      const picked = activeIndex >= 0 ? recent[activeIndex] : undefined
+      // 최근 본 종목(또는 넘겨받은 목록)을 방향키로 골랐으면 그리로 간다
+      const picked = activeIndex >= 0 ? options[activeIndex] : undefined
       if (picked !== undefined) {
         goTo(picked)
         return
@@ -192,6 +199,11 @@ export default function SearchBar({
   }
 
   const isListVisible = isOpen && options.length > 0
+
+  // 목록이 굴러가면(browse) 방향키로 고른 후보가 목록 밖으로 내려간다. 보이는 자리로 끌어온다
+  useEffect(() => {
+    if (isListVisible && activeIndex >= 0) listRef.current?.children[activeIndex]?.scrollIntoView({ block: 'nearest' })
+  }, [isListVisible, activeIndex])
   /*
    * 화살표로 후보를 옮겨도 포커스는 입력칸에 남는다. 그래서 지금 어느 후보에 있는지
    * 눈으로는 배경색으로 알지만 보조기기는 알 길이 없다. 그 하나를 id로 가리켜 알려 준다.
@@ -219,6 +231,8 @@ export default function SearchBar({
             setRecent(readRecentStocks())
             setIsOpen(true)
           }}
+          // 포커스가 남은 채 Esc로 닫았으면 onFocus가 다시 오지 않는다. 눌러서 다시 연다
+          onClick={() => setIsOpen(true)}
           onKeyDown={handleKeyDown}
           // 사용자가 단추를 눌러 연 칸에서만 켠다(커뮤니티 "종목 검색")
           autoFocus={autoFocus}
@@ -239,21 +253,24 @@ export default function SearchBar({
           {isEmpty && (
             <div className={styles.listHead}>
               <span id="recent-stocks-title" className={styles.listTitle}>
-                최근 본 종목
+                {browse?.title ?? '최근 본 종목'}
               </span>
-              <button
-                type="button"
-                className={styles.clear}
-                // 눌리기 전에 입력칸이 포커스를 잃으면 목록이 먼저 닫혀 클릭이 사라진다
-                onMouseDown={(event) => event.preventDefault()}
-                onClick={clearRecent}
-              >
-                기록 지우기
-              </button>
+              {browse === undefined && (
+                <button
+                  type="button"
+                  className={styles.clear}
+                  // 눌리기 전에 입력칸이 포커스를 잃으면 목록이 먼저 닫혀 클릭이 사라진다
+                  onMouseDown={(event) => event.preventDefault()}
+                  onClick={clearRecent}
+                >
+                  기록 지우기
+                </button>
+              )}
             </div>
           )}
         <ul
-          className={styles.options}
+          ref={listRef}
+          className={isEmpty && browse !== undefined ? `${styles.options} ${styles.optionsScroll}` : styles.options}
           id="stock-suggestions"
           role="listbox"
           aria-labelledby={isEmpty ? 'recent-stocks-title' : undefined}

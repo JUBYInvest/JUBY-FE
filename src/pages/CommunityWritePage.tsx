@@ -18,7 +18,7 @@ import styles from './CommunityWritePage.module.css'
 type EditState = { kind: 'loading' } | { kind: 'blocked'; message: string } | { kind: 'ready' }
 
 /**
- * 커뮤니티 글쓰기(`/community/write`)와 고치기(`/community/{postId}/edit`) — 종목(고르지 않아도 된다, 고칠 때는 바꿀 수 없다) · 제목 · 내용.
+ * 커뮤니티 글쓰기(`/community/write`)와 고치기(`/community/{postId}/edit`) — 종목(고르지 않아도 된다, 검색칸을 누르면 치기 전에 시가총액 순 후보가 뜬다, 고칠 때는 바꿀 수 없다) · 제목 · 내용.
  * 로그인했고 닉네임이 있어야 쓴다. 닉네임이 없으면 들어오자마자 닉네임 창을 띄우고, 올릴 때 서버가 403(닉네임 없음)을 주면 다시 띄운다.
  * 올리면 그 글 상세로 간다(주소 기록을 바꿔 넣어 뒤로 가면 목록)
  */
@@ -154,7 +154,14 @@ export default function CommunityWritePage() {
                 <strong>{stock.stockName}</strong>
               </p>
             ) : picking ? (
-              <SearchBar stocks={STOCK_LIST} onPick={pickStock} onDismiss={() => setPicking(false)} autoFocus placeholder="이야기할 종목 (예: 삼성전자)" />
+              <SearchBar
+                stocks={STOCK_LIST}
+                browse={{ title: '시가총액 순', stocks: STOCK_LIST }}
+                onPick={pickStock}
+                onDismiss={() => setPicking(false)}
+                autoFocus
+                placeholder="이야기할 종목 (예: 삼성전자)"
+              />
             ) : (
               <button type="button" className={styles.pick} aria-describedby="community-write-stock" onClick={() => setPicking(true)}>
                 종목 고르기

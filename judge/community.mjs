@@ -13,6 +13,10 @@
 //  B8 글쓰기(삼성전자 카드를 고른 채): 종목 "삼성전자" → 제목·내용 → 올리기 = POST {stockCode, title, content} → /community/26, 목록 맨 위
 //  B8b 그 글쓰기 종목 줄은 종목 이름뿐이다 — "이야기"·"빼기" 없음(2026-11-06 사용자)
 //  B9 종목 없이 쓰면 본문에 stockCode 칸이 없다
+//  B22 글쓰기(1440): 글 칸(680px)이 본문 폭 가운데 — 왼쪽·오른쪽 빈 곳이 같다(2026-11-07 사용자)
+//  B23 "종목 고르기" → 치기 전에 후보가 뜬다: 머리 "시가총액 순"(기록 지우기 없음), 삼성전자 · SK하이닉스 · 삼성전자우 순, 목록 안에서 굴러가고 화면 밖으로 나가지 않는다,
+//      방향키로 내려가면 고른 후보가 목록 안에 보인다, Esc로 닫은 뒤 입력칸을 누르면 다시 뜬다(2026-11-07 사용자)
+//  B24 올리기 실패 안내(390x640, 가짜 서버에 없는 종목 삼성전자우 → "없는 종목이에요")는 단추 줄처럼 화면 아래에 붙지 않고, 단추 줄과 겹치지 않는다
 //  B10 글 상세(목록에서 누름): 종목 줄 + 목록에서 실어 온 등락률, 본문, 좋아요 누르면 POST likes·수 +1·눌림, 다시 누르면 되돌림
 //  B11 내 글(3번)만 수정·삭제. 수정 → /community/3/edit 칸 채움(종목은 바꿀 수 없음) → PATCH → 상세에 새 제목·"수정됨". 삭제 → 확인 창 → DELETE → /community
 //  B12 댓글(로그인): 20개 → "댓글 더 보기" cursor=20 → 22개, 댓글 쓰기 → POST → 맨 아래에 서고 머리 "댓글 23"
@@ -123,6 +127,59 @@ await j.run('B', async () => {
   await t.page.getByRole('button', { name: '올리기' }).click()
   const sent2 = JSON.parse((await posting2).postData())
   j.report('B9', !('stockCode' in sent2) && sent2.title === '종목 없는 글', `보낸 ${JSON.stringify(sent2)}`)
+  await t.close()
+
+  t = await j.open()
+  await t.goto('/community/write', 1500)
+  const column = await t.page.evaluate(() => {
+    const main = document.querySelector('main')
+    const style = getComputedStyle(main)
+    const box = main.getBoundingClientRect()
+    const page = main.querySelector('h1').parentElement.getBoundingClientRect()
+    return { width: Math.round(page.width), left: Math.round(page.left - box.left - parseFloat(style.paddingLeft)), right: Math.round(box.right - parseFloat(style.paddingRight) - page.right) }
+  })
+  j.report('B22', column.width === 680 && column.left > 0 && Math.abs(column.left - column.right) <= 1, `글 칸 폭 ${column.width}, 왼쪽 ${column.left} · 오른쪽 ${column.right}`)
+
+  await t.page.getByRole('button', { name: '종목 고르기' }).click(); await sleep(400)
+  const listbox = t.page.getByRole('listbox')
+  const browseHead = await t.page.getByText('시가총액 순', { exact: true }).count()
+  const browseClear = await t.page.getByRole('button', { name: '기록 지우기' }).count()
+  const browseNames = await t.page.$$eval('[role="listbox"] [role="option"] [class*="_optionName_"]', (spans) => spans.map((s) => s.textContent.trim()))
+  const browseBox = await t.page.evaluate(() => { const ul = document.querySelector('[role="listbox"]'); return ul === null ? null : { scrolls: ul.scrollHeight > ul.clientHeight, bottom: ul.getBoundingClientRect().bottom <= innerHeight } })
+  const combo = t.page.getByRole('combobox')
+  for (let i = 0; i < 12; i++) await combo.press('ArrowDown')
+  await sleep(200)
+  const activeSeen = await t.page.evaluate(() => {
+    const ul = document.querySelector('[role="listbox"]'); const active = ul?.querySelector('[aria-selected="true"]')
+    if (!ul || !active) return false
+    const a = active.getBoundingClientRect(), u = ul.getBoundingClientRect()
+    return a.top >= u.top - 1 && a.bottom <= u.bottom + 1
+  })
+  await combo.press('Escape'); await sleep(150)
+  const closed = await listbox.count()
+  // 지금 코드에서 후보가 없으면 Esc가 검색칸을 닫는다 — 멈추지 않고 0으로 적는다
+  await combo.click({ timeout: 2000 }).catch(() => {}); await sleep(250)
+  const reopened = await listbox.count()
+  j.report('B23', browseHead === 1 && browseClear === 0 && browseNames.slice(0, 3).join('|') === '삼성전자|SK하이닉스|삼성전자우' && browseNames.length > 50 &&
+    browseBox?.scrolls === true && browseBox?.bottom === true && activeSeen && closed === 0 && reopened === 1,
+    `머리 ${browseHead}, 기록 지우기 ${browseClear}, 후보 ${browseNames.length}개(${browseNames.slice(0, 3).join(' · ')}), 목록 ${JSON.stringify(browseBox)}, 방향키 후보 보임 ${activeSeen}, Esc 뒤 ${closed} → 누르면 ${reopened}`)
+  await t.close()
+
+  t = await j.open({ width: 390, height: 640 })
+  await t.goto('/community/write', 1500)
+  await t.page.getByRole('button', { name: '종목 고르기' }).click()
+  await t.page.getByRole('combobox').fill('삼성전자우'); await sleep(300)
+  await t.page.getByRole('option', { name: /삼성전자우/ }).first().click(); await sleep(200)
+  await t.page.getByLabel('제목').fill('없는 종목 글')
+  await t.page.getByLabel('내용').fill('없는 종목 글의 내용')
+  await t.page.getByRole('button', { name: '올리기' }).click(); await sleep(1000)
+  const failure = await t.page.evaluate(() => {
+    const error = document.querySelector('[role="alert"]'); const actions = document.querySelector('[class*="_actions_"]')
+    if (!error || !actions) return null
+    const e = error.getBoundingClientRect(), a = actions.getBoundingClientRect()
+    return { text: error.textContent.trim(), position: getComputedStyle(error).position, overlap: e.bottom > a.top + 1 && e.top < a.bottom - 1 }
+  })
+  j.report('B24', failure?.text === '없는 종목이에요. 종목을 다시 골라 주세요.' && failure.position !== 'sticky' && failure.overlap === false, JSON.stringify(failure))
   await t.close()
 
   t = await j.open()

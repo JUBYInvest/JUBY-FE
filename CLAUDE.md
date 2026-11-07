@@ -207,6 +207,8 @@ npx knip@5               # 안 쓰는 파일·내보내기(judge/는 뺀다)
 - **쓰기 전 확인은 `hooks/useWriteGate`**: 비로그인 → 로그인 안내, 닉네임(`/api/members/me`의 `nickname`)이 없으면 `NicknameModal`(형식 → `/nickname/check` → `PATCH /me/nickname`).
   서버가 403 `COMMUNITY403_1`을 주면 닉네임 창을 다시 연다. 좋아요는 로그인만 본다.
 - 글쓰기 `/community/write`(종목은 고르지 않아도 된다 — 없으면 `stockCode` 칸을 뺀다, `""`는 400), 고치기 `/community/{id}/edit`(제목·내용만, 내 글만). 수정·삭제 단추는 `isMine`일 때만.
+  글 칸(680px)은 본문 폭 가운데다(B22). 종목 검색칸은 치기 전에 눌러도 시가총액 순 사본(`STOCK_LIST`)을 띄운다 — `SearchBar`의 `browse`, 목록 안에서 굴러간다(B23).
+  홈·커뮤니티 목록 검색칸은 그대로 최근 본 종목이다. 올리기 실패 안내는 단추 줄처럼 아래에 붙지 않는다(B24).
   종목 줄은 고른 종목 이름뿐이다("이야기"·"빼기" 없음, B8b). **올리면 그 글 상세로 가며 서버가 돌려준 글을 실어 간다**(`toSavedPostHandoff`) — 상세는 다시 묻기 전에 그리고
   실패해도 그대로 둔다(B20, 운영 글 조회가 500이던 2026-11-06). 5xx는 "커뮤니티 서버에 문제가 생겨…"(`isServerFault`, B16b·B21). 지운 글·없는 글(404 `COMMUNITY404_1`)은 "삭제된 게시물이에요". 서버 `message`는 쓰지 않고 길이 규칙(제목 40·내용 1,000·댓글 500)을 고정 문구로 적는다.
 - 떠 있는 "글쓰기"·올리기 줄은 `--index-bar-height` + `env(safe-area-inset-bottom)` 위다.

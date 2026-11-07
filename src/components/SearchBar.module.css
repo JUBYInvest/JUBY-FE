@@ -70,7 +70,14 @@
   list-style: none;
 }
 
-/* 입력칸이 비어 있을 때의 머리 줄: 최근 본 종목 | 기록 지우기 */
+/* 넘겨받은 긴 목록(커뮤니티 글쓰기 시가총액 순)은 일곱 줄 반에서 끊고 안에서 굴린다 — 반 줄이 걸쳐 보여 더 있는 줄 안다 */
+.optionsScroll {
+  max-height: min(345px, 45dvh);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+/* 입력칸이 비어 있을 때의 머리 줄: 최근 본 종목 | 기록 지우기 (넘겨받은 목록이면 그 이름만) */
 .listHead {
   display: flex;
   align-items: center;
