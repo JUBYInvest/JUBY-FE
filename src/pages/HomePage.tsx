@@ -85,7 +85,7 @@ type ListState =
  */
 
 export default function HomePage() {
-  useDocumentTitle('초보자를 위한 주식 비서')
+  useDocumentTitle('')
   const location = useLocation()
   const navigationType = useNavigationType()
   /*

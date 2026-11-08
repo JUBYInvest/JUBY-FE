@@ -7,6 +7,8 @@
 //     단추·입력칸 테두리는 빼고 센다
 //  T6 보조 단추(secondary) 테두리와 관심종목 지도 칸의 키보드 포커스 테두리도 먹이 아니라 밤하늘이다(같은 날 사용자 "그것도 바꾸고")
 //  T4 탭 아이콘(favicon.svg)·링크 미리보기(og.png)·홈 화면 아이콘(apple-touch-icon.png)의 바탕이 밤하늘이다
+//  T7 서비스 이름은 'JUBY: 초보자를 위한 주식 비서'다 — 홈 탭 제목·자바스크립트 전 제목·링크 미리보기 제목(2026-11-08 사용자 "이렇게 명칭을 바꿔줘").
+//     아이콘 주소에 ?v= 가 붙어 있다. 브라우저가 옛 주소의 초록 아이콘을 기억해 그림을 바꿔도 탭에 초록이 남았다(같은 날 사용자 탭)
 //   node theme.mjs <BASE>
 import { judge, sleep } from './lib.mjs'
 
@@ -204,6 +206,25 @@ j.report('T6', secondaryColors.length > 0 && badSecondary.length === 0 && tileOu
   const near = (px) => px !== null && Math.max(Math.abs(px[0] - 20), Math.abs(px[1] - 33), Math.abs(px[2] - 61)) <= 6
   j.report('T4', !icons.svgGreen && icons.svgBand && near(icons.favicon) && near(icons.touch) && near(icons.og),
     `favicon 초록 ${icons.svgGreen}·밤하늘 ${icons.svgBand} 바탕 ${icons.favicon}, apple-touch-icon ${icons.touch}, og.png ${icons.og} (밤하늘 20,33,61)`)
+}
+
+// T7 서비스 이름과 아이콘 주소
+{
+  const NAME = 'JUBY: 초보자를 위한 주식 비서'
+  const t = await j.open({ loggedIn: false, width: 800, height: 600 })
+  await t.goto('/', 2000)
+  const r = await t.page.evaluate(async () => {
+    const html = new DOMParser().parseFromString(await (await fetch('/')).text(), 'text/html')
+    const meta = (p) => html.querySelector(`meta[property="${p}"]`)?.getAttribute('content')
+    return {
+      tab: document.title, first: html.title, og: meta('og:title'), alt: meta('og:image:alt'),
+      icons: [...html.querySelectorAll('link[rel="icon"], link[rel="apple-touch-icon"]')].map((l) => l.getAttribute('href')),
+    }
+  })
+  await t.close()
+  const unversioned = r.icons.filter((h) => !/\?v=\w+/.test(h))
+  j.report('T7', r.tab === NAME && r.first === NAME && r.og === NAME && r.alt === NAME && r.icons.length === 2 && unversioned.length === 0,
+    `홈 탭 "${r.tab}", 처음 제목 "${r.first}", og:title "${r.og}", og:image:alt "${r.alt}", 아이콘 주소 ${r.icons.join(' ')}`)
 }
 
 await sleep(0)

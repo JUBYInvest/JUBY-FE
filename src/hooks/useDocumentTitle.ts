@@ -3,8 +3,11 @@ import { useEffect } from 'react'
 /** 탭 제목 뒤에 늘 붙는 서비스 이름 */
 const SUFFIX = 'JUBY'
 
+/** 화면 이름이 없을 때(홈)의 탭 제목. index.html의 title·og:title과 같은 글이다(2026-11-08 사용자) */
+export const SERVICE_TITLE = 'JUBY: 초보자를 위한 주식 비서'
+
 /**
- * 탭 제목을 화면 이름으로 바꾼다. 화면 이름만 주면 뒤에 서비스 이름을 붙인다.
+ * 탭 제목을 화면 이름으로 바꾼다. 화면 이름만 주면 뒤에 서비스 이름을 붙이고, 빈 글이면 SERVICE_TITLE을 쓴다.
  *
  * 떠날 때 되돌리지 않는다. 다음 화면이 자기 제목을 덮어쓰므로 되돌리면 그 사이에
  * 제목이 한 번 깜빡인다. 제목을 안 정한 화면은 앞 화면 제목을 잠시 물려받는다.
@@ -15,6 +18,6 @@ const SUFFIX = 'JUBY'
  */
 export function useDocumentTitle(name: string): void {
   useEffect(() => {
-    document.title = name === '' ? SUFFIX : `${name} - ${SUFFIX}`
+    document.title = name === '' ? SERVICE_TITLE : `${name} - ${SUFFIX}`
   }, [name])
 }

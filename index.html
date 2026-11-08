@@ -2,9 +2,13 @@
 <html lang="ko">
   <head>
     <meta charset="UTF-8" />
-    <!-- 탭 아이콘은 밤하늘 바탕에 호박·흰 캔들 둘(2026-11-02 그림, 11-08 색). 홈 화면에 더하면 뜨는 그림은 같은 그림의 PNG(iOS가 모서리를 깎는다) -->
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <!--
+      탭 아이콘은 밤하늘 바탕에 호박·흰 캔들 둘(2026-11-02 그림, 11-08 색). 홈 화면에 더하면 뜨는 그림은 같은 그림의 PNG(iOS가 모서리를 깎는다).
+      ?v= 는 그림을 바꿀 때마다 올린다. 브라우저는 아이콘을 주소로 오래 기억해서, 주소가 같으면 파일을 바꿔도
+      예전 그림(초록)을 계속 띄운다(2026-11-08 사용자 탭에서 확인).
+    -->
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=20261108" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=20261108" />
     <!-- 휴대폰 브라우저의 주소창 색. 머리글 띠와 같은 밤하늘(--color-band) -->
     <meta name="theme-color" content="#14213d" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -30,7 +34,7 @@
       화면마다 다른 제목은 src/hooks/useDocumentTitle.ts가 붙인다.
       여기 적은 값은 자바스크립트가 돌기 전에 잠깐 보이는 제목이다.
     -->
-    <title>JUBY</title>
+    <title>JUBY: 초보자를 위한 주식 비서</title>
     <meta
       name="description"
       content="초보자를 위한 주식 비서 JUBY. 과거 데이터로 전략을 검증하는 백테스트와 투자성향에 맞춘 AI 주가분석을 제공합니다."
@@ -45,7 +49,7 @@
     -->
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="JUBY" />
-    <meta property="og:title" content="JUBY - 초보자를 위한 주식 비서" />
+    <meta property="og:title" content="JUBY: 초보자를 위한 주식 비서" />
     <meta
       property="og:description"
       content="과거 데이터로 전략을 검증하는 백테스트와 투자성향에 맞춘 AI 주가분석."
@@ -54,7 +58,7 @@
     <meta property="og:image" content="https://juby-fe.vercel.app/og.png" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
-    <meta property="og:image:alt" content="JUBY - 초보자를 위한 주식 비서" />
+    <meta property="og:image:alt" content="JUBY: 초보자를 위한 주식 비서" />
     <meta name="twitter:card" content="summary_large_image" />
   </head>
   <body>
