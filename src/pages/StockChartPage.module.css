@@ -238,7 +238,7 @@
 
 /*
  * 관심종목 토글. 하트 + "관심종목"의 보조 단추다 — 외곽선 하트(안 담음) ↔ 채운 하트(담음).
- * 빨강은 상승으로 읽혀 쓰지 않는다. 담았으면 하트만 브랜드 초록이다. StockChartPage.tsx가 둘 중 하나만 단다
+ * 빨강은 상승으로 읽혀 쓰지 않는다. 담았으면 하트만 호박(brand-600)이다. StockChartPage.tsx가 둘 중 하나만 단다
  */
 .like {
   composes: secondary md from '../components/buttons.module.css';
@@ -255,7 +255,7 @@
 }
 
 .likeOn svg {
-  color: var(--color-brand-700);
+  color: var(--color-brand-600);
 }
 
 /* 관심종목 목록을 못 받았거나 토글을 되돌렸을 때의 안내 */
@@ -348,7 +348,7 @@
   list-style: none;
 }
 
-/* 단추가 곧 링크다. 주 행동(백테스트)은 브랜드 초록 채움, AI는 먹 테두리 — buttons.module.css의 primary·secondary와 같은 모양 */
+/* 단추가 곧 링크다. 주 행동(백테스트)은 호박 채움, AI는 먹 테두리 — buttons.module.css의 primary·secondary와 같은 모양 */
 .actionRow {
   composes: secondary md from '../components/buttons.module.css';
   width: 100%;

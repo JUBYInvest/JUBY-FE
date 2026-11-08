@@ -57,7 +57,7 @@
   background: var(--color-bg-hover);
 }
 
-/* 지금 정렬의 차례. 표의 진짜 칸이라 숫자로 적는다. 종목 이름이 앞서도록 보조색이다(초록은 행동·선택에만) */
+/* 지금 정렬의 차례. 표의 진짜 칸이라 숫자로 적는다. 종목 이름이 앞서도록 보조색이다(호박은 행동·선택에만) */
 .rank {
   font-size: var(--font-md);
   font-weight: 600;
@@ -90,7 +90,7 @@
   cursor: progress;
 }
 
-/* 지금 정렬 기준. 먹 글자 + 아래 초록 막대(다른 화면의 밑줄 탭과 같은 모양) */
+/* 지금 정렬 기준. 먹 글자 + 아래 호박 막대(다른 화면의 밑줄 탭과 같은 모양) */
 .sortButtonActive {
   position: relative;
   color: var(--color-text);
@@ -104,7 +104,7 @@
   bottom: -1px;
   left: 0;
   height: 2px;
-  background: var(--color-brand-700);
+  background: var(--color-brand-400);
 }
 
 .sortIcon {
@@ -131,18 +131,18 @@
   border: none;
   background: none;
   /*
-   * 외곽선 하트(안 담음) ↔ 채운 하트(담음). 종목 상세의 관심종목 토글과 같은 규칙이다 — 보조 글자색, 담으면 브랜드 초록.
+   * 외곽선 하트(안 담음) ↔ 채운 하트(담음). 종목 상세의 관심종목 토글과 같은 규칙이다 — 보조 글자색, 담으면 호박(600 — 그림이라 흰 바탕 3.4:1).
    * 빨강은 상승으로 읽혀 쓰지 않는다
    */
   color: var(--color-text-sub);
 }
 
 .heart:hover {
-  color: var(--color-brand-700);
+  color: var(--color-brand-600);
 }
 
 .heartOn {
-  color: var(--color-brand-700);
+  color: var(--color-brand-600);
 }
 
 /* 종목명과 그 옆 종목코드. 넓은 화면은 한 줄, 휴대폰은 이름 아래 */

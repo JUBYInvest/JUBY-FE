@@ -169,7 +169,7 @@
   composes: srOnly from './a11y.module.css';
 }
 
-/* 내가 누른 좋아요 — 채운 하트와 먹 글자(초록 하트는 HeartIcon) */
+/* 내가 누른 좋아요 — 채운 하트와 먹 글자(호박 하트는 HeartIcon) */
 .likedCount {
   color: var(--color-text);
 }

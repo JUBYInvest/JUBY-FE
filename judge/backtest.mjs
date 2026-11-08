@@ -168,9 +168,9 @@ async function run(opts, period) {
   report('B8', keys(wide) && keys(narrow), JSON.stringify(Object.fromEntries(Object.entries(result).map(([w, r]) => [w, { enter: r.enterPick, arrow: r.arrowPick, active: r.activeText, escape: r.escape }]))))
 }
 
-// B9 (2026-11-07 사용자) 종목 칸을 누르면 빛번짐 대신 고른 기간 칸과 같은 모양(초록 테두리 + 옅은 초록 바탕, 그림자 없음).
+// B9 (2026-11-07 사용자) 종목 칸을 누르면 빛번짐 대신 고른 기간 칸과 같은 모양(진한 브랜드 테두리 + 옅은 브랜드 바탕, 그림자 없음).
 //    비어 있는 칸을 누르기만 해도 시가총액 순 후보(삼성전자 · SK하이닉스 · 삼성전자우 …)가 뜨고 목록 안에서 굴러간다. ↓ 열두 번 + Enter → 열두 번째 종목.
-//    결과의 "백테스트 다시하기"는 결과 머리(먹 선 줄)가 아니라 "이 종목으로 이어서" 맨 앞 주 단추(초록 바탕 + 흰 글자)이고, 단추 줄은 가운데
+//    결과의 "백테스트 다시하기"는 결과 머리(먹 선 줄)가 아니라 "이 종목으로 이어서" 맨 앞 주 단추(호박 바탕 + 먹 글자 — 11-08 색 테마 전엔 초록 + 흰 글자)이고, 단추 줄은 가운데
 {
   const context = await browser.newContext({ viewport: { width: 1440, height: 1000 } })
   await seedLogin(context)
@@ -219,13 +219,13 @@ async function run(opts, period) {
     return {
       headRetry: head ? [...head.querySelectorAll('button')].some((b) => b.textContent.includes('다시하기')) : null,
       firstText: first?.textContent.trim() ?? null,
-      firstGreen: first ? getComputedStyle(first).backgroundColor === rgb(root.getPropertyValue('--color-brand-700')) && getComputedStyle(first).color === 'rgb(255, 255, 255)' : false,
+      firstPrimary: first ? getComputedStyle(first).backgroundColor === rgb(root.getPropertyValue('--color-brand-400')) && getComputedStyle(first).color === rgb(root.getPropertyValue('--color-text-on-accent')) : false,
       centered: section ? Math.abs((left + right) / 2 - (section.left + section.right) / 2) <= 2 : false,
     }
   }))
   await context.close()
   report('B9', r.shadow === 'none' && r.border && r.fill && r.names.slice(0, 3).join('|') === '삼성전자|SK하이닉스|삼성전자우' && r.names.length > 50 && r.scrolls && r.activeSeen &&
-    r.picked === (r.names[11] ?? '?') && r.headRetry === false && r.firstText === '백테스트 다시하기' && r.firstGreen && r.centered,
+    r.picked === (r.names[11] ?? '?') && r.headRetry === false && r.firstText === '백테스트 다시하기' && r.firstPrimary && r.centered,
     JSON.stringify({ ...r, names: `${r.names.length}개 ${r.names.slice(0, 3).join(' · ')} … 12번째 ${r.names[11]}` }))
 }
 

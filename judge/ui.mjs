@@ -213,9 +213,12 @@ async function u1() {
 
 /* ── U-2 ─────────────────────────────────────────────────────────── */
 
-const BRAND = 'rgb(21, 128, 61)'
+// 주 단추는 호박 채움(brand-400)에 먹 글자(text-on-accent)다 — 2026-11-08 색 테마를 밤하늘 + 호박으로 바꾸며 '초록 바탕 + 흰 글자'에서 고쳤다(theme.mjs T2)
 async function buttonStyles(page) {
-  return page.evaluate((brand) => {
+  return page.evaluate(() => {
+    const root = getComputedStyle(document.documentElement)
+    const rgb = (hex) => { const n = parseInt(hex.trim().slice(1), 16); return `rgb(${n >> 16}, ${(n >> 8) & 255}, ${n & 255})` }
+    const brand = rgb(root.getPropertyValue('--color-brand-400')), onBrand = rgb(root.getPropertyValue('--color-text-on-accent'))
     const kinds = {}
     const odd = []
     for (const el of document.querySelectorAll('button, [role="button"], a')) {
@@ -234,7 +237,7 @@ async function buttonStyles(page) {
       // 소셜 로그인 단추는 각 회사 지침의 색이라 3종에서 뺀다(카카오 노랑·네이버 초록). 결과 보고서 예외 목록에 적는다
       if (/_(kakao|naver)_/.test(el.className)) kind = 'brand-exception'
       else if (el.matches(':disabled, [aria-disabled="true"]')) kind = 'disabled'
-      else if (bg === brand && cs.color === 'rgb(255, 255, 255)') kind = 'primary'
+      else if (bg === brand && cs.color === onBrand) kind = 'primary'
       else if (bg === 'rgb(255, 255, 255)' && border) kind = 'secondary'
       else if (transparent && !border) kind = 'ghost'
       else if (on) kind = 'selected'
@@ -242,7 +245,7 @@ async function buttonStyles(page) {
       else kinds[kind] = (kinds[kind] ?? 0) + 1
     }
     return { kinds, odd }
-  }, BRAND)
+  })
 }
 
 async function focusRings(page, max = 80) {

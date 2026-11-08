@@ -1,13 +1,13 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
   <!--
-    브라우저 탭 아이콘(2026-11-02 다시 그림). 브랜드 초록 바탕에 오르는 캔들 둘 — 앞 것은 연초록, 뒤의 더 높은 것은 흰색.
+    브라우저 탭 아이콘. 밤하늘 바탕에 오르는 캔들 둘 — 앞 것은 호박, 뒤의 더 높은 것은 흰색(2026-11-08 색 테마를 초록에서 밤하늘 + 호박으로).
     예전 것은 빨강·파랑 캔들 셋이 투명 바탕에 놓여 16px에서 보라빛 덩어리로 보였다.
-    색은 src/index.css의 brand-700(#15803d)·brand-300(#86efac)과 같은 값이다. 파비콘은 문서 밖이라 CSS 변수를 못 써 값을 직접 적었다 —
+    색은 src/index.css의 band(#14213d)·brand-400(#f5a524)과 같은 값이다. 파비콘은 문서 밖이라 CSS 변수를 못 써 값을 직접 적었다 —
     바꿀 땐 둘 다 고친다. 몸통 16·꼬리 4(16px 탭에서 4px·1px)는 두 캔들이 뭉개지지 않는 최소 두께다.
-    og.png와 apple-touch-icon.png도 이 그림으로 만든다(docs/UI-다듬기-결과-2026-11-02.md).
+    og.png와 apple-touch-icon.png도 이 그림으로 만든다(judge/theme.mjs T4가 셋의 바탕을 본다).
   -->
-  <rect width="64" height="64" rx="16" fill="#15803d" />
-  <g fill="#86efac">
+  <rect width="64" height="64" rx="16" fill="#14213d" />
+  <g fill="#f5a524">
     <rect x="20" y="24" width="4" height="28" rx="2" />
     <rect x="14" y="31" width="16" height="15" rx="3" />
   </g>

@@ -16,7 +16,7 @@
   composes: title from './section.module.css';
 }
 
-/* 연결 상태 — 붙어 있으면 초록 점(활성) + "실시간", 붙는 중엔 도는 고리, 멈췄으면 "다시 연결" 글자 단추 */
+/* 연결 상태 — 붙어 있으면 호박 점(활성) + "실시간", 붙는 중엔 도는 고리, 멈췄으면 "다시 연결" 글자 단추 */
 .status {
   display: flex;
   align-items: center;
@@ -31,7 +31,7 @@
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: var(--color-brand-700);
+  background: var(--color-brand-400);
   box-shadow: 0 0 0 3px var(--color-brand-100);
 }
 

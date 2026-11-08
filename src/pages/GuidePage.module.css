@@ -124,7 +124,7 @@
   text-underline-offset: 3px;
 }
 
-/* 지금 읽는 꼭지. 먹 글자 + 왼쪽 바깥 초록 막대(고른 것 = 브랜드 초록) — 글자 자리는 그대로 */
+/* 지금 읽는 꼭지. 먹 글자 + 왼쪽 바깥 호박 막대(고른 것 = 브랜드 호박) — 글자 자리는 그대로 */
 .sectionLinkOn {
   font-weight: 700;
   color: var(--color-text);
@@ -137,7 +137,7 @@
   bottom: 10px;
   left: calc(var(--space-3) * -1);
   width: 2px;
-  background: var(--color-brand-700);
+  background: var(--color-brand-400);
 }
 
 .action {

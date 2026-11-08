@@ -4,10 +4,10 @@
   align-items: center;
   justify-content: center;
   vertical-align: -0.2em;
-  color: var(--color-brand-700);
+  color: var(--color-brand-600);
 }
 
-/* 초록 단추 안처럼 글자가 흰 곳은 글자색을 따른다 */
+/* 단추·링크 안에서는 글자색을 따른다(주 단추 안이면 먹) */
 :where(button, a) .spinner {
   color: currentColor;
 }

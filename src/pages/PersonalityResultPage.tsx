@@ -42,7 +42,7 @@ export default function PersonalityResultPage() {
 
   return (
     <div className={styles.page}>
-      {/* 다 채운 진행 막대는 두지 않는다 — 제목 먹 선 바로 아래 초록 줄 하나로만 보여 선이 두 겹으로 읽힌다 */}
+      {/* 다 채운 진행 막대는 두지 않는다 — 제목 먹 선 바로 아래 호박 줄 하나로만 보여 선이 두 겹으로 읽힌다 */}
       <h1 className={styles.title}>나의 투자성향 테스트</h1>
 
       <PersonalityCard

@@ -11,7 +11,7 @@
 //  C5 마이페이지: 세 화면의 맨 위 한 줄(이름·성향 이름)은 같은 크기이고 화면 제목보다 작다. 구역 안 결론 줄·성향 칸 제목은 구역 제목보다 작다.
 //     본문 링크는 같은 곳으로 가는 왼쪽 메뉴와 같은 이름이다('투자유형 자세히'·'내 정보 보기'가 메뉴로는 '투자유형 보기'·'내 정보 확인'이었다)
 //  C6 투자성향 테스트: 옅은 면 판 안에 보기 칸을 얹지 않는다(판 안에 상자). 결과 화면에 다 찬 진행 막대를 두지 않는다(먹 선 아래 초록 줄로만 보였다)
-//  C7 마이페이지 900px 이하 메뉴: 다른 화면과 같은 밑줄 탭(14px·600, 고른 것은 먹 글자 + 2px 초록 막대가 가는 선 위)이고 테두리 상자·채운 칸이 없다.
+//  C7 마이페이지 900px 이하 메뉴: 다른 화면과 같은 밑줄 탭(14px·600, 고른 것은 먹 글자 + 2px 브랜드 막대가 가는 선 위 — 11-08부터 호박 brand-400)이고 테두리 상자·채운 칸이 없다.
 //     로그아웃은 같은 줄 오른쪽 끝의 글자 단추. 320px까지 한 줄에 서고 넘치지 않는다(2026-11-04 — 초록으로 채운 칸을 테두리 상자에 담고 있었다)
 //  C8 탭이 선 제목 줄(주식 모아보기 '담은 종목', 종목 상세 '뉴스 모아보기'): 넓으면 탭이 제목 줄 오른쪽 끝, 좁아서 다음 줄로 내려가면 제목과 왼쪽 끝이 같다
 //     (320px에서 오른쪽에 붙어 '담은 종목' 18px, 뉴스는 '기사 검색하기'로 이름이 길어져 내려간 뒤 오른쪽에 붙었다)
@@ -239,7 +239,7 @@ await j.run('C7', async () => {
         boxes,
         on: { color: getComputedStyle(on).color, fs: parseFloat(getComputedStyle(on).fontSize), fw: getComputedStyle(on).fontWeight },
         off: links.filter((a) => a !== on).map((a) => getComputedStyle(a).color),
-        ink: tokenColor('--color-text'), sub: tokenColor('--color-text-sub'), brand: tokenColor('--color-brand-700'),
+        ink: tokenColor('--color-text'), sub: tokenColor('--color-text-sub'), brand: tokenColor('--color-brand-400'),
         bar: { h: parseFloat(bar.height), bg: bar.backgroundColor, bottom: or.bottom - parseFloat(bar.bottom) },
         line: { w: parseFloat(getComputedStyle(aside).borderBottomWidth), bottom: ar.bottom },
         oneRow: rects.every((x) => Math.abs(x.top - rects[0].top) < 1) && lr.top < rects[0].bottom && lr.bottom > rects[0].top,

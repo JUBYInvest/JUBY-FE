@@ -24,12 +24,12 @@
   color: var(--color-text-sub);
 }
 
-/* 남은 단계 번호 — 사용설명서 칸과 같은 옅은 초록 동그라미 */
+/* 남은 단계 번호 — 사용설명서 칸과 같은 옅은 호박 동그라미 */
 .mark {
   composes: number from './GuideSteps.module.css';
 }
 
-/* 마친 단계 — 채운 초록 동그라미에 흰 ✓(흰 글자를 얹는 초록은 700 이상) */
+/* 마친 단계 — 채운 호박 동그라미에 먹 ✓(호박 채움 위 글자는 먹 — 주 단추와 같다) */
 .markDone {
   display: flex;
   align-items: center;
@@ -37,13 +37,13 @@
   width: 28px;
   height: 28px;
   border-radius: var(--radius-pill);
-  background: var(--color-brand-700);
-  color: var(--color-text-on-brand);
+  background: var(--color-brand-400);
+  color: var(--color-text-on-accent);
   font-size: var(--font-sm);
   font-weight: 700;
 }
 
-/* 남은 단계의 바로 가기. 행동이라 브랜드 초록 글자, 누르는 넓이 44px(여백으로 넓히고 음수 여백으로 자리는 그대로) */
+/* 남은 단계의 바로 가기. 행동이라 진한 호박 글자, 누르는 넓이 44px(여백으로 넓히고 음수 여백으로 자리는 그대로) */
 .action {
   display: inline-flex;
   align-items: center;

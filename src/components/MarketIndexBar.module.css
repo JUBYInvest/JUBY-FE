@@ -1,5 +1,5 @@
 /*
- * 화면 아래 국내 지수 띠. 머리글과 같은 진한 초록 띠라 위아래가 한 틀이 된다.
+ * 화면 아래 국내 지수 띠. 머리글과 같은 밤하늘 띠라 위아래가 한 틀이 된다.
  * 본문 뒤에 놓여 있다가 스크롤하면 화면 아래에 붙는다(sticky). fixed가 아니라 본문 끝을 가리지 않는다 —
  * 짧은 화면에서도 맨 아래에 오도록 App.module.css .page가 세로 flex이고 .main이 남는 높이를 가져간다.
  * 겹침 순서: 차트 캔버스(1·2)·범례(3)보다 위, 검색 후보(10)·모달(100)보다 아래
@@ -8,7 +8,7 @@
   position: sticky;
   bottom: 0;
   z-index: 5;
-  background: var(--color-brand-900);
+  background: var(--color-band);
   /* 아이폰 홈 막대 자리. viewport-fit=cover가 아니면 0이다 */
   padding-bottom: env(safe-area-inset-bottom);
 }
@@ -33,7 +33,7 @@
   align-items: center;
   gap: var(--space-4);
   padding-right: var(--space-6);
-  border-right: 1px solid var(--color-brand-800);
+  border-right: 1px solid var(--color-band-line);
 }
 
 /* 장 상태(장 중·장 마감·오늘 휴장)와 다음 개장일 */
@@ -45,7 +45,7 @@
 }
 
 /*
- * 오늘 장 진행(9:00~15:30). 진한 초록 띠 위라 바탕은 흰 25%, 지난 몫은 연초록(--color-brand-300), 끝에 흰 점.
+ * 오늘 장 진행(9:00~15:30). 밤하늘 띠 위라 바탕은 흰 25%, 지난 몫은 호박(--color-brand-400), 끝에 흰 점.
  * 1분마다 다시 그린다(띠의 시계와 같다)
  */
 .session {
@@ -59,14 +59,14 @@
   width: 120px;
   height: 4px;
   border-radius: var(--radius-pill);
-  background: var(--color-on-brand-track);
+  background: var(--color-band-track);
 }
 
 .fill {
   position: absolute;
   inset: 0 auto 0 0;
   border-radius: var(--radius-pill);
-  background: var(--color-brand-300);
+  background: var(--color-brand-400);
 }
 
 .fill::after {
@@ -78,11 +78,11 @@
   height: 8px;
   margin-top: -4px;
   border-radius: 50%;
-  background: var(--color-text-on-brand);
+  background: var(--color-text-on-dark);
 }
 
 .left {
-  color: var(--color-brand-100);
+  color: var(--color-band-text-sub);
   font-variant-numeric: tabular-nums;
 }
 
@@ -93,26 +93,26 @@
   top: 0;
   left: 0;
   height: 2px;
-  background: var(--color-brand-300);
+  background: var(--color-brand-400);
 }
 
 .phase {
   font-weight: 700;
-  color: var(--color-text-on-brand);
+  color: var(--color-text-on-dark);
 }
 
 .next {
-  color: var(--color-brand-100);
+  color: var(--color-band-text-sub);
 }
 
-/* 띠 위의 글자: 연초록 6.5:1, 흰색 9.1:1, 옅은 초록 8.3:1 */
+/* 띠 위의 글자: 호박 7.8:1, 흰색 16:1, 옅은 회청 9.9:1 */
 .label {
   display: flex;
   align-items: center;
   gap: var(--space-2);
   margin: 0;
   font-weight: 700;
-  color: var(--color-brand-300);
+  color: var(--color-brand-400);
 }
 
 .label::before {
@@ -120,7 +120,7 @@
   width: 6px;
   height: 6px;
   border-radius: var(--radius-pill);
-  background: var(--color-brand-300);
+  background: var(--color-brand-400);
 }
 
 .list {
@@ -145,16 +145,16 @@
 .item + .item {
   margin-left: var(--space-5);
   padding-left: var(--space-5);
-  border-left: 1px solid var(--color-brand-800);
+  border-left: 1px solid var(--color-band-line);
 }
 
 .name {
-  color: var(--color-brand-100);
+  color: var(--color-band-text-sub);
 }
 
 .value {
   font-weight: 700;
-  color: var(--color-text-on-brand);
+  color: var(--color-text-on-dark);
 }
 
 .tone {
@@ -171,13 +171,13 @@
 }
 
 .flat {
-  color: var(--color-brand-100);
+  color: var(--color-band-text-sub);
 }
 
 .asOf {
   margin: 0 0 0 auto;
   font-size: var(--font-xs);
-  color: var(--color-brand-100);
+  color: var(--color-band-text-sub);
 }
 
 /* 장 상태는 폭이 줄면 다음 개장일·남은 시간부터 뺀다. 상태 낱말(장 중·장 마감·오늘 휴장)과 막대만 남긴다 */

@@ -12,7 +12,7 @@
   margin: 0;
 }
 
-/* 진행 막대는 줄을 다 쓰고 오른쪽 끝에 몇 번째인지 적는다. 고른 것·진행은 브랜드 초록이다(다른 화면의 고른 탭 막대와 같다) */
+/* 진행 막대는 줄을 다 쓰고 오른쪽 끝에 몇 번째인지 적는다. 고른 것·진행은 브랜드 호박이다(다른 화면의 고른 탭 막대와 같다) */
 .progressRow {
   display: flex;
   align-items: center;
@@ -30,7 +30,7 @@
 
 .progressFill {
   height: 100%;
-  background: var(--color-brand-700);
+  background: var(--color-brand-400);
   border-radius: var(--radius-pill);
   transition: width 0.3s ease;
 }

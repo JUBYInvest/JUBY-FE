@@ -31,7 +31,7 @@ export function LikeToggle({ like, onToggle }: { like: LikeView; onToggle: () =>
   )
 }
 
-/** 바로 가기 두 단추. 백테스트가 주 행동이라 브랜드 초록으로 채우고, AI는 먹 테두리다 */
+/** 바로 가기 두 단추. 백테스트가 주 행동이라 브랜드 호박으로 채우고, AI는 먹 테두리다 */
 const ACTIONS = [
   {
     to: '/backtest',

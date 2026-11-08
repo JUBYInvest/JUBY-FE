@@ -197,7 +197,7 @@
 /* 등락 단계(index.css --color-heat-*). 진한 단계만 흰 글자 */
 .heatUp3 {
   background: var(--color-heat-up-3);
-  color: var(--color-text-on-brand);
+  color: var(--color-text-on-dark);
 }
 
 .heatUp2 {
@@ -222,7 +222,7 @@
 
 .heatDown3 {
   background: var(--color-heat-down-3);
-  color: var(--color-text-on-brand);
+  color: var(--color-text-on-dark);
 }
 
 .legend {
@@ -300,11 +300,11 @@
   padding: 0;
   border: 0;
   background: none;
-  color: var(--color-brand-700);
+  color: var(--color-brand-600);
 }
 
 .heart:hover {
-  color: var(--color-brand-800);
+  color: var(--color-brand-700);
 }
 
 .who {
