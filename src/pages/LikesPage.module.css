@@ -155,7 +155,7 @@
 }
 
 .tile:focus-visible {
-  outline: 3px solid var(--color-text);
+  outline: 3px solid var(--color-band);
   outline-offset: -3px;
 }
 

@@ -348,7 +348,7 @@
   list-style: none;
 }
 
-/* 단추가 곧 링크다. 주 행동(백테스트)은 호박 채움, AI는 먹 테두리 — buttons.module.css의 primary·secondary와 같은 모양 */
+/* 단추가 곧 링크다. 주 행동(백테스트)은 호박 채움, AI는 밤하늘 테두리 — buttons.module.css의 primary·secondary와 같은 모양 */
 .actionRow {
   composes: secondary md from '../components/buttons.module.css';
   width: 100%;

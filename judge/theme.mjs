@@ -3,6 +3,9 @@
 //  T2 주 단추(buttons.module.css primary)는 호박 채움(--color-brand-400 #f5a524)에 어두운 글자(대비 4.5:1 이상)다 — 흰 글자는 호박 위에서 2.0:1이다
 //  T3 23화면 × 1440·390 어디에도 초록 기운의 색이 없다. 요소·::before·::after의 글자·바탕·테두리·그림자·SVG 칠, 그리고 받아 온 CSS 규칙 전부
 //     (마우스를 올렸을 때·포커스 색까지) — 옛 초록 회색(#5f6b66·#e4e8e6 같은 초록 기운 회색)도 센다. 네이버 로그인 아이콘은 회사 색이라 뺀다
+//  T5 구역을 여는 굵은 선(2px 이상 실선 — 화면 제목·구역 제목 아래, --color-rule)이 먹이 아니라 밤하늘이다(2026-11-08 사용자 "검은색 선들을 메인 테마색인 남색으로").
+//     단추·입력칸 테두리는 빼고 센다
+//  T6 보조 단추(secondary) 테두리와 관심종목 지도 칸의 키보드 포커스 테두리도 먹이 아니라 밤하늘이다(같은 날 사용자 "그것도 바꾸고")
 //  T4 탭 아이콘(favicon.svg)·링크 미리보기(og.png)·홈 화면 아이콘(apple-touch-icon.png)의 바탕이 밤하늘이다
 //   node theme.mjs <BASE>
 import { judge, sleep } from './lib.mjs'
@@ -84,12 +87,30 @@ async function scan(page) {
         const bg = window.__rgbs(cs.backgroundColor)[0], fg = window.__rgbs(cs.color)[0]
         return { text: el.textContent.trim().slice(0, 14), bg: cs.backgroundColor, color: cs.color, ratio: Math.round(window.__ratio(bg, fg) * 10) / 10 }
       })
-    return { hits: [...new Set(hits)], primaries }
+    const rules = { band: 0, other: [] }
+    for (const el of document.querySelectorAll('body *')) {
+      if (el.matches('button, a, input, textarea, select, [role="button"], [role="tab"]') || el.getClientRects().length === 0) continue
+      const cs = getComputedStyle(el)
+      for (const side of ['Top', 'Right', 'Bottom', 'Left']) {
+        if (parseFloat(cs[`border${side}Width`]) < 2 || cs[`border${side}Style`] !== 'solid') continue
+        const color = cs[`border${side}Color`]
+        // 흰 테두리는 선이 아니라 칸 사이 틈이다(투자성향 자 막대 사이 2px)
+        if (color === 'rgb(255, 255, 255)') continue
+        if (color === 'rgb(20, 33, 61)') rules.band += 1
+        else rules.other.push(`${name(el)} border${side} ${color}`)
+      }
+    }
+    const secondaries = [...document.querySelectorAll('[class*="_secondary_"]')].filter((el) => el.getClientRects().length > 0 && !el.matches(':disabled')).map((el) => getComputedStyle(el).borderTopColor)
+    return { hits: [...new Set(hits)], primaries, rules, secondaries }
   })
 }
 
 const allHits = []
 const allPrimaries = []
+let ruleBand = 0
+const secondaryColors = []
+let tileOutline = null
+const ruleOther = []
 let sheetHits = null
 let chrome = null
 for (const [screen, loggedIn, open] of SCREENS) {
@@ -99,6 +120,13 @@ for (const [screen, loggedIn, open] of SCREENS) {
     const r = await scan(t.page)
     for (const h of r.hits) allHits.push(`${screen}@${width} ${h}`)
     for (const p of r.primaries) allPrimaries.push({ screen: `${screen}@${width}`, ...p })
+    ruleBand += r.rules.band
+    secondaryColors.push(...r.secondaries)
+    if (screen === 'likes' && width === 1440) {
+      await t.page.keyboard.press('Tab')
+      tileOutline = await t.page.evaluate(() => { const tile = document.querySelector('a[data-market]'); if (!tile) return null; tile.focus(); return getComputedStyle(tile).outlineColor })
+    }
+    for (const o of r.rules.other) ruleOther.push(`${screen}@${width} ${o}`)
     if (screen === 'home' && width === 1440) {
       chrome = await t.page.evaluate(() => ({
         header: getComputedStyle(document.querySelector('header')).backgroundColor,
@@ -138,6 +166,11 @@ j.report('T2', allPrimaries.length > 0 && badPrimaries.length === 0,
 
 j.report('T3a', allHits.length === 0, `화면에 보이는 초록 기운 색 ${allHits.length}곳${allHits.length ? '\n    ' + allHits.slice(0, 14).join('\n    ') : ''}`)
 j.report('T3b', sheetHits?.length === 0, `CSS 규칙 안 초록 기운 색 ${sheetHits?.length}개${sheetHits?.length ? '\n    ' + sheetHits.slice(0, 10).join('\n    ') : ''}`)
+
+j.report('T5', ruleBand > 0 && ruleOther.length === 0, `굵은 선 밤하늘 ${ruleBand}개, 다른 색 ${ruleOther.length}개${ruleOther.length ? '\n    ' + [...new Set(ruleOther.map((o) => o.replace(/^\S+ /, '')))].slice(0, 8).join('\n    ') : ''}`)
+
+const badSecondary = secondaryColors.filter((c) => c !== 'rgb(20, 33, 61)')
+j.report('T6', secondaryColors.length > 0 && badSecondary.length === 0 && tileOutline === 'rgb(20, 33, 61)', `보조 단추 ${secondaryColors.length}개 중 밤하늘 아님 ${badSecondary.length}(${[...new Set(badSecondary)].join(', ')}), 지도 칸 포커스 테두리 ${tileOutline}`)
 
 // T4 아이콘 세 개 — 그림을 캔버스에 그려 바탕 자리의 색을 읽는다(밤하늘에서 ±6 안)
 {
