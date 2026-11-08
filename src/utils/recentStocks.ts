@@ -1,6 +1,7 @@
 import { readJson, writeJson } from './cache'
 import { isStockCode } from '../api/stock'
 import type { StockInfo } from '../types/stock'
+import { isFilledText } from './text'
 
 /**
  * 최근 본 종목. 종목 상세를 열면 맨 앞에 넣고(같은 종목은 한 줄), 홈 검색창이 비어 있을 때 후보 자리에 보인다.
@@ -13,7 +14,7 @@ const MAX_ENTRIES = 8
 function isEntry(value: unknown): value is StockInfo {
   if (typeof value !== 'object' || value === null) return false
   const { stockCode, stockName } = value as Record<string, unknown>
-  return typeof stockCode === 'string' && isStockCode(stockCode) && typeof stockName === 'string' && stockName.trim() !== ''
+  return typeof stockCode === 'string' && isStockCode(stockCode) && isFilledText(stockName)
 }
 
 /** 최근 본 순. 모양이 틀린 줄은 빼고 읽는다 */

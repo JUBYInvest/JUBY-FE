@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { CHAT_SEND_GAP_MS, loadChatPage, openLiveChat, type ChatMessage, type ChatStatus, type LiveChat } from '../api/chat'
 import { getMemberInfo } from '../api/member'
+import { afterSendError, findEcho, mergeMessages, SEND_FAILED, type PendingMessage } from '../utils/liveChat'
 import { useIsLoggedIn } from './useIsLoggedIn'
 
 /** 지난 대화: 받는 중 · 못 받음 · 받음(더 이전이 있으면 그 커서, 더 받는 중·더 받기 실패) */
@@ -9,36 +10,8 @@ type ChatHistory =
   | { kind: 'error' }
   | { kind: 'ready'; nextCursor: number | null; loadingMore: boolean; moreFailed: boolean }
 
-/** 내가 보낸 말 중 아직 대화에 오르지 않은 것. 서버가 /topic으로 되돌려 주면 지운다 */
-export interface PendingMessage {
-  key: number
-  text: string
-  /** 보낼 차례를 기다림(연결 전·1초 간격) · 보냄(되돌아오기를 기다림) · 실패 */
-  state: 'queued' | 'sent' | 'failed'
-  /** 실패한 까닭(화면 글) */
-  reason: string | null
-  /** 토큰이 만료돼 한 번 다시 보냈다 — 또 실패하면 실패로 둔다 */
-  resent: boolean
-}
-
 /** 보낸 뒤 이만큼 안 돌아오면 실패로 본다 */
 const ECHO_TIMEOUT_MS = 10_000
-
-/** 서버 실패 code → 화면 글. 모르는 code는 "보내지 못했어요" */
-const SEND_ERRORS: Record<string, string> = {
-  LIVECHAT400_1: '빈 말은 보낼 수 없어요.',
-  LIVECHAT400_2: '300자까지 보낼 수 있어요.',
-  LIVECHAT401_1: '로그인하면 보낼 수 있어요.',
-  LIVECHAT403_1: '닉네임을 정하면 보낼 수 있어요.',
-  LIVECHAT429_1: '너무 빨리 보내고 있어요. 잠깐 뒤에 다시 보내 주세요.',
-}
-
-/** 같은 말이 두 번 오지 않게 id로 합치고 오래된 순으로 세운다 */
-function mergeMessages(list: ChatMessage[], incoming: ChatMessage[]): ChatMessage[] {
-  const byId = new Map(list.map((message) => [message.id, message]))
-  for (const message of incoming) byId.set(message.id, message)
-  return [...byId.values()].sort((a, b) => a.id - b.id)
-}
 
 /**
  * 홈 전체 채팅의 상태 — 대화(지난 대화 + 새 말), 연결 상태, 내 닉네임(내 말 구분·보내기 자격), 아직 오르지 않은 내 말.
@@ -103,7 +76,7 @@ export function useLiveChat() {
       next.key,
       window.setTimeout(() => {
         echoTimersRef.current.delete(next.key)
-        setPending((list) => list.map((item) => (item.key === next.key && item.state === 'sent' ? { ...item, state: 'failed', reason: '보내지 못했어요.' } : item)))
+        setPending((list) => list.map((item) => (item.key === next.key && item.state === 'sent' ? { ...item, state: 'failed', reason: SEND_FAILED } : item)))
       }, ECHO_TIMEOUT_MS),
     )
     flushTimerRef.current = window.setTimeout(flush, CHAT_SEND_GAP_MS)
@@ -154,12 +127,8 @@ export function useLiveChat() {
       },
       onMessage: (message) => {
         setMessages((list) => mergeMessages(list, [message]))
-        // 닉네임을 모르면 글만으로 맞춘다
-        if (nicknameRef.current !== undefined && message.author !== nicknameRef.current) return
-        // 내 말이 돌아왔다 — 같은 글의 가장 오래된 보낸 말을 지운다. 기다리다 실패로 바꾼 뒤 늦게 온 것도 맞춘다(다시 보내면 두 번 오른다)
-        const mine =
-          pendingRef.current.find((item) => item.state === 'sent' && item.text === message.text) ??
-          pendingRef.current.find((item) => item.state === 'failed' && item.text === message.text)
+        // 내 말이 돌아왔으면 그 말을 "아직 오르지 않은 말"에서 지운다
+        const mine = findEcho(pendingRef.current, message, nicknameRef.current)
         if (mine === undefined) return
         settle(mine.key)
         setMineIds((ids) => new Set(ids).add(message.id))
@@ -174,10 +143,7 @@ export function useLiveChat() {
         }
         if (failed === undefined) return
         settle(failed.key)
-        // 토큰이 만료돼 거절됐으면 다시 붙은 뒤 한 번 더 보낸다(api/chat.ts가 새 토큰으로 다시 붙는다)
-        const retry = code.startsWith('AUTH401') && !failed.resent
-        const update = (item: PendingMessage): PendingMessage =>
-          item.key !== failed.key ? item : retry ? { ...item, state: 'queued', resent: true } : { ...item, state: 'failed', reason: SEND_ERRORS[code] ?? '보내지 못했어요.' }
+        const update = (item: PendingMessage): PendingMessage => (item.key === failed.key ? afterSendError(item, code) : item)
         pendingRef.current = pendingRef.current.map(update)
         setPending((list) => list.map(update))
       },

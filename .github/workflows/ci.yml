@@ -23,7 +23,7 @@ jobs:
       - run: npm run build
       - name: 함수 단위 판정
         working-directory: judge
-        run: node --import ./register.mjs unit.test.mjs
+        run: node --import ./register.mjs unit.test.mjs && node --import ./register.mjs unit.live.test.mjs
 
   judge:
     needs: check

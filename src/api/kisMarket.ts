@@ -1,4 +1,5 @@
 import { get, malformedResponse } from './client'
+import { readMemo, writeMemo, type Memo } from './memo'
 import { kstNow, shiftYmd } from '../utils/date'
 import { numberFromText } from '../utils/format'
 import type { VolumeRankItem } from '../types/market'
@@ -28,22 +29,26 @@ interface VolumeRankResponse {
 }
 
 const RANK_MEMO_AGE = 60 * 1000
-let rankMemo: { at: number; items: VolumeRankItem[] } | null = null
+const rankMemo = new Map<string, Memo<VolumeRank>>()
+
+interface VolumeRank {
+  items: VolumeRankItem[]
+  /** 받은 때(화면이 "HH:MM 기준"으로 적는다) */
+  receivedAt: number
+}
 
 /**
  * 실시간 거래대금 순위(증권사가 주는 30줄, 거래금액순). 1분 안에 다시 열면 받아 둔 값이다 — 탭을 오갈 때마다 증권사를 부르지 않는다.
  * 응답에 종목코드가 없다(백엔드가 이름·순위·현재가·평균 거래대금만 옮긴다). 상세로 가는 길은 화면이 이름으로 찾는다.
  */
-export async function getVolumeRank(): Promise<{ items: VolumeRankItem[]; receivedAt: number }> {
-  const now = Date.now()
-  if (rankMemo !== null && now - rankMemo.at < RANK_MEMO_AGE && rankMemo.at <= now) {
-    return { items: rankMemo.items, receivedAt: rankMemo.at }
-  }
+export async function getVolumeRank(): Promise<VolumeRank> {
+  const remembered = readMemo(rankMemo, 'rank', RANK_MEMO_AGE)
+  if (remembered !== null) return remembered
   const response = await get<(VolumeRankResponse | null)[] | null>('/api/market/volume-rank')
   if (!Array.isArray(response)) throw malformedResponse()
-  const items = response.flatMap(toRankItem).sort((left, right) => left.rank - right.rank)
-  rankMemo = { at: Date.now(), items }
-  return { items, receivedAt: rankMemo.at }
+  const rank: VolumeRank = { items: response.flatMap(toRankItem).sort((left, right) => left.rank - right.rank), receivedAt: Date.now() }
+  writeMemo(rankMemo, 'rank', rank, RANK_MEMO_AGE)
+  return rank
 }
 
 function toRankItem(row: VolumeRankResponse | null): VolumeRankItem[] {
@@ -66,18 +71,17 @@ interface PeriodPriceResponse {
 /** 증권사가 한 번에 주는 봉은 100개까지다. 그 100거래일이 들어가는 달력 날짜(주말·공휴일 포함)만큼 거슬러 묻는다 */
 const BACKUP_CALENDAR_DAYS = 150
 const BACKUP_MEMO_AGE = 5 * 60 * 1000
-const backupMemo = new Map<string, { at: number; candles: Candle[] }>()
+const backupMemo = new Map<string, Memo<Candle[]>>()
 
 /**
  * 임시 차트용 최근 일봉(오래된 날부터). 그릴 수 없는 봉(날짜가 여덟 자리가 아니거나 가격이 빈 날)은 뺀다 — 상세의 일봉과 같은 규칙.
  * 들어오자마자(상세 실패 뒤) 부르는 요청이라 401이어도 로그인 화면으로 끌고 가지 않는다.
  */
 export async function getBackupCandles(stockCode: string): Promise<Candle[]> {
-  const now = Date.now()
-  const memo = backupMemo.get(stockCode)
-  if (memo !== undefined && now - memo.at < BACKUP_MEMO_AGE && memo.at <= now) return memo.candles
+  const remembered = readMemo(backupMemo, stockCode, BACKUP_MEMO_AGE)
+  if (remembered !== null) return remembered
 
-  const endDate = kstNow(now).ymd
+  const endDate = kstNow().ymd
   const startDate = shiftYmd(endDate, -BACKUP_CALENDAR_DAYS)
   const query = new URLSearchParams({ startDate, endDate })
   const response = await get<(PeriodPriceResponse | null)[] | null>(
@@ -90,7 +94,7 @@ export async function getBackupCandles(stockCode: string): Promise<Candle[]> {
   const byDate = new Map<string, Candle>()
   for (const candle of response.flatMap(toCandle)) byDate.set(candle.date, candle)
   const candles = [...byDate.values()].sort((left, right) => (left.date < right.date ? -1 : 1))
-  backupMemo.set(stockCode, { at: Date.now(), candles })
+  writeMemo(backupMemo, stockCode, candles, BACKUP_MEMO_AGE)
   return candles
 }
 

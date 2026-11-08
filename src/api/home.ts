@@ -1,5 +1,6 @@
 import { readCardSeries } from './cardSeries'
-import { canSpendKisCall, getLeadingStocks, getStockDetail, primeKisToken } from './stock'
+import { canSpendKisCall, primeKisToken } from './kisBudget'
+import { getLeadingStocks, getStockDetail } from './stock'
 import { readCache, writeCache } from '../utils/cache'
 import type { CardSeries, LeadingStocks, TopTheme } from '../types/stock'
 

@@ -1,7 +1,7 @@
 import { getAccountId } from '../utils/auth'
 
 /**
- * 같은 탭에서 잠깐 다시 쓰는 값(상세 1분, 뉴스 10분, 공용 조회 1분). 메모리에만 두므로 새로고침하면 비고, 실패는 담지 않는다.
+ * 같은 탭에서 잠깐 다시 쓰는 값(상세 1분, 뉴스 10분, 거래대금 순위 1분, 임시 차트 5분, 공용 조회 1분). 메모리에만 두므로 새로고침하면 비고, 실패는 담지 않는다.
  * 담을 때 만료된 항목을 걷는다 — 오래 열어 둔 탭에서 종목마다 전체 일봉이 쌓이지 않게.
  */
 export interface Memo<T> {
@@ -9,11 +9,17 @@ export interface Memo<T> {
   value: T
 }
 
+/** 담은 지 maxAge가 안 됐는가. 시계를 되돌려 미래에 담은 것처럼 보이면 믿지 않는다(utils/cache.ts isStampWithin과 같은 생각) */
+function isFresh(entry: Memo<unknown>, maxAge: number, now: number): boolean {
+  const age = now - entry.savedAt
+  return age >= 0 && age < maxAge
+}
+
 /** 담은 지 maxAge 안이면 그 값, 지났으면 지우고 null */
 export function readMemo<T>(memo: Map<string, Memo<T>>, key: string, maxAge: number): T | null {
   const entry = memo.get(key)
   if (entry === undefined) return null
-  if (Date.now() - entry.savedAt > maxAge) {
+  if (!isFresh(entry, maxAge, Date.now())) {
     memo.delete(key)
     return null
   }
@@ -24,7 +30,7 @@ export function readMemo<T>(memo: Map<string, Memo<T>>, key: string, maxAge: num
 export function writeMemo<T>(memo: Map<string, Memo<T>>, key: string, value: T, maxAge: number): void {
   const now = Date.now()
   for (const [oldKey, entry] of memo) {
-    if (now - entry.savedAt > maxAge) memo.delete(oldKey)
+    if (!isFresh(entry, maxAge, now)) memo.delete(oldKey)
   }
   memo.set(key, { savedAt: now, value })
 }

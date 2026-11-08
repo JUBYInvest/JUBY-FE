@@ -189,16 +189,30 @@ export function kstNow(now: number = Date.now()): { ymd: string; day: number; mi
   return { ymd, day: kst.getUTCDay(), minutes: kst.getUTCHours() * 60 + kst.getUTCMinutes() }
 }
 
+/** YYYYMMDD 그날 0시(UTC 기준 ms) — 날짜끼리 셈하는 데만 쓴다(시각이 아니다) */
+function utcDayOf(ymd: string): number {
+  return Date.UTC(Number(ymd.slice(0, 4)), Number(ymd.slice(4, 6)) - 1, Number(ymd.slice(6, 8)))
+}
+
 /** 날짜의 요일(0 일요일 ~ 6 토요일). 여덟 자리가 아니면 NaN */
 export function weekdayOf(ymd: string): number {
   if (!isYmd(ymd)) return Number.NaN
-  return new Date(Date.UTC(Number(ymd.slice(0, 4)), Number(ymd.slice(4, 6)) - 1, Number(ymd.slice(6, 8)))).getUTCDay()
+  return new Date(utcDayOf(ymd)).getUTCDay()
+}
+
+/**
+ * 날짜가 속한 주(월요일 시작)의 번호 — 같은 주면 같은 수다(홈 카드 그래프가 일봉을 주마다 묶는다, api/cardSeries.ts).
+ * 1970-01-01이 목요일이라 3일을 밀면 월요일에서 주가 바뀐다. 여덟 자리가 아니면 NaN
+ */
+export function weekOfYmd(ymd: string): number {
+  if (!isYmd(ymd)) return Number.NaN
+  return Math.floor((utcDayOf(ymd) / 86_400_000 + 3) / 7)
 }
 
 /** "20261031"에서 days만큼 옮긴 날. 여덟 자리가 아니면 "" */
 export function shiftYmd(ymd: string, days: number): string {
   if (!isYmd(ymd)) return ''
-  const moved = Date.UTC(Number(ymd.slice(0, 4)), Number(ymd.slice(4, 6)) - 1, Number(ymd.slice(6, 8))) + days * 86_400_000
+  const moved = utcDayOf(ymd) + days * 86_400_000
   return kstNow(moved - KST_OFFSET_MS).ymd
 }
 

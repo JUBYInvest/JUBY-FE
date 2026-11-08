@@ -1,7 +1,7 @@
-import { ApiError, get } from './client'
-import { canSpendKisCall } from './stock'
+import { get } from './client'
+import { canSpendKisCall, skipAfter, type FailureSkip } from './kisBudget'
 import { isLoggedIn } from '../utils/auth'
-import { readJson, readStamp, writeJson, writeStamp } from '../utils/cache'
+import { isSkipping, readJson, writeJson, writeStamp } from '../utils/cache'
 import { kstNow, weekdayOf } from '../utils/date'
 import type { MarketDay, MarketStatus } from '../types/market'
 
@@ -24,9 +24,7 @@ import type { MarketDay, MarketStatus } from '../types/market'
 const CALENDAR_KEY = 'marketCalendar'
 const CALENDAR_MAX_AGE = 7 * 24 * 60 * 60 * 1000
 const SKIP_KEY = 'marketCalendarSkipUntil'
-const SKIP_UNAUTHORIZED = 10 * 60 * 1000
-const SKIP_FORBIDDEN = 6 * 60 * 60 * 1000
-const SKIP_SERVER = 30 * 60 * 1000
+const SKIP: FailureSkip = { unauthorized: 10 * 60 * 1000, client: 6 * 60 * 60 * 1000, server: 30 * 60 * 1000 }
 
 const OPEN_MINUTES = 9 * 60
 const CLOSE_MINUTES = 15 * 60 + 30
@@ -137,9 +135,7 @@ export function loadMarketCalendar(): Promise<void> {
 async function fetchCalendar(): Promise<void> {
   if (!isLoggedIn()) return
   const now = Date.now()
-  const skipUntil = readStamp(SKIP_KEY)
-  // 시계를 되돌려 미래 값이 남아도 정해진 길이보다 오래 건너뛰지는 않는다
-  if (now < skipUntil && skipUntil - now <= SKIP_FORBIDDEN) return
+  if (isSkipping(SKIP_KEY, SKIP.client, now)) return
 
   const { ymd } = kstNow(now)
   const saved = readCalendar()
@@ -162,14 +158,12 @@ async function fetchCalendar(): Promise<void> {
     const days = (Array.isArray(response) ? response : []).flatMap(toMarketDay)
     if (!days.some((day) => day.date === ymd)) {
       console.warn('휴장일 응답에 오늘이 없습니다. 30분 뒤에 다시 묻습니다', response)
-      writeStamp(SKIP_KEY, Date.now() + SKIP_SERVER)
+      writeStamp(SKIP_KEY, Date.now() + SKIP.server)
       return
     }
     writeJson(CALENDAR_KEY, { days, savedAt: Date.now() } satisfies SavedCalendar)
   } catch (error: unknown) {
-    const status = error instanceof ApiError ? error.status : 0
-    const skip =
-      status === 401 ? SKIP_UNAUTHORIZED : status >= 400 && status < 500 ? SKIP_FORBIDDEN : SKIP_SERVER
+    const skip = skipAfter(error, SKIP)
     writeStamp(SKIP_KEY, Date.now() + skip)
     console.warn(`휴장일을 받지 못했습니다. ${Math.round(skip / 60_000)}분 뒤에 다시 묻습니다`, error)
   }

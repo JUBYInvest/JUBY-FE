@@ -1,5 +1,5 @@
 import { readJson, writeJson } from '../utils/cache'
-import { periodStart } from '../utils/date'
+import { periodStart, weekOfYmd } from '../utils/date'
 import { isFiniteNumber } from '../utils/format'
 import type { Candle, CardSeries } from '../types/stock'
 
@@ -64,12 +64,6 @@ function readAll(): Map<string, Stored> {
   return all
 }
 
-/** YYYYMMDD가 속한 주(월요일 시작)의 번호. 1970-01-01이 목요일이라 3일을 밀면 월요일에서 주가 바뀐다 */
-function weekOf(date: string): number {
-  const days = Date.UTC(Number(date.slice(0, 4)), Number(date.slice(4, 6)) - 1, Number(date.slice(6, 8))) / 86_400_000
-  return Math.floor((days + 3) / 7)
-}
-
 /**
  * 받은 일봉에서 마지막 1년을 잘라 주 단위로 묶어 담는다. 그릴 봉이 없으면 담지 않는다.
  *
@@ -90,7 +84,7 @@ export function rememberCardSeries(stockCode: string, candles: Candle[]): void {
   for (const candle of year) {
     // 거래량만 빈 봉은 차트가 그대로 그린다(api/stock.ts). 카드 막대는 그날을 비운다
     const volume = isFiniteNumber(candle.volume) ? candle.volume : 0
-    const current = weekOf(candle.date)
+    const current = weekOfYmd(candle.date)
     if (current === week) {
       prices[prices.length - 1] = candle.close
       volumes[volumes.length - 1] += volume

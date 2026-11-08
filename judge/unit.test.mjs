@@ -1,6 +1,6 @@
 // 화이트박스 단위 판정 — 저장소의 .ts 원본을 Node가 곧바로 읽는다(register.mjs가 브라우저 전역을 흉내 낸다).
 //   cd judge && node --import ./register.mjs unit.test.mjs [--repo DIR]
-import { test, describe, beforeEach } from 'node:test'
+import { test, describe, beforeEach, afterEach, mock } from 'node:test'
 import assert from 'node:assert/strict'
 import { fileURLToPath } from 'node:url'
 
@@ -40,6 +40,14 @@ describe('utils/date', async () => {
     assert.equal(d.periodStart('20261029', 'ALL'), null)
     assert.equal(d.periodStart('', 'ONE_MONTH'), '')
     assert.equal(d.periodStart('2026-10-29', 'ONE_MONTH'), '')
+  })
+  test('weekOfYmd — 월요일에 주가 바뀐다, 해를 넘겨도 이어진다, 여덟 자리가 아니면 NaN', () => {
+    const w = d.weekOfYmd
+    assert.equal(w('20261026'), w('20261101')) // 월 ~ 일
+    assert.equal(w('20261102'), w('20261026') + 1)
+    assert.equal(w('20261231'), w('20270103')) // 목 ~ 일
+    assert.equal(w('20270104'), w('20261231') + 1)
+    assert.ok(Number.isNaN(w('2026-11-02')))
   })
   test('toKoreanDate — 올해는 연도 생략', () => {
     const today = new Date(2026, 9, 29)
@@ -135,6 +143,43 @@ describe('utils/guideExcerpt — 백테스트 도움말이 사용설명서 3장�
   })
   test('splitBold', () => {
     assert.deepEqual(g.splitBold('a **b** c'), [{ text: 'a ', bold: false }, { text: 'b', bold: true }, { text: ' c', bold: false }])
+  })
+})
+
+describe('utils/text — 서버 글 칸 거르기', async () => {
+  const t = await src('utils/text.ts')
+  test('isFilledText·filledOr·textOrEmpty — 공백뿐인 글은 빈 것, 다듬지 않는다', () => {
+    assert.deepEqual(['a', ' a ', '', '  ', '\n', null, undefined, 0, {}].map(t.isFilledText), [true, true, false, false, false, false, false, false, false])
+    assert.equal(t.filledOr(' 제목 ', '새 대화'), ' 제목 ')
+    assert.equal(t.filledOr('   ', '새 대화'), '새 대화')
+    assert.equal(t.filledOr(3, null), null)
+    assert.deepEqual(['x', '', ' ', null, 1].map(t.textOrEmpty), ['x', '', ' ', '', ''])
+  })
+})
+
+describe('utils/liveChat — 홈 채팅 상태 바꾸기', async () => {
+  const c = await src('utils/liveChat.ts')
+  const msg = (id, text, author = '나') => ({ id, author, text, at: id })
+  const item = (key, text, state, resent = false) => ({ key, text, state, reason: null, resent })
+  test('mergeMessages — id로 합치고(새 것이 이긴다) 오래된 순', () => {
+    const merged = c.mergeMessages([msg(3, 'c'), msg(1, 'a')], [msg(2, 'b'), msg(3, 'C')])
+    assert.deepEqual(merged.map((m) => `${m.id}${m.text}`), ['1a', '2b', '3C'])
+  })
+  test('findEcho — 같은 글의 가장 오래된 "보냄", 없으면 "실패". 닉네임을 알면 다른 사람 말은 맞추지 않는다', () => {
+    const pending = [item(1, '안녕', 'queued'), item(2, '안녕', 'failed'), item(3, '안녕', 'sent'), item(4, '안녕', 'sent')]
+    assert.equal(c.findEcho(pending, msg(9, '안녕'), '나').key, 3)
+    assert.equal(c.findEcho(pending.filter((p) => p.state !== 'sent'), msg(9, '안녕'), '나').key, 2)
+    assert.equal(c.findEcho(pending, msg(9, '안녕', '남'), '나'), undefined)
+    assert.equal(c.findEcho(pending, msg(9, '안녕', '남'), undefined).key, 3, '닉네임을 모르면 글만으로')
+    assert.equal(c.findEcho(pending, msg(9, '안녕', '남'), null), undefined, '닉네임이 없으면(아직 안 정함) 내 말이 아니다')
+    assert.equal(c.findEcho(pending, msg(9, '다른 말'), '나'), undefined)
+  })
+  test('afterSendError — 토큰 만료는 한 번만 다시 줄에, 아는 코드는 그 까닭, 모르는 코드는 "보내지 못했어요"', () => {
+    assert.deepEqual(c.afterSendError(item(1, 'x', 'sent'), 'AUTH401_1'), { ...item(1, 'x', 'queued'), resent: true })
+    assert.deepEqual(c.afterSendError(item(1, 'x', 'sent', true), 'AUTH401_1'), { ...item(1, 'x', 'failed', true), reason: c.SEND_FAILED })
+    assert.equal(c.afterSendError(item(1, 'x', 'sent'), 'LIVECHAT429_1').reason, '너무 빨리 보내고 있어요. 잠깐 뒤에 다시 보내 주세요.')
+    assert.equal(c.afterSendError(item(1, 'x', 'sent'), 'LIVECHAT403_1').reason, '닉네임을 정하면 보낼 수 있어요.')
+    assert.equal(c.afterSendError(item(1, 'x', 'sent'), '').reason, '보내지 못했어요.')
   })
 })
 
@@ -360,6 +405,15 @@ describe('utils 작은 것들', async () => {
     writeMemo(memo, 'x', 3, 60_000)
     assert.deepEqual([...memo.keys()].sort(), ['new', 'x'])
     assert.equal(readMemo(memo, 'x', 60_000), 3)
+  })
+  test('readMemo — maxAge가 되면 지나간 것, 시계를 되돌려 미래에 담은 값은 믿지 않는다', async () => {
+    const { readMemo } = await src('api/memo.ts')
+    const now = Date.now()
+    const memo = new Map([['edge', { savedAt: now - 60_000, value: 1 }], ['almost', { savedAt: now - 59_000, value: 2 }], ['future', { savedAt: now + 5_000, value: 3 }]])
+    assert.equal(readMemo(memo, 'almost', 60_000), 2)
+    assert.equal(readMemo(memo, 'edge', 60_000), null)
+    assert.equal(readMemo(memo, 'future', 60_000), null)
+    assert.deepEqual([...memo.keys()], ['almost'], '지난 것은 지운다')
   })
 })
 
@@ -791,6 +845,232 @@ describe('api/personality — 서버 문항·서버 채점뿐이다(로그인한
   test('문항을 못 받으면 예비 문항 없이 던진다', async () => {
     responder = () => ok({ questions: [] })
     await assert.rejects(p.getQuestions(), /비어 있습니다/)
+  })
+})
+
+/* ── 증권사 호출 예산(임시 장치 — 백엔드가 고치면 걷는다): 토큰 심기·간격·쓸 수 있는 때·휴장일 쉬기 ── */
+describe('api/kisBudget·marketCalendar — 증권사 호출 예산', async () => {
+  const budget = await src('api/kisBudget.ts')
+  const stock = { ...(await src('api/stock.ts')), ...budget }
+  const calendar = await src('api/marketCalendar.ts')
+  const auth = await src('utils/auth.ts')
+  const cache = await src('utils/cache.ts')
+  const MIN = 60_000, HOUR = 60 * MIN
+  const at = (ms) => mock.timers.setTime(ms)
+  // cache.ts는 저장소가 막힌 브라우저를 위해 값을 메모리에도 들고 있다 — localStorage.clear()만으로는 남으므로 0·null로 덮는다
+  const reset = () => {
+    localStorage.clear()
+    for (const key of ['kisTokenPrimedAt', 'kisTokenPrimeSkipUntil', 'kisLimitedAt', 'stockDetailSentAt', 'marketCalendarSkipUntil']) cache.writeStamp(key, 0)
+    cache.writeJson('marketCalendar', null)
+    auth.clearTokens()
+    calls.length = 0
+  }
+  beforeEach(() => {
+    reset()
+    mock.timers.enable({ apis: ['Date'], now: THU_11 })
+  })
+  afterEach(() => mock.timers.reset())
+  const quiet = () => mock.method(console, 'warn', () => {})
+  /** 증권사 경로로 나간 요청만(401이면 재발급 요청도 나간다) */
+  const market = () => calls.filter((c) => c.url.includes('/api/market/'))
+
+  test('skipAfter·isStampWithin·isSkipping — 실패별 쉼, 앞뒤 경계', async () => {
+    const { ApiError } = await src('api/client.ts')
+    const skip = { unauthorized: 1, client: 2, server: 3 }
+    assert.equal(budget.skipAfter(new ApiError('', 401, null), skip), 1)
+    assert.equal(budget.skipAfter(new ApiError('', 404, null), skip), 2)
+    assert.equal(budget.skipAfter(new ApiError('', 499, null), skip), 2)
+    assert.equal(budget.skipAfter(new ApiError('', 500, null), skip), 3)
+    assert.equal(budget.skipAfter(new Error('응답 없음'), skip), 3)
+    cache.writeStamp('t', 1000)
+    assert.equal(cache.isStampWithin('t', 100, 1099), true)
+    assert.equal(cache.isStampWithin('t', 100, 1100), false)
+    assert.equal(cache.isStampWithin('t', 100, 901), true)
+    assert.equal(cache.isStampWithin('t', 100, 900), false)
+    assert.equal(cache.isSkipping('t', 100, 899), false, '100 넘게 남은 쉼은 믿지 않는다')
+    assert.equal(cache.isSkipping('t', 100, 900), true)
+    assert.equal(cache.isSkipping('t', 100, 999), true)
+    assert.equal(cache.isSkipping('t', 100, 1000), false)
+  })
+  test('canSpendKisCall — 서버 토큰이 끝나 있을 때(토 15:45~월 16:05, 평일 15:45~16:05)는 쓰지 않는다', () => {
+    const can = (y, m, d, h, min) => stock.canSpendKisCall(kst(y, m, d, h, min))
+    assert.equal(can(2026, 10, 29, 11, 0), true) // 목
+    assert.equal(can(2026, 10, 29, 15, 44), true)
+    assert.equal(can(2026, 10, 29, 15, 45), false)
+    assert.equal(can(2026, 10, 29, 16, 5), true)
+    assert.equal(can(2026, 10, 31, 15, 44), true) // 토
+    assert.equal(can(2026, 10, 31, 15, 45), false)
+    assert.equal(can(2026, 11, 1, 12, 0), false) // 일
+    assert.equal(can(2026, 11, 2, 16, 4), false) // 월
+    assert.equal(can(2026, 11, 2, 16, 5), true)
+  })
+  test('canSpendKisCall — 6시간 안에 심었으면 일요일에도 쓴다, 30분 안에 서버 오류가 났으면 평일에도 쓰지 않는다(미래 값은 정해진 길이까지만 믿는다)', () => {
+    const sunday = kst(2026, 11, 1, 12)
+    cache.writeStamp('kisTokenPrimedAt', sunday - 5 * HOUR)
+    assert.equal(stock.canSpendKisCall(sunday), true)
+    cache.writeStamp('kisTokenPrimedAt', sunday - 6 * HOUR)
+    assert.equal(stock.canSpendKisCall(sunday), false)
+    cache.writeStamp('kisTokenPrimedAt', sunday + 7 * HOUR)
+    assert.equal(stock.canSpendKisCall(sunday), false, '7시간 뒤 값은 믿지 않는다')
+    cache.writeStamp('kisTokenPrimedAt', 0)
+    cache.writeStamp('kisLimitedAt', THU_11 - 29 * MIN)
+    assert.equal(stock.canSpendKisCall(THU_11), false)
+    cache.writeStamp('kisLimitedAt', THU_11 - 30 * MIN)
+    assert.equal(stock.canSpendKisCall(THU_11), true)
+    cache.writeStamp('kisLimitedAt', THU_11 + 31 * MIN)
+    assert.equal(stock.canSpendKisCall(THU_11), true, '31분 뒤 값은 믿지 않는다')
+  })
+  test('detailWaitMs — 보낸 때에서 65초, 시계를 되돌려도 65초를 넘지 않는다', () => {
+    assert.equal(stock.detailWaitMs(), 0)
+    cache.writeStamp('stockDetailSentAt', THU_11 - 5_000)
+    assert.equal(stock.detailWaitMs(), 60_000)
+    cache.writeStamp('stockDetailSentAt', THU_11 + 10 * MIN)
+    assert.equal(stock.detailWaitMs(), 65_000)
+  })
+  test('primeKisToken — 비로그인은 묻지 않고, 되면 6시간 다시 심지 않으며 서버 오류 표시를 지운다', async () => {
+    await stock.primeKisToken('005930')
+    assert.equal(calls.length, 0)
+    auth.saveTokens('tok')
+    cache.writeStamp('kisLimitedAt', THU_11 - MIN)
+    responder = () => ok({})
+    await stock.primeKisToken('005930')
+    assert.equal(calls.length, 1)
+    assert.match(calls[0].url, /\/api\/market\/005930\/price$/)
+    assert.equal(cache.readStamp('kisTokenPrimedAt'), THU_11)
+    assert.equal(cache.readStamp('kisLimitedAt'), 0)
+    assert.equal(cache.readStamp('stockDetailSentAt'), THU_11, '심기도 보낸 때로 센다')
+    at(THU_11 + 5 * HOUR)
+    await stock.primeKisToken('000660')
+    assert.equal(calls.length, 1)
+    at(THU_11 + 6 * HOUR)
+    await stock.primeKisToken('000660')
+    assert.equal(calls.length, 2)
+  })
+  test('primeKisToken 실패 — 401은 10분, 그 밖 4xx는 6시간, 서버 오류는 65초 쉰다', async () => {
+    const warn = quiet()
+    auth.saveTokens('tok')
+    for (const [status, skip] of [[401, 10 * MIN], [403, 6 * HOUR], [500, 65_000]]) {
+      reset()
+      auth.saveTokens('tok')
+      at(THU_11)
+      responder = (url) => (url.includes('/api/auth/reissue') ? ok({ accessToken: 'tok' }) : fail(status, 'X'))
+      await stock.primeKisToken('005930')
+      assert.equal(cache.readStamp('kisTokenPrimeSkipUntil'), THU_11 + skip, `${status}`)
+      at(THU_11 + skip - 1)
+      await stock.primeKisToken('005930')
+      assert.equal(market().length, status === 401 ? 2 : 1, `${status}: 쉬는 동안은 묻지 않는다(401은 재발급 뒤 한 번 더 보낸 것까지)`)
+      at(THU_11 + skip)
+      responder = () => ok({})
+      await stock.primeKisToken('005930')
+      assert.equal(market().length, status === 401 ? 3 : 2, `${status}: 다 쉬면 다시 묻는다`)
+    }
+    reset()
+    auth.saveTokens('tok')
+    at(THU_11)
+    cache.writeStamp('kisTokenPrimeSkipUntil', THU_11 + 7 * HOUR)
+    await stock.primeKisToken('005930')
+    assert.equal(market().length, 1, '6시간보다 먼 미래 값은 믿지 않는다')
+    warn.mock.restore()
+  })
+  test('상세가 서버 오류면 30분 표시를 남기고 심은 표시를 지운다. 4xx는 남기지 않는다', async () => {
+    const warn = quiet()
+    cache.writeStamp('kisTokenPrimedAt', THU_11 - HOUR)
+    responder = () => fail(500, 'COMMON500_1')
+    await assert.rejects(stock.getStockDetail('005930'))
+    assert.equal(cache.readStamp('kisLimitedAt'), THU_11)
+    assert.equal(cache.readStamp('kisTokenPrimedAt'), 0)
+    assert.equal(cache.readStamp('stockDetailSentAt'), THU_11)
+    reset()
+    responder = () => fail(404, 'STOCK404_1')
+    await assert.rejects(stock.getStockDetail('000660'))
+    assert.equal(cache.readStamp('kisLimitedAt'), 0)
+    warn.mock.restore()
+  })
+  test('휴장일 받기 — 비로그인·쓸 수 없는 때는 묻지 않고, 받으면 오늘과 다음 개장일이 덮이는 동안 다시 묻지 않는다', async () => {
+    await calendar.loadMarketCalendar()
+    assert.equal(calls.length, 0)
+    auth.saveTokens('tok')
+    at(kst(2026, 11, 1, 12))
+    await calendar.loadMarketCalendar()
+    assert.equal(calls.length, 0, '일요일엔 서버 토큰이 없다')
+    at(THU_11)
+    responder = () => ok([{ bass_dt: '20261029', opnd_yn: 'Y' }, { bass_dt: '20261030', opnd_yn: 'Y' }, { bass_dt: 'x', opnd_yn: 'Y' }, null])
+    await calendar.loadMarketCalendar()
+    assert.match(market()[0].url, /\/api\/market\/holiday\?basedate=20261029$/)
+    assert.deepEqual(JSON.parse(localStorage.getItem('marketCalendar')).days, [{ date: '20261029', open: true }, { date: '20261030', open: true }])
+    await calendar.loadMarketCalendar()
+    assert.equal(market().length, 1)
+  })
+  test('휴장일 실패 — 401 10분, 그 밖 4xx 6시간, 서버 오류·오늘 없는 응답 30분 쉰다', async () => {
+    const warn = quiet()
+    for (const [reply, skip] of [[fail(401, 'X'), 10 * MIN], [fail(403, 'X'), 6 * HOUR], [fail(502, 'X'), 30 * MIN], [ok([{ bass_dt: '20261102', opnd_yn: 'Y' }]), 30 * MIN]]) {
+      reset()
+      auth.saveTokens('tok')
+      at(THU_11)
+      responder = (url) => (url.includes('/api/auth/reissue') ? fail(401, 'AUTH401_2') : reply)
+      await calendar.loadMarketCalendar()
+      assert.equal(cache.readStamp('marketCalendarSkipUntil'), THU_11 + skip, JSON.stringify(reply.body.code))
+      at(THU_11 + skip - 1)
+      await calendar.loadMarketCalendar()
+      assert.equal(market().length, 1)
+      at(THU_11 + skip)
+      auth.saveTokens('tok')
+      await calendar.loadMarketCalendar()
+      assert.equal(market().length, 2)
+    }
+    warn.mock.restore()
+  })
+})
+
+/* ── api/cardSeries — 홈 카드 1년 그래프 담기 ─────────────────────── */
+describe('api/cardSeries', async () => {
+  const cards = await src('api/cardSeries.ts')
+  const candle = (date, close, volume = 10) => ({ date, open: close, high: close, low: close, close, volume })
+  const cache = await src('utils/cache.ts')
+  beforeEach(() => { localStorage.clear(); cache.writeJson('cardSeriesYear', null); mock.timers.enable({ apis: ['Date'], now: THU_11 }) })
+  afterEach(() => mock.timers.reset())
+
+  test('마지막 1년만, 주(월요일 시작)마다 마지막 종가·거래량 합, 등락률은 1년 첫날 대비', () => {
+    cards.rememberCardSeries('005930', [
+      candle('20251024', 50), // 1년 전(10/29 기준 시작일 전)이라 뺀다
+      candle('20251029', 100), // 수
+      candle('20251031', 110, 5), // 금 — 같은 주
+      candle('20251103', 120, null), // 월 — 새 주, 거래량이 비면 0
+      candle('20251109', 130, 7), // 일 — 같은 주(월~일)
+      candle('20261029', 150), // 1년 뒤
+    ])
+    assert.deepEqual(cards.readCardSeries('005930', '20261029'), {
+      stockCode: '005930', lastDate: '20261029', prices: [110, 130, 150], volumes: [15, 7, 10], changeRate: 50,
+    })
+  })
+  test('첫날 종가가 0이면 등락률 0, 봉이 없으면 담지 않는다', () => {
+    cards.rememberCardSeries('000660', [candle('20261028', 0), candle('20261029', 10)])
+    assert.equal(cards.readCardSeries('000660', null).changeRate, 0)
+    cards.rememberCardSeries('012450', [])
+    assert.equal(cards.readCardSeries('012450', null), null)
+  })
+  test('기준일까지 닿아야 쓴다 — 못 닿았으면 30분, 기준일을 모르면 3일만 믿는다', () => {
+    cards.rememberCardSeries('005930', [candle('20261028', 10)])
+    assert.notEqual(cards.readCardSeries('005930', '20261028'), null)
+    assert.notEqual(cards.readCardSeries('005930', '20261029'), null, '막 받은 값은 잠깐 믿는다')
+    mock.timers.setTime(THU_11 + 30 * 60_000)
+    assert.equal(cards.readCardSeries('005930', '20261029'), null)
+    assert.notEqual(cards.readCardSeries('005930', null), null)
+    mock.timers.setTime(THU_11 + 3 * 24 * 3600_000)
+    assert.equal(cards.readCardSeries('005930', null), null)
+  })
+  test('열두 종목까지, 넘치면 오래 담은 것부터 버린다. 모양이 틀린 값은 버린다', () => {
+    for (let i = 0; i < 13; i += 1) {
+      mock.timers.setTime(THU_11 + i)
+      cards.rememberCardSeries(String(100000 + i), [candle('20261029', 10)])
+    }
+    assert.equal(cards.readCardSeries('100000', null), null)
+    assert.notEqual(cards.readCardSeries('100001', null), null)
+    const saved = JSON.parse(localStorage.getItem('cardSeriesYear'))
+    saved['100005'].volumes = [1, 2]
+    localStorage.setItem('cardSeriesYear', JSON.stringify(saved))
+    assert.equal(cards.readCardSeries('100005', null), null)
+    assert.notEqual(cards.readCardSeries('100006', null), null)
   })
 })
 

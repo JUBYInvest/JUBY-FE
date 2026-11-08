@@ -1,12 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { ApiError } from '../api/client'
-import {
-  detailWaitMs,
-  getStockDetail,
-  isStockDetailInFlight,
-  peekStockDetail,
-  primeKisToken,
-} from '../api/stock'
+import { detailWaitMs, primeKisToken } from '../api/kisBudget'
+import { getStockDetail, isStockDetailInFlight, peekStockDetail } from '../api/stock'
 import type { StockDetail } from '../types/stock'
 
 /** 서버 오류 뒤 첫 재시도까지. 잠깐의 오류는 대개 이걸로 풀린다(아래 schedule) */

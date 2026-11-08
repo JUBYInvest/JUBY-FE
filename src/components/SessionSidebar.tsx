@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { TITLE_MAX_LENGTH, normalizeTitle } from '../api/ai'
 import { useMediaQuery } from '../hooks/useMediaQuery'
-import Modal from './Modal'
+import ConfirmModal from './ConfirmModal'
 import Spinner from './Spinner'
 import type { ChatSession } from '../types/ai'
 import styles from './SessionSidebar.module.css'
@@ -433,37 +433,19 @@ export default function SessionSidebar({
       </aside>
 
       {/* 지우면 되돌릴 수 없다(서버가 방과 메시지를 모두 지운다). 버튼 하나로 바로 지우지 않는다 */}
-      <Modal isOpen={deleting !== null} onClose={closeDelete} label="대화 지우기 확인">
-        <p className={styles.modalTitle}>이 대화를 지울까요?</p>
-        <p className={styles.modalText}>
-          ‘{deleting?.session.title}’ 대화와 주고받은 내용이 모두 지워지며 되돌릴 수 없어요.
-        </p>
-
-        {deleting?.state === 'error' && (
-          <p className={styles.modalError} role="alert">
-            {DELETE_FAILED}
-          </p>
-        )}
-
-        <div className={styles.modalButtons}>
-          <button
-            type="button"
-            className={styles.danger}
-            onClick={() => void confirmDelete()}
-            disabled={deleting?.state === 'deleting'}
-          >
-            {deleting?.state === 'deleting' ? '지우는 중…' : '지우기'}
-          </button>
-          <button
-            type="button"
-            className={styles.cancel}
-            onClick={closeDelete}
-            disabled={deleting?.state === 'deleting'}
-          >
-            취소
-          </button>
-        </div>
-      </Modal>
+      <ConfirmModal
+        isOpen={deleting !== null}
+        onClose={closeDelete}
+        label="대화 지우기 확인"
+        title="이 대화를 지울까요?"
+        confirmLabel="지우기"
+        busyLabel="지우는 중…"
+        busy={deleting?.state === 'deleting'}
+        onConfirm={() => void confirmDelete()}
+        error={deleting?.state === 'error' ? DELETE_FAILED : null}
+      >
+        ‘{deleting?.session.title}’ 대화와 주고받은 내용이 모두 지워지며 되돌릴 수 없어요.
+      </ConfirmModal>
     </>
   )
 }

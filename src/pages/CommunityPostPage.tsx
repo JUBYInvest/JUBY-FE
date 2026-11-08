@@ -6,7 +6,7 @@ import { PostByline } from '../components/CommunityPosts'
 import CommunitySide from '../components/CommunitySide'
 import layout from '../components/communityLayout.module.css'
 import HeartIcon from '../components/HeartIcon'
-import Modal from '../components/Modal'
+import ConfirmModal from '../components/ConfirmModal'
 import Spinner from '../components/Spinner'
 import { useDocumentTitle } from '../hooks/useDocumentTitle'
 import { useCommunityHandoff } from '../hooks/useStockHandoff'
@@ -196,19 +196,18 @@ export default function CommunityPostPage() {
         <CommunitySide className={layout.side} />
       </div>
 
-      <Modal isOpen={confirmDelete} onClose={() => setConfirmDelete(false)} label="글 지우기">
-        <p className={styles.modalTitle}>이 글을 지울까요?</p>
-        <p className={styles.modalText}>지우면 댓글도 함께 사라지고 되돌릴 수 없어요.</p>
-        <div className={styles.modalButtons}>
-          {/* 지우는 동안 잠근다 — 연타하면 DELETE가 두 번 나가 둘째가 404로 "지우지 못했어요"를 띄운다 */}
-          <button type="button" className={styles.danger} onClick={remove} disabled={deleting}>
-            {deleting ? '지우는 중…' : '지우기'}
-          </button>
-          <button type="button" className={styles.cancel} onClick={() => setConfirmDelete(false)}>
-            취소
-          </button>
-        </div>
-      </Modal>
+      <ConfirmModal
+        isOpen={confirmDelete}
+        onClose={() => setConfirmDelete(false)}
+        label="글 지우기"
+        title="이 글을 지울까요?"
+        confirmLabel="지우기"
+        busyLabel="지우는 중…"
+        busy={deleting}
+        onConfirm={remove}
+      >
+        지우면 댓글도 함께 사라지고 되돌릴 수 없어요.
+      </ConfirmModal>
       {gate.modals}
     </>
   )

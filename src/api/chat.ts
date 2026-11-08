@@ -2,6 +2,7 @@ import { API_ORIGIN, get, malformedResponse, renewAccessToken } from './client'
 import { openStomp, type StompSession } from './stomp'
 import { getAccessToken } from '../utils/auth'
 import { fromKstDateTime } from '../utils/date'
+import { filledOr } from '../utils/text'
 
 /*
  * 홈 전체 채팅(백엔드 JUBY-BE domain/livechat). 지난 대화는 REST, 새 말 받기·보내기는 STOMP 웹소켓이다.
@@ -39,7 +40,7 @@ function toChatMessage(raw: unknown): ChatMessage | null {
   const row = raw as Record<string, unknown>
   const at = fromKstDateTime(typeof row.createdAt === 'string' ? row.createdAt : null)
   if (typeof row.messageId !== 'number' || !Number.isFinite(row.messageId) || typeof row.content !== 'string' || at === null) return null
-  const author = typeof row.writerNickname === 'string' && row.writerNickname.trim() !== '' ? row.writerNickname : '알 수 없음'
+  const author = filledOr(row.writerNickname, '알 수 없음')
   return { id: row.messageId, author, text: row.content, at }
 }
 

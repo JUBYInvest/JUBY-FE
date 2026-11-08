@@ -2,6 +2,7 @@ import { ApiError, get, malformedResponse, patch, post, remove } from './client'
 import { isStockCode } from './stock'
 import { fromKstDateTime, toIsoTime } from '../utils/date'
 import { finiteOrNull } from '../utils/format'
+import { textOrEmpty } from '../utils/text'
 
 /*
  * 커뮤니티 — 백엔드 `/api/community/**`. 화면은 이 파일만 부른다.
@@ -86,7 +87,6 @@ export interface StockCards {
 
 type Raw = Record<string, unknown>
 const isRaw = (value: unknown): value is Raw => typeof value === 'object' && value !== null
-const text = (value: unknown): string => (typeof value === 'string' ? value : '')
 const count = (value: unknown): number => Math.max(0, finiteOrNull(value) ?? 0)
 const stockOf = (row: Raw): { stockCode: string | null; stockName: string | null } => {
   const code = typeof row.stockCode === 'string' && isStockCode(row.stockCode) ? row.stockCode : null
@@ -104,8 +104,8 @@ function toBase(row: Raw): PostBase | null {
   return {
     postId,
     ...stockOf(row),
-    title: text(row.title),
-    author: text(row.writerNickname) || '알 수 없음',
+    title: textOrEmpty(row.title),
+    author: textOrEmpty(row.writerNickname) || '알 수 없음',
     likeCount: count(row.likeCount),
     commentCount: count(row.commentCount),
     likedByMe: row.likedByMe === true,
@@ -120,13 +120,13 @@ export function toPostSummary(raw: unknown): PostSummary | null {
   if (!isRaw(raw)) return null
   const base = toBase(raw)
   if (base === null) return null
-  return { ...base, changeRate: base.stockCode === null ? null : finiteOrNull(raw.changeRate), preview: text(raw.preview) }
+  return { ...base, changeRate: base.stockCode === null ? null : finiteOrNull(raw.changeRate), preview: textOrEmpty(raw.preview) }
 }
 
 function toPostDetail(raw: unknown): PostDetail | null {
   if (!isRaw(raw)) return null
   const base = toBase(raw)
-  return base === null ? null : { ...base, content: text(raw.content) }
+  return base === null ? null : { ...base, content: textOrEmpty(raw.content) }
 }
 
 function toComment(raw: unknown): CommunityComment | null {
@@ -137,8 +137,8 @@ function toComment(raw: unknown): CommunityComment | null {
   return {
     commentId,
     postId,
-    content: text(raw.content),
-    author: text(raw.writerNickname) || '알 수 없음',
+    content: textOrEmpty(raw.content),
+    author: textOrEmpty(raw.writerNickname) || '알 수 없음',
     likeCount: count(raw.likeCount),
     likedByMe: raw.likedByMe === true,
     isMine: raw.isMine === true,

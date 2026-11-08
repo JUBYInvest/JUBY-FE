@@ -158,21 +158,12 @@
   composes: title from '../components/Modal.module.css';
 }
 
-.modalText {
-  composes: text from '../components/Modal.module.css';
-}
-
 .modalError {
   composes: error from '../components/Modal.module.css';
 }
 
 .modalButtons {
   composes: buttons from '../components/Modal.module.css';
-}
-
-/* 되돌릴 수 없는 동작의 확정 단추. 빨강은 상승으로 읽혀 쓰지 않는다 */
-.danger {
-  composes: primary lg from '../components/buttons.module.css';
 }
 
 .cancel {

@@ -255,27 +255,6 @@
   display: none;
 }
 
-.modalTitle {
-  composes: title from '../components/Modal.module.css';
-}
-
-.modalText {
-  composes: text from '../components/Modal.module.css';
-}
-
-.modalButtons {
-  composes: buttons from '../components/Modal.module.css';
-}
-
-/* 되돌릴 수 없는 확정은 primary, 취소는 secondary(단추 규칙) */
-.danger {
-  composes: primary lg from '../components/buttons.module.css';
-}
-
-.cancel {
-  composes: secondary lg from '../components/buttons.module.css';
-}
-
 @media (max-width: 600px) {
   .content {
     font-size: var(--font-lg);

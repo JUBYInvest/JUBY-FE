@@ -17,6 +17,14 @@ const OUT = flag('--out')
 const REPO = flag('--repo') ?? REPO_ROOT.replace(/\/$/, '')
 /** 화면 아래 지수 띠의 요청(지수·실시간 연결)은 모든 화면 뒤에서 돌아 순서 비교에서 뺀다(market.mjs가 따로 본다) */
 const STREAM_LINE = /^GET \/api\/(stream\/|market-indices)/
+/**
+ * 화면의 요청 순서 — BLOCKED·지수·스트림 줄을 빼고, 웹소켓 연결(홈 채팅, 2026-11-07)은 HTTP 순서와 따로 맨 끝에 모은다.
+ * 연결은 손 인사가 끝나야 적혀 HTTP 응답과 도착 때가 본래 엇갈린다 — 순서로 견주면 바쁜 컴퓨터에서 이따금 뒤바뀐다(2026-11-08 snapshot.mjs와 같다)
+ */
+const requestOrder = (log) => {
+  const lines = log.filter((l) => !l.startsWith('BLOCKED') && !STREAM_LINE.test(l))
+  return [...lines.filter((l) => !l.startsWith('WS ')), ...lines.filter((l) => l.startsWith('WS ')).sort()]
+}
 const API = flag('--api') ?? join(REPO_ROOT, 'judge/expect/api-order.json')
 const ONLY = flag('--only')?.split(',') ?? null
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
@@ -221,7 +229,7 @@ for (const screen of SCREENS) {
   }
   if (MODE === 'apilog') {
     const s = await open(screen, 1440, 900)
-    apiLogs[name] = s.log.filter((l) => !l.startsWith('BLOCKED') && !STREAM_LINE.test(l))
+    apiLogs[name] = requestOrder(s.log)
     console.log(`${name}: ${apiLogs[name].length}건 ${JSON.stringify(apiLogs[name])}`)
     await s.close()
     continue
@@ -233,7 +241,7 @@ for (const screen of SCREENS) {
   const c1440 = await contrast(s.page)
   const f = await focusRings(s.page)
   const m = await marketMisuse(s.page)
-  const log = s.log.filter((l) => !l.startsWith('BLOCKED') && !STREAM_LINE.test(l))
+  const log = requestOrder(s.log)
   await s.close()
   const s375 = await open(screen, 375, 812)
   await tools(s375.page)

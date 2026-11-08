@@ -5,6 +5,7 @@ import { clearTokens } from '../utils/auth'
 import { fromDashedYmd } from '../utils/date'
 import { finiteOrNull } from '../utils/format'
 import { isSocialType } from '../utils/social'
+import { filledOr, textOrEmpty } from '../utils/text'
 import type {
   LikeStock,
   LikeStockList,
@@ -51,9 +52,9 @@ function loadMember(options?: Parameters<typeof get>[1]): Promise<(MemberInfoRes
 
 function toMemberInfo(row: MemberInfoResponse): MemberInfo {
   return {
-    name: typeof row.name === 'string' ? row.name : '',
-    nickname: typeof row.nickname === 'string' && row.nickname.trim() !== '' ? row.nickname : null,
-    email: typeof row.email === 'string' ? row.email : '',
+    name: textOrEmpty(row.name),
+    nickname: filledOr(row.nickname, null),
+    email: textOrEmpty(row.email),
     birth: typeof row.birth === 'string' && row.birth !== '' ? row.birth : null,
     socialType: isSocialType(row.socialType) ? row.socialType : null,
   }
@@ -153,8 +154,8 @@ async function fetchMyPersonality(options?: { ignoreUnauthorized?: boolean }): P
   if (name === '') return null
   return {
     investPersonality: name,
-    description: typeof result.description === 'string' ? result.description : '',
-    personalityImg: typeof result.personalityImg === 'string' && result.personalityImg.trim() !== '' ? result.personalityImg : null,
+    description: textOrEmpty(result.description),
+    personalityImg: filledOr(result.personalityImg, null),
   }
 }
 

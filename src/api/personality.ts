@@ -7,6 +7,7 @@ import {
   scoreToPersonality,
 } from '../utils/personality'
 import type { Choice, PersonalityResult, Question } from '../types/personality'
+import { isFilledText } from '../utils/text'
 
 /*
  * 성향 테스트는 로그인한 회원만 한다(2026-11-06 사용자 결정 — 화면이 비로그인에게는 로그인 안내만 둔다).
@@ -69,7 +70,7 @@ function sortByIds(questions: Question[]): Question[] {
 function toQuestion(question: QuestionResponse | null): Question | null {
   if (typeof question !== 'object' || question === null) return null
   const { questionId, content, choices } = question
-  if (!isFiniteNumber(questionId) || !isText(content)) return null
+  if (!isFiniteNumber(questionId) || !isFilledText(content)) return null
   if (!Array.isArray(choices) || choices.length === 0) return null
 
   const parsed = choices.map(toChoice)
@@ -81,13 +82,8 @@ function toQuestion(question: QuestionResponse | null): Question | null {
 function toChoice(choice: ChoiceResponse | null): Choice | null {
   if (typeof choice !== 'object' || choice === null) return null
   const { choiceId, content, score } = choice
-  if (!isFiniteNumber(choiceId) || !isText(content) || !isFiniteNumber(score)) return null
+  if (!isFiniteNumber(choiceId) || !isFilledText(content) || !isFiniteNumber(score)) return null
   return { choiceId, content, score }
-}
-
-/** 공백만 있는 글도 빈 것으로 본다 */
-function isText(value: unknown): value is string {
-  return typeof value === 'string' && value.trim() !== ''
 }
 
 /**
@@ -130,7 +126,7 @@ export async function submitTest(questions: Question[], scores: number[]): Promi
    */
   const saved: TestResultResponse = typeof result === 'object' && result !== null ? result : {}
   // 서버가 받아 저장했으니 범위 안이다. 그래도 못 내면 이름 자리를 비운다
-  const name = isText(saved.personalityName)
+  const name = isFilledText(saved.personalityName)
     ? saved.personalityName
     : (scoreToPersonality(normalized) ?? '')
   return {

@@ -131,6 +131,8 @@ export default function PriceSection({
   likeStatus,
   actionPanel,
 }: PriceSectionProps) {
+  /** 머리 띠의 갈래마다 같은 것 — 종목코드·관심종목·바로 가기 */
+  const band = { code: stockCode, likeToggle, likeStatus, actionPanel }
   /*
    * 렌더마다 새 배열을 만들면 CandleChart가 "봉이 바뀌었다"고 보고 setData + fitContent를 다시 해, 하트를 누르거나 관심종목
    * 목록이 늦게 올 때마다 확대해 둔 차트가 전체 보기로 돌아가고 범례가 사라진다. 일봉·기간이 바뀔 때만 자른다
@@ -153,21 +155,12 @@ export default function PriceSection({
     const shownPreview = preview?.closePrice !== undefined ? preview : previewFromCandles(stockCode, preview, backup)
     return (
       <>
-        <header className={styles.band}>
-          <Link to="/" className={styles.back}>
-            <span aria-hidden="true">‹</span> 홈으로 돌아가기
-          </Link>
-          <h1 className={styles.identity}>
-            <span className={styles.name}>{preview?.stockName ?? stockCode}</span>
-            {preview !== null && <span className={styles.code}>{stockCode}</span>}
-          </h1>
-          <div className={styles.bandLike}>{likeToggle}</div>
-          {likeStatus}
-          <div className={styles.bandPrice}>
-            <PriceLines detail={null} preview={shownPreview} />
-          </div>
-          <div className={styles.bandActs}>{actionPanel}</div>
-        </header>
+        <PriceBand
+          {...band}
+          name={preview?.stockName ?? stockCode}
+          showCode={preview !== null}
+          price={<PriceLines detail={null} preview={shownPreview} />}
+        />
 
         <BackupChart candles={backup} waiting={waiting} failed={failed} onRetry={onRetry} />
 
@@ -192,25 +185,13 @@ export default function PriceSection({
 
     return (
       <>
-        <header className={styles.band}>
-          <Link to="/" className={styles.back}>
-            <span aria-hidden="true">‹</span> 홈으로 돌아가기
-          </Link>
-          {/* 이름을 모르면 종목코드를 이름 자리에 한 번만 적는다 */}
-          <h1 className={styles.identity}>
-            <span className={styles.name}>{preview?.stockName ?? stockCode}</span>
-            {preview !== null && <span className={styles.code}>{stockCode}</span>}
-          </h1>
-          <div className={styles.bandLike}>{likeToggle}</div>
-          {likeStatus}
-          {hasPreviewPrice && (
-            <div className={styles.bandPrice}>
-              <PriceLines detail={null} preview={preview} />
-            </div>
-          )}
-          {/* 상세가 실패해도(대개 증권사 쪽) 바로 가기는 DB·서버 AI라 쓸 수 있다 */}
-          <div className={styles.bandActs}>{actionPanel}</div>
-        </header>
+        {/* 이름을 모르면 종목코드를 이름 자리에 한 번만 적는다. 상세가 실패해도(대개 증권사 쪽) 바로 가기는 DB·서버 AI라 쓸 수 있다 */}
+        <PriceBand
+          {...band}
+          name={preview?.stockName ?? stockCode}
+          showCode={preview !== null}
+          price={hasPreviewPrice ? <PriceLines detail={null} preview={preview} /> : null}
+        />
 
         {/* 정보 열에 그릴 값이 없다. 정보 열 자리까지 넓게 쓴다 */}
         <div className={styles.chartColumnFull}>
@@ -238,34 +219,21 @@ export default function PriceSection({
    */
   return (
     <>
-      <header className={styles.band}>
-        {/* 뒤로 가기 말고도 목록으로 돌아갈 길이다 */}
-        <Link to="/" className={styles.back}>
-          <span aria-hidden="true">‹</span> 홈으로 돌아가기
-        </Link>
-
-        <h1 className={styles.identity}>
-          {/* 이름은 응답에 실려 온다. 목록에서 들고 왔으면 그걸 먼저 쓰고, 없으면 뼈대를 둔다 */}
-          <span className={styles.name}>
-            {detail !== null ? (
-              displayName
-            ) : preview !== null ? (
-              preview.stockName
-            ) : (
-              <span className={`${styles.textSkeleton} ${styles.nameSkeleton}`} />
-            )}
-          </span>
-          {/* 이름이 비어 종목코드로 대신했으면 코드를 두 번 적지 않는다 */}
-          {displayName !== stockCode && <span className={styles.code}>{stockCode}</span>}
-        </h1>
-        <div className={styles.bandLike}>{likeToggle}</div>
-        {likeStatus}
-
-        <div className={styles.bandPrice}>
-          <PriceLines detail={detail} preview={preview} />
-        </div>
-        <div className={styles.bandActs}>{actionPanel}</div>
-      </header>
+      {/* 이름은 응답에 실려 온다. 목록에서 들고 왔으면 그걸 먼저 쓰고, 없으면 뼈대를 둔다. 이름이 비어 종목코드로 대신했으면 코드를 두 번 적지 않는다 */}
+      <PriceBand
+        {...band}
+        name={
+          detail !== null ? (
+            displayName
+          ) : preview !== null ? (
+            preview.stockName
+          ) : (
+            <span className={`${styles.textSkeleton} ${styles.nameSkeleton}`} />
+          )
+        }
+        showCode={displayName !== stockCode}
+        price={<PriceLines detail={detail} preview={preview} />}
+      />
 
       <section className={styles.chartColumn} aria-label="차트" aria-busy={detail === null}>
         <div className={styles.chartBox}>
@@ -309,6 +277,44 @@ export default function PriceSection({
         {detail !== null && <PeriodStats candles={detail.candles} />}
       </div>
     </>
+  )
+}
+
+/**
+ * 머리 띠 — 홈 링크 · 이름(+종목코드) · 관심종목 · 가격 두 줄 · 바로 가기. 정상·임시 차트·실패 세 갈래가 같은 띠를 쓰고 이름·가격 자리만 다르다.
+ * 홈 링크는 뒤로 가기 말고도 목록으로 돌아갈 길이다. 가격이 null이면(실패하고 들고 온 종가도 없음) 그 칸을 두지 않는다
+ */
+function PriceBand({
+  name,
+  code,
+  showCode,
+  price,
+  likeToggle,
+  likeStatus,
+  actionPanel,
+}: {
+  name: ReactNode
+  code: string | undefined
+  showCode: boolean
+  price: ReactNode | null
+  likeToggle: ReactNode
+  likeStatus: ReactNode
+  actionPanel: ReactNode
+}) {
+  return (
+    <header className={styles.band}>
+      <Link to="/" className={styles.back}>
+        <span aria-hidden="true">‹</span> 홈으로 돌아가기
+      </Link>
+      <h1 className={styles.identity}>
+        <span className={styles.name}>{name}</span>
+        {showCode && <span className={styles.code}>{code}</span>}
+      </h1>
+      <div className={styles.bandLike}>{likeToggle}</div>
+      {likeStatus}
+      {price !== null && <div className={styles.bandPrice}>{price}</div>}
+      <div className={styles.bandActs}>{actionPanel}</div>
+    </header>
   )
 }
 

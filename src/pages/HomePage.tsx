@@ -14,14 +14,13 @@ import VolumeRank from '../components/VolumeRank'
 import SectionBoundary from '../components/SectionBoundary'
 import Spinner from '../components/Spinner'
 import LoginModal from '../components/LoginModal'
-import { readCardSeries } from '../api/cardSeries'
-import { FALLBACK_LEADING, loadCardSeries, loadLeading, readCachedLeading } from '../api/home'
 import { likeStock, unlikeStock } from '../api/member'
 import { byTradingValue } from '../api/search'
 import { useLiveRows, useRealtime, withLivePrice } from '../api/realtime'
 import { getStockList } from '../api/stock'
 import { STOCK_LIST } from '../api/stockList'
 import { useDocumentTitle } from '../hooks/useDocumentTitle'
+import { useCardSeries, useLeadingStocks } from '../hooks/useHomeCards'
 import { useMediaQuery } from '../hooks/useMediaQuery'
 import { useIsLoggedIn } from '../hooks/useIsLoggedIn'
 import { sharedYmd } from '../utils/date'
@@ -32,8 +31,6 @@ import { basisLabel, type PriceBasis } from '../utils/priceBasis'
 import { describeSort, nextSort, sortStocks } from '../utils/sort'
 import type {
   CardQuote,
-  CardSeries,
-  LeadingStocks,
   SortKey,
   SortState,
   Stock,
@@ -104,19 +101,8 @@ export default function HomePage() {
   const [restored] = useState(() =>
     navigationType === 'POP' ? (savedViews.get(location.key) ?? null) : null,
   )
-  /*
-   * 테마별 대표 종목 카드. 어떤 종목인지는 서버가 정한다(GET /api/stocks/leading-stocks).
-   * 첫 그림은 지난 방문에 받아 둔 값으로, 그것도 없으면 고정 목록으로 그리고, 아래 effect가
-   * 받은 값으로 갈아끼운다.
-   */
-  const [leading, setLeading] = useState<LeadingStocks>(
-    () => readCachedLeading() ?? FALLBACK_LEADING,
-  )
-  /**
-   * 대장주 응답이 왔는가(실패해도 지난 값·고정 목록으로 끝난다). 카드 그래프는 그 뒤의 목록으로만 묻는다 — 첫 그림의 고정 목록으로
-   * 먼저 물으면 서버 목록이 다를 때 또 물어, 첫 방문에 증권사를 거치는 상세 요청이 3건이 아니라 6건 나간다
-   */
-  const [leadingSettled, setLeadingSettled] = useState(false)
+  /* 테마별 대표 종목 카드의 종목(서버가 정한다). 대장주 effect는 시세표 effect보다 먼저 돈다 — 요청 순서 */
+  const { leading, settled: leadingSettled, retry: retryLeading } = useLeadingStocks()
   const themes = leading.themes
   const [list, setList] = useState<ListState>({ kind: 'loading' })
   const narrow = useMediaQuery(NARROW)
@@ -136,24 +122,6 @@ export default function HomePage() {
   const pendingLikes = useRef(new Set<string>())
   /** 하트를 서버에 반영하지 못해 되돌렸을 때 알리는 말. 조용히 되돌리면 누른 게 무시된 것처럼 보인다 */
   const [likeNotice, setLikeNotice] = useState('')
-
-  /*
-   * 대장주는 DB만 읽는 API라 몇 번을 불러도 부담이 없다. 들어올 때마다 새로 받는다.
-   * 실패해도 loadLeading()이 지난 값이나 고정 목록을 돌려주므로 카드는 늘 그려진다.
-   */
-  /** 다시 시도는 번호만 올린다 — effect가 앞 요청을 버리고 새로 받는다(단추가 직접 부르면 늦게 온 앞 응답을 못 버린다) */
-  const [leadingTry, setLeadingTry] = useState(0)
-  useEffect(() => {
-    let ignore = false
-    void loadLeading().then((next) => {
-      if (ignore) return
-      setLeading(next)
-      setLeadingSettled(true)
-    })
-    return () => {
-      ignore = true
-    }
-  }, [leadingTry])
 
   const [listTry, setListTry] = useState(0)
   /** 시세표를 새로 받을 때마다 올라간다 — 그 전에 누른 하트의 실패가 새 목록의 하트를 되돌리지 않게 */
@@ -189,40 +157,10 @@ export default function HomePage() {
   // 종목을 누르기 전에 상세 화면 묶음을 받아 둔다. 누른 뒤 받으면 그만큼 상세 요청이 늦게 나간다
   useEffect(() => preloadStockChartPage(), [])
 
-  /*
-   * 카드 그래프. 받는 중이면 없음, 그릴 수 없으면 'unavailable'. 담아 둔 그래프는 받기 전 첫 그림부터 쓴다.
-   * 받는 길과 막는 규칙은 api/home.ts loadCardSeries — 카드 그래프가 사용자가 누를 상세의 몫을 쓰지 않게 한다.
-   */
-  const [cardSeries, setCardSeries] = useState<Map<string, CardSeries | 'unavailable'>>(
-    () => new Map(),
-  )
   // 기준일이 비어 오면("") 모르는 것(null)이다 — ""를 그대로 넘기면 담아 둔 그래프가 어느 날짜든 "기준일 이후"로 읽혀 영영 묵지 않는다
   const baseDate = list.kind === 'ready' && list.baseDate !== '' ? list.baseDate : null
-  /** 카드 종목이 바뀔 때만 다시 받는다. themes 배열은 받을 때마다 새로 만들어진다 */
-  const themeCodes = themes.map((theme) => theme.stockCode).join(',')
-
-  useEffect(() => {
-    let ignore = false
-    const codes = themeCodes === '' ? [] : themeCodes.split(',')
-    // 기준일이 바뀌면 묵은 그래프는 내리고 다시 받는다. 못 그린다고 정한 것도 다시 판단한다
-    setCardSeries(() => {
-      const next = new Map<string, CardSeries | 'unavailable'>()
-      for (const code of codes) {
-        const cached = readCardSeries(code, baseDate)
-        if (cached !== null) next.set(code, cached)
-      }
-      return next
-    })
-    // 대장주 응답 전의 목록(지난 값·고정 목록)으로는 묻지 않는다. 담아 둔 그래프만 먼저 그린다
-    if (!leadingSettled) return
-    void loadCardSeries(codes, baseDate, (code, series) => {
-      if (ignore) return
-      setCardSeries((prev) => new Map(prev).set(code, series ?? 'unavailable'))
-    })
-    return () => {
-      ignore = true
-    }
-  }, [themeCodes, baseDate, leadingSettled])
+  /* 카드 그래프. effect는 시세표·상세 묶음 미리 받기 뒤에 돈다 — 요청 순서 */
+  const cardSeries = useCardSeries(themes.map((theme) => theme.stockCode).join(','), baseDate, leadingSettled)
 
   /** 지금 보고 있는 시세표. 떠날 때 savedViews에 옮겨 담는다 */
   const viewRef = useRef<HomeView>({
@@ -404,7 +342,7 @@ export default function HomePage() {
             카드를 그리다 멈춰도 검색·시세표는 남는다(경계가 없으면 카드 한 장 때문에 홈 전체가 오류 화면이 된다).
             다시 시도는 대장주만 새로 받는다. 카드는 종목·종가(DB)만으로 세 장이 늘 선다. 그래프를 못 받은 카드만 그래프 자리에 알린다.
           */}
-          <SectionBoundary onRetry={() => setLeadingTry((count) => count + 1)}>
+          <SectionBoundary onRetry={retryLeading}>
             <div className={styles.cards}>
               {themes.map((theme) => (
                 <TopStockCard

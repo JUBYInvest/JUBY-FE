@@ -19,6 +19,8 @@ cd judge && npm install        # Playwright 1.64.1. 브라우저는 설치된 �
 npm run build && node node_modules/vite/bin/vite.js preview --port 4198 --strictPort   # 저장소 루트에서. 다시 빌드하면 미리보기도 다시 띄운다
 cd judge
 node --import ./register.mjs unit.test.mjs            # 함수 단위(utils·api 계층) — 브라우저 없이 Node가 .ts 원본을 읽는다
+node --import ./register.mjs unit.live.test.mjs       # 채팅 연결(api/stomp·chat) — 가짜 웹소켓·가짜 시계로 프레임·하트비트·다시 붙기·재발급 갈래
+node snapshot.mjs http://localhost:4198 save|compare 파일.json   # 화면 지문(리팩토링 판정): 25화면 × 1440·390의 접근성 트리·그림·높이·요청 순서
 node flow.mjs http://localhost:4198                   # 흐름: 홈 순위 탭·검색 최근·건너뛰기·지수 띠 장 상태·상세·주식 모아보기·마이페이지
 node repro.mjs http://localhost:4198                  # 결함 재현: 고치기 전 빌드에서 FAIL, 고친 뒤 PASS
 node ai.mjs http://localhost:4198                     # AI 주가분석: 방 목록·열기·보내기·그만 기다리기·다시 시도·이름·지우기·넘어오기·실패
@@ -55,3 +57,7 @@ node consistency.mjs http://localhost:4198            # 화면 사이 위계·�
 - 구조를 바꾸기 전에 `node common.mjs <BASE> apilog`로 화면별 요청 순서를 `expect/api-order.json`에 적어 두고, 바꾼 뒤 `judge`의 7번으로 견준다.
   AI 화면은 `ai.mjs`가 `expect/ai-order.json`에 같은 방식으로 적는다(`--record`).
 - 판정이 옛 동작을 전제로 적혀 깨졌으면, 새 동작이 맞는지 확인한 뒤 판정을 고치고 어디를 왜 고쳤는지 머리 주석에 남긴다.
+- **리팩토링은 블랙박스 + 화이트박스로 잰다**(2026-11-08). 블랙박스는 `snapshot.mjs` — 고치기 전 빌드에서 `save`(두 번 찍어 흔들리는 칸은 견주지 않는다),
+  고친 뒤 `compare`가 모두 같아야 한다(다르면 그림을 `<파일>-diff/`에 남긴다). 감도: 홈 카드가 다른 이전 빌드와 견주면 그 네 판만 FAIL한다.
+  화이트박스는 고칠 모듈의 단위 판정을 **고치기 전에** 써서 지금 코드에서 통과시키고, 고친 뒤 같은 판정이 통과해야 한다. 범위는 `node --experimental-test-coverage --import ./register.mjs unit.test.mjs`.
+- 단위 판정에서 `utils/cache.ts` 값을 지우려면 `writeStamp(key, 0)`·`writeJson(key, null)`로 덮는다 — 저장소가 막힌 브라우저를 위해 메모리에도 들고 있어 `localStorage.clear()`로는 남는다.

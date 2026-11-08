@@ -1,0 +1,25 @@
+/* 되돌릴 수 없는 확인 상자(ConfirmModal). 모양은 Modal.module.css의 제목·글·실패 안내·단추 줄과 단추 모듈 그대로다 */
+.title {
+  composes: title from './Modal.module.css';
+}
+
+.text {
+  composes: text from './Modal.module.css';
+}
+
+.error {
+  composes: error from './Modal.module.css';
+}
+
+.buttons {
+  composes: buttons from './Modal.module.css';
+}
+
+/* 되돌릴 수 없는 확정은 주 단추, 취소는 보조 단추(CLAUDE.md "단추는 세 종류뿐이다"). 빨강은 상승으로 읽혀 쓰지 않는다 — 되돌릴 수 없다는 건 상자 글이 알린다 */
+.confirm {
+  composes: primary lg from './buttons.module.css';
+}
+
+.cancel {
+  composes: secondary lg from './buttons.module.css';
+}

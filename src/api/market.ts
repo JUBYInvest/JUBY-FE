@@ -1,6 +1,6 @@
 import { get } from './client'
 import { isDayOffToday } from './marketCalendar'
-import { canSpendKisCall } from './stock'
+import { canSpendKisCall } from './kisBudget'
 import { readCache, writeCache } from '../utils/cache'
 import { fromKstDateTime, kstNow } from '../utils/date'
 import { isFiniteNumber, numberFromText } from '../utils/format'

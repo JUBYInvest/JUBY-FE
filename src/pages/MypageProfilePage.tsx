@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useDocumentTitle } from '../hooks/useDocumentTitle'
 import type { FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
+import ConfirmModal from '../components/ConfirmModal'
 import Modal from '../components/Modal'
 import { ApiError } from '../api/client'
 import { clearSession } from '../api/auth'
@@ -335,37 +336,19 @@ export default function MypageProfilePage() {
       </Modal>
 
       {/* 탈퇴는 되돌릴 수 없다. 버튼 하나로 바로 지우지 않는다 */}
-      <Modal isOpen={isDeleteOpen} onClose={closeDelete} label="회원 탈퇴 확인">
-        <p className={styles.modalTitle}>정말 탈퇴하시겠습니까?</p>
-        <p className={styles.modalText}>
-          계정과 투자성향 정보가 모두 삭제되며 복구할 수 없습니다.
-        </p>
-
-        {deleteError !== '' && (
-          <p className={styles.modalError} role="alert">
-            {deleteError}
-          </p>
-        )}
-
-        <div className={styles.modalButtons}>
-          <button
-            type="button"
-            className={styles.danger}
-            onClick={() => void handleDelete()}
-            disabled={isDeleting}
-          >
-            {isDeleting ? '처리 중…' : '탈퇴하기'}
-          </button>
-          <button
-            type="button"
-            className={styles.cancel}
-            onClick={closeDelete}
-            disabled={isDeleting}
-          >
-            취소
-          </button>
-        </div>
-      </Modal>
+      <ConfirmModal
+        isOpen={isDeleteOpen}
+        onClose={closeDelete}
+        label="회원 탈퇴 확인"
+        title="정말 탈퇴하시겠습니까?"
+        confirmLabel="탈퇴하기"
+        busyLabel="처리 중…"
+        busy={isDeleting}
+        onConfirm={() => void handleDelete()}
+        error={deleteError === '' ? null : deleteError}
+      >
+        계정과 투자성향 정보가 모두 삭제되며 복구할 수 없습니다.
+      </ConfirmModal>
     </>
   )
 }

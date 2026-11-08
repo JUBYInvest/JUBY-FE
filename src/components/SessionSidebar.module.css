@@ -204,32 +204,6 @@
   text-decoration: underline;
 }
 
-/* 지우기 확인 상자. 마이페이지 탈퇴 확인과 같은 모양이다(Modal.module.css) */
-.modalTitle {
-  composes: title from './Modal.module.css';
-}
-
-.modalText {
-  composes: text from './Modal.module.css';
-}
-
-.modalError {
-  composes: error from './Modal.module.css';
-}
-
-.modalButtons {
-  composes: buttons from './Modal.module.css';
-}
-
-/* 확인 상자의 확정 단추(지우기). 빨강은 상승으로 읽혀 쓰지 않는다 — 되돌릴 수 없다는 건 상자 글이 알린다 */
-.danger {
-  composes: primary lg from './buttons.module.css';
-}
-
-.cancel {
-  composes: secondary lg from './buttons.module.css';
-}
-
 /* 좁은 화면에서만 쓰는 것 — 대화창 위 한 줄, 날개 닫기, 날개 뒤 어둡게 */
 .bar,
 .close,

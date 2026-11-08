@@ -3,6 +3,7 @@ import { PERIODS } from '../utils/backtest'
 import { fromDashedYmd } from '../utils/date'
 import { finiteOrNull } from '../utils/format'
 import type { BacktestPeriod, BacktestPreset, QuantScoring } from '../types/backtest'
+import { filledOr, textOrEmpty } from '../utils/text'
 
 /**
  * 백테스트 창구. **로그인해야 한다**(토큰 없으면 401) —
@@ -58,7 +59,7 @@ async function getPreset(
     // 서버는 YYYY-MM-DD로 준다. 다른 날짜처럼 받는 자리에서 YYYYMMDD로 바꾼다(CLAUDE.md "날짜는 YYYYMMDD")
     startDate: dateOrNull(response?.startDate),
     endDate: dateOrNull(response?.endDate),
-    updatedAt: textOrNull(response?.updatedAt),
+    updatedAt: filledOr(response?.updatedAt, null),
     result,
   }
 }
@@ -117,7 +118,7 @@ function toScoring(scoring: ScoringResponse | null | undefined): QuantScoring | 
   const { stable, profit, effect, growth } = scoring
   if (!isGroup(stable) || !isGroup(profit) || !isGroup(effect) || !isGroup(growth)) return null
   return {
-    stockCode: typeof scoring.stockCode === 'string' ? scoring.stockCode : '',
+    stockCode: textOrEmpty(scoring.stockCode),
     investType: typeof scoring.investType === 'number' ? scoring.investType : 0,
     finalScore: scoring.finalScore,
     stable: {
@@ -145,10 +146,6 @@ function toScoring(scoring: ScoringResponse | null | undefined): QuantScoring | 
 
 function isGroup<T extends object>(group: T | null | undefined): group is T {
   return typeof group === 'object' && group !== null
-}
-
-function textOrNull(value: unknown): string | null {
-  return typeof value === 'string' && value.trim() !== '' ? value : null
 }
 
 /** 서버의 YYYY-MM-DD를 YYYYMMDD로. 비었거나 여덟 자리가 안 되면 null(화면이 그 줄을 숨긴다) */

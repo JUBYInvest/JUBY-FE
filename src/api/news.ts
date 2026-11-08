@@ -4,6 +4,7 @@ import { timeAgo } from '../utils/date'
 import { finiteOrNull } from '../utils/format'
 import { safeLink } from '../utils/link'
 import type { NewsItem, NewsPage, NewsSort } from '../types/news'
+import { textOrEmpty } from '../utils/text'
 
 /*
  * 뉴스 창구 셋. 셋 다 증권사와 무관하다.
@@ -97,21 +98,16 @@ function toSource(link: string): string {
   }
 }
 
-/** 문자열이 아니면 빈 문자열. 기사 한 건의 null 하나가 목록 전체를 실패시키지 않게 한다 */
-function textOf(value: unknown): string {
-  return typeof value === 'string' ? value : ''
-}
-
 function toNewsItem(item: NewsItemResponse): NewsItem {
   // http·https가 아니면 빈 문자열이라 그 기사는 빠진다
   const link = safeLink(item.originalLink)
   return {
-    title: stripHtml(textOf(item.title)),
-    description: stripHtml(textOf(item.description)),
+    title: stripHtml(textOrEmpty(item.title)),
+    description: stripHtml(textOrEmpty(item.description)),
     link,
     source: toSource(link),
-    timeAgo: textOf(item.timeAgo),
-    publishedAt: new Date(textOf(item.publishedAt)),
+    timeAgo: textOrEmpty(item.timeAgo),
+    publishedAt: new Date(textOrEmpty(item.publishedAt)),
   }
 }
 
@@ -162,10 +158,10 @@ export async function searchNews(query: string): Promise<NewsItem[]> {
 
 function toNaverNewsItem(item: NaverNewsItemResponse): NewsItem {
   const link = safeLink(item.originallink)
-  const publishedAt = new Date(textOf(item.pubDate))
+  const publishedAt = new Date(textOrEmpty(item.pubDate))
   return {
-    title: stripHtml(textOf(item.title)),
-    description: stripHtml(textOf(item.description)),
+    title: stripHtml(textOrEmpty(item.title)),
+    description: stripHtml(textOrEmpty(item.description)),
     link,
     source: toSource(link),
     // 종목 뉴스와 달리 서버가 "3시간 전"을 지어 주지 않는다
@@ -212,10 +208,10 @@ export async function askStockNews(stockName: string, question: string): Promise
 
 function toHitItem(row: NewsHitResponse): NewsItem {
   const link = safeLink(row.originalLink)
-  const publishedAt = new Date(textOf(row.pubDate))
+  const publishedAt = new Date(textOrEmpty(row.pubDate))
   return {
-    title: stripHtml(textOf(row.title)),
-    description: stripHtml(textOf(row.description)),
+    title: stripHtml(textOrEmpty(row.title)),
+    description: stripHtml(textOrEmpty(row.description)),
     link,
     source: toSource(link),
     timeAgo: timeAgo(publishedAt.getTime()),

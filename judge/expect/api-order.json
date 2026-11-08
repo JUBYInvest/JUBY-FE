@@ -1,12 +1,15 @@
 {
  "home": [
   "GET /api/members/me/personality",
+  "GET /api/live-chat/messages?size=50",
+  "GET /api/members/me",
   "GET /api/stocks/leading-stocks",
   "GET /api/stocks",
   "GET /api/market/holiday?basedate=20261029",
   "GET /api/stocks/000660?period=ONE_YEAR",
   "GET /api/stocks/012450?period=ONE_YEAR",
-  "GET /api/stocks/207940?period=ONE_YEAR"
+  "GET /api/stocks/207940?period=ONE_YEAR",
+  "WS CONNECT auth"
  ],
  "stock": [
   "GET /api/market/holiday?basedate=20261029",
@@ -71,11 +74,13 @@
   "GET /api/personality-tests"
  ],
  "home-out": [
+  "GET /api/live-chat/messages?size=50",
   "GET /api/stocks/leading-stocks",
   "GET /api/stocks",
   "GET /api/stocks/000660?period=ONE_YEAR",
   "GET /api/stocks/012450?period=ONE_YEAR",
-  "GET /api/stocks/207940?period=ONE_YEAR"
+  "GET /api/stocks/207940?period=ONE_YEAR",
+  "WS CONNECT"
  ],
  "backtest-out": [
   "GET /api/stocks",

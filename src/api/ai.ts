@@ -1,6 +1,7 @@
 import { get, malformedResponse, patch, post, remove } from './client'
 import { fromDashedYmd } from '../utils/date'
 import type { AskResult, ChatMessage, ChatSession, ChatSessionDetail } from '../types/ai'
+import { filledOr, textOrEmpty } from '../utils/text'
 
 /**
  * AI 주가분석 창구. 질문과 대화방 모두 실제 API다. 전부 로그인해야 한다.
@@ -57,7 +58,7 @@ function isId(value: unknown): value is number {
 /** 방 번호가 없거나 틀리면 null(그 줄은 뺀다). 제목이 비면 서버 기본값과 같은 '새 대화'로 적는다 */
 function toSession(row: SessionSummaryResponse | null | undefined): ChatSession | null {
   if (typeof row !== 'object' || row === null || !isId(row.chatSessionId)) return null
-  const title = typeof row.title === 'string' && row.title.trim() !== '' ? row.title : DEFAULT_TITLE
+  const title = filledOr(row.title, DEFAULT_TITLE)
   return { sessionId: row.chatSessionId, title, ...toUpdated(row.updatedAt) }
 }
 
@@ -76,7 +77,7 @@ function toMessage(row: MessageResponse | null): ChatMessage | null {
     messageId: row.messageId,
     role,
     content: row.content,
-    createdAt: typeof row.createdAt === 'string' ? row.createdAt : '',
+    createdAt: textOrEmpty(row.createdAt),
   }
 }
 
@@ -111,7 +112,7 @@ export async function renameSession(sessionId: number, title: string): Promise<C
   const sent = normalizeTitle(title)
   const row = await patch<SessionSummaryResponse | null>(`/api/chat-sessions/${sessionId}`, { title: sent })
   // 200이면 서버는 이미 바꿨다. 응답에 제목이 비어 오면 보낸 제목을 쓴다
-  const saved = typeof row?.title === 'string' && row.title.trim() !== '' ? row.title : sent
+  const saved = filledOr(row?.title, sent)
   return { sessionId, title: saved, ...toUpdated(row?.updatedAt) }
 }
 
@@ -168,5 +169,5 @@ export async function ask(
   // 본문이 객체가 아니면 다른 API처럼 응답 모양 오류로 던진다. 답이 빈 건 화면이 "답변을 가져오지 못했어요 + 다시 시도"로 받는다
   if (typeof result !== 'object' || result === null) throw malformedResponse()
   // 응답의 chatSessionId·messageId는 받기만 하고 쓰지 않는다 — 방은 화면이 먼저 만들어 번호를 안다
-  return { answer: typeof result.answer === 'string' ? result.answer : '' }
+  return { answer: textOrEmpty(result.answer) }
 }

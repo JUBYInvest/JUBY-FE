@@ -68,7 +68,7 @@ function writeRaw(key: string, value: string): void {
 }
 
 /**
- * 때(ms) 하나. 증권사 호출 간격·토큰 심기·서버 오류 표시가 쓴다(api/stock.ts).
+ * 때(ms) 하나. 증권사 호출 간격·토큰 심기·서버 오류 표시·휴장일 쉬기가 쓴다(api/kisBudget.ts·marketCalendar.ts).
  * 없거나 숫자가 아니면 0이다. 0을 쓰면 "없음"으로 지운 것과 같다.
  */
 export function readStamp(key: string): number {
@@ -78,6 +78,24 @@ export function readStamp(key: string): number {
 
 export function writeStamp(key: string, value: number): void {
   writeRaw(key, String(value))
+}
+
+/**
+ * 적어 둔 때가 지금에서 age 안인가("6시간 안에 심었다", "30분 안에 서버 오류가 났다").
+ * 앞뒤를 다 본다 — 시계를 되돌려 미래 값이 남아도 age보다 오래 믿지 않는다
+ */
+export function isStampWithin(key: string, age: number, now: number = Date.now()): boolean {
+  const stamp = readStamp(key)
+  return now - stamp < age && stamp - now < age
+}
+
+/**
+ * "이때까지 쉰다"고 적어 둔 때가 아직인가. 정해진 가장 긴 쉼(longest)보다 먼 미래 값은 믿지 않는다 —
+ * 시계를 되돌려 남은 값으로 몇 날을 쉬지 않게
+ */
+export function isSkipping(key: string, longest: number, now: number = Date.now()): boolean {
+  const until = readStamp(key)
+  return now < until && until - now <= longest
 }
 
 /** JSON 값 하나. 모양은 읽는 쪽이 검사한다(api/cardSeries.ts). 읽지 못하면 null */

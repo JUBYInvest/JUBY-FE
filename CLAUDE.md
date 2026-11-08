@@ -32,16 +32,19 @@ npx knip@5               # 안 쓰는 파일·내보내기(judge/는 뺀다)
 
 **앱에는 테스트 러너가 없다.** `lint` + `build` + **판정(`judge/`)**으로 확인한다. 돌리는 법과 파일별 내용은 [judge/README.md](judge/README.md).
 
-- 함수 단위는 `cd judge && node --import ./register.mjs unit.test.mjs`(`loader.mjs`가 `.ts` 원본을 읽는다). 화면은 운영 빌드 + `vite preview` + 설치된 크롬(`channel: 'chrome'`).
+- 함수 단위(화이트박스)는 `cd judge && node --import ./register.mjs unit.test.mjs`와 `unit.live.test.mjs`(채팅 연결 — 가짜 웹소켓·가짜 시계, 모듈 상태가 섞이지 않게 따로)다
+  (`loader.mjs`가 `.ts` 원본을 읽는다, 커버리지는 `node --experimental-test-coverage …`). 화면은 운영 빌드 + `vite preview` + 설치된 크롬(`channel: 'chrome'`).
 - `market.mjs`는 한 빌드에서 지수(A1–A11)·실시간(R1–R8)·띠 배치·입력칸 넘침(S3–S9)을 본다. 요청 순서 비교(`common.mjs`, `lib.mjs api()`)는 지수·스트림 줄을 뺀다.
   기대 순서 `judge/expect/api-order.json`·`ai-order.json`은 구조를 바꾸기 전에 적고 바꾼 뒤 견준다.
 - 가짜 API는 `judge/mock.mjs`, 옵션은 `mock()` 주석에 있다(`indices`, `stream` — 연결마다 보낼 묶음, `streamStatus`, `stocksRealtime` 등).
-- CI(`.github/workflows/ci.yml`): `check`(tsc·lint·build·unit) → `judge`(운영 빌드를 4251에 띄워 flow·repro·ai·market).
+- CI(`.github/workflows/ci.yml`): `check`(tsc·lint·build·unit 두 묶음) → `judge`(운영 빌드를 4251에 띄워 flow·repro·ai·market).
 - 가로채기 조건은 `url.pathname.startsWith('/api/')`다(글롭은 `/src/api/*.ts`까지 잡는다). 재발급(`api.juby.store` 직행)과 다른 호스트도 막는다. **가로챈 요청 안에서 `route.fetch()`를 부르지 않는다.**
 - 로그인은 JWT 모양 가짜 토큰(`tokenFor`, subject = 회원 번호)으로 흉내 낸다. 시계는 `THU_11`(목 11:00 KST)로 못박는다.
 - 화면은 운영 빌드에서 잰다(StrictMode는 effect가 두 번 돈다). 미리보기는 `node node_modules/vite/bin/vite.js preview`로 띄운다.
 - **버그 수정**: ① 고치기 전 빌드에서 판정이 실패하는지 본다(재현 안 되면 고치지 않는다) ② 고친다 ③ 통과 ④ 고친 파일만 되돌려(`git stash push -u -- 파일들`) 다시 실패하는지 본다
   (안 돌아가면 판정이 무효) ⑤ 복구 후 lint·tsc·build. **새 기능**은 바꾸기 전 코드에서 새 판정이 실패하는 걸 본 뒤 만들고 기존 판정을 모두 돌린다.
+- **리팩토링**(겉모습·동작을 바꾸지 않는 고치기): ① 고치기 전 빌드에서 `node snapshot.mjs <BASE> save 파일.json`(25화면 × 1440·390의 접근성 트리·그림·높이·요청 순서를 두 번 찍어
+  흔들리는 칸은 뺀다) ② 고칠 모듈은 **고치기 전에** 화이트박스 판정을 써서 지금 코드에서 통과시킨다 ③ 고친다 ④ 같은 판정 + `snapshot.mjs compare`가 모두 같아야 한다(2026-11-08).
 - 로딩은 `domcontentloaded`·`document.fonts.ready` 뒤에 잰다. `fill()`은 잠김을 가리고 `maxLength`를 지킨다. 판정이 도는 동안 소스를 고치지 않는다.
 
 ## 구조
@@ -58,7 +61,7 @@ npx knip@5               # 안 쓰는 파일·내보내기(judge/는 뺀다)
 ### API 계층(`src/api/client.ts`)
 
 - `get`·`post`·`patch`·`remove`가 `{ isSuccess, code, message, result }`를 벗긴다. 실패는 `ApiError`(`status`·`code`·`message`), 망 끊김·시간 초과는 `Error`다.
-- **응답 거르기**: `*Response`는 필드를 `?: T | null`로 적고 화면 타입으로 옮기는 자리에서 **전부** 거른다(숫자 `finiteOrNull()`, 문자열 `typeof`, 빌 수 있는 칸은 화면 타입도 `| null`).
+- **응답 거르기**: `*Response`는 필드를 `?: T | null`로 적고 화면 타입으로 옮기는 자리에서 **전부** 거른다(숫자 `finiteOrNull()`, 문자열 `utils/text.ts` — `isFilledText`·`filledOr`(공백뿐이면 빈 것)·`textOrEmpty`, 빌 수 있는 칸은 화면 타입도 `| null`).
   화면이 반드시 쓰는 값이 비면 `malformedResponse()`로 던진다. 목록 한 행의 빈 값은 막지 않는다(포맷 함수가 "-"). 서버 `YYYY-MM-DD`(뒤에 `T시각`이 붙어도)는 여기서 `fromDashedYmd()`로 바꾼다 — 모양이 틀리면 ""라 다시 검사하지 않는다.
 - 기본 12초에 끊고, 연달아 두 번 무응답이면 차단기가 15초 동안 모두 실패시킨다. 없어도 되는 요청은 짧게 끊고 `countsTowardBreaker: false`.
   **AI 질문만 제한 시간이 없다**(`timeoutMs: null`, "그만 기다리기"가 `AbortController`로 끊는다).
@@ -83,7 +86,7 @@ npx knip@5               # 안 쓰는 파일·내보내기(judge/는 뺀다)
 
 ### 증권사(KIS) 호출
 
-호출 제한이 빡빡하다. **사용자가 누르지 않은 증권사 호출은 서버에 토큰이 있을 때만 쓴다**(`canSpendKisCall` — 6시간 안에 토큰을 심었거나, 토큰이 끝나 있을 때
+호출 제한이 빡빡하다. **사용자가 누르지 않은 증권사 호출은 서버에 토큰이 있을 때만 쓴다**(`api/kisBudget.ts canSpendKisCall` — 6시간 안에 토큰을 심었거나, 토큰이 끝나 있을 때
 (`kisTokenLikelyExpired`: 토 15:45~월 16:05, 평일 15:45~16:05)가 아니고 30분 안에 서버 오류(`kisLimitedAt`)가 없을 때).
 
 | 요청 | 증권사 | 언제 |
@@ -99,7 +102,7 @@ npx knip@5               # 안 쓰는 파일·내보내기(judge/는 뺀다)
 | `GET /api/market/{code}/daily_itemchartprice` | 1(모의투자 토큰) | 로그인했고 상세가 실패했을 때 그 종목만 |
 
 - **상세 실패 대응(임시 — 백엔드가 고치면 걷는다)**: 처음엔 곧바로 보낸다. 5xx·무응답이면 1.5초 뒤 한 번, 또 실패하면 마지막으로 보낸 때에서 65초(`DETAIL_GAP_MS`) 뒤 한 번 더
-  (남은 초를 센다). 4xx·모양이 틀린 200은 다시 부르지 않는다. 걷을 곳은 `api/stock.ts`의 세 장치와 `StockChartPage`의 `waiting`이다.
+  (남은 초를 센다). 4xx·모양이 틀린 200은 다시 부르지 않는다. 걷을 곳은 `api/kisBudget.ts` 한 파일(간격·토큰 심기·쓸 수 있는 때 — 다른 모듈은 여기 함수만 부른다)과 `StockChartPage`의 `waiting`이다.
 - 뉴스 `GET /api/stocks/{code}/news`(Pinecone)도 미리 부르지 않는다. 10건씩 받아 6건씩 펼치고(`NEWS_STEP`) 다 편 뒤 다음 쪽을 묻는다.
 - 검색은 `api/stockList.ts` 사본으로 먼저 보이고 250ms 멈추면 `GET /api/stocks/search` 결과를 **합친다**(서버는 종목명만 찾는다).
   사본에는 `isStockCode`(숫자 여섯 자리)를 지나는 종목만 둔다 — 영문이 든 `0126Z0`은 상세·하트·글쓰기가 막혀 뺐다(unit `api/stockList`).
@@ -114,6 +117,8 @@ npx knip@5               # 안 쓰는 파일·내보내기(judge/는 뺀다)
   `getAccountId()`는 JWT subject(회원 번호)를 읽는다(서명은 보지 않는다).
 - `utils/cache.ts`: 실패·틀린 모양은 없는 셈 치고 **읽는 쪽이 모양까지 검사한다.** TTL `leadingStocks`·`marketIndices.v2`, JSON `cardSeriesYear`·`recentBacktests`(주인 + 10줄,
   로그아웃·탈퇴 때 비움)·`startStepsDone`·`marketCalendar`·`recentStocks`(로그아웃해도 둠)·`lastLoginProvider`(탈퇴 때 지움), 때 한 칸 `stockDetailSentAt`·`kisToken*`·`kisLimitedAt` 등.
+  때 견주기는 `isStampWithin`(앞뒤 모두 — 시계를 되돌려 남은 미래 값을 오래 믿지 않는다)·`isSkipping`(정해진 가장 긴 쉼보다 먼 값은 믿지 않는다), 같은 탭 메모(`api/memo.ts`)도 같은 규칙이다.
+  **메모리에도 들고 있어** 판정에서 `localStorage.clear()`만으로는 지워지지 않는다 — `writeStamp(key, 0)`·`writeJson(key, null)`로 덮는다.
 - 날짜는 `YYYYMMDD` 문자열이다(사전순 = 날짜순). 화면은 하이픈을 모르고 차트만 `toDashedYmd()`. 서버 시각 글자는 `fromKstDateTime()`. 날짜 함수는 빈 값에 ""를 주고 부르는 쪽은 그 줄을 숨긴다.
 
 ## 화면별 규칙
@@ -235,7 +240,7 @@ npx knip@5               # 안 쓰는 파일·내보내기(judge/는 뺀다)
   구독 `/topic/live-chat`(내 말도 온다)·`/user/queue/errors`(내 실패만), 보내기 SEND `/app/live-chat/messages` {content}. 판정은 가짜 STOMP 서버(`judge/mock.mjs` routeWebSocket).
 - 연결(`api/chat.ts openLiveChat`): CONNECT 머리에 토큰(없으면 읽기 전용). ERROR `AUTH401_1·2·5`면 재발급(`client.renewAccessToken`) 뒤 다시 붙고,
   못 살리면 토큰 없이 붙어 "다시 로그인"을 보인다. 끊기면 1·2·4·8·16초 뒤 다시 붙고 다섯 번 실패하면 "연결이 끊겼어요 · 다시 연결". 다시 붙을 때마다 최근 대화를 다시 받아 메운다(C9).
-- 상태(`hooks/useLiveChat`): 내 말은 닉네임이 같은 말(+ 내가 보내 돌아온 말). 보낸 말은 돌아올 때까지 옅게 "보내는 중"(연결 전엔 "연결되면 보내요"), 1초 간격을 지켜 하나씩 보낸다(서버 LIVECHAT429_1).
+- 상태(`hooks/useLiveChat`, 렌더와 무관한 계산은 `utils/liveChat.ts` — 합치기·돌아온 내 말 찾기·거절 처리): 내 말은 닉네임이 같은 말(+ 내가 보내 돌아온 말). 보낸 말은 돌아올 때까지 옅게 "보내는 중"(연결 전엔 "연결되면 보내요"), 1초 간격을 지켜 하나씩 보낸다(서버 LIVECHAT429_1).
   실패하면 까닭 + 다시 보내기·지우기(C8), 토큰 만료로 거절되면 다시 붙은 뒤 한 번 더 보낸다. 닉네임이 없으면 입력칸 대신 "닉네임 정하기"(`NicknameModal`), 300자까지(끝 50자부터 글자 수).
 - 대화창: 스크롤 막대를 숨기고(`scrollbar-width: none`, 가로 넘침 없음 — C11) 휠·손가락·키보드로 올려 읽는다. 맨 위 "이전 대화 보기"(붙인 뒤 보던 말이 제자리 — `overflow-anchor: none`, C6), 날이 바뀌면 날짜 띠, 위를 읽는 중 새 말이 오면 따라 내리지 않고 "새 말 N개"(C7).
   지난 대화를 못 받으면 "지난 대화를 불러오지 못했어요 · 다시 시도"이고 새 말은 그대로 받는다(C10). 제목 줄 오른쪽에 연결 상태(초록 점 "실시간").
@@ -279,6 +284,7 @@ npx knip@5               # 안 쓰는 파일·내보내기(judge/는 뺀다)
 - **나란한 두 열의 선은 같은 높이이거나 확실히 떨어져 있다**(홈 subgrid, 백테스트 '전략 고르기' = '도움말' 먹 선, 마이페이지, 사용설명서 — `lines.mjs`).
   글 길이에 따라 선이 움직이는 열은 선 대신 여백으로 나눈다.
 - 머리글 메뉴 링크는 줄지 않고(`flex-shrink: 0`) 넘치면 메뉴 줄 안에서만 민다. 두 곳 이상에 그리면 부품 하나로 둔다(`NewsCard`·`GuideSteps`·`HeartIcon`·`ExternalLink`(마크다운 속 바깥 링크)·`LoginModal` — 비로그인이 하트를 누르면 홈·상세가 같이 쓴다). 고치기 쉬운 글은 `src/content/`.
+- 되돌릴 수 없는 확인(AI 대화·커뮤니티 글 지우기·회원 탈퇴)은 `ConfirmModal` 하나다 — 처리하는 동안 두 단추를 다 잠근다.
 - `Modal`: 포커스는 상자 자체, 닫으면 연 단추로. `onClose`는 ref에 담는다(의존성에 넣으면 칠 때마다 포커스가 튄다). 배경은 배경에서 누르기 시작했을 때만 닫는다.
 - **휴대폰**: 320px까지 가로 넘침이 없다. 누르는 넓이 44px(데스크톱 40px) — 여백 + 음수 margin이나 투명 `::after`(스크롤 상자 안에서는 잘리니 칸을 키운다).
   입력칸 안내 글은 한 줄 말줄임. 한 열 격자는 `minmax(0, 1fr)`. 대화창 높이는 `dvh`.

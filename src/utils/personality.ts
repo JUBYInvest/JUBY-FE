@@ -1,4 +1,5 @@
 import type { PersonalityType, Question } from '../types/personality'
+import { filledOr } from './text'
 
 /**
  * 서버가 성향을 가르는 점수 구간. 총점이 이 안에 들어와야 결과가 나온다.
@@ -61,14 +62,6 @@ export function scoreToPersonality(score: number): PersonalityType | null {
   return '공격투자형'
 }
 
-/**
- * 서버가 준 글이 비었으면 대신할 글을 쓴다. null·빈 문자열뿐 아니라 공백만 있는 값도
- * 빈 것으로 본다 — `||`로 고르면 "  "가 참이라 설명이 통째로 빠지고 이미지가 src=" "로 깨진다.
- */
-function textOr(value: string | null | undefined, fallback: string): string {
-  return typeof value === 'string' && value.trim() !== '' ? value : fallback
-}
-
 const PERSONALITY_TYPES: readonly string[] = [
   '안정형',
   '안정추구형',
@@ -96,8 +89,8 @@ export function describePersonality(
 ): { description: string; imageUrl: string } {
   const local = isPersonalityType(name) ? PERSONALITY_INFO[name] : null
   return {
-    description: textOr(description, local?.description ?? '설명을 불러오지 못했어요.'),
-    imageUrl: textOr(imageUrl, local?.imageUrl ?? ''),
+    description: filledOr(description, local?.description ?? '설명을 불러오지 못했어요.'),
+    imageUrl: filledOr(imageUrl, local?.imageUrl ?? ''),
   }
 }
 
