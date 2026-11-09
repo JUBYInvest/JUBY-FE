@@ -21,7 +21,7 @@
   flex-grow: 1;
   margin: 0;
   font-size: var(--font-lg);
-  font-weight: 700;
+  font-weight: 600;
 }
 
 /* 정렬은 밑줄 탭(tabs.module.css). 열이 좁아 탭 사이를 조금 좁힌다. 가는 선(1px) 위라 막대는 기본 자리(-1px) */
@@ -86,7 +86,7 @@
   overflow-wrap: anywhere;
   margin: var(--space-1) 0 0;
   font-size: var(--font-lg);
-  font-weight: 700;
+  font-weight: 600;
   line-height: 1.45;
   letter-spacing: -0.01em;
   display: -webkit-box;
@@ -98,7 +98,7 @@
 .description {
   /* 넓은 칸에서도 글줄이 너무 길어지지 않게(한글 70자 안팎) */
   max-width: 70em;
-  margin: 6px 0 0;
+  margin: var(--space-1) 0 0;
   font-size: var(--font-md);
   line-height: 1.6;
   color: var(--color-text-sub);
@@ -122,7 +122,7 @@
 }
 
 .empty {
-  margin: 20px 0 0;
+  margin: var(--space-5) 0 0;
   font-size: var(--font-md);
   color: var(--color-text-sub);
 }
@@ -151,19 +151,19 @@
 .boneTitle {
   width: 70%;
   height: 20px;
-  margin-top: 10px;
+  margin-top: var(--space-2);
 }
 
 .boneLine {
   width: 100%;
   height: 15px;
-  margin-top: 13px;
+  margin-top: var(--space-3);
 }
 
 .boneLineShort {
   width: 80%;
   height: 15px;
-  margin-top: 8px;
+  margin-top: var(--space-2);
 }
 
 /* 화면에는 안 보이고 화면 읽기 프로그램만 읽는 글 */
@@ -176,9 +176,9 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 12px;
+  gap: var(--space-3);
   margin-top: var(--space-4);
-  padding: 32px 16px;
+  padding: var(--space-8) var(--space-4);
   border-radius: var(--radius-md);
   background: var(--color-bg-sub);
 }
@@ -192,7 +192,7 @@
 }
 
 .moreFailed {
-  margin: 12px 0 0;
+  margin: var(--space-3) 0 0;
   font-size: var(--font-md);
   color: var(--color-text);
   text-align: center;

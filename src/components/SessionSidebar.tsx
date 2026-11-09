@@ -41,7 +41,7 @@ interface Deleting {
 
 const RENAME_FAILED = '이름을 바꾸지 못했어요. 다시 시도해 주세요.'
 const DELETE_FAILED = '지우지 못했어요. 다시 시도해 주세요.'
-const GONE_NOTICE = '이미 지워진 대화라 목록에서 뺐어요.'
+const GONE_NOTICE = '이미 지워진 대화라 목록에서 뺐어요'
 /** 날개 안에서 탭으로 닿을 수 있는 것들(Modal과 같은 규칙) */
 const FOCUSABLE =
   'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
@@ -293,14 +293,14 @@ export default function SessionSidebar({
             </p>
           )}
           {!isLoggedIn ? (
-            <p className={styles.empty}>로그인하면 이전 대화를 저장할 수 있어요.</p>
+            <p className={styles.empty}>로그인하면 이전 대화를 저장할 수 있어요</p>
           ) : listState === 'loading' ? (
             <p className={styles.empty}>
               <Spinner size={16} /> 대화 목록을 불러오는 중이에요
             </p>
           ) : listState === 'error' ? (
             <p className={styles.empty}>
-              목록을 불러오지 못했어요.
+              목록을 불러오지 못했어요
               <button type="button" className={styles.retry} onClick={onRetryList}>
                 다시 시도
               </button>
@@ -444,7 +444,7 @@ export default function SessionSidebar({
         onConfirm={() => void confirmDelete()}
         error={deleting?.state === 'error' ? DELETE_FAILED : null}
       >
-        ‘{deleting?.session.title}’ 대화와 주고받은 내용이 모두 지워지며 되돌릴 수 없어요.
+        ‘{deleting?.session.title}’ 대화와 주고받은 내용이 모두 지워지며 되돌릴 수 없어요
       </ConfirmModal>
     </>
   )

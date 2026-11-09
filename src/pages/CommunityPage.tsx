@@ -19,8 +19,8 @@ import styles from './CommunityPage.module.css'
 
 /** 정렬 알약. 무엇 순인지는 머리 오른쪽에 글로도 적는다 */
 const ORDERS: { key: PostOrder; label: string; note: string; empty: string }[] = [
-  { key: 'latest', label: '최신', note: '새로 올라온 순', empty: '아직 올라온 글이 없어요.' },
-  { key: 'popular', label: '인기', note: '이번 주 좋아요 순', empty: '이번 주에 올라온 글이 없어요.' },
+  { key: 'latest', label: '최신', note: '새로 올라온 순', empty: '아직 올라온 글이 없어요' },
+  { key: 'popular', label: '인기', note: '이번 주 좋아요 순', empty: '이번 주에 올라온 글이 없어요' },
 ]
 
 interface StockChoice {
@@ -256,13 +256,13 @@ export default function CommunityPage() {
                 </p>
               ) : list.kind === 'error' ? (
                 <div className={styles.message}>
-                  <p>{list.server ? '커뮤니티 서버에 문제가 생겨 글을 불러오지 못했어요.' : '글을 불러오지 못했어요.'}</p>
+                  <p>{list.server ? '커뮤니티 서버에 문제가 생겨 글을 불러오지 못했어요' : '글을 불러오지 못했어요'}</p>
                   <button type="button" className={styles.retry} onClick={() => setTurn((value) => value + 1)}>
                     다시 시도
                   </button>
                 </div>
               ) : list.items.length === 0 ? (
-                <p className={styles.message}>{picked === null ? orderInfo.empty : `${picked.name} 이야기는 아직 없어요.`}</p>
+                <p className={styles.message}>{picked === null ? orderInfo.empty : `${picked.name} 이야기는 아직 없어요`}</p>
               ) : (
                 // 바뀐 목록은 새로 그려 잠깐 떠오른다 — 누른 곳 아래에서 바뀌어 눈이 따라가게
                 <div key={feedTurn} className={feedTurn > 0 ? styles.feedTurn : undefined}>
@@ -360,9 +360,6 @@ function StockStrip({ ref, stocks, total, pickedCode, onPick }: StockStripProps)
             onPick(code)
           }}
         >
-          <span className={styles.badge} aria-hidden="true">
-            {code === null ? <AllIcon /> : Array.from(name)[0]}
-          </span>
           <span className={styles.cardName}>{name}</span>{' '}
           <span className={styles.cardFoot}>
             {count !== null && <span className={styles.count}>글 {count}</span>}
@@ -426,15 +423,6 @@ function FlameIcon() {
         strokeWidth="2"
         strokeLinejoin="round"
       />
-    </svg>
-  )
-}
-
-/** 전체 카드의 표시 — 글 줄 셋 */
-function AllIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true">
-      <path d="M5 7h14M5 12h14M5 17h9" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
     </svg>
   )
 }

@@ -114,7 +114,7 @@ export class ApiError extends Error {
  * 200인데 쓸 수 있는 응답이 아닐 때의 문구. 서버가 준 글이 아니라 고정 문구다.
  * 본문이 비었거나 { isSuccess, result } 래퍼가 아니거나, 화면이 반드시 쓰는 값이 비어 있는 경우다.
  */
-const MALFORMED_MESSAGE = '서버 응답을 읽을 수 없습니다.'
+const MALFORMED_MESSAGE = '서버 응답을 읽을 수 없습니다'
 
 /**
  * 응답 모양이 어긋났다는 ApiError. src/api/*.ts가 받은 값을 검사하다 쓴다.

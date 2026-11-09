@@ -94,7 +94,7 @@
 .sortButtonActive {
   position: relative;
   color: var(--color-text);
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .sortButtonActive::after {
@@ -211,7 +211,7 @@
 
   .head,
   .row {
-    column-gap: 6px;
+    column-gap: var(--space-2);
     padding-right: var(--space-2);
   }
 
@@ -236,7 +236,7 @@
 
 .empty {
   margin: 0;
-  padding: 40px 16px;
+  padding: var(--space-10) var(--space-4);
   font-size: var(--font-md);
   color: var(--color-text-sub);
   text-align: center;

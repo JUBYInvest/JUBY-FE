@@ -15,7 +15,7 @@
 }
 
 .markdown p {
-  margin: 0 0 8px;
+  margin: 0 0 var(--space-2);
   white-space: pre-line;
 }
 
@@ -25,16 +25,16 @@
 .markdown h4,
 .markdown h5,
 .markdown h6 {
-  margin: 14px 0 6px;
+  margin: var(--space-4) 0 var(--space-2);
   font-size: var(--font-lg);
-  font-weight: 700;
+  font-weight: 600;
   line-height: 1.4;
 }
 
 .markdown ul,
 .markdown ol {
-  margin: 0 0 8px;
-  padding-left: 20px;
+  margin: 0 0 var(--space-2);
+  padding-left: var(--space-5);
 }
 
 .markdown li + li {
@@ -46,7 +46,7 @@
 }
 
 .markdown strong {
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .markdown a {
@@ -55,29 +55,29 @@
 }
 
 .markdown blockquote {
-  margin: 0 0 8px;
-  padding-left: 10px;
+  margin: 0 0 var(--space-2);
+  padding-left: var(--space-3);
   border-left: 3px solid var(--color-border-strong);
   color: var(--color-text-sub);
 }
 
 .markdown hr {
-  margin: 12px 0;
+  margin: var(--space-3) 0;
   border: 0;
   border-top: 1px solid var(--color-border-strong);
 }
 
 /* 답은 옅은 면 말풍선 안이라(ChatMessages .bubble) 코드·표는 흰 면으로 한 겹 띄운다 — 같은 옅은 면이면 말풍선에 묻힌다 */
 .markdown code {
-  padding: 1px 4px;
+  padding: 1px var(--space-1);
   border-radius: var(--radius-sm);
   background: var(--color-surface);
   font-size: 0.9em;
 }
 
 .markdown pre {
-  margin: 0 0 8px;
-  padding: 10px 12px;
+  margin: 0 0 var(--space-2);
+  padding: var(--space-2) var(--space-3);
   overflow-x: auto;
   border-radius: var(--radius-sm);
   background: var(--color-surface);
@@ -91,7 +91,7 @@
 }
 
 .tableWrap {
-  margin: 0 0 8px;
+  margin: 0 0 var(--space-2);
   overflow-x: auto;
 }
 
@@ -104,7 +104,7 @@
 /* 칸 안의 한글은 낱말 단위로만 줄을 바꾼다(안 그러면 좁은 말풍선에서 "샤프/지수"처럼 음절 사이가 끊긴다). 넘치면 표가 가로로 밀린다 */
 .markdown th,
 .markdown td {
-  padding: 6px 10px;
+  padding: var(--space-2) var(--space-3);
   border: 1px solid var(--color-border);
   text-align: left;
   overflow-wrap: normal;
@@ -113,12 +113,12 @@
 
 .markdown th {
   background: var(--color-bg-sub);
-  font-weight: 700;
+  font-weight: 600;
 }
 
 /* 긴 수식은 말풍선 안에서 가로로 밀어 본다. 세로 스크롤 막대가 생기지 않게 위아래는 숨긴다 */
 .markdown :global(.katex-display) {
-  margin: 8px 0;
+  margin: var(--space-2) 0;
   padding: 2px 0;
   overflow-x: auto;
   overflow-y: hidden;

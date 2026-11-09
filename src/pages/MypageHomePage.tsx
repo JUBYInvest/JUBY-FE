@@ -120,7 +120,7 @@ function MemberLine({ state, onRetry }: { state: Load<MemberInfo>; onRetry: () =
   if (state.kind === 'error') {
     return (
       <div className={styles.member}>
-        <Failed text="회원 정보를 불러오지 못했어요." onRetry={onRetry} />
+        <Failed text="회원 정보를 불러오지 못했어요" onRetry={onRetry} />
       </div>
     )
   }
@@ -151,7 +151,7 @@ function MemberLine({ state, onRetry }: { state: Load<MemberInfo>; onRetry: () =
 
 function PersonalityPart({ state, onRetry }: { state: Load<PersonalityInfo | null>; onRetry: () => void }) {
   if (state.kind === 'loading') return <Skeleton />
-  if (state.kind === 'error') return <Failed text="투자성향을 불러오지 못했어요." onRetry={onRetry} />
+  if (state.kind === 'error') return <Failed text="투자성향을 불러오지 못했어요" onRetry={onRetry} />
 
   const info = state.value
   if (info === null) {
@@ -224,7 +224,7 @@ function rateClassName(rate: number | null): string {
 
 function LikesPart({ state, onRetry }: { state: Load<LikeStockList>; onRetry: () => void }) {
   if (state.kind === 'loading') return <Skeleton />
-  if (state.kind === 'error') return <Failed text="관심종목을 불러오지 못했어요." onRetry={onRetry} />
+  if (state.kind === 'error') return <Failed text="관심종목을 불러오지 못했어요" onRetry={onRetry} />
 
   const { likeStockList: stocks, baseDate, realtime } = state.value
   if (stocks.length === 0) {
@@ -324,7 +324,7 @@ function BacktestPart() {
 
 function SessionsPart({ state, onRetry }: { state: Load<ChatSession[]>; onRetry: () => void }) {
   if (state.kind === 'loading') return <Skeleton />
-  if (state.kind === 'error') return <Failed text="AI 대화 목록을 불러오지 못했어요." onRetry={onRetry} />
+  if (state.kind === 'error') return <Failed text="AI 대화 목록을 불러오지 못했어요" onRetry={onRetry} />
 
   const list = state.value
   if (list.length === 0) {

@@ -260,12 +260,12 @@ async function heartGroup() {
   // H5 목록을 못 받으면 토글하지 않고 실패 안내 + 다시 시도
   {
     const { context, page, log } = await setup(chrome, { opts: { likeList: (n) => (n === 1 ? '500' : 'ok') } })
-    await until(() => page.getByText('관심종목을 불러오지 못했습니다.').isVisible(), 6000)
+    await until(() => page.getByText('관심종목을 불러오지 못했습니다').isVisible(), 6000)
     const disabled = await heartOf(page).isDisabled().catch(() => null)
     const writes = count(log, /^(POST|DELETE) \/api\/members/)
     await page.getByRole('button', { name: '다시 시도' }).click()
     await until(() => heartOf(page).isEnabled(), 4000)
-    const after = { get: count(log, LIKE_GET), pressed: await heartOf(page).getAttribute('aria-pressed'), notice: await page.getByText('관심종목을 불러오지 못했습니다.').count() }
+    const after = { get: count(log, LIKE_GET), pressed: await heartOf(page).getAttribute('aria-pressed'), notice: await page.getByText('관심종목을 불러오지 못했습니다').count() }
     report('H5', disabled === true && writes === 0 && after.get === 2 && after.pressed === 'true' && after.notice === 0,
       `실패 때 잠김 ${disabled}, 다시 시도 뒤 ${JSON.stringify(after)}`)
     await context.close()

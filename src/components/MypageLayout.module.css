@@ -16,7 +16,7 @@
 
   display: grid;
   grid-template-columns: clamp(240px, 17vw, 320px) minmax(0, 1fr);
-  gap: clamp(20px, 2.5vw, 40px);
+  gap: clamp(var(--space-5), 2.5vw, var(--space-10));
   align-items: start;
 }
 
@@ -56,7 +56,7 @@
   display: block;
   width: 100%;
   min-height: 44px;
-  padding: 12px 16px;
+  padding: var(--space-3) var(--space-4);
   border: 0;
   background: none;
   font-size: var(--font-md);
@@ -76,7 +76,7 @@
 .content {
   min-height: 420px;
   /* 상자 없이 제목의 굵은 먹 선 아래에 놓는다 */
-  padding: var(--mypage-content-top) 0 32px;
+  padding: var(--mypage-content-top) 0 var(--space-8);
 }
 
 @media (max-width: 900px) {
@@ -87,7 +87,7 @@
   /* 사이드바를 옆에 두면 카드 폭이 남지 않는다. 위아래로 쌓는다 */
   .layout {
     grid-template-columns: minmax(0, 1fr);
-    gap: 16px;
+    gap: var(--space-4);
   }
 
   /*

@@ -59,7 +59,7 @@ export default function KeywordNews({ query }: { query: string }) {
     return (
       <div className={newsStyles.errorBox}>
         <p className={newsStyles.errorText}>
-          {state.limited ? '뉴스 검색이 잠시 몰렸어요. 조금 뒤에 다시 시도해 주세요.' : '뉴스를 불러오지 못했어요.'}
+          {state.limited ? '뉴스 검색이 잠시 몰렸어요. 조금 뒤에 다시 시도해 주세요.' : '뉴스를 불러오지 못했어요'}
         </p>
         <button type="button" className={newsStyles.errorRetry} onClick={() => setRetryCount((count) => count + 1)}>
           다시 시도
@@ -69,7 +69,7 @@ export default function KeywordNews({ query }: { query: string }) {
   }
 
   if (state.items.length === 0) {
-    return <p className={newsStyles.empty}>{query} 뉴스를 찾지 못했어요.</p>
+    return <p className={newsStyles.empty}>{query} 뉴스를 찾지 못했어요</p>
   }
 
   return (

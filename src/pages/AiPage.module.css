@@ -11,7 +11,7 @@
   display: grid;
   /* 본문이 1680px까지 넓어져 사이드바도 조금 넓힌다(방 제목이 더 길게 보인다) */
   grid-template-columns: clamp(240px, 17vw, 320px) minmax(0, 1fr);
-  gap: clamp(20px, 2.5vw, 40px);
+  gap: clamp(var(--space-5), 2.5vw, var(--space-10));
   align-items: start;
 }
 
@@ -38,7 +38,7 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 24px;
+  padding: var(--space-6);
   text-align: center;
 }
 
@@ -88,21 +88,21 @@
 }
 
 .errorText {
-  margin: 0 0 14px;
+  margin: 0 0 var(--space-4);
   font-size: var(--font-md);
   color: var(--color-text-sub);
 }
 
 .notice {
   margin: 0;
-  padding: 0 28px 8px;
+  padding: 0 var(--space-7) var(--space-2);
   font-size: var(--font-sm);
   color: var(--color-text-sub);
   text-align: center;
 }
 
 .composer {
-  padding: 14px;
+  padding: var(--space-4);
   /* 대화 영역과 입력 영역을 가르는 선 */
   border-top: 1px solid var(--color-border);
 }
@@ -110,8 +110,8 @@
 .composerBox {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 6px 6px 6px 16px;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-2) var(--space-2) var(--space-4);
   border-radius: var(--radius-md);
   background: var(--color-page-bg);
 }
@@ -127,7 +127,7 @@
   min-height: 40px;
   border: 0;
   background: none;
-  padding: 8px 0;
+  padding: var(--space-2) 0;
   font: inherit;
   /* 16px 아래면 아이폰·아이패드 사파리가 누르는 순간 화면을 확대하고 되돌리지 않는다 */
   font-size: var(--font-lg);
@@ -172,8 +172,8 @@
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 14px;
-  padding: 28px;
+  gap: var(--space-4);
+  padding: var(--space-7);
 }
 
 .skeleton {
@@ -242,8 +242,8 @@
 
 /* 안내 문장 옆에 붙는 링크. 성향이 없을 때 검사 화면으로 바로 보낸다 */
 .noticeLink {
-  margin-left: 6px;
-  font-weight: 700;
+  margin-left: var(--space-2);
+  font-weight: 600;
   color: var(--color-text);
   text-decoration: underline;
 }

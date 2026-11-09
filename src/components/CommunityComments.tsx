@@ -106,7 +106,7 @@ export default function CommunityComments({ postId, count, loggedIn, ensure, nic
       .catch((error: unknown) => {
         console.warn('댓글을 올리지 못했습니다', error)
         if (needsNickname(error)) nicknameNow(send)
-        else if (error instanceof ApiError && error.code === 'COMMUNITY404_1') setNotice('삭제된 게시물이에요.')
+        else if (error instanceof ApiError && error.code === 'COMMUNITY404_1') setNotice('삭제된 게시물이에요')
         else setNotice('댓글을 올리지 못했어요. 잠시 후 다시 시도해 주세요.')
       })
       .finally(() => {
@@ -186,7 +186,7 @@ export default function CommunityComments({ postId, count, loggedIn, ensure, nic
 
       {!loggedIn ? (
         <div className={styles.locked}>
-          <p>댓글은 로그인하면 볼 수 있어요.</p>
+          <p>댓글은 로그인하면 볼 수 있어요</p>
           <Link to={loginPathFrom(pathname)} className={styles.loginLink}>
             로그인하고 댓글 보기
           </Link>
@@ -199,7 +199,7 @@ export default function CommunityComments({ postId, count, loggedIn, ensure, nic
             </p>
           ) : list.kind === 'error' ? (
             <div className={styles.message}>
-              <p>{list.server ? '커뮤니티 서버에 문제가 생겨 댓글을 불러오지 못했어요.' : '댓글을 불러오지 못했어요.'}</p>
+              <p>{list.server ? '커뮤니티 서버에 문제가 생겨 댓글을 불러오지 못했어요' : '댓글을 불러오지 못했어요'}</p>
               <button type="button" className={styles.secondary} onClick={() => setTurn((value) => value + 1)}>
                 다시 시도
               </button>

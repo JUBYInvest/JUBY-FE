@@ -168,7 +168,7 @@ function GuideView({ chapter, content }: { chapter: Chapter | undefined; content
             {content?.title ?? chapter?.name ?? '사용설명서'}
           </h2>
           {content === null ? (
-            <p className={styles.empty}>준비 중입니다.</p>
+            <p className={styles.empty}>준비 중입니다</p>
           ) : (
             <GuideArticle body={content.body} sections={content.sections} />
           )}

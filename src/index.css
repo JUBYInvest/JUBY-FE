@@ -129,6 +129,8 @@
   --font-5xl: 32px;
   --font-6xl: 40px;
   --font-display: 60px;
+  --font-price: 48px;
+  --font-price-narrow: 38px;
 
   /* 로고와 큰 숫자(상세 가격 등)에 쓰는 넓은 글꼴. 굵기는 400 하나뿐이라 32px 아래에서는 쓰지 않는다 */
   --font-wide: 'Michroma', 'Pretendard', sans-serif;
@@ -140,11 +142,16 @@
   --space-4: 16px;
   --space-5: 20px;
   --space-6: 24px;
+  --space-7: 28px;
   --space-8: 32px;
   --space-10: 40px;
   --space-12: 48px;
   --space-14: 56px;
+  --space-16: 64px;
   --space-20: 80px;
+  --space-24: 96px;
+  --space-30: 120px;
+  --space-36: 144px;
 
   /*
    * 본문(App.module.css .main)의 최대 폭과 좌우 여백. 머리글·아래 지수 띠도 이 줄에 맞춘다.
@@ -182,6 +189,12 @@ body {
    */
   word-break: keep-all;
   overflow-wrap: break-word;
+}
+
+/* 글 속 강조는 600 — 브라우저 기본 bold(700)는 작은 글자에 무겁다(judge consistency C15) */
+b,
+strong {
+  font-weight: 600;
 }
 
 a {

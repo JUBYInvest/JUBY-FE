@@ -151,7 +151,7 @@ await run('D', async () => {
   let t = await open({ sessionDetailStatus: 500 })
   await t.goto('/ai', 1500)
   await t.page.getByRole('button', { name: /삼성전자 주가 어때\?/ }).first().click()
-  await t.page.getByText('대화를 불러오지 못했습니다.').waitFor({ timeout: 5000 })
+  await t.page.getByText('대화를 불러오지 못했습니다').waitFor({ timeout: 5000 })
   const input = t.page.getByRole('textbox', { name: '질문 입력' })
   await input.fill('그 종목 전망은?')
   await input.press('Enter'); await sleep(800)

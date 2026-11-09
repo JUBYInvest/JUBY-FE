@@ -55,7 +55,7 @@ export default function VolumeRank({ stocks, loginPath }: { stocks: StockInfo[];
     return (
       <div className={styles.message}>
         <p className={styles.messageTitle}>로그인하면 지금 거래가 몰린 종목을 볼 수 있어요</p>
-        <p className={styles.hint}>증권사가 주는 실시간 거래대금 상위 30종목이에요.</p>
+        <p className={styles.hint}>증권사가 주는 실시간 거래대금 상위 30종목이에요</p>
         <Link to={loginPath} className={styles.primary}>
           로그인
         </Link>
@@ -117,7 +117,7 @@ export default function VolumeRank({ stocks, loginPath }: { stocks: StockInfo[];
         {state.items.length === 0 && <li className={styles.empty}>지금은 순위가 없어요. 장이 열리면 다시 열어 보세요.</li>}
       </ol>
       {/* 이름이 없는 줄이 왜 안 눌리는지 알린다 */}
-      <p className={styles.note}>JUBY 시세표에 없는 종목은 이름만 보여요.</p>
+      <p className={styles.note}>JUBY 시세표에 없는 종목은 이름만 보여요</p>
     </div>
   )
 }

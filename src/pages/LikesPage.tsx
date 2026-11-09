@@ -60,7 +60,7 @@ export default function LikesPage() {
           </div>
         </header>
         <div className={styles.message}>
-          <p className={styles.messageText}>로그인하면 하트를 누른 종목이 여기에 모여요.</p>
+          <p className={styles.messageText}>로그인하면 하트를 누른 종목이 여기에 모여요</p>
           <Link to={loginPathFrom(pathname)} className={styles.primary}>
             로그인
           </Link>
@@ -154,7 +154,7 @@ function LikesBoard() {
     return (
       <section className={styles.page}>
         <div className={styles.message}>
-          <p className={styles.messageText}>관심종목을 불러오지 못했습니다.</p>
+          <p className={styles.messageText}>관심종목을 불러오지 못했습니다</p>
           <button type="button" className={styles.primary} onClick={() => load()}>
             다시 시도
           </button>
@@ -189,7 +189,7 @@ function LikesBoard() {
       {stocks.length === 0 ? (
         <div className={styles.message}>
           <p className={styles.messageText}>아직 관심종목이 없어요</p>
-          <p className={styles.hint}>홈 시세표나 종목 화면에서 하트를 누르면 여기에 모여요.</p>
+          <p className={styles.hint}>홈 시세표나 종목 화면에서 하트를 누르면 여기에 모여요</p>
           <Link to="/" className={styles.primary}>
             종목 보러 가기
           </Link>

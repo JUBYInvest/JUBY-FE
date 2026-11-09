@@ -34,7 +34,7 @@ export default function MypagePersonalityPage() {
   if (state.kind === 'error') {
     return (
       <div className={styles.message}>
-        <p className={styles.messageText}>투자성향을 불러오지 못했습니다.</p>
+        <p className={styles.messageText}>투자성향을 불러오지 못했습니다</p>
         {/*
           토큰이 만료됐으면 서버가 401을 주고 client.ts가 로그인 화면으로 보낸다.
           여기까지 왔다면 401이 아닌 다른 실패(서버 오류, 네트워크)다.

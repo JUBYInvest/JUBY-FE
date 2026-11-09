@@ -32,7 +32,7 @@ export default function ChatPane({ detailState, messages, pending, onRetryDetail
   if (detailState === 'error') {
     return (
       <div className={styles.centerArea}>
-        <p className={styles.errorText}>대화를 불러오지 못했습니다.</p>
+        <p className={styles.errorText}>대화를 불러오지 못했습니다</p>
         <button type="button" className={styles.darkButton} onClick={onRetryDetail}>
           다시 시도
         </button>

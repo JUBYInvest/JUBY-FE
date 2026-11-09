@@ -20,7 +20,7 @@
     'chapters article side'
     'chapters pager side';
   justify-content: space-between;
-  column-gap: clamp(32px, 3vw, 56px);
+  column-gap: clamp(var(--space-8), 3vw, var(--space-14));
   margin-top: var(--space-6);
 }
 
@@ -112,7 +112,7 @@
   display: flex;
   align-items: center;
   min-height: 40px;
-  padding: 6px 0;
+  padding: var(--space-2) 0;
   font-size: var(--font-md);
   line-height: 1.5;
   color: var(--color-text-sub);
@@ -126,7 +126,7 @@
 
 /* 지금 읽는 꼭지. 먹 글자 + 왼쪽 바깥 호박 막대(고른 것 = 브랜드 호박) — 글자 자리는 그대로 */
 .sectionLinkOn {
-  font-weight: 700;
+  font-weight: 600;
   color: var(--color-text);
 }
 
@@ -163,7 +163,7 @@
   justify-content: center;
   min-height: 56px;
   font-size: var(--font-lg);
-  font-weight: 700;
+  font-weight: 600;
   color: var(--color-text);
 }
 

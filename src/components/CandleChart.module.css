@@ -20,8 +20,8 @@
 .credit {
   align-self: flex-end;
   /* 누르는 넓이는 아래로만 넓힌다(44px). 위로 넓히면 시간축 아래를 덮어 그 자리를 끌 수 없다 */
-  padding: 8px 0 25px;
-  margin: 0 0 -25px;
+  padding: var(--space-2) 0 var(--space-6);
+  margin: 0 0 calc(var(--space-6) * -1);
   font-size: var(--font-xs);
   line-height: 1;
   color: var(--color-text-sub);
@@ -42,13 +42,13 @@
   left: 10px;
   /* 차트 라이브러리가 캔버스를 z-index 1·2로 겹친다. 그보다 위여야 보인다 */
   z-index: 3;
-  padding: 2px 6px;
+  padding: 2px var(--space-2);
   border-radius: var(--radius-sm);
   background: var(--color-surface);
   display: flex;
   flex-wrap: wrap;
   align-items: baseline;
-  gap: 4px 12px;
+  gap: var(--space-1) var(--space-3);
   pointer-events: none;
   font-size: var(--font-xs);
   color: var(--color-text-sub);
@@ -80,7 +80,7 @@
   }
 
   .legend {
-    gap: 4px 8px;
+    gap: var(--space-1) var(--space-2);
     font-size: var(--font-xs);
   }
 }

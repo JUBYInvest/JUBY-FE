@@ -86,13 +86,13 @@
 .step[aria-current='true'] .name,
 .cellButtonSelected .name {
   color: var(--color-text);
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .mineTag {
   margin-top: calc(var(--space-2) * -1);
   font-size: var(--font-sm);
-  font-weight: 700;
+  font-weight: 600;
   color: var(--color-brand-800);
 }
 

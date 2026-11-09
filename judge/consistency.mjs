@@ -18,7 +18,13 @@
 //  C9 밑줄 탭의 고른 막대는 놓인 선(가는 선 1px·굵은 먹 선 2px)을 그 두께만큼 덮는다 — 막대 아래 끝 = 선 아래 끝, 막대 두께 ≥ 선 두께.
 //     선 바로 위에 얹으면 2px 막대와 2px 먹 선이 두 줄로 겹쳐 보였다(2026-11-05 주식 모아보기 '담은 종목')
 //  C10 누르지 않는 꾸밈 글자(시세표 순위 숫자·홈 카드 테마 이름·관심종목 화면 이름)는 먹·보조색이다 — 브랜드 초록이었다(2026-11-06 사용자 결정)
+//  C11 커뮤니티 종목 카드·글 머리·글 상세 종목 줄에 첫 글자 동그라미가 없다 — 이름이 이미 적혀 자리만 채웠다(2026-11-09 사용자). 사람 별명 동그라미(글쓴이·채팅)는 그대로다
+//  C12 백테스트 '나에게 맞음'은 면·알약 없는 보조색 글자다. 고른 카드의 호박 테두리는 '골랐다'는 뜻이라 그대로다(2026-11-09 사용자)
+//  C13 간격(padding·margin·gap)에 px 값을 직접 적지 않는다 — --space-* 토큰만, 예외는 0·1px·2px(작은 칸 미세 조정). 상세 가격 글자도 토큰이다
+//  C14 한 문장 안내의 글자 끝에 마침표를 찍지 않는다(두 문장 이상인 글은 찍는다). 소스의 글자 조각을 읽어 잰다
+//  C15 굵기 700은 18px 이상(제목·큰 숫자)만이다 — 작은 글자까지 700이면 표가 무겁고 위계가 흐려진다(2026-11-09 사용자, 세 안 견줘 고름). 작은 글자의 강조는 600
 // node consistency.mjs <BASE> [--only C1,C2] [--headed]
+import { readdirSync, readFileSync } from 'node:fs'
 import { cli, judge, sleep } from './lib.mjs'
 
 const j = await judge(cli())
@@ -321,6 +327,101 @@ await j.run('C10', async () => {
     }, picks)
     j.report(`C10${path}`, r.every((x) => x.ok), r.map((x) => `.${x.pick} ${x.colors.length ? x.colors.join('/') : '없음'}`).join(' · '))
     await t.close()
+  }
+})
+
+await j.run('C11', async () => {
+  for (const [path, want] of [['/community', '삼성전자'], ['/community/2', '']]) {
+    const t = await j.open({ width: 1440, loggedIn: true })
+    await t.goto(path, 1500)
+    const r = await t.page.evaluate(() => {
+      const main = document.getElementById('main')
+      return { marks: main.querySelectorAll('[class*="adge_"]').length, text: main.innerText }
+    })
+    j.report(`C11${path}`, r.marks === 0 && r.text.includes(want), `첫 글자 동그라미 ${r.marks}개${want ? `, 종목 이름 ${r.text.includes(want) ? '있음' : '없음'}` : ''}`)
+    await t.close()
+  }
+})
+
+await j.run('C12', async () => {
+  const t = await j.open({ width: 1440, loggedIn: true })
+  await t.goto('/backtest', 1500)
+  const r = await t.page.evaluate(() => {
+    const token = (name) => { const p = document.createElement('p'); p.style.color = `var(${name})`; document.body.append(p); const c = getComputedStyle(p).color; p.remove(); return c }
+    const mine = [...document.querySelectorAll('main button span')].find((el) => el.textContent.trim() === '나에게 맞음')
+    const on = document.querySelector('main button[aria-pressed="true"]')
+    if (!mine || !on) return null
+    const c = getComputedStyle(mine)
+    return { bg: c.backgroundColor, color: c.color, sub: token('--color-text-sub'), border: getComputedStyle(on).borderTopColor, off: getComputedStyle(document.querySelector('main button[aria-pressed="false"]')).borderTopColor }
+  })
+  j.report('C12', r !== null && r.bg === 'rgba(0, 0, 0, 0)' && r.color === r.sub && r.border !== r.off, r === null ? '나에게 맞음·고른 카드 없음' : `글자 ${r.color}, 면 ${r.bg}, 고른 카드 테두리 ${r.border}(다른 카드 ${r.off})`)
+  await t.close()
+})
+
+/** src 아래 파일 전부 */
+const walk = (dir) => readdirSync(dir, { withFileTypes: true }).flatMap((e) => (e.isDirectory() ? walk(`${dir}/${e.name}`) : [`${dir}/${e.name}`]))
+const SRC = new URL('../src', import.meta.url).pathname
+
+await j.run('C13', async () => {
+  const bad = []
+  for (const f of walk(SRC).filter((x) => x.endsWith('.css'))) {
+    readFileSync(f, 'utf8').split('\n').forEach((line, i) => {
+      const m = /(?<![-\w])(?:padding|margin|gap|row-gap|column-gap)(?:-[a-z-]+)?\s*:\s*([^;]*);/.exec(line)
+      const left = m ? (m[1].match(/\d+(?:\.\d+)?px/g) ?? []).filter((v) => !['0px', '1px', '2px'].includes(v)) : []
+      if (left.length) bad.push(`${f.split('/').pop()}:${i + 1} ${left.join(' ')}`)
+      if (/font-size:\s*\d+px/.test(line)) bad.push(`${f.split('/').pop()}:${i + 1} 글자 ${line.trim()}`)
+    })
+  }
+  j.report('C13', bad.length === 0, bad.length ? `${bad.length}곳 — ${bad.slice(0, 6).join(', ')}` : '간격·글자 크기 토큰만')
+})
+
+await j.run('C14', async () => {
+  // 두 문장으로 읽히는 글 — 한 조각에 마침표가 하나여도 찍는다: 줄 나눔으로 잇는 안내, 말풍선처럼 이어 붙인 문단, 함께 보이는 규칙 목록, 사용설명서 사례
+  const KEEP = /(backtest\/BacktestResult|backtest\/BacktestHelp|ai\/ChatEmptyState|content\/|hooks\/useBacktestRun|ErrorBoundary)/
+  // '이에요.'·'을 골라 뒀어요.'는 백테스트 성향 배너 문단의 조각이다(두 문장)
+  const isSingle = (t) => /[가-힣]\.$/.test(t) && !/[가-힣)]\.\s/.test(t) && !['이에요.', '을 골라 뒀어요.'].includes(t)
+  const bad = []
+  for (const f of walk(SRC).filter((x) => /\.tsx?$/.test(x) && !KEEP.test(x))) {
+    let inBlock = false
+    readFileSync(f, 'utf8').split('\n').forEach((raw, i) => {
+      const line = raw.trim()
+      if (inBlock) { if (line.includes('*/')) inBlock = false; return }
+      if (/^(\{?\/\*)/.test(line)) { if (!line.includes('*/')) inBlock = true; return }
+      if (line.startsWith('//') || line.startsWith('*')) return
+      const code = line.replace(/\s\/\/ .*$/, '').replace(/\{\/\*.*?\*\/\}/g, '')
+      for (const m of code.matchAll(/'([^']*)'|"([^"]*)"/g)) if (isSingle(m[1] ?? m[2] ?? '')) bad.push(`${f.split('/').pop()}:${i + 1} ${(m[1] ?? m[2]).slice(-24)}`)
+      // JSX 글자 줄: 여는 태그 뒤 글자 또는 글자만 있는 줄
+      const jsx = /(?:^|>)([^<>'"`{}=]*[가-힣]\.)(?:<\/[a-zA-Z.]+>|$)/.exec(code)
+      if (jsx && isSingle(jsx[1].trim())) bad.push(`${f.split('/').pop()}:${i + 1} ${jsx[1].trim().slice(-24)}`)
+    })
+  }
+  j.report('C14', bad.length === 0, bad.length ? `${bad.length}곳 — ${bad.slice(0, 6).join(', ')}` : '한 문장 안내에 마침표 없음')
+})
+
+await j.run('C15', async () => {
+  const SCREENS = ['/', '/stocks/005930', '/likes', '/backtest', '/ai', '/community', '/community/2', '/guide', '/mypage', '/mypage/personality', '/mypage/profile', '/personality-test', '/login']
+  for (const width of [1440, 390]) {
+    const bad = new Set()
+    for (const path of SCREENS) {
+      const t = await j.open({ width, loggedIn: path !== '/login' })
+      await t.goto(path, 1500)
+      const found = await t.page.evaluate(() => {
+        const out = []
+        const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT)
+        while (walker.nextNode()) {
+          const text = walker.currentNode.textContent.trim()
+          if (!text) continue
+          const el = walker.currentNode.parentElement
+          const c = getComputedStyle(el), r = el.getBoundingClientRect()
+          if (!r.width || !r.height || c.visibility === 'hidden') continue
+          if (Number(c.fontWeight) >= 700 && parseFloat(c.fontSize) < 18) out.push(`${c.fontSize}「${text.slice(0, 12)}」`)
+        }
+        return out
+      })
+      for (const x of found) bad.add(`${path} ${x}`)
+      await t.close()
+    }
+    j.report(`C15-${width}`, bad.size === 0, bad.size ? `${bad.size}곳 — ${[...bad].slice(0, 8).join(', ')}` : '18px 아래 글자에 700 없음')
   }
 })
 

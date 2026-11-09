@@ -5,10 +5,10 @@
 .box {
   display: flex;
   align-items: center;
-  gap: 12px;
-  height: 52px;
+  gap: var(--space-3);
+  height: 48px;
   /* 오른쪽은 검색 버튼이 안쪽에 앉을 만큼만 띄운다 */
-  padding: 0 6px 0 16px;
+  padding: 0 var(--space-1) 0 var(--space-4);
   /* 흰 바탕 위 흰 칸이라 테두리를 한 단계 진하게 둔다 */
   border: 1.5px solid var(--color-border);
   border-radius: var(--radius-md);
@@ -56,8 +56,8 @@
   z-index: 10;
   left: 0;
   right: 0;
-  margin: 6px 0 0;
-  padding: 6px;
+  margin: var(--space-2) 0 0;
+  padding: var(--space-1);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   background: var(--color-surface);
@@ -83,12 +83,12 @@
   align-items: center;
   justify-content: space-between;
   gap: var(--space-3);
-  padding: 0 4px 0 14px;
+  padding: 0 var(--space-1) 0 var(--space-4);
 }
 
 .listTitle {
   font-size: var(--font-sm);
-  font-weight: 700;
+  font-weight: 600;
   color: var(--color-text-sub);
 }
 
@@ -100,10 +100,10 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  gap: var(--space-3);
   width: 100%;
   height: 46px;
-  padding: 0 14px;
+  padding: 0 var(--space-4);
   border: none;
   border-radius: var(--radius-sm);
   background: none;
@@ -130,7 +130,7 @@
 }
 
 .message {
-  margin: 10px 0 0;
+  margin: var(--space-2) 0 0;
   font-size: var(--font-md);
   color: var(--color-text);
   text-align: center;
@@ -138,9 +138,9 @@
 
 @media (max-width: 600px) {
   .box {
-    height: 50px;
-    padding: 0 6px 0 14px;
-    gap: 8px;
+    height: 52px;
+    padding: 0 var(--space-1) 0 var(--space-4);
+    gap: var(--space-2);
   }
 
   /*

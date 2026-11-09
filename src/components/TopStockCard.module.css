@@ -129,7 +129,7 @@
 }
 
 .chartHint {
-  font-weight: 700;
+  font-weight: 600;
   color: var(--color-text);
 }
 
@@ -165,6 +165,7 @@
   /* 이름 16 > 가격 14 > 전날 13. 왼쪽 칸이 160px 남짓(320px 화면은 100px 남짓)이라 넘치면 "전날보다"와 숫자 사이에서 꺾는다 */
   .name {
     font-size: var(--font-lg);
+    font-weight: 600;
   }
 
   .quote {

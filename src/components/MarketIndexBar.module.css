@@ -76,7 +76,7 @@
   right: -4px;
   width: 8px;
   height: 8px;
-  margin-top: -4px;
+  margin-top: calc(var(--space-1) * -1);
   border-radius: 50%;
   background: var(--color-text-on-dark);
 }
@@ -97,7 +97,7 @@
 }
 
 .phase {
-  font-weight: 700;
+  font-weight: 600;
   color: var(--color-text-on-dark);
 }
 
@@ -111,7 +111,7 @@
   align-items: center;
   gap: var(--space-2);
   margin: 0;
-  font-weight: 700;
+  font-weight: 600;
   color: var(--color-brand-400);
 }
 
@@ -153,7 +153,7 @@
 }
 
 .value {
-  font-weight: 700;
+  font-weight: 600;
   color: var(--color-text-on-dark);
 }
 

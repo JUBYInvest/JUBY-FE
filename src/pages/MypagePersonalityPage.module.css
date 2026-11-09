@@ -135,7 +135,7 @@
 
 .mineTag {
   font-size: var(--font-sm);
-  font-weight: 700;
+  font-weight: 600;
   color: var(--color-brand-800);
 }
 
@@ -152,7 +152,7 @@
   container-type: inline-size;
   display: grid;
   grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
-  gap: var(--space-6) clamp(24px, 4vw, 64px);
+  gap: var(--space-6) clamp(var(--space-6), 4vw, var(--space-16));
   margin-top: var(--space-6);
 }
 
@@ -193,7 +193,7 @@
 .weightsTitle {
   margin: 0 0 var(--space-3);
   font-size: var(--font-md);
-  font-weight: 700;
+  font-weight: 600;
 }
 
 /*
@@ -273,8 +273,8 @@
 /* 문장 안 링크. 누르는 넓이는 위아래 여백으로 넓힌다 */
 .inlineLink {
   display: inline-block;
-  padding: 12px 2px;
-  margin: -12px 0;
+  padding: var(--space-3) 2px;
+  margin: calc(var(--space-3) * -1) 0;
   color: var(--color-brand-700);
   font-weight: 600;
   text-decoration: underline;

@@ -62,7 +62,7 @@ export default function StrategyPicker({ investType, savedPersonality, onSelect 
 export function StrategyDetail({ investType }: { investType: number | null }) {
   const chosen = investType === null ? null : findInvestType(investType)
   if (chosen === null) {
-    return <p className={styles.strategyEmpty}>전략을 고르면 언제 사고파는지 여기에 나와요.</p>
+    return <p className={styles.strategyEmpty}>전략을 고르면 언제 사고파는지 여기에 나와요</p>
   }
   const { anchor } = strategyExcerpt(chosen.strategyName)
   return (

@@ -208,7 +208,7 @@ export default function NewsList({ stockCode, stockName }: Props) {
       {/* 실패는 목록 자리를 지키는 상자 안에 알리고, 빈 결과(아래)와 다른 문구로 둔다 */}
       {!asking && state.kind === 'error' && (
         <div className={styles.errorBox}>
-          <p className={styles.errorText}>뉴스를 불러오지 못했습니다.</p>
+          <p className={styles.errorText}>뉴스를 불러오지 못했습니다</p>
           <button
             type="button"
             className={styles.errorRetry}
@@ -221,7 +221,7 @@ export default function NewsList({ stockCode, stockName }: Props) {
 
       {/* 첫 쪽이 모두 걸러졌어도 서버에 다음 쪽이 있으면 "찾지 못했다"고 하지 않는다 — 더 보기만 둔다 */}
       {!asking && state.kind === 'ready' && state.items.length === 0 && !hasMore && (
-        <p className={styles.empty}>관련 뉴스를 찾지 못했습니다.</p>
+        <p className={styles.empty}>관련 뉴스를 찾지 못했습니다</p>
       )}
 
       {!asking && state.kind === 'ready' && (

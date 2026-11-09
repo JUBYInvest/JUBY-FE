@@ -55,7 +55,7 @@ export default function LoginPage() {
         <h1 id="login-title" className={styles.title}>
           로그인
         </h1>
-        <p className={styles.lead}>따로 가입할 필요 없이, 쓰던 계정으로 바로 시작해요.</p>
+        <p className={styles.lead}>따로 가입할 필요 없이, 쓰던 계정으로 바로 시작해요</p>
 
         {hasLoginFailed && (
           <p className={styles.error} role="alert">
@@ -91,8 +91,8 @@ export default function LoginPage() {
         </ul>
 
         <div className={styles.notes}>
-          {returnPath !== null && returnPath !== '/' && <p>로그인하면 보던 화면으로 돌아가요.</p>}
-          <p>처음 가입한 곳과 다른 계정으로 로그인하면 JUBY 계정이 새로 만들어져요.</p>
+          {returnPath !== null && returnPath !== '/' && <p>로그인하면 보던 화면으로 돌아가요</p>}
+          <p>처음 가입한 곳과 다른 계정으로 로그인하면 JUBY 계정이 새로 만들어져요</p>
         </div>
       </section>
 

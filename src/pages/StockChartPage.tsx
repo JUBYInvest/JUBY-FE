@@ -127,7 +127,7 @@ export default function StockChartPage() {
   const likeStatus =
     like.view.kind === 'error' ? (
       <p className={styles.likeStatus} role="status">
-        관심종목을 불러오지 못했습니다.
+        관심종목을 불러오지 못했습니다
         <button type="button" className={styles.retryButton} onClick={like.retry}>
           다시 시도
         </button>

@@ -82,7 +82,7 @@ function describeFailure(error: unknown): { message: string; hint: string | null
         }
       case 'BACKTEST404_1':
       case 'STOCK404_1':
-        return { message: '목록에 없는 종목이에요.', hint: null, needsLogin: false }
+        return { message: '목록에 없는 종목이에요', hint: null, needsLogin: false }
     }
   }
   return {

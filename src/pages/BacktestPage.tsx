@@ -370,12 +370,12 @@ export default function BacktestPage() {
     <div className={styles.myBanner}>
       {personality.kind === 'loading' ? (
         <p className={styles.myText}>
-          <Spinner size={16} /> 내 투자성향을 불러오는 중이에요.
+          <Spinner size={16} /> 내 투자성향을 불러오는 중이에요
         </p>
       ) : personality.kind === 'error' ? (
         /* 못 불러왔으면 검사를 권하지 않는다 — 다시 검사하면 멀쩡한 성향을 덮어쓴다 */
         <>
-          <p className={styles.myText}>성향을 불러오지 못했어요.</p>
+          <p className={styles.myText}>성향을 불러오지 못했어요</p>
           <button type="button" className={styles.myAction} onClick={retryPersonality}>
             다시 시도
           </button>
@@ -566,14 +566,14 @@ export default function BacktestPage() {
 
               {/* 잠긴 까닭을 가른다 — 로컬 최소 기간인지, 서버에 계산된 기간만 남긴 것인지. 하나도 없으면 막다른 길임을 알린다 */}
               {selected === null ? (
-                <p className={styles.hint}>전략을 고르면 기간을 고를 수 있어요.</p>
+                <p className={styles.hint}>전략을 고르면 기간을 고를 수 있어요</p>
               ) : periodChoices.length === 0 ? (
                 <p className={styles.hint}>지금은 이 전략으로 계산된 기간이 없어요. 다른 전략을 골라 주세요.</p>
               ) : serverNarrowed ? (
-                <p className={styles.hint}>서버에 계산된 기간만 고를 수 있어요.</p>
+                <p className={styles.hint}>서버에 계산된 기간만 고를 수 있어요</p>
               ) : periodChoices.length < PERIODS.length ? (
                 <p className={styles.hint}>
-                  {selected.strategyName}은 지표를 계산할 봉이 많이 필요해 {periodLabel(selected.minPeriod)}부터 고를 수 있어요.
+                  {selected.strategyName}은 지표를 계산할 봉이 많이 필요해 {periodLabel(selected.minPeriod)}부터 고를 수 있어요
                 </p>
               ) : null}
             </div>
@@ -673,12 +673,12 @@ export default function BacktestPage() {
           {!canRun && !isRunning && (
             <p className={styles.submitHint}>
               {stock === null
-                ? '종목을 먼저 골라주세요.'
+                ? '종목을 먼저 골라주세요'
                 : investType === null
-                  ? '투자전략을 골라주세요.'
+                  ? '투자전략을 골라주세요'
                   : periodChoices.length === 0
-                    ? '이 전략은 지금 고를 수 있는 기간이 없어요.'
-                    : '투자기간을 골라주세요.'}
+                    ? '이 전략은 지금 고를 수 있는 기간이 없어요'
+                    : '투자기간을 골라주세요'}
             </p>
           )}
 

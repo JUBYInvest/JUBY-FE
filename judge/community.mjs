@@ -106,7 +106,7 @@ await j.run('B', async () => {
   await box.fill('반도체관심'); await t.page.getByRole('button', { name: '저장하고 계속하기' }).click(); await sleep(500)
   const takenError = await dialog.getByRole('alert').innerText().catch(() => '')
   await box.fill('용감한개미'); await t.page.getByRole('button', { name: '저장하고 계속하기' }).click(); await sleep(1000)
-  j.report('B7', opened === 1 && /2~10자/.test(formatError) && checks0 === 0 && takenError === '이미 사용 중인 닉네임이에요.' && t.log.includes('PATCH /api/members/me/nickname') &&
+  j.report('B7', opened === 1 && /2~10자/.test(formatError) && checks0 === 0 && takenError === '이미 사용 중인 닉네임이에요' && t.log.includes('PATCH /api/members/me/nickname') &&
     new URL(t.page.url()).pathname === '/community/write', `창 ${opened}, 형식 "${formatError}"(확인 요청 ${checks0}), 중복 "${takenError}", 주소 ${new URL(t.page.url()).pathname}`)
   await t.close()
 
@@ -273,10 +273,10 @@ await j.run('B', async () => {
 
   t = await j.open({ communityStatus: 500 })
   await t.goto('/community', 1500)
-  const failed = await t.page.getByText('글을 불러오지 못했어요.').count()
+  const failed = await t.page.getByText('글을 불러오지 못했어요').count()
   const retry = await t.page.locator(FEED).getByRole('button', { name: '다시 시도' }).count()
   j.report('B16', failed === 1 && retry === 1, `실패 글 ${failed}, 다시 시도 ${retry}`)
-  const serverFault = await t.page.getByText('커뮤니티 서버에 문제가 생겨 글을 불러오지 못했어요.').count()
+  const serverFault = await t.page.getByText('커뮤니티 서버에 문제가 생겨 글을 불러오지 못했어요').count()
   j.report('B16b', serverFault === 1, `서버 탓 안내 ${serverFault}`)
   await t.close()
 
@@ -297,7 +297,7 @@ await j.run('B', async () => {
   j.report('B20', savedPath === '/community/26' && savedTitle === '운영에서 쓴 글' && savedBody === 1 && savedStock === 1 && savedEdit === 1 && savedFailed === 0,
     `주소 ${savedPath}, 제목 "${savedTitle}", 본문 ${savedBody}, 종목 ${savedStock}, 수정 ${savedEdit}, 실패 글 ${savedFailed}`)
   await t.goto('/community/1', 1500)
-  const directFailed = await t.page.getByText('커뮤니티 서버에 문제가 생겨 글을 불러오지 못했어요.').count()
+  const directFailed = await t.page.getByText('커뮤니티 서버에 문제가 생겨 글을 불러오지 못했어요').count()
   const directRetry = await t.page.getByRole('button', { name: '다시 시도' }).count()
   j.report('B21', directFailed === 1 && directRetry === 1, `서버 탓 안내 ${directFailed}, 다시 시도 ${directRetry}`)
   await t.close()
@@ -428,7 +428,7 @@ await j.run('C', async () => {
   // C10 지난 대화 실패
   t = await j.open({ chatHistoryStatus: 500 })
   await t.goto('/', 1800)
-  const failed = await t.page.locator(CHAT).getByText('지난 대화를 불러오지 못했어요.').count()
+  const failed = await t.page.locator(CHAT).getByText('지난 대화를 불러오지 못했어요').count()
   const retry = await t.page.locator(CHAT).getByRole('button', { name: '다시 시도' }).count()
   t.log.chat.push('차트독학', '실패해도 새 말은 와요'); await sleep(500)
   const live = await chatState(t.page)

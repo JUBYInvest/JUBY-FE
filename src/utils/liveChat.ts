@@ -19,15 +19,15 @@ export interface PendingMessage {
 
 /** 서버 실패 code → 화면 글. 모르는 code는 "보내지 못했어요" */
 const SEND_ERRORS: Record<string, string> = {
-  LIVECHAT400_1: '빈 말은 보낼 수 없어요.',
-  LIVECHAT400_2: '300자까지 보낼 수 있어요.',
-  LIVECHAT401_1: '로그인하면 보낼 수 있어요.',
-  LIVECHAT403_1: '닉네임을 정하면 보낼 수 있어요.',
+  LIVECHAT400_1: '빈 말은 보낼 수 없어요',
+  LIVECHAT400_2: '300자까지 보낼 수 있어요',
+  LIVECHAT401_1: '로그인하면 보낼 수 있어요',
+  LIVECHAT403_1: '닉네임을 정하면 보낼 수 있어요',
   LIVECHAT429_1: '너무 빨리 보내고 있어요. 잠깐 뒤에 다시 보내 주세요.',
 }
 
 /** 보냈는데 오지 않거나 모르는 실패일 때의 글 */
-export const SEND_FAILED = '보내지 못했어요.'
+export const SEND_FAILED = '보내지 못했어요'
 
 /** 같은 말이 두 번 오지 않게 id로 합치고 오래된 순으로 세운다 */
 export function mergeMessages(list: ChatMessage[], incoming: ChatMessage[]): ChatMessage[] {

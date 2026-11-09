@@ -11,7 +11,7 @@
     'search rail'
     'themes rail'
     'list rail';
-  column-gap: clamp(32px, 3vw, 56px);
+  column-gap: clamp(var(--space-8), 3vw, var(--space-14));
   align-items: start;
 }
 
@@ -88,14 +88,14 @@
 }
 
 .likeNotice {
-  margin: 8px 0 0;
+  margin: var(--space-2) 0 0;
   font-size: var(--font-md);
   color: var(--color-text);
 }
 
 .loading {
   height: 288px;
-  margin: 20px 0 0;
+  margin: var(--space-5) 0 0;
   color: var(--color-text-sub);
   font-size: var(--font-md);
 }

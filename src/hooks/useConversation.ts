@@ -5,8 +5,8 @@ import type { PendingState } from '../components/ChatMessages'
 import type { ChatMessage } from '../types/ai'
 import { isRoomGone, type ChatRooms } from './useChatRooms'
 
-export const LOGIN_HINT = '로그인하면 질문할 수 있어요.'
-export const NO_PERSONALITY_HINT = '투자성향을 먼저 정해야 답할 수 있어요.'
+export const LOGIN_HINT = '로그인하면 질문할 수 있어요'
+export const NO_PERSONALITY_HINT = '투자성향을 먼저 정해야 답할 수 있어요'
 /** 같은 대화방에서 앞 질문의 답을 서버가 아직 만드는 중(409 CHAT409_1). 질문은 저장되지 않았다 */
 const BUSY_HINT = '앞 질문의 답을 아직 만들고 있어요. 조금 뒤에 다시 시도해 주세요.'
 /** 다른 탭에서 지웠거나 내 것이 아닌 대화방(404 CHAT404_1·403 CHAT403_1) */

@@ -51,7 +51,7 @@
   align-items: center;
   justify-content: center;
   min-width: 44px;
-  padding: 0 14px;
+  padding: 0 var(--space-4);
   font-weight: 600;
   color: var(--color-band-text-sub);
 }
@@ -62,16 +62,16 @@
 
 /* 지금 보고 있는 화면 */
 .menu a[aria-current='page'] {
-  font-weight: 700;
+  font-weight: 600;
   color: var(--color-text-on-dark);
 }
 
 .menu a[aria-current='page']::before {
   content: '';
   position: absolute;
-  right: 14px;
+  right: var(--space-4);
   bottom: 0;
-  left: 14px;
+  left: var(--space-4);
   height: 3px;
   border-radius: var(--radius-sm) var(--radius-sm) 0 0;
   background: var(--color-brand-400);
@@ -88,7 +88,7 @@
   height: 0;
   overflow: hidden;
   visibility: hidden;
-  font-weight: 700;
+  font-weight: 600;
 }
 
 /*
@@ -166,12 +166,12 @@
   }
 
   .menu a {
-    padding: 0 10px;
+    padding: 0 var(--space-2);
   }
 
   .menu a[aria-current='page']::before {
-    right: 10px;
-    left: 10px;
+    right: var(--space-2);
+    left: var(--space-2);
   }
 }
 
@@ -199,7 +199,7 @@
   .service {
     justify-self: stretch;
     margin: 0 calc(var(--page-gutter) * -1);
-    padding: 0 max(calc(var(--page-gutter) - 10px), var(--space-6)) 0 calc(var(--page-gutter) - 10px);
+    padding: 0 max(calc(var(--page-gutter) - var(--space-2)), var(--space-6)) 0 calc(var(--page-gutter) - var(--space-2));
     overflow-x: auto;
     scrollbar-width: none;
     mask-image: linear-gradient(to right, black calc(100% - var(--space-6)), transparent);

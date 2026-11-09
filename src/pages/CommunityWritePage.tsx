@@ -60,7 +60,7 @@ export default function CommunityWritePage() {
   useEffect(() => {
     if (!editing) return
     if (editId === null) {
-      setEdit({ kind: 'blocked', message: '주소가 틀린 글이에요.' })
+      setEdit({ kind: 'blocked', message: '주소가 틀린 글이에요' })
       return
     }
     if (!loggedIn) return
@@ -68,8 +68,8 @@ export default function CommunityWritePage() {
     getPost(editId)
       .then((post) => {
         if (isStale) return
-        if (post === null) return setEdit({ kind: 'blocked', message: '삭제된 게시물이에요.' })
-        if (!post.isMine) return setEdit({ kind: 'blocked', message: '내가 쓴 글만 고칠 수 있어요.' })
+        if (post === null) return setEdit({ kind: 'blocked', message: '삭제된 게시물이에요' })
+        if (!post.isMine) return setEdit({ kind: 'blocked', message: '내가 쓴 글만 고칠 수 있어요' })
         setTitle(post.title)
         setContent(post.content)
         setStock(post.stockCode !== null && post.stockName !== null ? { stockCode: post.stockCode, stockName: post.stockName } : null)
@@ -103,8 +103,8 @@ export default function CommunityWritePage() {
       console.warn('글을 올리지 못했습니다', caught)
       if (needsNickname(caught)) setNicknameOpen(true)
       else if (caught instanceof ApiError && caught.code === 'STOCK404_1') setError('없는 종목이에요. 종목을 다시 골라 주세요.')
-      else if (caught instanceof ApiError && caught.code === 'COMMUNITY404_1') setError('삭제된 게시물이에요.')
-      else if (caught instanceof ApiError && caught.status === 400) setError('제목은 1~40자, 내용은 1~1,000자로 적어 주세요.')
+      else if (caught instanceof ApiError && caught.code === 'COMMUNITY404_1') setError('삭제된 게시물이에요')
+      else if (caught instanceof ApiError && caught.status === 400) setError('제목은 1~40자, 내용은 1~1,000자로 적어 주세요')
       else setError('올리지 못했어요. 잠시 후 다시 시도해 주세요.')
     } finally {
       setSending(false)
@@ -138,7 +138,7 @@ export default function CommunityWritePage() {
         </p>
       ) : edit.kind === 'failed' ? (
         <div className={styles.notice}>
-          <p className={styles.noticeText}>{edit.serverFault ? '커뮤니티 서버에 문제가 생겨 글을 불러오지 못했어요.' : '글을 불러오지 못했어요.'}</p>
+          <p className={styles.noticeText}>{edit.serverFault ? '커뮤니티 서버에 문제가 생겨 글을 불러오지 못했어요' : '글을 불러오지 못했어요'}</p>
           <button type="button" className={styles.retry} onClick={reload}>
             다시 시도
           </button>

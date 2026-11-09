@@ -78,7 +78,7 @@ export default function ChatMessages({ messages, pending, onRetry, onStop }: Pro
       {pending === 'stopped' && (
         <div className={styles.row}>
           <p className={`${styles.bubble} ${styles.stopped}`}>
-            답을 기다리지 않았어요.
+            답을 기다리지 않았어요
             <button type="button" className={styles.retry} onClick={onRetry}>
               다시 시도
             </button>
@@ -89,7 +89,7 @@ export default function ChatMessages({ messages, pending, onRetry, onStop }: Pro
       {pending === 'error' && (
         <div className={styles.row}>
           <p className={`${styles.bubble} ${styles.error}`}>
-            답변을 가져오지 못했어요.
+            답변을 가져오지 못했어요
             <button type="button" className={styles.retry} onClick={onRetry}>
               다시 시도
             </button>

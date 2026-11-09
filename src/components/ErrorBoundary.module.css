@@ -6,7 +6,7 @@
 .wrap {
   width: min(100%, 400px);
   margin: 0 auto;
-  padding-top: clamp(var(--space-4), 12vh, 144px);
+  padding-top: clamp(var(--space-4), 12vh, var(--space-36));
 }
 
 .title {

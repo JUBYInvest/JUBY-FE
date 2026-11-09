@@ -4,7 +4,7 @@
   display: grid;
   grid-template-columns: minmax(0, 1fr) var(--community-side);
   grid-template-areas: 'main side';
-  column-gap: clamp(32px, 4vw, 80px);
+  column-gap: clamp(var(--space-8), 4vw, var(--space-20));
   margin-top: var(--space-6);
 }
 

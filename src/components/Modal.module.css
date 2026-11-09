@@ -8,7 +8,7 @@
   inset: 0;
   z-index: 100;
   display: flex;
-  padding: 16px;
+  padding: var(--space-4);
   overflow-y: auto;
   background: var(--color-backdrop);
 }
@@ -25,7 +25,7 @@
   width: 320px;
   max-width: 100%;
   margin: auto;
-  padding: 32px 24px 20px;
+  padding: var(--space-8) var(--space-6) var(--space-5);
   border-radius: var(--radius-lg);
   background: var(--color-surface);
   text-align: center;
@@ -43,7 +43,7 @@
 
 /* 대화 제목처럼 서버가 주는 자유 글이 들어간다. 띄어쓰기 없는 긴 글이 상자를 밀어내지 않게 아무 데서나 끊는다 */
 .text {
-  margin: 10px 0 0;
+  margin: var(--space-2) 0 0;
   font-size: var(--font-md);
   line-height: 1.6;
   color: var(--color-text-sub);
@@ -51,7 +51,7 @@
 }
 
 .error {
-  margin: 14px 0 0;
+  margin: var(--space-4) 0 0;
   font-size: var(--font-sm);
   color: var(--color-text);
 }
@@ -59,6 +59,6 @@
 .buttons {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  margin-top: 24px;
+  gap: var(--space-2);
+  margin-top: var(--space-6);
 }

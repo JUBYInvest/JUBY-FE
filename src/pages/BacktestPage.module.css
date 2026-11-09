@@ -8,7 +8,7 @@
 .layout {
   display: grid;
   grid-template-columns: minmax(0, 1fr) clamp(320px, 24vw, 400px);
-  column-gap: clamp(40px, 4.5vw, 88px);
+  column-gap: clamp(var(--space-10), 4.5vw, var(--space-20));
   align-items: start;
   margin-top: var(--space-6);
 }
@@ -35,7 +35,7 @@
   display: flex;
   align-items: center;
   gap: var(--space-3);
-  padding: 14px 16px;
+  padding: var(--space-3) var(--space-4);
   border-radius: var(--radius-md);
   background: var(--color-bg-sub);
 }
@@ -91,7 +91,7 @@
   gap: var(--space-2);
   margin: 0;
   font-size: var(--font-lg);
-  font-weight: 700;
+  font-weight: 600;
   line-height: 1.5;
 }
 
@@ -107,7 +107,7 @@
   background: var(--color-text);
   color: var(--color-surface);
   font-size: var(--font-xs);
-  font-weight: 700;
+  font-weight: 600;
   line-height: 1;
   font-variant-numeric: tabular-nums;
 }
@@ -146,7 +146,7 @@
   background: none;
   font: inherit;
   font-size: var(--font-md);
-  font-weight: 700;
+  font-weight: 600;
   color: var(--color-brand-700);
   justify-self: start;
 }
@@ -160,9 +160,9 @@
 .control {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-2);
   height: 48px;
-  padding: 0 8px 0 16px;
+  padding: 0 var(--space-2) 0 var(--space-4);
   /* 흰 바탕 위 흰 칸이라 테두리를 한 단계 진하게 둔다(홈 검색칸과 같다) */
   border: 1.5px solid var(--color-border);
   border-radius: var(--radius-md);
@@ -200,7 +200,7 @@
 
 .code {
   flex: 0 0 auto;
-  padding-right: 8px;
+  padding-right: var(--space-2);
   font-size: var(--font-sm);
   color: var(--color-text-sub);
   font-variant-numeric: tabular-nums;
@@ -227,7 +227,7 @@
   left: 0;
   right: 0;
   margin: 0;
-  padding: 6px;
+  padding: var(--space-2);
   list-style: none;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
@@ -263,7 +263,7 @@
 .matchesHead {
   padding: var(--space-1) var(--space-3) var(--space-2);
   font-size: var(--font-sm);
-  font-weight: 700;
+  font-weight: 600;
   color: var(--color-text-sub);
 }
 
@@ -327,19 +327,16 @@
 
 .strategyName {
   font-size: var(--font-md);
-  font-weight: 700;
+  font-weight: 600;
   line-height: 1.4;
   word-break: keep-all;
 }
 
 .badge {
   margin-top: var(--space-1);
-  padding: 2px 7px;
-  border-radius: var(--radius-pill);
-  background: var(--color-brand-100);
-  color: var(--color-brand-800);
+  color: var(--color-text-sub);
   font-size: var(--font-xs);
-  font-weight: 700;
+  font-weight: 600;
   white-space: nowrap;
 }
 
@@ -375,7 +372,7 @@
 }
 
 .rules dt {
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .rules dd {
@@ -387,7 +384,7 @@
 
 .dots {
   display: inline-flex;
-  gap: 3px;
+  gap: var(--space-1);
   align-items: center;
 }
 
@@ -437,7 +434,7 @@
   border-color: var(--color-brand-700);
   background: var(--color-brand-50);
   color: var(--color-brand-800);
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .periodOff:disabled {
@@ -497,8 +494,8 @@
   max-height: calc(100dvh - var(--index-bar-height) - var(--space-6) * 2);
   overflow-y: auto;
   /* 안에서 굴리는 상자라 단추 포커스 고리가 잘리지 않게 좌우 4px 틈을 둔다(바깥 배치는 그대로) */
-  margin: 0 -4px;
-  padding: 0 4px;
+  margin: 0 calc(var(--space-1) * -1);
+  padding: 0 var(--space-1);
   overscroll-behavior: contain;
   scrollbar-width: thin;
 }
@@ -546,7 +543,7 @@
 .summaryRow dd {
   margin: 0;
   font-size: var(--font-lg);
-  font-weight: 700;
+  font-weight: 600;
   line-height: 1.5;
   overflow-wrap: anywhere;
 }
@@ -571,7 +568,7 @@
 /* ── 결과 ──────────────────────────────────────────────────────────── */
 
 .result {
-  margin-top: 48px;
+  margin-top: var(--space-12);
 }
 
 /*
@@ -605,10 +602,10 @@
   display: flex;
   flex-wrap: wrap;
   align-items: baseline;
-  gap: 4px 8px;
-  margin: 0 0 20px;
+  gap: var(--space-1) var(--space-2);
+  margin: 0 0 var(--space-5);
   font-size: var(--font-lg);
-  font-weight: 700;
+  font-weight: 600;
 }
 
 /* 제목 옆 단서. 제목만큼 중요하지 않아 크기와 색을 낮춘다 */
@@ -637,14 +634,14 @@
 /* 결과의 결론 문장과 성향 비교. 결과에서 가장 먼저 읽혀야 해서 옅은 면 위에 둔다 */
 .compare {
   margin-top: var(--space-5);
-  padding: 24px;
+  padding: var(--space-6);
   border-radius: var(--radius-md);
   background: var(--color-bg-sub);
 }
 
 /* 결과에서 가장 먼저 읽혀야 하는 문장이라 본문보다 크게 둔다 */
 .story {
-  margin: 0 0 20px;
+  margin: 0 0 var(--space-5);
   font-size: var(--font-xl);
   font-weight: 700;
   line-height: 1.6;
@@ -655,16 +652,16 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 16px;
+  gap: var(--space-4);
 }
 
 .matchSide {
   display: flex;
   flex: 1;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--space-1);
   align-items: center;
-  padding: 16px 12px;
+  padding: var(--space-4) var(--space-3);
   border-radius: var(--radius-md);
   background: var(--color-bg-sub);
   text-align: center;
@@ -694,7 +691,7 @@
 }
 
 .matchText {
-  margin: 14px 0 0;
+  margin: var(--space-4) 0 0;
   font-size: var(--font-sm);
   line-height: 1.6;
   color: var(--color-text-sub);
@@ -705,9 +702,9 @@
 
 .scoreRow {
   display: flex;
-  gap: 24px;
+  gap: var(--space-6);
   align-items: center;
-  padding: 20px;
+  padding: var(--space-5);
   border-radius: var(--radius-md);
   background: var(--color-bg-sub);
 }
@@ -718,7 +715,7 @@
   flex-direction: column;
   gap: 2px;
   align-items: center;
-  padding-right: 24px;
+  padding-right: var(--space-6);
   border-right: 1px solid var(--color-border);
 }
 
@@ -736,7 +733,7 @@
 }
 
 .scoreMax {
-  margin-left: 4px;
+  margin-left: var(--space-1);
   font-size: var(--font-md);
   font-weight: 400;
   color: var(--color-text-sub);
@@ -744,7 +741,7 @@
 
 .scoreVerdict {
   font-size: var(--font-xs);
-  font-weight: 700;
+  font-weight: 600;
   color: var(--color-text-sub);
 }
 
@@ -752,7 +749,7 @@
   display: grid;
   flex: 1;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px 20px;
+  gap: var(--space-2) var(--space-5);
   margin: 0;
   padding: 0;
   list-style: none;
@@ -761,13 +758,13 @@
 .axisHead {
   display: flex;
   align-items: baseline;
-  gap: 6px;
-  margin-bottom: 5px;
+  gap: var(--space-2);
+  margin-bottom: var(--space-1);
   font-size: var(--font-sm);
 }
 
 .axisName {
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .axisWeight {
@@ -777,7 +774,7 @@
 
 .axisScore {
   margin-left: auto;
-  font-weight: 700;
+  font-weight: 600;
   font-variant-numeric: tabular-nums;
 }
 
@@ -812,7 +809,7 @@
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 0 var(--space-6);
-  margin: 24px 0 0;
+  margin: var(--space-6) 0 0;
   padding: 0;
   list-style: none;
 }
@@ -820,8 +817,8 @@
 .metric {
   display: flex;
   flex-direction: column;
-  gap: 3px;
-  padding: 14px 0;
+  gap: var(--space-1);
+  padding: var(--space-3) 0;
   border-top: 1px solid var(--color-border);
 }
 
@@ -857,8 +854,8 @@
 /* ── 경고·랭킹·설명 ────────────────────────────────────────────────── */
 
 .warn {
-  margin: 20px 0 0;
-  padding: 12px 14px;
+  margin: var(--space-5) 0 0;
+  padding: var(--space-3) var(--space-4);
   border-radius: var(--radius-md);
   background: var(--color-bg-sub);
   font-size: var(--font-sm);
@@ -876,12 +873,12 @@
   display: grid;
   /* 이름 칸을 고정해야 막대의 왼쪽 끝이 한 줄로 맞는다 */
   grid-template-columns: 104px minmax(0, 1fr) 44px;
-  gap: 12px;
+  gap: var(--space-3);
   align-items: center;
 }
 
 .rank + .rank {
-  margin-top: 8px;
+  margin-top: var(--space-2);
 }
 
 /* 공동 1위면 배지("공동 1위")가 길어 이름 칸을 넓힌다. 막대 왼쪽 끝은 목록 안에서 여전히 한 줄로 맞는다 */
@@ -892,22 +889,22 @@
 .rankName {
   display: flex;
   align-items: center;
-  gap: 5px;
+  gap: var(--space-1);
   font-size: var(--font-sm);
 }
 
 .crown {
-  padding: 1px 6px;
+  padding: 1px var(--space-2);
   border-radius: var(--radius-pill);
   background: var(--color-brand-400);
   color: var(--color-text-on-accent);
   font-size: var(--font-xs);
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .rankScore {
   font-size: var(--font-sm);
-  font-weight: 700;
+  font-weight: 600;
   text-align: right;
   font-variant-numeric: tabular-nums;
 }
@@ -919,12 +916,12 @@
 }
 
 .notes {
-  margin: 24px 0 0;
-  padding-left: 18px;
+  margin: var(--space-6) 0 0;
+  padding-left: var(--space-4);
 }
 
 .notes li + li {
-  margin-top: 12px;
+  margin-top: var(--space-3);
 }
 
 .notes li {
@@ -934,14 +931,14 @@
 
 .noteBody {
   display: block;
-  margin-top: 3px;
+  margin-top: var(--space-1);
   color: var(--color-text-sub);
   /* 성향 설명에 든 줄바꿈을 살린다 */
   white-space: pre-line;
 }
 
 .meta {
-  margin: 22px 0 0;
+  margin: var(--space-6) 0 0;
   font-size: var(--font-sm);
   color: var(--color-text-sub);
 }
@@ -960,7 +957,7 @@
   min-height: 40px;
   margin-top: var(--space-1);
   font-size: var(--font-sm);
-  font-weight: 700;
+  font-weight: 600;
   color: var(--color-brand-700);
 }
 
@@ -983,7 +980,7 @@
 }
 
 .helpSteps li::marker {
-  font-weight: 700;
+  font-weight: 600;
   font-variant-numeric: tabular-nums;
 }
 
@@ -1002,11 +999,11 @@
 .guideHeading {
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin: 0 0 10px;
+  gap: var(--space-2);
+  margin: 0 0 var(--space-2);
   /* 칸 안 작은 제목은 16px(상세 시세 요약·결과 칸 제목과 같다) — 14px이면 본문 13px과 크기로 갈리지 않는다 */
   font-size: var(--font-lg);
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .guideBody {
@@ -1029,14 +1026,14 @@
 .axisGuide {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
-  gap: 4px 10px;
-  margin: 10px 0 0;
+  gap: var(--space-1) var(--space-3);
+  margin: var(--space-2) 0 0;
   font-size: var(--font-xs);
   line-height: 1.55;
 }
 
 .axisGuide dt {
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .axisGuide dd {
@@ -1094,10 +1091,10 @@
 
   .scoreBox {
     flex-direction: row;
-    gap: 8px;
+    gap: var(--space-2);
     align-items: baseline;
     justify-content: center;
-    padding: 0 0 16px;
+    padding: 0 0 var(--space-4);
     border-right: none;
     border-bottom: 1px solid var(--color-border);
   }
@@ -1138,17 +1135,17 @@
 
   /* 결론 상자(옅은 면)만 안 여백을 줄인다. 결과 칸은 상자가 아니라 가는 선이라 좌우 여백을 두면 글이 다른 줄보다 16px 안에서 시작한다 */
   .compare {
-    padding: 20px 16px;
+    padding: var(--space-5) var(--space-4);
   }
 
   /* 한 줄에 하나씩이면 여섯 장이 세로로 늘어서 결과 화면이 3,900px을 넘는다. 두 칸으로 놓는다 */
   .metrics {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 8px;
+    gap: var(--space-2);
   }
 
   .metric {
-    padding: 12px 0;
+    padding: var(--space-3) 0;
   }
 
   .metricValue {
@@ -1166,7 +1163,7 @@
   /* 좌우로 놓을 폭이 안 나오면 위아래로 세운다. 기호도 방향을 바꾼다 */
   .matchRow {
     flex-direction: column;
-    gap: 10px;
+    gap: var(--space-3);
   }
 
   .matchSide {
@@ -1180,7 +1177,7 @@
   /* '적극투자형' + '최고' 배지가 한 줄에 들어가야 한다. 좁으면 이름이 두 줄로 쪼개진다 */
   .rank {
     grid-template-columns: 100px minmax(0, 1fr) 38px;
-    gap: 8px;
+    gap: var(--space-2);
   }
 
   .joint .rank {
@@ -1193,7 +1190,7 @@
   }
 
   .crown {
-    padding: 1px 4px;
+    padding: 1px var(--space-1);
     font-size: var(--font-xs);
   }
 }
@@ -1202,8 +1199,8 @@
 
 .loadingBox,
 .errorBox {
-  margin-top: 32px;
-  padding: 28px;
+  margin-top: var(--space-8);
+  padding: var(--space-7);
   border-radius: var(--radius-md);
   background: var(--color-bg-sub);
   text-align: center;
@@ -1217,11 +1214,11 @@
 .errorText {
   margin: 0;
   font-size: var(--font-md);
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .errorHint {
-  margin: 8px 0 0;
+  margin: var(--space-2) 0 0;
   font-size: var(--font-sm);
   color: var(--color-text-sub);
 }
@@ -1251,7 +1248,7 @@
 .nextTitle {
   margin: 0 0 var(--space-3);
   font-size: var(--font-lg);
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .nextActions {

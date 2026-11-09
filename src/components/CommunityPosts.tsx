@@ -52,13 +52,10 @@ export function PostByline({ author, createdAt, edited, now }: { author: string;
   )
 }
 
-/** 글 머리 종목 줄 — 첫 글자 동그라미 · 이름 · 등락률(모르면 이름만) */
+/** 글 머리 종목 줄 — 이름 · 등락률(모르면 이름만) */
 function PostStock({ name, changeRate }: { name: string; changeRate: number | null }) {
   return (
     <p className={styles.stockRow}>
-      <span className={styles.stockBadge} aria-hidden="true">
-        {Array.from(name)[0] ?? ''}
-      </span>
       <span className={styles.stockName}>{name}</span>
       {changeRate !== null && (
         <>

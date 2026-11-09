@@ -34,7 +34,7 @@
 }
 
 .noticeLink {
-  font-weight: 700;
+  font-weight: 600;
   color: var(--color-brand-700);
 }
 
@@ -72,7 +72,7 @@
 
 .label {
   font-size: var(--font-md);
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .optional {

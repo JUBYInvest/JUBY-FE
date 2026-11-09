@@ -113,7 +113,7 @@ async function run(opts, period) {
     await sleep(300)
     r.pressed = await page.locator('[data-invest-type="1"]').first().getAttribute('aria-pressed').catch(() => null)
     r.summaryName = (await summary.innerText().catch(() => '')).includes('RSI 역추세 전략')
-    r.desc = await page.getByText('너무 많이 팔려 눌린 종목이 제자리로 돌아오는 힘을 노리는 전략이에요.').count()
+    r.desc = await page.getByText('너무 많이 팔려 눌린 종목이 제자리로 돌아오는 힘을 노리는 전략이에요').count()
     await page.locator('[data-invest-type="3"]').first().click().catch(() => {})
     await sleep(200)
     r.locked = await page.$$eval('button[data-period]', (bs) => bs.filter((b) => b.disabled).map((b) => b.dataset.period).join(','))

@@ -264,7 +264,7 @@ export default function PriceSection({
             {detail === null && waiting === null && <div className={styles.chartSkeleton} />}
 
             {detail !== null && shown.length === 0 && (
-              <p className={styles.chartMessage}>이 기간에는 거래일이 없습니다.</p>
+              <p className={styles.chartMessage}>이 기간에는 거래일이 없습니다</p>
             )}
 
             {shown.length > 0 && <CandleChart candles={shown} />}
@@ -401,7 +401,7 @@ function WaitNotice({ until }: { until: number }) {
   return (
     <div className={styles.chartWait}>
       <p className={styles.chartWaitTitle}>{seconds}초 뒤에 차트를 다시 불러옵니다</p>
-      <p className={styles.chartMessage}>서버가 잠시 응답하지 못했습니다.</p>
+      <p className={styles.chartMessage}>서버가 잠시 응답하지 못했습니다</p>
     </div>
   )
 }
@@ -448,7 +448,7 @@ function BackupChart({
         </div>
         <div className={styles.backupNotice}>
           <p className={styles.backupText} role="status">
-            종목 정보를 받지 못해 증권사 시세로 임시 차트를 그렸어요.
+            종목 정보를 받지 못해 증권사 시세로 임시 차트를 그렸어요
           </p>
           {failed && (
             <button type="button" className={styles.retryButton} onClick={onRetry}>

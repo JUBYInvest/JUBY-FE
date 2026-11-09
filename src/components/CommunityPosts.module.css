@@ -22,21 +22,8 @@
   font-variant-numeric: tabular-nums;
 }
 
-.stockBadge {
-  display: grid;
-  flex-shrink: 0;
-  place-items: center;
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  background: var(--color-bg-sub);
-  color: var(--color-text-sub);
-  font-size: var(--font-xs);
-  font-weight: 700;
-}
-
 .stockName {
-  font-weight: 700;
+  font-weight: 600;
 }
 
 /* 등락 글자색(공용 모듈로 모으지 않는다 — CLAUDE.md "공용 모듈 셋") */
@@ -63,7 +50,7 @@
 .title {
   margin: 0;
   font-size: var(--font-lg);
-  font-weight: 700;
+  font-weight: 600;
   line-height: 1.45;
   /* 서버가 주는 자유 글 — 띄어쓰기 없는 긴 덩어리가 칸을 밀지 않게 */
   overflow-wrap: anywhere;
@@ -129,11 +116,6 @@
 
   .post:has(.postLink:active) {
     background: var(--color-bg-sub);
-  }
-
-  /* 첫 글자 동그라미가 같은 면에 묻히지 않게 */
-  .post:has(.postLink:active) .stockBadge {
-    background: var(--color-surface);
   }
 }
 

@@ -410,7 +410,7 @@ export default function HomePage() {
 
           {listTab === 'all' && list.kind === 'error' && (
             <div className={styles.loading}>
-              <p>시세를 불러오지 못했습니다.</p>
+              <p>시세를 불러오지 못했습니다</p>
               <button type="button" className={styles.retry} onClick={() => setListTry((count) => count + 1)}>
                 다시 시도
               </button>

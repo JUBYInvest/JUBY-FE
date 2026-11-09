@@ -7,7 +7,7 @@
   flex-direction: column;
   align-items: center;
   margin: var(--space-8) 0 0;
-  padding: 34px 32px 30px;
+  padding: var(--space-8) var(--space-8) var(--space-8);
   /* 상자 대신 옅은 면 */
   border-radius: var(--radius-lg);
   background: var(--color-bg-sub);
@@ -17,7 +17,7 @@
 .eyebrow {
   margin: 0;
   font-size: var(--font-md);
-  font-weight: 700;
+  font-weight: 600;
   letter-spacing: -0.02em;
   color: var(--color-text-sub);
 }
@@ -25,7 +25,7 @@
 .image {
   width: 150px;
   height: 150px;
-  margin: 18px 0 6px;
+  margin: var(--space-4) 0 var(--space-2);
 }
 
 /* 마이페이지 투자유형 화면의 성향 이름과 같은 24px — 화면 제목(28px) 아래 단계다 */
@@ -38,7 +38,7 @@
 
 /* 설명은 두 줄로 들어온다. 서버 문구에 줄바꿈이 없으면 그냥 이어져 흐른다 */
 .description {
-  margin: 12px 0 0;
+  margin: var(--space-3) 0 0;
   font-size: var(--font-md);
   font-weight: 400;
   line-height: 1.6;

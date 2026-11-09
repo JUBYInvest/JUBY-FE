@@ -48,8 +48,8 @@ await run('A1', async () => {
   await chips.first().click(); await sleep(100)
   const filled = (await box(t.page).inputValue()) === first
   await box(t.page).press('Enter'); await sleep(400)
-  const hint = await t.page.getByText('로그인하면 질문할 수 있어요.').count()
-  const side = await t.page.getByText('로그인하면 이전 대화를 저장할 수 있어요.').count()
+  const hint = await t.page.getByText('로그인하면 질문할 수 있어요').count()
+  const side = await t.page.getByText('로그인하면 이전 대화를 저장할 수 있어요').count()
   report('A1', n >= 3 && filled && hint === 1 && side === 1 && t.count(ASK) === 0 && t.count(SESSIONS) === 0 && t.count(/personality/) === 0,
     `예시 ${n}개, 누르면 채움 ${filled}, Enter → 로그인 안내 ${hint}, 목록 자리 안내 ${side}, 요청 ${t.api().length}건`)
   await t.close()
@@ -121,11 +121,11 @@ await run('A5', async () => {
   await ask(t.page, '느린 질문')
   await t.page.getByRole('button', { name: '그만 기다리기' }).click({ timeout: 2000 })
   await sleep(200)
-  const stopped = { text: await t.page.getByText('답을 기다리지 않았어요.').count(), retry: await bubbleRetry(t.page).count(), boxFree: !(await box(t.page).isDisabled()) }
+  const stopped = { text: await t.page.getByText('답을 기다리지 않았어요').count(), retry: await bubbleRetry(t.page).count(), boxFree: !(await box(t.page).isDisabled()) }
   await sleep(3000)
   await bubbleRetry(t.page).click()
   await answerBubble(t.page).waitFor({ timeout: 4000 }); await sleep(500)
-  report('A5', stopped.text === 1 && stopped.retry === 1 && stopped.boxFree && t.count(ASK) === 1 && t.count(DETAIL) === 1 && await answers(t.page) === 1 && await t.page.getByText('답을 기다리지 않았어요.').count() === 0,
+  report('A5', stopped.text === 1 && stopped.retry === 1 && stopped.boxFree && t.count(ASK) === 1 && t.count(DETAIL) === 1 && await answers(t.page) === 1 && await t.page.getByText('답을 기다리지 않았어요').count() === 0,
     `그만 기다림 안내 ${stopped.text}·다시 시도 ${stopped.retry}·입력칸 풀림 ${stopped.boxFree}, 다시 시도 뒤 질문 ${t.count(ASK)}건(다시 보내지 않음)·상세 ${t.count(DETAIL)}건, 답 ${await answers(t.page)}개`)
   order('A5', t)
   await t.close()
@@ -152,11 +152,11 @@ await run('A7', async () => {
   const t = await open({ askStatus: (n) => (n === 1 ? '500' : 'ok') })
   await t.goto('/ai', 1500)
   await ask(t.page, '실패할 질문')
-  await t.page.getByText('답변을 가져오지 못했어요.').waitFor({ timeout: 4000 })
+  await t.page.getByText('답변을 가져오지 못했어요').waitFor({ timeout: 4000 })
   const failed = { retry: await bubbleRetry(t.page).count(), boxFree: !(await box(t.page).isDisabled()), answers: await answers(t.page) }
   await bubbleRetry(t.page).click()
   await answerBubble(t.page).waitFor({ timeout: 4000 }); await sleep(300)
-  report('A7', failed.retry === 1 && failed.boxFree && failed.answers === 0 && t.count(ASK) === 2 && t.count(NEW_ROOM) === 1 && t.count(DETAIL) === 1 && await t.page.getByText('답변을 가져오지 못했어요.').count() === 0,
+  report('A7', failed.retry === 1 && failed.boxFree && failed.answers === 0 && t.count(ASK) === 2 && t.count(NEW_ROOM) === 1 && t.count(DETAIL) === 1 && await t.page.getByText('답변을 가져오지 못했어요').count() === 0,
     `실패 안내+다시 시도 ${failed.retry}, 입력칸 풀림 ${failed.boxFree}, 다시 시도 → 상세 ${t.count(DETAIL)}·질문 ${t.count(ASK)}·방 ${t.count(NEW_ROOM)}건`)
   order('A7', t)
   await t.close()
@@ -167,7 +167,7 @@ await run('A8', async () => {
   let t = await open({ askStatus: 'empty' })
   await t.goto('/ai', 1500)
   await ask(t.page, '빈 답')
-  await t.page.getByText('답변을 가져오지 못했어요.').waitFor({ timeout: 4000 })
+  await t.page.getByText('답변을 가져오지 못했어요').waitFor({ timeout: 4000 })
   const emptyBubbles = await t.page.locator('[class*="_bubbleAnswer_"]').count()
   report('A8a', emptyBubbles === 0 && await bubbleRetry(t.page).count() === 1, `빈 답 → 빈 말풍선 ${emptyBubbles}개, 실패 안내 + 다시 시도 ${await bubbleRetry(t.page).count()}`)
   await t.close()
@@ -187,7 +187,7 @@ await run('A9', async () => {
   const invite = await t.page.getByText('투자성향을 정하면 질문할 수 있어요. 답도 내 성향에 맞춰 나와요.').count()
   const testLink = await t.page.getByRole('link', { name: '투자성향 검사하기' }).getAttribute('href')
   await ask(t.page, '성향 없이')
-  await t.page.getByText('투자성향을 먼저 정해야 답할 수 있어요.').waitFor({ timeout: 4000 })
+  await t.page.getByText('투자성향을 먼저 정해야 답할 수 있어요').waitFor({ timeout: 4000 })
   const noticeLink = await t.page.locator('[class*="_notice_"]').getByRole('link', { name: '투자성향 검사하기' }).getAttribute('href')
   report('A9a', invite === 1 && testLink === '/personality-test?from=ai' && noticeLink === '/personality-test?from=ai' && await bubbleRetry(t.page).count() === 0 && !(await box(t.page).isDisabled()),
     `검사 권유 ${invite}, 링크 ${testLink}, 404(MEMBER404_2) 뒤 안내 링크 ${noticeLink}, 다시 시도 없음 ${await bubbleRetry(t.page).count() === 0}`)
@@ -195,7 +195,7 @@ await run('A9', async () => {
 
   t = await open({ personality: 'error' })
   await t.goto('/ai', 1500)
-  const failed = await t.page.getByText('성향을 불러오지 못했어요.').count()
+  const failed = await t.page.getByText('성향을 불러오지 못했어요').count()
   const noInvite = await t.page.getByRole('link', { name: '투자성향 검사하기' }).count()
   await t.page.locator('[class*="_personality_"]').getByRole('button', { name: '다시 시도' }).click(); await sleep(600)
   report('A9b', failed === 1 && noInvite === 0 && t.count(/personality/) === 2, `성향 500 → 실패 안내 ${failed}, 검사 권유 안 함 ${noInvite === 0}, 다시 시도 → 성향 요청 ${t.count(/personality/)}건`)
@@ -206,7 +206,7 @@ await run('A9', async () => {
 await run('A10', async () => {
   let t = await open({ sessionsStatus: 500 })
   await t.goto('/ai', 1500)
-  const failed = await t.page.getByText('목록을 불러오지 못했어요.').count()
+  const failed = await t.page.getByText('목록을 불러오지 못했어요').count()
   await t.page.locator('aside').getByRole('button', { name: '다시 시도' }).click(); await sleep(500)
   await ask(t.page, '목록 없이 질문')
   await answerBubble(t.page).waitFor({ timeout: 4000 })
@@ -216,7 +216,7 @@ await run('A10', async () => {
   t = await open({ sessionDetailStatus: 500 })
   await t.goto('/ai', 1500)
   await room(t.page).click()
-  await t.page.getByText('대화를 불러오지 못했습니다.').waitFor({ timeout: 4000 })
+  await t.page.getByText('대화를 불러오지 못했습니다').waitFor({ timeout: 4000 })
   const locked = await send(t.page).isDisabled()
   await t.page.locator('section').getByRole('button', { name: '다시 시도' }).click(); await sleep(500)
   report('A10b', locked && t.count(DETAIL) === 2, `방 500 → 안내, 보내기 잠김 ${locked}, 다시 시도 → 상세 ${t.count(DETAIL)}건`)
@@ -358,7 +358,7 @@ await run('A15', async () => {
   await t.page.getByText('완만히 올랐어요.').waitFor({ timeout: 5000 })
   await t.page.evaluate(() => { localStorage.removeItem('accessToken'); window.dispatchEvent(new StorageEvent('storage', { key: 'accessToken', newValue: null })) })
   await sleep(500)
-  const side = await t.page.getByText('로그인하면 이전 대화를 저장할 수 있어요.').count()
+  const side = await t.page.getByText('로그인하면 이전 대화를 저장할 수 있어요').count()
   const bubbles = await t.page.locator('[class*="_bubble_"]').count()
   const examples = await t.page.locator('[class*="_exampleQuestion_"]').count()
   const personality = await t.page.getByText(/투자성향은/).count()

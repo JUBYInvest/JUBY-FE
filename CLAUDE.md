@@ -15,7 +15,7 @@ JUBY 프론트엔드(React 19 + TypeScript + Vite + CSS Modules) 작업 안내�
 - **`package.json`에 의존성을 넣지 않는다**(테스트 러너도 먼저 묻는다). `katex`는 `rehype-katex`가 쓰는 판(0.16)과 맞춘다. Playwright는 `judge/package.json`에만 있다.
 - 손대지 않는다: 사용설명서 글(`src/content/guide/*.md` — 받은 그대로 두고 어긋난 곳은 알리기만), `feat/backtest-strategy-cards` 브랜치, `docs/남은-일.md`의 "결정이 먼저 필요한 것".
 - **`fetch`는 `src/api/client.ts`에서만 쓴다**(예외 `api/realtime.ts`의 SSE, `utils/reloadPage.ts`의 화면 묶음). 화면은 `src/api/*.ts`만 부른다.
-- **색 리터럴(`#hex`·`rgb()`)은 `src/index.css` 토큰 밖에 쓰지 않는다.** 모서리·그림자·글자·간격(`--space-*`)도 토큰이다(옛 px 간격은 그 화면을 다시 만질 때 옮긴다).
+- **색 리터럴(`#hex`·`rgb()`)은 `src/index.css` 토큰 밖에 쓰지 않는다.** 모서리·그림자·글자·간격(`--space-*`, 4px 격자)도 토큰이다 — padding·margin·gap에 px를 적지 않는다(예외 0·1px·2px, judge consistency C13).
 - **`composes`로 가져온 속성을 같은 속성으로 덮어쓰지 않는다 — 미디어 쿼리 안에서도.** 공용 모듈은 쓰는 화면 묶음마다 같이 들어와 다른 화면에 다녀오면 순서가 뒤집힌다. 바뀌는 값은 변수로 받는다.
 - localStorage는 `utils/auth.ts`·`utils/cache.ts`만, 한국 시각 계산은 `utils/date.ts`만 한다.
 - 서버 `message`를 화면에 쓰지 않는다. 빨강·파랑은 등락에만 쓴다. 입력칸 글자는 16px 아래로 내리지 않는다. 새 화면에는 `useDocumentTitle`을 넣는다.
@@ -265,7 +265,8 @@ npx knip@5               # 안 쓰는 파일·내보내기(judge/는 뺀다)
   판 안에 상자를 두지 않고, 큰 % + 작은 라벨 타일을 만들지 않는다.
 - **위계는 세 단계다**: 화면 제목 28px(900px 이하 24px) + 먹 선 > 구역 제목 20px(46px 줄 + 먹 선) > 칸 안 작은 제목 16~18px. **아래 단계가 위보다 크거나 같지 않다.**
   굵은 먹 선은 화면 제목·구역 제목 아래에만(예외: 상세 세 칸 머리). 화면 제목은 모든 화면에서 같은 높이다 — 제목 위에 여백을 더하지 않는다.
-- **글자**: 작은 글자는 네 단계 — xs 12(시각·출처·배지), sm 13(보조 설명), md 14(화면 글자: 목록·탭·단추), lg 16(읽는 글). 굵기는 400·600·700 셋. 숫자 칸은 `tabular-nums`.
+- **문장 끝**: 한 문장 안내(오류·빈 안내·설명 한 줄)는 마침표 없이, 두 문장 이상인 글은 찍는다(judge consistency C14). 사용설명서 글은 받은 그대로다.
+- **글자**: 작은 글자는 네 단계 — xs 12(시각·출처·배지), sm 13(보조 설명), md 14(화면 글자: 목록·탭·단추), lg 16(읽는 글). 굵기는 400·600·700 셋 — 700은 18px 이상(제목·큰 숫자)만, 작은 글자의 강조는 600(judge consistency C15). 숫자 칸은 `tabular-nums`.
   글꼴은 Pretendard와 Michroma(`--font-wide`, 로고와 32px 이상 숫자만). 서버 자유 글은 `overflow-wrap: anywhere`. 모서리는 `--radius-sm`·`md`·`lg`와 알약·원뿐이다.
 - **색 쓰임**(2026-11-08 밤하늘 + 호박 — 초록에서 바꿨다, `judge/theme.mjs`): 넓게 칠하는 건 머리글 띠·지수 띠의 밤하늘(`--color-band`)뿐이고, 브랜드 호박은 행동·선택·활성에만 쓴다.
   호박은 밝아서 쓰임마다 단계가 다르다 — **채움(주 단추·고른 탭 막대·진행 막대·점)은 400에 먹 글자(`--color-text-on-accent`), 글자·링크·포커스·고른 칸 테두리는 700,

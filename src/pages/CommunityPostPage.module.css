@@ -2,8 +2,8 @@
 .back {
   display: inline-block;
   /* 손가락으로 누르는 넓이를 44px 넘게 넓힌다. 넓힌 만큼 바깥 여백을 빼서 배치는 그대로다 */
-  padding: 14px 0;
-  margin: -14px 0 -6px;
+  padding: var(--space-4) 0;
+  margin: calc(var(--space-4) * -1) 0 calc(var(--space-2) * -1);
   font-size: var(--font-md);
   font-weight: 600;
   color: var(--color-text-sub);
@@ -46,7 +46,7 @@
   align-items: center;
   min-height: 40px;
   margin-top: var(--space-2);
-  font-weight: 700;
+  font-weight: 600;
   color: var(--color-brand-700);
 }
 
@@ -59,7 +59,7 @@
 .stock {
   position: relative;
   display: grid;
-  grid-template-columns: 36px minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
   column-gap: var(--space-3);
   /* 본문과 같은 폭에서 끊는다 — 안 끊으면 넓은 화면에서 ›가 이름에서 1000px 넘게 떨어진다 */
@@ -68,21 +68,8 @@
   border-bottom: 1px solid var(--color-border);
 }
 
-.stockBadge {
-  display: grid;
-  grid-row: 1 / span 2;
-  place-items: center;
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  background: var(--color-bg-sub);
-  color: var(--color-text-sub);
-  font-size: var(--font-md);
-  font-weight: 700;
-}
-
 .stockMain {
-  grid-column: 2;
+  grid-column: 1;
   margin: 0;
   font-size: var(--font-lg);
   font-variant-numeric: tabular-nums;
@@ -90,7 +77,7 @@
 
 .stockLink {
   composes: rowLink from '../components/a11y.module.css';
-  font-weight: 700;
+  font-weight: 600;
   color: var(--color-text);
 }
 
@@ -116,7 +103,7 @@
 }
 
 .chevron {
-  grid-column: 3;
+  grid-column: 2;
   grid-row: 1 / span 2;
   color: var(--color-text-sub);
 }
@@ -132,10 +119,6 @@
 
   .stock:has(.stockLink:active) {
     background: var(--color-bg-sub);
-  }
-
-  .stock:has(.stockLink:active) .stockBadge {
-    background: var(--color-surface);
   }
 }
 
@@ -159,7 +142,7 @@
 
 .author strong {
   font-size: var(--font-md);
-  font-weight: 700;
+  font-weight: 600;
   color: var(--color-text);
 }
 
@@ -177,7 +160,7 @@
   background: var(--color-bg-sub);
   color: var(--color-text-sub);
   font-size: var(--font-sm);
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .content {

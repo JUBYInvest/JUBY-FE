@@ -20,7 +20,7 @@
 .status {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-2);
   margin: 0 0 0 auto;
   font-size: var(--font-sm);
   color: var(--color-text-sub);
@@ -43,7 +43,7 @@
   border: none;
   background: none;
   font: inherit;
-  font-weight: 700;
+  font-weight: 600;
   color: var(--color-brand-700);
 }
 
@@ -145,7 +145,7 @@
 }
 
 .day span {
-  padding: 2px 10px;
+  padding: 2px var(--space-2);
   border-radius: var(--radius-pill);
   background: var(--color-bg-sub);
   font-size: var(--font-xs);
@@ -179,7 +179,7 @@
   background: var(--color-bg-sub);
   color: var(--color-text-sub);
   font-size: var(--font-xs);
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .continued .avatar {
@@ -205,7 +205,7 @@
   gap: var(--space-2);
   min-height: 28px;
   margin: 0;
-  padding-top: 3px;
+  padding-top: var(--space-1);
   font-size: var(--font-sm);
 }
 
@@ -280,7 +280,7 @@
   border: none;
   background: none;
   font: inherit;
-  font-weight: 700;
+  font-weight: 600;
   color: var(--color-brand-700);
 }
 
@@ -302,7 +302,7 @@
   background: var(--color-surface);
   box-shadow: var(--shadow-pop);
   font-size: var(--font-sm);
-  font-weight: 700;
+  font-weight: 600;
   color: var(--color-text);
   white-space: nowrap;
 }
@@ -319,7 +319,7 @@
   composes: shimmer from './skeleton.module.css';
   width: 64px;
   height: 12px;
-  margin: 8px 0 8px;
+  margin: var(--space-2) 0 var(--space-2);
   border-radius: var(--radius-sm);
 }
 
@@ -417,7 +417,7 @@
 
 .loginLink {
   margin-right: var(--space-1);
-  font-weight: 700;
+  font-weight: 600;
   color: var(--color-brand-700);
 }
 

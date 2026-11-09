@@ -37,7 +37,7 @@ button.item:hover {
 .itemOn {
   background: var(--color-brand-50);
   box-shadow: inset 3px 0 0 var(--color-brand-400);
-  font-weight: 700;
+  font-weight: 600;
   color: var(--color-brand-800);
 }
 

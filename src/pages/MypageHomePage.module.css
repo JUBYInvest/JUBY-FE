@@ -64,7 +64,7 @@
 .grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: var(--space-10) clamp(24px, 3vw, 48px);
+  gap: var(--space-10) clamp(var(--space-6), 3vw, var(--space-12));
 }
 
 @container (max-width: 760px) {
@@ -203,7 +203,7 @@
   flex-direction: column;
   min-width: 0;
   font-size: var(--font-md);
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .rowSub {
@@ -297,6 +297,7 @@
 
   .lead {
     font-size: var(--font-lg);
+    font-weight: 600;
   }
 
   .row {

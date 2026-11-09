@@ -40,7 +40,7 @@
   background: var(--color-brand-400);
   color: var(--color-text-on-accent);
   font-size: var(--font-sm);
-  font-weight: 700;
+  font-weight: 600;
 }
 
 /* 남은 단계의 바로 가기. 행동이라 진한 호박 글자, 누르는 넓이 44px(여백으로 넓히고 음수 여백으로 자리는 그대로) */
@@ -48,14 +48,14 @@
   display: inline-flex;
   align-items: center;
   min-height: 44px;
-  margin: -8px 0;
+  margin: calc(var(--space-2) * -1) 0;
   padding: 0 0 0 var(--space-2);
   /* 단추(다시 시도)로 쓸 때 기본 모양을 걷는다 */
   border: 0;
   background: none;
   font-family: inherit;
   font-size: var(--font-sm);
-  font-weight: 700;
+  font-weight: 600;
   color: var(--color-brand-700);
   white-space: nowrap;
   cursor: pointer;

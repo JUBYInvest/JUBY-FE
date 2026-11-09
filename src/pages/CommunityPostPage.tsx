@@ -109,14 +109,14 @@ export default function CommunityPostPage() {
             </p>
           ) : post === 'error' || post === 'serverError' ? (
             <div className={styles.missing}>
-              <p>{post === 'serverError' ? '커뮤니티 서버에 문제가 생겨 글을 불러오지 못했어요.' : '글을 불러오지 못했어요.'}</p>
+              <p>{post === 'serverError' ? '커뮤니티 서버에 문제가 생겨 글을 불러오지 못했어요' : '글을 불러오지 못했어요'}</p>
               <button type="button" className={styles.retry} onClick={reload}>
                 다시 시도
               </button>
             </div>
           ) : post === null ? (
             <div className={styles.missing}>
-              <p>지워졌거나 주소가 틀린 글이에요.</p>
+              <p>지워졌거나 주소가 틀린 글이에요</p>
               <Link to="/community" className={styles.toList}>
                 커뮤니티 글 목록으로
               </Link>
@@ -126,9 +126,6 @@ export default function CommunityPostPage() {
               {post.stockCode !== null && post.stockName !== null && (
                 // 링크 이름은 종목 이름만 — ::after가 줄을 덮는다
                 <div className={styles.stock}>
-                  <span className={styles.stockBadge} aria-hidden="true">
-                    {Array.from(post.stockName)[0] ?? ''}
-                  </span>
                   <p className={styles.stockMain}>
                     <Link
                       to={`/stocks/${post.stockCode}`}
@@ -206,7 +203,7 @@ export default function CommunityPostPage() {
         busy={deleting}
         onConfirm={remove}
       >
-        지우면 댓글도 함께 사라지고 되돌릴 수 없어요.
+        지우면 댓글도 함께 사라지고 되돌릴 수 없어요
       </ConfirmModal>
       {gate.modals}
     </>

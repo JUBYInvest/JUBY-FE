@@ -126,7 +126,7 @@ export default function MypageProfilePage() {
     const name = editName.trim()
     const nameChanged = name !== savedName
     if (nameChanged && (name.length < 2 || name.length > 4)) {
-      setSaveError('이름은 2~4자여야 합니다.')
+      setSaveError('이름은 2~4자여야 합니다')
       return
     }
 
@@ -171,7 +171,7 @@ export default function MypageProfilePage() {
   if (state.kind === 'error') {
     return (
       <div className={styles.message}>
-        <p className={styles.messageText}>회원 정보를 불러오지 못했습니다.</p>
+        <p className={styles.messageText}>회원 정보를 불러오지 못했습니다</p>
         {/*
           토큰이 만료됐으면 서버가 401을 주고 client.ts가 로그인 화면으로 보낸다.
           여기까지 왔다면 401이 아닌 다른 실패(서버 오류, 네트워크)다.
@@ -347,7 +347,7 @@ export default function MypageProfilePage() {
         onConfirm={() => void handleDelete()}
         error={deleteError === '' ? null : deleteError}
       >
-        계정과 투자성향 정보가 모두 삭제되며 복구할 수 없습니다.
+        계정과 투자성향 정보가 모두 삭제되며 복구할 수 없습니다
       </ConfirmModal>
     </>
   )

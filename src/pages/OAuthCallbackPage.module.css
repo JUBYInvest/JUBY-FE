@@ -1,6 +1,6 @@
 .message {
   margin: 0;
-  padding-top: 80px;
+  padding-top: var(--space-20);
   font-size: var(--font-md);
   color: var(--color-text-sub);
   text-align: center;

@@ -59,7 +59,7 @@ export default class SectionBoundary extends Component<Props, State> {
 
     return (
       <div className={styles.wrap} role="alert">
-        <p className={styles.text}>이 부분을 표시하지 못했어요.</p>
+        <p className={styles.text}>이 부분을 표시하지 못했어요</p>
         <button type="button" className={styles.retry} onClick={this.retry}>
           다시 시도
         </button>

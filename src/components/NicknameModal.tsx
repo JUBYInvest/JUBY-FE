@@ -31,14 +31,14 @@ export default function NicknameModal({ isOpen, onClose, onSaved }: Props) {
     setError('')
     try {
       if (!(await isNicknameAvailable(nickname))) {
-        setError('이미 사용 중인 닉네임이에요.')
+        setError('이미 사용 중인 닉네임이에요')
         return
       }
       await saveNickname(nickname)
       onSaved(nickname)
     } catch (caught: unknown) {
       console.warn('닉네임 저장 실패', caught)
-      setError(caught instanceof ApiError && caught.code === 'MEMBER409_2' ? '이미 사용 중인 닉네임이에요.' : '저장하지 못했어요. 잠시 후 다시 시도해 주세요.')
+      setError(caught instanceof ApiError && caught.code === 'MEMBER409_2' ? '이미 사용 중인 닉네임이에요' : '저장하지 못했어요. 잠시 후 다시 시도해 주세요.')
     } finally {
       setSaving(false)
     }

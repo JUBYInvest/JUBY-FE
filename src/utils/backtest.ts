@@ -68,7 +68,7 @@ export const INVEST_TYPES: InvestTypeInfo[] = [
     personality: '안정형',
     strategyName: 'RSI 역추세 전략',
     strategySummary:
-      '너무 많이 팔려 눌린 종목이 제자리로 돌아오는 힘을 노리는 전략이에요.',
+      '너무 많이 팔려 눌린 종목이 제자리로 돌아오는 힘을 노리는 전략이에요',
     entryRule: 'RSI가 40을 위로 뚫을 때 (과매도에서 회복하기 시작할 때)',
     exitRule: 'RSI가 70을 아래로 뚫을 때 (과열이 식기 시작할 때)',
     minPeriod: 'ONE_MONTH',
@@ -80,7 +80,7 @@ export const INVEST_TYPES: InvestTypeInfo[] = [
     personality: '안정추구형',
     strategyName: '볼린저 밴드 돌파 전략',
     strategySummary:
-      '주가가 평소 움직이던 띠를 벗어나는 순간을 신호로 삼는 전략이에요.',
+      '주가가 평소 움직이던 띠를 벗어나는 순간을 신호로 삼는 전략이에요',
     entryRule: '종가가 밴드 상단을 위로 뚫을 때',
     exitRule: '종가가 밴드 하단을 아래로 뚫을 때',
     minPeriod: 'THREE_MONTHS',
@@ -92,7 +92,7 @@ export const INVEST_TYPES: InvestTypeInfo[] = [
     personality: '위험중립형',
     strategyName: '이동평균 교차 전략',
     strategySummary:
-      '단기 이동평균선이 장기선을 뚫고 올라갈 때 사고, 내려갈 때 파는 전략이에요.',
+      '단기 이동평균선이 장기선을 뚫고 올라갈 때 사고, 내려갈 때 파는 전략이에요',
     entryRule: '20일선이 60일선을 위로 뚫을 때',
     exitRule: '20일선이 60일선을 아래로 뚫을 때',
     minPeriod: 'SIX_MONTHS',
@@ -104,7 +104,7 @@ export const INVEST_TYPES: InvestTypeInfo[] = [
     personality: '적극투자형',
     strategyName: 'MACD 추세추종 전략',
     strategySummary:
-      '단기·장기 이동평균의 차이로 추세의 강도와 방향을 함께 읽는 전략이에요.',
+      '단기·장기 이동평균의 차이로 추세의 강도와 방향을 함께 읽는 전략이에요',
     entryRule: 'MACD선이 시그널선을 위로 뚫을 때',
     exitRule: 'MACD선이 시그널선을 아래로 뚫을 때',
     minPeriod: 'THREE_MONTHS',
@@ -116,7 +116,7 @@ export const INVEST_TYPES: InvestTypeInfo[] = [
     personality: '공격투자형',
     strategyName: '돌파 전략',
     strategySummary:
-      '거래량이 함께 터지며 신고가를 뚫는 순간에 올라타는 전략이에요.',
+      '거래량이 함께 터지며 신고가를 뚫는 순간에 올라타는 전략이에요',
     entryRule: '최근 20일 최고가를 뚫고, 거래량이 20일 평균의 1.5배 이상일 때',
     exitRule: '돌파 기준선이 무너지고, 매수가에서 ATR의 2배만큼 밀렸을 때',
     minPeriod: 'THREE_MONTHS',

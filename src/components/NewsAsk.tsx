@@ -34,7 +34,7 @@ export default function NewsAsk({ stockName }: { stockName: string }) {
   if (!loggedIn) {
     return (
       <div className={styles.login}>
-        <p className={styles.loginText}>로그인하면 궁금한 점을 적어 이 종목 뉴스에서 찾을 수 있어요.</p>
+        <p className={styles.loginText}>로그인하면 궁금한 점을 적어 이 종목 뉴스에서 찾을 수 있어요</p>
         <Link to={loginPathFrom(pathname)} className={styles.loginLink}>
           로그인
         </Link>
@@ -93,7 +93,7 @@ export default function NewsAsk({ stockName }: { stockName: string }) {
 
       {state.kind === 'loading' && (
         <p className={styles.status} role="status">
-          적은 질문과 가까운 기사를 찾는 중이에요.
+          적은 질문과 가까운 기사를 찾는 중이에요
         </p>
       )}
 

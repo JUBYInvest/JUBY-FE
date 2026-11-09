@@ -13,7 +13,7 @@
   align-items: center;
   gap: var(--space-20);
   /* 1080 높이에서 위아래 빈자리가 비슷하게(가운데보다 조금 위) */
-  padding-top: clamp(var(--space-4), 12vh, 144px);
+  padding-top: clamp(var(--space-4), 12vh, var(--space-36));
 }
 
 .panel {
@@ -118,7 +118,7 @@
   background: var(--color-primary);
   color: var(--color-text-on-dark);
   font-size: var(--font-xs);
-  font-weight: 700;
+  font-weight: 600;
 }
 
 /* 고대비(강제 색) 모드는 바탕색을 지운다 — 테두리로 표시 모양을 남긴다. 없으면 단추 글자 옆 낱말처럼 읽힌다 */

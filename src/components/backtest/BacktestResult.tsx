@@ -348,8 +348,8 @@ export default function BacktestResult({
         {ranking.length === 0 ? (
           <p className={styles.warn}>
             {missed.allDataShort
-              ? '1년치 일봉이 모자라 비교할 수 없어요.'
-              : '비교 결과를 불러오지 못했어요.'}
+              ? '1년치 일봉이 모자라 비교할 수 없어요'
+              : '비교 결과를 불러오지 못했어요'}
           </p>
         ) : (
           <>
@@ -379,7 +379,7 @@ export default function BacktestResult({
             </ul>
             {/* 빠진 전략이 있으면 위 순위의 1등이 진짜 1등이 아닐 수 있다 */}
             {missed.count > 0 && (
-              <p className={styles.warn}>{missed.count}개 전략은 불러오지 못했어요.</p>
+              <p className={styles.warn}>{missed.count}개 전략은 불러오지 못했어요</p>
             )}
           </>
         )}

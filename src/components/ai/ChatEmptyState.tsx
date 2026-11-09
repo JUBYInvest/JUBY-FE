@@ -64,7 +64,7 @@ export default function ChatEmptyState({ loggedIn, personality, onRetryPersonali
           </p>
         ) : personality.kind === 'error' ? (
           <div className={styles.personality}>
-            <p className={styles.personalityText}>성향을 불러오지 못했어요.</p>
+            <p className={styles.personalityText}>성향을 불러오지 못했어요</p>
             <button type="button" className={styles.darkButton} onClick={onRetryPersonality}>
               다시 시도
             </button>

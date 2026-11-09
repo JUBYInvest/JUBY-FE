@@ -336,7 +336,7 @@ await run('M', async () => {
 
   t = await open({ likeList: (n) => (n === 1 ? '500' : 'ok') })
   await t.goto('/mypage', 1500)
-  const failed = await t.page.getByText('관심종목을 불러오지 못했어요.').count()
+  const failed = await t.page.getByText('관심종목을 불러오지 못했어요').count()
   await t.page.getByRole('region', { name: '관심종목' }).getByRole('button', { name: '다시 시도' }).click(); await sleep(600)
   const recovered = await t.page.getByText('2개 중 1개 올랐고 1개 내렸어요').count()
   report('M3', failed === 1 && recovered === 1 && t.count(/like-stocks/) === 2, `관심종목 칸만 실패(${failed}) → 다시 시도로 복구(${recovered}), 다른 칸은 그대로`)

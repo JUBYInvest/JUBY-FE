@@ -71,8 +71,8 @@ export default function PersonalityTestPage() {
       <div className={styles.page}>
         <h1 className={styles.title}>나의 투자성향 테스트</h1>
         <div className={styles.gate}>
-          <p className={styles.gateText}>로그인하면 투자성향 테스트를 할 수 있어요.</p>
-          <p className={styles.gateNote}>결과는 내 성향으로 저장돼 백테스트 전략 추천과 AI 답변에 쓰여요.</p>
+          <p className={styles.gateText}>로그인하면 투자성향 테스트를 할 수 있어요</p>
+          <p className={styles.gateNote}>결과는 내 성향으로 저장돼 백테스트 전략 추천과 AI 답변에 쓰여요</p>
           <Link to={loginPathFrom(pathname + search)} className={styles.login}>
             로그인
           </Link>
@@ -84,7 +84,7 @@ export default function PersonalityTestPage() {
   if (hasError) {
     return (
       <div className={styles.message}>
-        <p>문항을 불러오지 못했습니다.</p>
+        <p>문항을 불러오지 못했습니다</p>
         <button
           type="button"
           className={styles.retry}

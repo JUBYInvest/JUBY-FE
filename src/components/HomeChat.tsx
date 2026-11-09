@@ -143,13 +143,13 @@ export default function HomeChat() {
             <ChatSkeleton />
           ) : history.kind === 'error' && messages.length === 0 ? (
             <div className={styles.state}>
-              <p className={styles.stateText}>지난 대화를 불러오지 못했어요.</p>
+              <p className={styles.stateText}>지난 대화를 불러오지 못했어요</p>
               <button type="button" className={styles.stateAction} onClick={chat.retryHistory}>
                 다시 시도
               </button>
             </div>
           ) : messages.length === 0 && pending.length === 0 ? (
-            <p className={styles.empty}>{canSpeak ? '아직 대화가 없어요. 먼저 인사를 건네 보세요.' : '아직 대화가 없어요.'}</p>
+            <p className={styles.empty}>{canSpeak ? '아직 대화가 없어요. 먼저 인사를 건네 보세요.' : '아직 대화가 없어요'}</p>
           ) : (
             <ol className={styles.messages}>
               {messages.map((message, index) => (
@@ -174,7 +174,7 @@ export default function HomeChat() {
           <Link to={loginPathFrom('/')} className={styles.loginLink}>
             로그인
           </Link>
-          하면 채팅에 참여할 수 있어요.
+          하면 채팅에 참여할 수 있어요
         </p>
       ) : chat.signedOut ? (
         <p className={styles.login}>
@@ -182,11 +182,11 @@ export default function HomeChat() {
           <Link to={loginPathFrom('/')} className={styles.loginLink}>
             다시 로그인
           </Link>
-          하면 말할 수 있어요.
+          하면 말할 수 있어요
         </p>
       ) : nickname === null ? (
         <div className={styles.nicknameRow}>
-          <p className={styles.nicknameText}>닉네임을 정하면 채팅에 참여할 수 있어요.</p>
+          <p className={styles.nicknameText}>닉네임을 정하면 채팅에 참여할 수 있어요</p>
           <button type="button" className={styles.nicknameButton} onClick={() => setNicknameOpen(true)}>
             닉네임 정하기
           </button>

@@ -81,7 +81,7 @@
   background: none;
   font: inherit;
   font-size: var(--font-md);
-  font-weight: 700;
+  font-weight: 600;
   color: var(--color-brand-700);
   cursor: pointer;
 }
@@ -234,24 +234,6 @@
 
 .cardOn:hover {
   border-color: var(--color-brand-700);
-}
-
-.badge {
-  display: grid;
-  flex-shrink: 0;
-  place-items: center;
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  background: var(--color-bg-sub);
-  color: var(--color-text-sub);
-  font-size: var(--font-sm);
-  font-weight: 700;
-}
-
-.cardOn .badge {
-  background: var(--color-surface);
-  color: var(--color-brand-700);
 }
 
 /*

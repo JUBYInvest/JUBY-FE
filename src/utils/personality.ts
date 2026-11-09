@@ -89,7 +89,7 @@ export function describePersonality(
 ): { description: string; imageUrl: string } {
   const local = isPersonalityType(name) ? PERSONALITY_INFO[name] : null
   return {
-    description: filledOr(description, local?.description ?? '설명을 불러오지 못했어요.'),
+    description: filledOr(description, local?.description ?? '설명을 불러오지 못했어요'),
     imageUrl: filledOr(imageUrl, local?.imageUrl ?? ''),
   }
 }

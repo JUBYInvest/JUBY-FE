@@ -39,7 +39,7 @@
   background: none;
   font: inherit;
   font-size: var(--font-md);
-  font-weight: 700;
+  font-weight: 600;
   color: var(--color-brand-700);
   cursor: pointer;
 }
@@ -85,7 +85,7 @@
 .item {
   flex: 1;
   min-width: 0;
-  padding: 12px 0 12px 16px;
+  padding: var(--space-3) 0 var(--space-3) var(--space-4);
   border: 0;
   background: none;
   font-size: var(--font-md);
@@ -97,7 +97,7 @@
 }
 
 .rowOn .item {
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .more {
@@ -118,13 +118,13 @@
 .actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 4px;
-  padding: 0 8px 4px;
+  gap: var(--space-1);
+  padding: 0 var(--space-2) var(--space-1);
 }
 
 .action {
   min-height: 44px;
-  padding: 0 8px;
+  padding: 0 var(--space-2);
   border: 0;
   background: none;
   font-size: var(--font-sm);
@@ -148,13 +148,13 @@
 }
 
 .rename {
-  padding: 8px 8px 4px 16px;
+  padding: var(--space-2) var(--space-2) var(--space-1) var(--space-4);
 }
 
 /* 16px 아래면 아이폰 사파리가 누르는 순간 화면을 확대한다 */
 .renameInput {
   width: 100%;
-  padding: 8px 10px;
+  padding: var(--space-2) var(--space-3);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
   background: var(--color-surface);
@@ -165,12 +165,12 @@
 
 /* 단추 글자를 이름칸 왼쪽 끝에 맞춘다(단추 안쪽 여백만큼 당긴다) */
 .rename .actions {
-  margin-left: -8px;
-  padding: 4px 0 0;
+  margin-left: calc(var(--space-2) * -1);
+  padding: var(--space-1) 0 0;
 }
 
 .rowError {
-  margin: 6px 0 0;
+  margin: var(--space-2) 0 0;
   font-size: var(--font-sm);
   line-height: 1.5;
   color: var(--color-text);
@@ -178,7 +178,7 @@
 
 .listNotice {
   margin: 0;
-  padding: 12px 16px 0;
+  padding: var(--space-3) var(--space-4) 0;
   font-size: var(--font-sm);
   line-height: 1.5;
   color: var(--color-text-sub);
@@ -186,7 +186,7 @@
 
 .empty {
   margin: 0;
-  padding: 20px 16px;
+  padding: var(--space-5) var(--space-4);
   font-size: var(--font-sm);
   line-height: 1.5;
   color: var(--color-text-sub);
@@ -194,8 +194,8 @@
 
 /* 목록 실패 안내 옆 다시 시도. 누르는 넓이는 위아래 여백으로 넓히고 같은 만큼 음수 margin을 줘 배치는 그대로 둔다 */
 .retry {
-  margin: -13px 0 -13px 8px;
-  padding: 13px 4px;
+  margin: calc(var(--space-4) * -1) 0 calc(var(--space-4) * -1) var(--space-2);
+  padding: var(--space-4) var(--space-1);
   border: 0;
   background: none;
   font-size: var(--font-sm);
@@ -237,7 +237,7 @@
     background: none;
     font: inherit;
     font-size: var(--font-md);
-    font-weight: 700;
+    font-weight: 600;
     color: var(--color-text);
     cursor: pointer;
   }
