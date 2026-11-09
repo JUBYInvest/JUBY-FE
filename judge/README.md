@@ -36,6 +36,7 @@ node login.mjs http://localhost:4198                  # 로그인 화면(11-02):
 node guide.mjs http://localhost:4198                  # 사용설명서(11-03): 글 파일과 같은 글·그림 다섯 장(WebP·자리·대체 글)·네 장 차례·꼭지로 옮기기·따라오는 차례·주소·넘침·홈 사용설명서 칸
 node consistency.mjs http://localhost:4198            # 화면 사이 위계·세부(11-03): 화면 제목 크기·높이·먹 선, 백테스트 결과 머리·칸 선·지표 칸, 모아보기 제목 바닥선·하트, AI 머리, 마이페이지 크기·이름, 테스트 판, 마이페이지 휴대폰 메뉴 밑줄 탭·줄 바뀌는 탭(11-04 C7·C8), 고른 탭 막대가 놓인 선을 덮는다(11-05 C9)
 node theme.mjs http://localhost:4198                  # 색 테마(11-08 밤하늘 + 호박): 띠·주소창 색, 주 단추는 호박 채움 + 먹 글자, 23화면 × 1440·390과 받은 CSS 규칙에 초록 기운 0, 아이콘 셋의 바탕, 서비스 이름(JUBY: 초보자를 위한 주식 비서)·아이콘 주소 ?v=
+node states.mjs http://localhost:4198 [--shots 폴더]  # 응답 상태 넷(11-08): 17화면 × 정상·빈 데이터(배열만 비움 — mock shape)·500·3초 지연(page.route)에서 흰 화면·ErrorBoundary·구역 경계·런타임 오류·NaN/undefined 0, 로딩·안내 표시는 INFO + 그림
 ```
 
 `--only A,B`로 묶음을 고르고, `flow`·`repro`·`ai`는 `--headed`로 창을 보며 돌린다. 끝줄이 `N PASS / M FAIL`이고 FAIL이 있으면 종료 코드 1이다.

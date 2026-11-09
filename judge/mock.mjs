@@ -259,6 +259,8 @@ export const ROOM_1 = { title: '삼성전자 주가 어때?', messages: [
  *   sessionDetailStatus: 404(CHAT404_1) | 403(CHAT403_1) | 500 — 방 상세 실패, sessionDetailDelay(ms)
  *   askDelay(ms, 기본 300), askStatus: 'ok' | 'MEMBER404_2' | 'CHAT409_1' | '500' | 'empty'(답이 빈 글) | (n번째 질문) => 그중 하나
  *   createStatus: 500(방 만들기 실패), renameStatus: 500 | 404, deleteStatus: 500 | 404
+ * opts — 모든 응답
+ *   shape(method, path, status, body) → 내보낼 본문(글자). states.mjs가 '빈 데이터'(모양은 그대로, 목록만 빈 배열)를 지을 때 쓴다(2026-11-08)
  */
 /*
  * 바깥 글꼴(index.html의 Pretendard CDN·Google Fonts)은 처음 한 번만 받아 judge/.cache/fonts에 담고 다음부터 거기서 준다(2026-11-03).
@@ -428,7 +430,7 @@ export async function mock(context, opts = {}) {
     if (!url.pathname.startsWith('/api/')) return route.continue()
     const m = req.method(), p = url.pathname, q = url.searchParams
     log.push(`${m} ${p}${url.search}`)
-    const json = (body, status = 200) => route.fulfill({ status, contentType: 'application/json', body }).catch(() => {})
+    const json = (body, status = 200) => route.fulfill({ status, contentType: 'application/json', body: opts.shape ? opts.shape(m, p, status, body) : body }).catch(() => {})
     // 실서버처럼 공개는 /api/stocks/**·지수·실시간 스트림·재발급뿐이다(JUBY-BE dc44e2b). 토큰 없이 그 밖을 부르면 401
     const authed = /^Bearer \S+/.test(req.headers()['authorization'] ?? '')
     // 커뮤니티는 GET이 공개(댓글 목록만 로그인) — 백엔드 SecurityConfig와 같다

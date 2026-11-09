@@ -1,7 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { ApiError } from '../api/client'
-import { COMMUNITY_LIMITS, createPost, getPost, needsNickname, updatePost } from '../api/community'
+import { COMMUNITY_LIMITS, createPost, getPost, isServerFault, needsNickname, updatePost } from '../api/community'
 import { getMemberInfo } from '../api/member'
 import { STOCK_LIST } from '../api/stockList'
 import NicknameModal from '../components/NicknameModal'
@@ -15,7 +15,8 @@ import type { StockInfo } from '../types/stock'
 import styles from './CommunityWritePage.module.css'
 
 /** 고칠 글을 받는 중 · 고칠 수 없음(남의 글·지운 글·못 받음) · 쓸 수 있음 */
-type EditState = { kind: 'loading' } | { kind: 'blocked'; message: string } | { kind: 'ready' }
+/** blocked는 고칠 수 없는 글(주소·삭제·남의 글), failed는 받지 못한 것(다시 시도를 준다) */
+type EditState = { kind: 'loading' } | { kind: 'blocked'; message: string } | { kind: 'failed'; serverFault: boolean } | { kind: 'ready' }
 
 /**
  * 커뮤니티 글쓰기(`/community/write`)와 고치기(`/community/{postId}/edit`) — 종목(고르지 않아도 된다, 검색칸을 누르면 치기 전에 시가총액 순 후보가 뜬다, 고칠 때는 바꿀 수 없다) · 제목 · 내용.
@@ -39,6 +40,7 @@ export default function CommunityWritePage() {
   const [error, setError] = useState('')
   const [nicknameOpen, setNicknameOpen] = useState(false)
   const [edit, setEdit] = useState<EditState>(editing ? { kind: 'loading' } : { kind: 'ready' })
+  const [loadCount, setLoadCount] = useState(0)
 
   // 새 글: 닉네임이 없으면 먼저 정하게 한다(못 받으면 그냥 둔다 — 올릴 때 서버가 알려 준다)
   useEffect(() => {
@@ -75,12 +77,17 @@ export default function CommunityWritePage() {
       })
       .catch((caught: unknown) => {
         console.warn('고칠 글을 받지 못했습니다', caught)
-        if (!isStale) setEdit({ kind: 'blocked', message: '글을 불러오지 못했어요. 잠시 후 다시 시도해 주세요.' })
+        if (!isStale) setEdit({ kind: 'failed', serverFault: isServerFault(caught) })
       })
     return () => {
       isStale = true
     }
-  }, [editing, editId, loggedIn])
+  }, [editing, editId, loggedIn, loadCount])
+
+  const reload = () => {
+    setEdit({ kind: 'loading' })
+    setLoadCount((count) => count + 1)
+  }
 
   const editable = loggedIn && edit.kind === 'ready' && !sending
   const ready = editable && title.trim() !== '' && content.trim() !== ''
@@ -129,6 +136,13 @@ export default function CommunityWritePage() {
         <p className={styles.notice}>
           <Spinner size={14} /> 고칠 글을 불러오는 중…
         </p>
+      ) : edit.kind === 'failed' ? (
+        <div className={styles.notice}>
+          <p className={styles.noticeText}>{edit.serverFault ? '커뮤니티 서버에 문제가 생겨 글을 불러오지 못했어요.' : '글을 불러오지 못했어요.'}</p>
+          <button type="button" className={styles.retry} onClick={reload}>
+            다시 시도
+          </button>
+        </div>
       ) : edit.kind === 'blocked' ? (
         <p className={styles.notice}>
           {edit.message}{' '}
@@ -147,8 +161,9 @@ export default function CommunityWritePage() {
             <span className={styles.label} id="community-write-stock">
               종목 {!editing && <span className={styles.optional}>(고르지 않아도 돼요)</span>}
             </span>
+            {/* 고칠 글을 받기 전엔 종목을 모른다 — "종목 없이 쓴 글"이라 적지 않는다 */}
             {editing ? (
-              <p className={styles.stockChosen}>{stock !== null ? <><strong>{stock.stockName}</strong> · 종목은 바꿀 수 없어요</> : '종목 없이 쓴 글이에요'}</p>
+              <p className={styles.stockChosen}>{edit.kind !== 'ready' ? '-' : stock !== null ? <><strong>{stock.stockName}</strong> · 종목은 바꿀 수 없어요</> : '종목 없이 쓴 글이에요'}</p>
             ) : stock !== null ? (
               <p className={styles.stockChosen}>
                 <strong>{stock.stockName}</strong>

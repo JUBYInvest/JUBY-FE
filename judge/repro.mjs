@@ -1,6 +1,7 @@
 // 결함 재현 판정 — 코드 검토에서 찾은 것들. 고치기 전 빌드에서 FAIL, 고친 뒤 PASS여야 한다(CLAUDE.md "버그 수정" 순서).
-//   node repro.mjs <BASE> [--only B,C,D,E,S,R,F,G]
+//   node repro.mjs <BASE> [--only B,C,D,E,S,R,F,G,H]
 import { cli, hexToRgb, judge, sleep, tokenFor, THU_11 } from './lib.mjs'
+import { fail } from './mock.mjs'
 
 const j = await judge(cli())
 const { open, run, report } = j
@@ -401,6 +402,37 @@ await run('G', async () => {
   const href = await t.page.locator('main').getByRole('link', { name: '로그인' }).first().getAttribute('href').catch(() => null)
   report('G3', asked === 0 && bar === 0 && href === '/login?next=%2Fpersonality-test%3Ffrom%3Dai', `문항 GET ${asked}건, 진행 막대 ${bar}, 로그인 링크 ${href}`)
   await t.close()
+})
+
+/* ── H. 응답 상태(2026-11-08 states.mjs에서 찾음) ──────────────────────── */
+await run('H', async () => {
+  // H1 글 고치기에서 글을 받는 동안 종목 줄이 "종목 없이 쓴 글이에요"라고 적지 않는다(아직 모르는 것을 없다고 적었다)
+  // H2 글을 받지 못하면(500) 다시 시도가 있고, 누르면 다시 받아 칸을 채운다(커뮤니티로 가는 링크뿐이었다)
+  const STOCKLESS = '종목 없이 쓴 글이에요'
+  {
+    const t = await open()
+    await t.page.route((url) => url.pathname === '/api/community/posts/3', async (route) => { await sleep(2500); return route.fallback().catch(() => {}) })
+    await t.goto('/community/3/edit', 800)
+    const during = await t.page.locator('main').innerText()
+    await sleep(2500)
+    const after = await t.page.locator('main').innerText()
+    report('H1', !during.includes(STOCKLESS) && during.includes('불러오는 중') && after.includes('한화에어로스페이스'), `받는 동안 "${STOCKLESS}" ${during.includes(STOCKLESS) ? '있음' : '없음'}, 받은 뒤 종목 ${after.includes('한화에어로스페이스') ? '한화에어로스페이스' : '없음'}`)
+    await t.close()
+  }
+  {
+    const t = await open()
+    let asked = 0
+    await t.page.route((url) => url.pathname === '/api/community/posts/3', (route) => (++asked === 1 ? route.fulfill({ status: 500, contentType: 'application/json', body: fail() }) : route.fallback()).catch(() => {}))
+    await t.goto('/community/3/edit', 1200)
+    const failedText = await t.page.locator('main').innerText()
+    const retry = t.page.locator('main').getByRole('button', { name: '다시 시도' })
+    const hasRetry = (await retry.count()) === 1
+    if (hasRetry) { await retry.click(); await sleep(1000) }
+    const title = await t.page.locator('#community-write-title').inputValue().catch(() => '')
+    report('H2', hasRetry && !failedText.includes(STOCKLESS) && title === '커뮤니티 글 3' && asked === 2,
+      `실패 뒤 다시 시도 ${hasRetry ? '있음' : '없음'}, "${STOCKLESS}" ${failedText.includes(STOCKLESS) ? '있음' : '없음'}, 다시 받은 제목 "${title}", 글 GET ${asked}건`)
+    await t.close()
+  }
 })
 
 await j.finish()

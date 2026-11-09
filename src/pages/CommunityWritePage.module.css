@@ -25,6 +25,14 @@
   line-height: 1.6;
 }
 
+.noticeText {
+  margin: 0;
+}
+
+.retry {
+  composes: secondary md from '../components/buttons.module.css';
+}
+
 .noticeLink {
   font-weight: 700;
   color: var(--color-brand-700);
