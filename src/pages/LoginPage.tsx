@@ -16,6 +16,11 @@ const PROVIDER_CLASS: Record<SocialType, string> = { KAKAO: styles.kakao, NAVER:
 /** "최근 사용" 표시. 단추 이름이 아니라 설명으로 읽힌다(aria-describedby) — 이름은 누르면 일어나는 일 그대로 둔다 */
 const LAST_USED_ID = 'login-last-used'
 
+/** 아직 로그인할 수 없는 곳(utils/social `ready: false`)의 단추를 눌렀을 때 그 단추 아래에 붙는 안내. 그 단추의 설명도 된다 */
+const PENDING_ID = 'login-pending'
+
+type SocialProvider = (typeof SOCIAL_PROVIDERS)[number]
+
 export default function LoginPage() {
   useDocumentTitle('로그인')
   /*
@@ -30,6 +35,8 @@ export default function LoginPage() {
   const returnPath = toReturnPath(new URLSearchParams(location.search).get('next'))
   /** 이 브라우저에서 지난번에 로그인한 곳. 그 단추에 "최근 사용"을 붙인다(utils/lastLogin) */
   const [lastProvider] = useState(readLastLoginProvider)
+  /** 승인 대기 안내를 띄운 단추. 한 번 띄우면 화면을 떠날 때까지 둔다(다시 눌러도 하나) */
+  const [pendingProvider, setPendingProvider] = useState<SocialType | null>(null)
 
   /*
    * fetch를 쓰면 안 된다. 이 주소는 백엔드가 302로 네이버·카카오·구글 로그인 화면에
@@ -39,11 +46,16 @@ export default function LoginPage() {
    * 로그인을 마친 백엔드는 `/oauth2/callback#accessToken=…`(실패면 `/oauth2/error?error=…`)으로 되돌려보낸다.
    * 되돌아올 주소는 백엔드 설정(`FRONTEND_URL`)이 정한다 — 이 화면이 아니다.
    */
-  function handleSocialLogin(path: string) {
+  function handleSocialLogin(provider: SocialProvider) {
+    // 아직 로그인할 수 없는 곳(네이버 — 승인 대기)은 떠나지 않고 그 단추 아래에 안내만 띄운다
+    if (!provider.ready) {
+      setPendingProvider(provider.type)
+      return
+    }
     // 바깥 화면을 거쳐 페이지가 새로 뜨므로 돌아갈 자리를 적어 두고 떠난다. 콜백이 꺼내 쓴다
     rememberReturnPath(returnPath)
     // 주소창 이동이라 프록시를 탈 수 없다. 백엔드 주소로 곧장 간다(client.ts의 API_ORIGIN)
-    window.location.href = `${API_ORIGIN}/oauth2/authorization/${path}`
+    window.location.href = `${API_ORIGIN}/oauth2/authorization/${provider.path}`
   }
 
   /*
@@ -66,13 +78,15 @@ export default function LoginPage() {
         <ul className={styles.providers}>
           {SOCIAL_PROVIDERS.map((provider) => {
             const isLast = lastProvider === provider.type
+            const isPending = pendingProvider === provider.type
+            const describedBy = [isLast && LAST_USED_ID, isPending && PENDING_ID].filter(Boolean).join(' ')
             return (
               <li key={provider.type}>
                 <button
                   type="button"
                   className={PROVIDER_CLASS[provider.type]}
-                  aria-describedby={isLast ? LAST_USED_ID : undefined}
-                  onClick={() => handleSocialLogin(provider.path)}
+                  aria-describedby={describedBy || undefined}
+                  onClick={() => handleSocialLogin(provider)}
                 >
                   {/* 배치는 안쪽 줄이 맡는다(LoginPage.module.css .inner) — 단추 자체에는 공통 단추 모양만 */}
                   <span className={styles.inner}>
@@ -85,6 +99,25 @@ export default function LoginPage() {
                     </span>
                   )}
                 </button>
+                {/* 단추 밑에서 빠져나오는 쪽지(펼침 칸 → 자르는 칸 → 쪽지). 무엇이 막혔는지와 무엇을 하면 되는지 두 줄 */}
+                {isPending && (
+                  <div className={styles.pending}>
+                    <div className={styles.pendingClip}>
+                      <p id={PENDING_ID} className={styles.pendingSlip} role="alert">
+                        <span className={styles.pendingIcon} aria-hidden="true">
+                          <svg width="16" height="16" viewBox="0 0 24 24">
+                            <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" strokeWidth="2" />
+                            <path d="M12 7v5l3.5 2" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                          </svg>
+                        </span>
+                        <span className={styles.pendingText}>
+                          <strong>서비스 승인 대기중입니다.</strong>{' '}
+                          <span>다른 소셜 로그인을 이용해 주세요.</span>
+                        </span>
+                      </p>
+                    </div>
+                  </div>
+                )}
               </li>
             )
           })}

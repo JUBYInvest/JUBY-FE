@@ -3,6 +3,8 @@
 // 소셜 로그인 주소(api.juby.store)로 가는 이동은 mock이 막고 "BLOCKED 경로"로 적는다.
 // 같은 날 검토로 더했다: L5 "최근 사용"은 이름이 아니라 설명, L6b 가입 경로를 모르면 기록을 지움, L8 좁은 폭의 표시, L10 다른 화면에
 // 다녀와도 단추 배치가 같음, L11 탈퇴하면 기록을 지움(로그아웃은 둠), L12 고대비 모드의 표시.
+// 2026-11-14 사용자 "네이버 로그인을 누르면 네이버로 가지 않고 '서비스 승인 대기중입니다. 다른 소셜 로그인을 이용해 주세요.' 안내를 띄워" —
+// 네이버 앱이 아직 승인 전이라 등록한 사람만 로그인된다. L4는 카카오·Google만 떠나고, L13이 네이버 안내를 잰다.
 // node login.mjs <BASE> [--only L1,L5] [--headed]
 import { cli, judge, noOverflow, sleep } from './lib.mjs'
 import { fail, tokenFor, wrap } from './mock.mjs'
@@ -68,9 +70,9 @@ await j.run('L1', async () => {
 
 await j.run('L4', async () => {
   // L4 단추를 누르면 그 회사 로그인 주소로 떠나고 돌아갈 자리를 적어 둔다. 백엔드로는 보내지 않는다 —
-  // 그 이동에 204(내용 없음)로 답해 화면이 제자리에 남게 하고 가려던 주소만 적는다
+  // 그 이동에 204(내용 없음)로 답해 화면이 제자리에 남게 하고 가려던 주소만 적는다. 네이버는 승인 전이라 떠나지 않는다(L13)
   const got = []
-  for (const [i, provider] of ['kakao', 'naver', 'google'].entries()) {
+  for (const [i, provider] of [[0, 'kakao'], [2, 'google']]) {
     const t = await j.open({ loggedIn: false, width: 1440, height: 900 })
     const went = []
     await t.page.route('https://api.juby.store/oauth2/**', (route) => { went.push(new URL(route.request().url()).pathname); return route.fulfill({ status: 204 }) })
@@ -252,6 +254,53 @@ await j.run('L12', async () => {
   })
   await t.close()
   j.report('L12', border !== null && !/^0px|none/.test(border), `강제 색에서 표시 테두리 ${border}`)
+})
+
+await j.run('L13', async () => {
+  // L13 네이버 단추는 떠나지 않고(로그인 주소로 가는 이동 0, 돌아갈 자리도 적지 않음) 그 단추 바로 아래에 안내를 띄운다.
+  // 안내는 알림(role=alert)으로 읽히고 네이버 단추의 설명이 된다. 네이버와 Google 단추 사이, 단추 줄 폭 안에 들고 화면이 넘치지 않는다.
+  // 다시 눌러도 안내는 하나다. 고대비(강제 색) 모드에서도 안내 칸의 테두리가 남는다
+  const TEXT = '서비스 승인 대기중입니다. 다른 소셜 로그인을 이용해 주세요.'
+  const norm = (x) => (x ?? '').replace(/\s+/g, ' ').trim()
+  const out = []
+  for (const [width, height] of [[1440, 900], [375, 812], [320, 640]]) {
+    const t = await j.open({ loggedIn: false, width, height })
+    const went = []
+    await t.page.route('https://api.juby.store/oauth2/**', (route) => { went.push(new URL(route.request().url()).pathname); return route.fulfill({ status: 204 }) })
+    await t.goto('/login?next=%2Fbacktest', 1000)
+    await t.page.evaluate(() => document.fonts.ready)
+    const before = await t.page.getByText('서비스 승인 대기중입니다').count()
+    const naver = t.page.getByRole('button', { name: '네이버로 로그인', exact: true })
+    // 떠나는 단추면 두 번째 누름이 이동을 기다리다 멈춘다 — 짧게 끊고 잰다
+    for (let k = 0; k < 2; k++) {
+      await naver.evaluate((b) => b.click(), null, { timeout: 3000 }).catch(() => {})
+      await sleep(800)
+    }
+    const got = await t.page.evaluate(() => {
+      const alerts = [...document.querySelectorAll('main [role="alert"]')]
+      const buttons = [...document.querySelectorAll('main button')]
+      const nav = buttons.find((b) => b.textContent.includes('네이버로 로그인'))
+      const goo = buttons.find((b) => b.textContent.includes('Google로 로그인'))
+      const box = (el) => { const r = el.getBoundingClientRect(); return { top: r.top, bottom: r.bottom, left: r.left, right: r.right } }
+      const described = nav ? (nav.getAttribute('aria-describedby') ?? '').split(/\s+/).filter(Boolean).map((id) => document.getElementById(id)?.textContent ?? '').join(' ') : ''
+      return { alerts: alerts.map((a) => ({ text: a.textContent, box: box(a) })), nav: nav && box(nav), goo: goo && box(goo), described }
+    })
+    const saved = await t.page.evaluate(() => sessionStorage.getItem('loginReturnPath'))
+    const path = new URL(t.page.url()).pathname
+    const a = got.alerts[0]
+    const between = a && got.nav && got.goo && a.box.top >= got.nav.bottom - 1 && a.box.bottom <= got.goo.top - 1
+    const inside = a && got.nav && a.box.left >= got.nav.left - 0.5 && a.box.right <= got.nav.right + 0.5
+    let forced = null
+    if (width === 1440 && a) {
+      await t.page.emulateMedia({ forcedColors: 'active' })
+      await sleep(200)
+      forced = await t.page.evaluate(() => { const cs = getComputedStyle(document.querySelector('main [role="alert"]')); return `${cs.borderTopWidth} ${cs.borderTopStyle}` })
+    }
+    out.push({ width, before, went: went.join(','), saved, path, alerts: got.alerts.length, text: norm(a?.text), described: norm(got.described).includes(TEXT), between: !!between, inside: !!inside, over: !(await noOverflow(t.page)), forced })
+    await t.close()
+  }
+  j.report('L13', out.every((o) => o.before === 0 && o.went === '' && o.saved === null && o.path === '/login' && o.alerts === 1 && o.text === TEXT && o.described && o.between && o.inside && !o.over)
+    && out[0].forced !== null && !/^0px|none/.test(out[0].forced), JSON.stringify(out))
 })
 
 await j.finish()

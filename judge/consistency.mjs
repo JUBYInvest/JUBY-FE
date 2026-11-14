@@ -378,8 +378,9 @@ await j.run('C13', async () => {
 await j.run('C14', async () => {
   // 두 문장으로 읽히는 글 — 한 조각에 마침표가 하나여도 찍는다: 줄 나눔으로 잇는 안내, 말풍선처럼 이어 붙인 문단, 함께 보이는 규칙 목록, 사용설명서 사례
   const KEEP = /(backtest\/BacktestResult|backtest\/BacktestHelp|ai\/ChatEmptyState|content\/|hooks\/useBacktestRun|ErrorBoundary)/
-  // '이에요.'·'을 골라 뒀어요.'는 백테스트 성향 배너 문단의 조각이다(두 문장)
-  const isSingle = (t) => /[가-힣]\.$/.test(t) && !/[가-힣)]\.\s/.test(t) && !['이에요.', '을 골라 뒀어요.'].includes(t)
+  // '이에요.'·'을 골라 뒀어요.'는 백테스트 성향 배너 문단의 조각이다(두 문장). 승인 대기 두 줄은 로그인 화면 네이버 안내 한 칸이다(사용자 문장 그대로)
+  const TWO = ['이에요.', '을 골라 뒀어요.', '서비스 승인 대기중입니다.', '다른 소셜 로그인을 이용해 주세요.']
+  const isSingle = (t) => /[가-힣]\.$/.test(t) && !/[가-힣)]\.\s/.test(t) && !TWO.includes(t)
   const bad = []
   for (const f of walk(SRC).filter((x) => /\.tsx?$/.test(x) && !KEEP.test(x))) {
     let inBlock = false
